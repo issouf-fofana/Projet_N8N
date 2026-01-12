@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Contrôle des Commandes</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #1e3a5f 0%, #2c5282 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .sidebar-header {
+            padding: 30px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-header h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+        
+        .sidebar-menu-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-menu-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: #2563eb;
+            color: white;
+        }
+        
+        .sidebar-menu-item.active {
+            background: rgba(37, 99, 235, 0.2);
+            border-left-color: #2563eb;
+            color: white;
+        }
+        
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+        
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            
+            .main-content {
+                margin-left: 240px;
+            }
+            
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .filters-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 70px 10px 20px 10px;
+            }
+            
+            .container {
+                border-radius: 10px;
+                margin: 0;
+            }
+            
+            .header {
+                padding: 20px 15px;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .header-content h1 {
+                font-size: 1.5em;
+            }
+            
+            .header-content p {
+                font-size: 0.9em;
+            }
+            
+            .action-buttons {
+                width: 100%;
+                flex-direction: column;
+            }
+            
+            .stats-bar {
+                grid-template-columns: 1fr;
+                padding: 15px;
+                gap: 15px;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+            
+            .stat-card h3 {
+                font-size: 2em;
+            }
+            
+            .filters-section {
+                padding: 15px;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .filter-group label {
+                font-size: 0.9em;
+            }
+            
+            .table-container {
+                padding: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+                padding: 0 10px;
+                gap: 5px;
+            }
+            
+            .tab {
+                padding: 10px 16px;
+                font-size: 0.9em;
+                flex: 1;
+                min-width: 120px;
+            }
+            
+            table {
+                font-size: 0.8em;
+                min-width: 1000px;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+                white-space: nowrap;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.9em;
+                width: 100%;
+            }
+            
+            .filter-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header-content h1 {
+                font-size: 1.3em;
+            }
+            
+            .stat-card h3 {
+                font-size: 1.8em;
+            }
+            
+            .stat-card p {
+                font-size: 0.9em;
+            }
+            
+            .tab {
+                font-size: 0.85em;
+                padding: 8px 12px;
+            }
+            
+            table {
+                font-size: 0.75em;
+            }
+            
+            th, td {
+                padding: 6px 4px;
+            }
+            
+            .btn-details {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+        }
+        
+        /* Onglets */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            padding: 0 20px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.3s;
+            position: relative;
+            top: 2px;
+        }
+        
+        .tab:hover {
+            color: #2563eb;
+        }
+        
+        .tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .section-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .section-header h2 {
+            margin: 0 0 8px 0;
+            color: #2563eb;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-header p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.95em;
+        }
+        
+        @media (max-width: 768px) {
+            .section-header {
+                padding: 15px;
+            }
+            
+            .section-header h2 {
+                font-size: 1.3em;
+            }
+            
+            .section-header p {
+                font-size: 0.85em;
+            }
+        }
+        
+        .icon {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            vertical-align: middle;
+            fill: currentColor;
+        }
+        
+        .icon-large {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .icon-xl {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .icon-white {
+            fill: white;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .status-badge.cyrus-found {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-badge.cyrus-not-found {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+            color: white;
+            padding: 40px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .header-content h1 {
+            font-size: 2.8em;
+            margin-bottom: 8px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-content p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .btn-refresh {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn-refresh:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn-refresh:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-refresh.loading {
+            position: relative;
+        }
+        
+        .btn-refresh.loading::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 25px;
+            padding: 35px;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 28px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        
+        .stat-card.asten {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            border-color: #1e3a8a;
+        }
+        
+        .stat-card.cyrus {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            border-color: #065f46;
+        }
+        
+        .stat-card.ecarts {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            border-color: #991b1b;
+        }
+        
+        .stat-card.different {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border-color: #b45309;
+        }
+        
+        .stat-card h3 {
+            font-size: 3em;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        
+        .stat-card.ecarts h3 {
+            color: white;
+        }
+        
+        .stat-card p {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .stat-card small {
+            display: block;
+            font-size: 0.9em;
+            opacity: 0.85;
+            margin-top: 8px;
+        }
+        
+        .filters {
+            padding: 35px;
+            background: #ffffff;
+            border-bottom: 3px solid #e9ecef;
+        }
+        
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filters-header h2 {
+            color: #333;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .table-container {
+            padding: 35px;
+            overflow-x: auto;
+            background: #fafafa;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            min-width: fit-content;
+        }
+        
+        /* Responsivité pour les tableaux avec beaucoup de colonnes */
+        @media (max-width: 1200px) {
+            .table-container {
+                padding: 20px 15px;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 12px 10px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .table-container {
+                padding: 15px 10px;
+            }
+            
+            table {
+                font-size: 0.85em;
+                min-width: 1200px; /* Largeur minimale pour permettre le scroll horizontal */
+            }
+            
+            th, td {
+                padding: 10px 8px;
+                white-space: nowrap;
+            }
+            
+            /* Masquer certaines colonnes moins importantes sur mobile */
+            #ecartsTable th:nth-child(7),
+            #ecartsTable td:nth-child(7),
+            #ecartsTable th:nth-child(8),
+            #ecartsTable td:nth-child(8),
+            #ecartsTable th:nth-child(9),
+            #ecartsTable td:nth-child(9) {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .table-container {
+                padding: 10px 5px;
+            }
+            
+            table {
+                font-size: 0.8em;
+                min-width: 1400px;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+            }
+            
+            /* Masquer encore plus de colonnes sur très petit écran */
+            #ecartsTable th:nth-child(5),
+            #ecartsTable td:nth-child(5),
+            #ecartsTable th:nth-child(6),
+            #ecartsTable td:nth-child(6),
+            #ecartsTable th:nth-child(10),
+            #ecartsTable td:nth-child(10),
+            #ecartsTable th:nth-child(11),
+            #ecartsTable td:nth-child(11) {
+                display: none;
+            }
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+            color: white;
+        }
+        
+        .table-filter-row {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .table-filter-row td {
+            padding: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .table-filter-input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        
+        .table-filter-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 25px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .pagination a,
+        .pagination span {
+            padding: 8px 14px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #495057;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .pagination a:hover {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        
+        .pagination .current {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        
+        .pagination-info {
+            margin: 0 15px;
+            color: #6c757d;
+            font-size: 0.95em;
+        }
+        
+        th {
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85em;
+        }
+        
+        td {
+            padding: 16px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #495057;
+        }
+        
+        tbody tr {
+            transition: all 0.2s;
+        }
+        
+        tbody tr:hover {
+            background: #f8f9fa;
+            transform: scale(1.01);
+        }
+        
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-absent {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .badge-different {
+            background: #ffa726;
+            color: white;
+        }
+        
+        .badge-ok {
+            background: #66bb6a;
+            color: white;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 80px 20px;
+            color: #999;
+        }
+        
+        .no-data h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        .alert {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        
+        .magasin-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .magasin-info strong {
+            color: #2563eb;
+            font-size: 1.1em;
+        }
+        
+        .magasin-info small {
+            color: #6c757d;
+            font-size: 0.85em;
+            margin-top: 4px;
+        }
+        
+        .btn-details {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-details:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            max-width: 800px;
+            width: 90%;
+            max-height: 85vh;
+            overflow: hidden;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .detail-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .detail-section h4 {
+            margin: 0 0 15px 0;
+            color: #2563eb;
+            font-size: 1.1em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 150px;
+        }
+        
+        .detail-value {
+            color: #212529;
+            text-align: right;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .detail-value pre {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            overflow-x: auto;
+            font-size: 0.9em;
+            margin: 0;
+        }
+        
+        .badge-modal {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-modal.absent {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .badge-modal.different {
+            background: #ffa726;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Icônes SVG -->
+    <svg style="display: none;">
+        <symbol id="icon-dashboard" viewBox="0 0 24 24">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+        </symbol>
+        <symbol id="icon-refresh" viewBox="0 0 24 24">
+            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </symbol>
+        <symbol id="icon-chart" viewBox="0 0 24 24">
+            <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
+        </symbol>
+        <symbol id="icon-file" viewBox="0 0 24 24">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+        </symbol>
+        <symbol id="icon-warning" viewBox="0 0 24 24">
+            <path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"/>
+        </symbol>
+        <symbol id="icon-search" viewBox="0 0 24 24">
+            <path d="M15.5,14H14.71L14.43,13.73C15.41,12.59 16,11.11 16,9.5A6.5,6.5 0 0,0 9.5,3A6.5,6.5 0 0,0 3,9.5A6.5,6.5 0 0,0 9.5,16C11.11,16 12.59,15.41 13.73,14.43L14,14.71V15.5L19,20.5L20.5,19L15.5,14M9.5,14C7,14 5,12 5,9.5C5,7 7,5 9.5,5C12,5 14,7 14,9.5C14,12 12,14 9.5,14Z"/>
+        </symbol>
+        <symbol id="icon-calendar" viewBox="0 0 24 24">
+            <path d="M19,4H18V2H16V4H8V2H6V4H5C3.89,4 3,4.9 3,6V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V6C21,4.89 20.1,4 19,4M19,20H5V9H19V20M5,7V6H19V7H5Z"/>
+        </symbol>
+        <symbol id="icon-store" viewBox="0 0 24 24">
+            <path d="M12,18H6V14H12M21,14V12L20,7H4L3,12V14H4V20H14V14H18V20H20V14M20,4H4V6H20V4Z"/>
+        </symbol>
+        <symbol id="icon-filter" viewBox="0 0 24 24">
+            <path d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z"/>
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24">
+            <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+        </symbol>
+        <symbol id="icon-error" viewBox="0 0 24 24">
+            <path d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"/>
+        </symbol>
+        <symbol id="icon-info" viewBox="0 0 24 24">
+            <path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
+        </symbol>
+        <symbol id="icon-sync" viewBox="0 0 24 24">
+            <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
+        </symbol>
+        <symbol id="icon-folder" viewBox="0 0 24 24">
+            <path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+        </symbol>
+        <symbol id="icon-arrow-right" viewBox="0 0 24 24">
+            <path d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z"/>
+        </symbol>
+    </svg>
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>
+                <svg class="icon icon-large icon-white"><use href="#icon-dashboard"></use></svg>
+                Contrôle
+            </h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="{% url 'dashboard:dashboard' %}" class="sidebar-menu-item active">
+                <svg class="icon icon-white"><use href="#icon-chart"></use></svg>
+                Dashboard
+            </a>
+            <a href="{% url 'dashboard:commandes_communes' %}" class="sidebar-menu-item">
+                <svg class="icon icon-white"><use href="#icon-check"></use></svg>
+                Commandes Communes
+            </a>
+            <a href="{% url 'admin:index' %}" class="sidebar-menu-item" target="_blank">
+                <svg class="icon icon-white"><use href="#icon-settings"></use></svg>
+                Administration
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>
+                    <svg class="icon icon-xl icon-white"><use href="#icon-dashboard"></use></svg>
+                    Dashboard de Contrôle
+                </h1>
+                <p>Suivi en temps réel des commandes Asten vs Cyrus</p>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-refresh" id="btnRefresh" onclick="traiterFichiers()">
+                    <svg class="icon icon-white"><use href="#icon-refresh"></use></svg>
+                    Actualiser & Traiter
+                </button>
+                <a href="{% url 'admin:index' %}" class="btn btn-refresh" target="_blank">
+                    <svg class="icon icon-white"><use href="#icon-settings"></use></svg>
+                    Admin
+                </a>
+            </div>
+        </div>
+        
+        <div id="alertContainer"></div>
+        
+        <div class="stats-bar">
+            <div class="stat-card asten">
+                <h3>{{ total_asten }}</h3>
+                <p>
+                    <svg class="icon icon-white"><use href="#icon-chart"></use></svg>
+                    Total Commandes Asten
+                </p>
+                <small>Lignes uniques détectées</small>
+            </div>
+            <div class="stat-card cyrus">
+                <h3>{{ total_cyrus }}</h3>
+                <p>
+                    <svg class="icon icon-white"><use href="#icon-chart"></use></svg>
+                    Total Commandes Cyrus
+                </p>
+                <small>Lignes uniques détectées</small>
+            </div>
+            <div class="stat-card ecarts">
+                <h3>{{ ecarts_asten_cyrus }}</h3>
+                <p>
+                    <svg class="icon" style="fill: #d32f2f;"><use href="#icon-warning"></use></svg>
+                    Écarts Asten → Cyrus
+                </p>
+                <small>Éléments dans Asten absents dans Cyrus</small>
+            </div>
+            <div class="stat-card different">
+                <h3>{{ ecarts_valeur_differente }}</h3>
+                <p>
+                    <svg class="icon icon-white"><use href="#icon-sync"></use></svg>
+                    Valeurs Différentes
+                </p>
+                <small>Présentes mais différentes</small>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <div class="filters-header">
+                <h2>
+                    <svg class="icon icon-large" style="fill: #2563eb;"><use href="#icon-filter"></use></svg>
+                    Filtres de recherche
+                </h2>
+            </div>
+            <form method="get" action="{% url 'dashboard:dashboard' %}" id="filterForm">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>
+                            <svg class="icon" style="fill: #2563eb;"><use href="#icon-store"></use></svg>
+                            Magasin
+                        </label>
+                        <select name="magasin">
+                            <option value="">Tous les magasins</option>
+                            {% for num, info in magasins.items %}
+                            <option value="{{ num }}" {% if filters.magasin == num %}selected{% endif %}>
+                                {{ num }} - {{ info.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>
+                            <svg class="icon" style="fill: #2563eb;"><use href="#icon-calendar"></use></svg>
+                            Période
+                        </label>
+                        <select name="periode">
+                            <option value="">Toutes les périodes</option>
+                            {% for periode in periodes %}
+                            <option value="{{ periode }}" {% if filters.periode == periode %}selected{% endif %}>
+                                {{ periode }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>
+                            <svg class="icon" style="fill: #2563eb;"><use href="#icon-warning"></use></svg>
+                            Type d'écart
+                        </label>
+                        <select name="type_ecart">
+                            <option value="">Tous les types</option>
+                            <option value="absent_b" {% if filters.type_ecart == 'absent_b' %}selected{% endif %}>
+                                Absent dans Cyrus
+                            </option>
+                            <option value="valeur_differente" {% if filters.type_ecart == 'valeur_differente' %}selected{% endif %}>
+                                Valeur Différente
+                            </option>
+                            <option value="corrige" {% if filters.type_ecart == 'corrige' %}selected{% endif %}>
+                                Écart Corrigé
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>
+                            <svg class="icon" style="fill: #2563eb;"><use href="#icon-calendar"></use></svg>
+                            Date Commande (début)
+                        </label>
+                        <input type="date" name="date_debut" value="{{ filters.date_debut }}" title="Filtrer par date de commande (pas date de traitement)">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>
+                            <svg class="icon" style="fill: #2563eb;"><use href="#icon-calendar"></use></svg>
+                            Date Commande (fin)
+                        </label>
+                        <input type="date" name="date_fin" value="{{ filters.date_fin }}" title="Filtrer par date de commande (pas date de traitement)">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>
+                            <svg class="icon" style="fill: #2563eb;"><use href="#icon-search"></use></svg>
+                            Contrôle
+                        </label>
+                        <select name="controle">
+                            <option value="">Tous les contrôles</option>
+                            {% for controle in controles %}
+                            <option value="{{ controle.id }}" {% if filters.controle == controle.id|stringformat:"s" %}selected{% endif %}>
+                                {{ controle.periode }} - {{ controle.date_execution|date:"d/m/Y H:i" }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-buttons">
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="icon icon-white"><use href="#icon-search"></use></svg>
+                        Appliquer les filtres
+                    </button>
+                    <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+                        <svg class="icon icon-white"><use href="#icon-refresh"></use></svg>
+                        Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="table-container">
+            {% if vue_communes %}
+            <!-- Vue Commandes Communes -->
+            <div class="section-header">
+                <h2>
+                    <svg class="icon icon-large" style="fill: #2563eb;"><use href="#icon-check"></use></svg>
+                    Commandes Communes ({{ total_communes }})
+                </h2>
+                <p>Commandes présentes dans Asten ET Cyrus</p>
+            </div>
+            
+            {% if commandes_communes_data %}
+            <table id="communesTable">
+                <thead>
+                    <tr>
+                        <th>Magasin</th>
+                        <th>Référence</th>
+                        <th>Date Commande</th>
+                        <th>Date Livraison</th>
+                        <th>Date Validation</th>
+                        <th>Statut</th>
+                        <th>Fournisseur</th>
+                        <th>Type Commande</th>
+                        <th>Source</th>
+                    </tr>
+                    <tr class="table-filter-row">
+                        <td><input type="text" class="table-filter-input" data-column="0" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="1" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="2" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="3" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="4" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="5" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="6" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="7" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="8" placeholder="Filtrer..."></td>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cmd in commandes_communes_data %}
+                    <tr>
+                        <td>
+                            <div class="magasin-info">
+                                <strong>{{ cmd.magasin_num|default:"N/A" }}</strong>
+                                <small>{{ cmd.magasin_nom }}</small>
+                            </div>
+                        </td>
+                        <td><strong>{{ cmd.reference|default:'-' }}</strong></td>
+                        <td>{{ cmd.date_commande|default:'-' }}</td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="color: #7c3aed; font-weight: 600;">A: {{ cmd.date_livraison_asten|default:'-' }}</span>
+                                <span style="color: #059669; font-weight: 600;">C: {{ cmd.date_livraison_cyrus|default:'-' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="color: #7c3aed; font-weight: 600;">A: {{ cmd.date_validation_asten|default:'-' }}</span>
+                                <span style="color: #059669; font-weight: 600;">C: {{ cmd.date_validation_cyrus|default:'-' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="color: #7c3aed; font-weight: 600;">A: {{ cmd.statut_asten|default:'-' }}</span>
+                                <span style="color: #059669; font-weight: 600;">C: {{ cmd.statut_cyrus|default:'-' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="color: #7c3aed; font-weight: 600;">A: {{ cmd.fournisseur_asten|default:'-' }}</span>
+                                <span style="color: #059669; font-weight: 600;">C: {{ cmd.fournisseur_cyrus|default:'-' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="color: #7c3aed; font-weight: 600;">A: {{ cmd.type_commande_asten|default:'-' }}</span>
+                                <span style="color: #059669; font-weight: 600;">C: {{ cmd.type_commande_cyrus|default:'-' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-ok" style="background: #10b981; color: white;">
+                                <svg class="icon" style="width: 14px; height: 14px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                Commun
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">
+                <h2>
+                    <svg class="icon icon-xl" style="fill: #2563eb;"><use href="#icon-file"></use></svg>
+                    Aucune commande commune trouvée
+                </h2>
+                <p>Sélectionnez un contrôle pour voir les commandes communes entre Asten et Cyrus</p>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- Onglets -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('ecarts', this)">
+                    <svg class="icon" style="fill: currentColor;"><use href="#icon-warning"></use></svg>
+                    Écarts ({{ total_ecarts }})
+                </button>
+                <button class="tab" onclick="switchTab('asten', this)">
+                    <svg class="icon" style="fill: currentColor;"><use href="#icon-chart"></use></svg>
+                    Commandes Asten ({{ total_asten }})
+                </button>
+                <button class="tab" onclick="switchTab('cyrus', this)">
+                    <svg class="icon" style="fill: currentColor;"><use href="#icon-chart"></use></svg>
+                    Commandes Cyrus ({{ total_cyrus }})
+                </button>
+            </div>
+            
+            <!-- Onglet Écarts -->
+            <div id="tab-ecarts" class="tab-content active">
+            {% if ecarts_data %}
+            <div class="table-container">
+            <table id="ecartsTable">
+                <thead>
+                    <tr>
+                        <th>Type Écart</th>
+                        <th>Magasin</th>
+                        <th>Référence Commande / Statut Cyrus</th>
+                        <th>Date Commande</th>
+                        <th>Date Livraison</th>
+                        <th>Date Validation</th>
+                        <th>Statut</th>
+                        <th>Créée par</th>
+                        <th>Validée par</th>
+                        <th>Fournisseur</th>
+                        <th>Type Commande</th>
+                        <th>Date Détection</th>
+                        <th>Détails</th>
+                    </tr>
+                    <tr class="table-filter-row">
+                        <td><input type="text" class="table-filter-input" data-column="0" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="1" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="2" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="3" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="4" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="5" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="6" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="7" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="8" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="9" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="10" placeholder="Filtrer..."></td>
+                        <td><input type="text" class="table-filter-input" data-column="11" placeholder="Filtrer..."></td>
+                        <td></td>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in ecarts_data %}
+                    <tr>
+                        <td>
+                            {% if item.ecart.type_ecart == 'absent_b' %}
+                                <span class="badge badge-absent">Absent Cyrus</span>
+                            {% elif item.ecart.type_ecart == 'valeur_differente' %}
+                                <span class="badge badge-different">Valeur Différente</span>
+                            {% elif item.ecart.type_ecart == 'corrige' %}
+                                <span class="badge badge-success" style="background: #10b981; color: white;">✓ Écart Corrigé</span>
+                            {% else %}
+                                <span class="badge badge-ok">Autre</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="magasin-info">
+                                <strong>{{ item.magasin_num|default:"N/A" }}</strong>
+                                <small>{{ item.magasin_nom }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <strong style="color: #2563eb; font-size: 1.05em;">{{ item.colonnes.reference|default:item.ecart.reference|default:'-' }}</strong>
+                                {% if item.trouve_dans_cyrus %}
+                                <span class="status-badge cyrus-found" title="Commande trouvée dans Cyrus" style="align-self: flex-start;">
+                                    <svg class="icon" style="width: 14px; height: 14px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    Dans Cyrus
+                                </span>
+                                {% else %}
+                                <span class="status-badge cyrus-not-found" title="Commande absente dans Cyrus" style="align-self: flex-start;">
+                                    <svg class="icon" style="width: 14px; height: 14px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+                                    Absent Cyrus
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>{{ item.colonnes.date_commande|default:'-' }}</td>
+                        <td>{{ item.colonnes.date_livraison|default:'-' }}</td>
+                        <td>{{ item.colonnes.date_validation|default:'-' }}</td>
+                        <td>{{ item.colonnes.statut|default:'-' }}</td>
+                        <td>{{ item.colonnes.cree_par|default:'-' }}</td>
+                        <td>{{ item.colonnes.validee_par|default:'-' }}</td>
+                        <td>{{ item.colonnes.fournisseur|default:'-' }}</td>
+                        <td>{{ item.colonnes.type_commande|default:'-' }}</td>
+                        <td>{{ item.ecart.date_creation|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if item.ecart.details %}
+                                <button class="btn-details" onclick="showDetailsModal({{ forloop.counter0 }})" title="Voir les détails">
+                                    <svg class="icon" style="fill: currentColor; width: 16px; height: 16px;"><use href="#icon-info"></use></svg>
+                                </button>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if ecarts_page.has_other_pages %}
+            <div class="pagination">
+                {% if ecarts_page.has_previous %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">&laquo; Première</a>
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ ecarts_page.previous_page_number }}">Précédent</a>
+                {% endif %}
+                
+                <span class="pagination-info">
+                    Page {{ ecarts_page.number }} sur {{ ecarts_page.paginator.num_pages }}
+                    ({{ ecarts_page.paginator.count }} écarts au total)
+                </span>
+                
+                {% if ecarts_page.has_next %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ ecarts_page.next_page_number }}">Suivant</a>
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ ecarts_page.paginator.num_pages }}">Dernière &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="no-data">
+                <h2>
+                    <svg class="icon icon-xl" style="fill: #2563eb;"><use href="#icon-file"></use></svg>
+                    Aucun écart trouvé
+                </h2>
+                {% if filters.controle or filters.periode or filters.type_ecart or filters.magasin or filters.date_debut or filters.date_fin %}
+                <p style="color: #ff6b6b; font-weight: 600; margin-bottom: 10px;">
+                    Aucun écart ne correspond aux filtres sélectionnés.
+                </p>
+                <p>Essayez de modifier ou réinitialiser les filtres pour voir tous les écarts.</p>
+                {% else %}
+                <p>Déposez des fichiers dans les dossiers et cliquez sur "Actualiser & Traiter"</p>
+                {% endif %}
+                <p style="margin-top: 15px; font-size: 0.9em; color: #2563eb; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="icon" style="fill: #2563eb;"><use href="#icon-folder"></use></svg>
+                    <span>Asten: extractions/export_asten/</span>
+                </p>
+                <p style="font-size: 0.9em; color: #2563eb; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="icon" style="fill: #2563eb;"><use href="#icon-folder"></use></svg>
+                    <span>Cyrus: extractions/export_cyrus/</span>
+                </p>
+            </div>
+            {% endif %}
+            </div>
+            
+            <!-- Onglet Commandes Asten -->
+            <div id="tab-asten" class="tab-content">
+                {% if commandes_asten_data %}
+                <div class="table-container">
+                <table id="astenTable">
+                    <thead>
+                        <tr>
+                            <th>Magasin</th>
+                            <th>Référence Commande</th>
+                            <th>Date Commande</th>
+                            <th>Date Livraison</th>
+                            <th>Date Validation</th>
+                            <th>Statut</th>
+                            <th>Créée par</th>
+                            <th>Validée par</th>
+                            <th>Fournisseur</th>
+                            <th>Type Commande</th>
+                            <th>Détails</th>
+                        </tr>
+                        <tr class="table-filter-row">
+                            <td><input type="text" class="table-filter-input" data-column="0" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="1" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="2" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="3" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="4" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="5" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="6" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="7" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="8" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="9" placeholder="Filtrer..."></td>
+                            <td></td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cmd in commandes_asten_data %}
+                        <tr>
+                            <td>
+                                <div class="magasin-info">
+                                    <strong>{{ cmd.magasin_num|default:"N/A" }}</strong>
+                                    <small>{{ cmd.magasin_nom }}</small>
+                                </div>
+                            </td>
+                            <td><strong>{{ cmd.reference|default:'-' }}</strong></td>
+                            <td>{{ cmd.date_commande|default:'-' }}</td>
+                            <td>{{ cmd.date_livraison|default:'-' }}</td>
+                            <td>{{ cmd.date_validation|default:'-' }}</td>
+                            <td>{{ cmd.statut|default:'-' }}</td>
+                            <td>{{ cmd.cree_par|default:'-' }}</td>
+                            <td>{{ cmd.validee_par|default:'-' }}</td>
+                            <td>{{ cmd.fournisseur|default:'-' }}</td>
+                            <td>{{ cmd.type_commande|default:'-' }}</td>
+                            <td>
+                                <button class="btn-details" onclick="showCommandeAstenDetails({{ forloop.counter0 }})" title="Voir les détails">
+                                    <svg class="icon" style="fill: currentColor; width: 16px; height: 16px;"><use href="#icon-info"></use></svg>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% else %}
+                <div class="no-data">
+                    <h2>
+                        <svg class="icon icon-xl" style="fill: #2563eb;"><use href="#icon-file"></use></svg>
+                        Aucune commande Asten trouvée
+                    </h2>
+                    <p>Sélectionnez un contrôle pour voir les commandes Asten</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Onglet Commandes Cyrus -->
+            <div id="tab-cyrus" class="tab-content">
+                {% if commandes_cyrus_data %}
+                <div class="table-container">
+                <table id="cyrusTable">
+                    <thead>
+                        <tr>
+                            <th>Magasin</th>
+                            <th>Référence Commande (NCDE)</th>
+                            <th>Date Commande (DCDE)</th>
+                            <th>Détails</th>
+                        </tr>
+                        <tr class="table-filter-row">
+                            <td><input type="text" class="table-filter-input" data-column="0" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="1" placeholder="Filtrer..."></td>
+                            <td><input type="text" class="table-filter-input" data-column="2" placeholder="Filtrer..."></td>
+                            <td></td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cmd in commandes_cyrus_data %}
+                        <tr>
+                            <td>
+                                <div class="magasin-info">
+                                    <strong>{{ cmd.magasin_num|default:"N/A" }}</strong>
+                                    <small>{{ cmd.magasin_nom }}</small>
+                                </div>
+                            </td>
+                            <td><strong>{{ cmd.reference|default:'-' }}</strong></td>
+                            <td>{{ cmd.date_commande|default:'-' }}</td>
+                            <td>
+                                <button class="btn-details" onclick="showCommandeCyrusDetails({{ forloop.counter0 }})" title="Voir les détails">
+                                    <svg class="icon" style="fill: currentColor; width: 16px; height: 16px;"><use href="#icon-info"></use></svg>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% else %}
+                <div class="no-data">
+                    <h2>
+                        <svg class="icon icon-xl" style="fill: #2563eb;"><use href="#icon-file"></use></svg>
+                        Aucune commande Cyrus trouvée
+                    </h2>
+                    <p>Sélectionnez un contrôle pour voir les commandes Cyrus</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+    
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            
+            let iconId = 'icon-info';
+            if (type === 'success') iconId = 'icon-check';
+            if (type === 'error') iconId = 'icon-error';
+            
+            alert.innerHTML = `
+                <svg class="icon icon-large"><use href="#${iconId}"></use></svg>
+                <span>${message}</span>
+            `;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s';
+                setTimeout(() => alert.remove(), 500);
+            }, 5000);
+        }
+        
+        function traiterFichiers() {
+            const btn = document.getElementById('btnRefresh');
+            const periode = document.querySelector('select[name="periode"]').value || '{{ filters.periode|default:"" }}';
+            
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.innerHTML = '<svg class="icon icon-white"><use href="#icon-refresh"></use></svg> Traitement en cours...';
+            
+            const formData = new FormData();
+            formData.append('periode', periode || new Date().toISOString().slice(0, 7));
+            formData.append('force', 'false');
+            
+            // Récupérer le token CSRF
+            const csrftoken = getCookie('csrftoken') || '{{ csrf_token }}';
+            
+            fetch('{% url "dashboard:traiter_fichiers" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrftoken
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = '<svg class="icon icon-white"><use href="#icon-refresh"></use></svg> Actualiser & Traiter';
+                
+                if (data.success) {
+                    showAlert(data.message + ' - Rechargement de la page...', 'success');
+                    // Recharger la page immédiatement pour voir les nouveaux résultats
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = '<svg class="icon icon-white"><use href="#icon-refresh"></use></svg> Actualiser & Traiter';
+                showAlert('Erreur lors du traitement: ' + error.message, 'error');
+            });
+        }
+        
+        // Auto-refresh toutes les 30 secondes si pas d'interaction
+        let lastInteraction = Date.now();
+        setInterval(() => {
+            if (Date.now() - lastInteraction > 30000) {
+                // Optionnel: auto-refresh silencieux
+            }
+        }, 30000);
+        
+        document.addEventListener('mousedown', () => lastInteraction = Date.now());
+        document.addEventListener('keydown', () => lastInteraction = Date.now());
+        
+        // Filtres Excel-like sur le tableau (initialisation sera faite par initializeTableFilters)
+        
+        // Fonction pour changer d'onglet (doit être globale pour les onclick)
+        window.switchTab = function(tabName, eventElement) {
+            // Masquer tous les onglets
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Retirer l'état actif de tous les boutons
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Afficher l'onglet sélectionné
+            const selectedTab = document.getElementById(`tab-${tabName}`);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+            
+            // Activer le bouton correspondant
+            if (eventElement) {
+                eventElement.classList.add('active');
+            } else {
+                // Trouver le bouton correspondant
+                document.querySelectorAll('.tab').forEach(btn => {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabName)) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            
+            // Réinitialiser les filtres pour le nouveau tableau
+            setTimeout(() => {
+                const newTable = document.getElementById(`${tabName}Table`);
+                if (newTable) {
+                    // Réinitialiser les filtres du nouveau tableau
+                    initializeTableFilters();
+                    // Appliquer les filtres actuels
+                    applyTableFilters(newTable);
+                }
+            }, 100);
+        };
+        
+        // Fonction pour appliquer les filtres sur un tableau
+        function applyTableFilters(table) {
+            if (!table) return;
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            
+            const filterInputs = table.querySelectorAll('.table-filter-input');
+            const rows = tbody.querySelectorAll('tr');
+            
+            rows.forEach(row => {
+                let shouldShow = true;
+                
+                filterInputs.forEach(input => {
+                    const columnIndex = parseInt(input.dataset.column);
+                    const filterValue = input.value.toLowerCase().trim();
+                    
+                    if (filterValue) {
+                        const cell = row.querySelectorAll('td')[columnIndex];
+                        if (cell) {
+                            const cellText = (cell.textContent || cell.innerText || '').toLowerCase();
+                            if (cellText.indexOf(filterValue) === -1) {
+                                shouldShow = false;
+                            }
+                        }
+                    }
+                });
+                
+                row.style.display = shouldShow ? '' : 'none';
+            });
+        }
+        
+        // Initialiser les filtres pour tous les tableaux
+        function initializeTableFilters() {
+            document.querySelectorAll('table').forEach(table => {
+                if (!table) return;
+                const filterInputs = table.querySelectorAll('.table-filter-input');
+                filterInputs.forEach(input => {
+                    if (!input || !input.parentNode) return;
+                    // Supprimer les anciens event listeners
+                    const newInput = input.cloneNode(true);
+                    input.parentNode.replaceChild(newInput, input);
+                    
+                    // Ajouter le nouvel event listener
+                    newInput.addEventListener('keyup', function() {
+                        applyTableFilters(table);
+                    });
+                    
+                    newInput.addEventListener('input', function() {
+                        applyTableFilters(table);
+                    });
+                });
+            });
+        }
+        
+        // Initialiser au chargement de la page
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeTableFilters);
+        } else {
+            initializeTableFilters();
+        }
+        
+        // Menu mobile toggle
+        const mobileMenuToggle = document.createElement('button');
+        mobileMenuToggle.className = 'mobile-menu-toggle';
+        mobileMenuToggle.innerHTML = '<svg class="icon icon-white" style="width: 24px; height: 24px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>';
+        mobileMenuToggle.onclick = function() {
+            document.querySelector('.sidebar').classList.toggle('open');
+        };
+        document.body.appendChild(mobileMenuToggle);
+        
+        // Données des écarts pour le modal (stockées dans une variable JavaScript)
+        const ecartsData = [
+            {% for item in ecarts_data %}
+            {
+                type_ecart: "{{ item.ecart.type_ecart }}",
+                reference: "{{ item.ecart.reference|escapejs }}",
+                magasin_num: "{{ item.magasin_num|default:'N/A'|escapejs }}",
+                magasin_nom: "{{ item.magasin_nom|escapejs }}",
+                colonnes: {
+                    reference: "{{ item.colonnes.reference|default:'-'|escapejs }}",
+                    date_commande: "{{ item.colonnes.date_commande|default:'-'|escapejs }}",
+                    date_livraison: "{{ item.colonnes.date_livraison|default:'-'|escapejs }}",
+                    date_validation: "{{ item.colonnes.date_validation|default:'-'|escapejs }}",
+                    statut: "{{ item.colonnes.statut|default:'-'|escapejs }}",
+                    cree_par: "{{ item.colonnes.cree_par|default:'-'|escapejs }}",
+                    validee_par: "{{ item.colonnes.validee_par|default:'-'|escapejs }}",
+                    fournisseur: "{{ item.colonnes.fournisseur|default:'-'|escapejs }}",
+                    type_commande: "{{ item.colonnes.type_commande|default:'-'|escapejs }}"
+                },
+                details: {{ item.details_json_str|safe }},
+                valeur_source_a: {{ item.valeur_source_a_json_str|safe }},
+                valeur_source_b: {{ item.valeur_source_b_json_str|safe }},
+                date_creation: "{{ item.ecart.date_creation|date:'d/m/Y H:i' }}",
+                trouve_dans_cyrus: {% if item.trouve_dans_cyrus %}true{% else %}false{% endif %}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        // Données des commandes Asten pour le modal
+        var commandesAstenData = [
+            {% for cmd in commandes_asten_data %}
+            {
+                reference: "{{ cmd.reference|default:'-'|escapejs }}",
+                date_commande: "{{ cmd.date_commande|default:'-'|escapejs }}",
+                date_livraison: "{{ cmd.date_livraison|default:'-'|escapejs }}",
+                date_validation: "{{ cmd.date_validation|default:'-'|escapejs }}",
+                statut: "{{ cmd.statut|default:'-'|escapejs }}",
+                cree_par: "{{ cmd.cree_par|default:'-'|escapejs }}",
+                validee_par: "{{ cmd.validee_par|default:'-'|escapejs }}",
+                fournisseur: "{{ cmd.fournisseur|default:'-'|escapejs }}",
+                type_commande: "{{ cmd.type_commande|default:'-'|escapejs }}",
+                magasin_num: "{{ cmd.magasin_num|default:'N/A'|escapejs }}",
+                magasin_nom: "{{ cmd.magasin_nom|escapejs }}",
+                trouve_dans_cyrus: {% if cmd.trouve_dans_cyrus %}true{% else %}false{% endif %},
+                data_cyrus_match: {% if cmd.data_cyrus_match %}{
+                    reference: "{{ cmd.data_cyrus_match.reference|default:'-'|escapejs }}",
+                    date_commande: "{{ cmd.data_cyrus_match.date_commande|default:'-'|escapejs }}",
+                    magasin_num: "{{ cmd.data_cyrus_match.magasin_num|default:'N/A'|escapejs }}",
+                    magasin_nom: "{{ cmd.data_cyrus_match.magasin_nom|escapejs }}"
+                }{% else %}null{% endif %},
+                row_data: {{ cmd.row_data_str|safe|default:"{}" }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        // Données des commandes Cyrus pour le modal
+        var commandesCyrusData = [
+            {% for cmd in commandes_cyrus_data %}
+            {
+                reference: "{{ cmd.reference|default:'-'|escapejs }}",
+                date_commande: "{{ cmd.date_commande|default:'-'|escapejs }}",
+                date_commande_raw: "{{ cmd.date_commande_raw|default:'-'|escapejs }}",
+                magasin_num: "{{ cmd.magasin_num|default:'N/A'|escapejs }}",
+                magasin_nom: "{{ cmd.magasin_nom|escapejs }}",
+                trouve_dans_asten: {% if cmd.trouve_dans_asten %}true{% else %}false{% endif %},
+                data_asten_match: {% if cmd.data_asten_match %}{
+                    reference: "{{ cmd.data_asten_match.reference|default:'-'|escapejs }}",
+                    date_commande: "{{ cmd.data_asten_match.date_commande|default:'-'|escapejs }}",
+                    date_livraison: "{{ cmd.data_asten_match.date_livraison|default:'-'|escapejs }}",
+                    date_validation: "{{ cmd.data_asten_match.date_validation|default:'-'|escapejs }}",
+                    statut: "{{ cmd.data_asten_match.statut|default:'-'|escapejs }}",
+                    fournisseur: "{{ cmd.data_asten_match.fournisseur|default:'-'|escapejs }}",
+                    type_commande: "{{ cmd.data_asten_match.type_commande|default:'-'|escapejs }}",
+                    magasin_num: "{{ cmd.data_asten_match.magasin_num|default:'N/A'|escapejs }}",
+                    magasin_nom: "{{ cmd.data_asten_match.magasin_nom|escapejs }}"
+                }{% else %}null{% endif %},
+                row_data: {{ cmd.row_data_str|safe|default:"{}" }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        function showDetailsModal(index) {
+            const ecart = ecartsData[index];
+            if (!ecart) return;
+            
+            const modal = document.getElementById('detailsModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            // Déterminer le type d'écart et le badge
+            let badgeClass = 'absent';
+            let badgeText = 'Absent Cyrus';
+            if (ecart.type_ecart === 'valeur_differente') {
+                badgeClass = 'different';
+                badgeText = 'Valeur Différente';
+            }
+            
+            // Déterminer le statut d'intégration
+            const isIntegrated = ecart.type_ecart !== 'absent_b' && ecart.valeur_source_b;
+            const statusBadge = isIntegrated 
+                ? '<span class="badge badge-success" style="background: #10b981; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600;"><svg class="icon" style="fill: currentColor; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><use href="#icon-check"></use></svg>Intégrée dans Cyrus</span>'
+                : '<span class="badge badge-error" style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600;"><svg class="icon" style="fill: currentColor; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><use href="#icon-error"></use></svg>Non intégrée dans Cyrus</span>';
+            
+            // Construire le HTML du modal
+            let html = `
+                <div class="detail-section">
+                    <h4>
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+                        Statut d'Intégration
+                    </h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Statut:</span>
+                        <span class="detail-value">${statusBadge}</span>
+                    </div>
+                    ${isIntegrated && ecart.valeur_source_b ? `
+                    <div class="detail-item">
+                        <span class="detail-label">Référence dans Cyrus:</span>
+                        <span class="detail-value"><strong>${ecart.valeur_source_b.NCDE || ecart.valeur_source_b.reference || '-'}</strong></span>
+                    </div>
+                    ` : '<div class="detail-item"><span class="detail-value" style="color: #ef4444;">Cette commande n\'a pas été trouvée dans Cyrus.</span></div>'}
+                </div>
+                
+                <div class="detail-section">
+                    <h4>
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-12a1 1 0 102 0V7a1 1 0 10-2 0v-1zm0 4a1 1 0 102 0v4a1 1 0 10-2 0v-4z" clip-rule="evenodd"></path></svg>
+                        Informations Générales
+                    </h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Type d'écart:</span>
+                        <span class="detail-value">
+                            ${ecart.type_ecart === 'corrige' 
+                                ? '<span class="badge badge-success" style="background: #10b981; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600;"><svg class="icon" style="fill: currentColor; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><use href="#icon-check"></use></svg>Écart Corrigé</span>'
+                                : `<span class="badge-modal ${badgeClass}">${badgeText}</span>`
+                            }
+                        </span>
+                    </div>
+                    ${ecart.type_ecart === 'corrige' && ecart.details && ecart.details.message ? `
+                    <div class="detail-item">
+                        <span class="detail-label">Message:</span>
+                        <span class="detail-value" style="color: #10b981; font-weight: 600;">${ecart.details.message}</span>
+                    </div>
+                    ` : ''}
+                    <div class="detail-item">
+                        <span class="detail-label">Référence:</span>
+                        <span class="detail-value"><strong>${ecart.reference}</strong></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Magasin:</span>
+                        <span class="detail-value"><strong>${ecart.magasin_num}</strong> - ${ecart.magasin_nom}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date de détection:</span>
+                        <span class="detail-value">${ecart.date_creation}</span>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2-1a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H4zM4 6h12v1H4V6zm0 3h12v1H4V9zm0 3h12v1H4v-1z"></path></svg>
+                        Détails de la Commande
+                    </h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Référence commande:</span>
+                        <span class="detail-value">${ecart.colonnes.reference || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date commande:</span>
+                        <span class="detail-value">${ecart.colonnes.date_commande || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date livraison:</span>
+                        <span class="detail-value">${ecart.colonnes.date_livraison || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date validation:</span>
+                        <span class="detail-value">${ecart.colonnes.date_validation || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Statut:</span>
+                        <span class="detail-value">${ecart.colonnes.statut || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Créée par:</span>
+                        <span class="detail-value">${ecart.colonnes.cree_par || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Validée par:</span>
+                        <span class="detail-value">${ecart.colonnes.validee_par || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Fournisseur:</span>
+                        <span class="detail-value">${ecart.colonnes.fournisseur || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Type commande:</span>
+                        <span class="detail-value">${ecart.colonnes.type_commande || '-'}</span>
+                    </div>
+                </div>
+            `;
+            
+            // Ajouter les détails techniques si disponibles
+            if (ecart.details && Object.keys(ecart.details).length > 0) {
+                html += `
+                    <div class="detail-section">
+                        <h4>
+                            <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.16-1.47-1.99-2.8-1.99H8.25a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h3.5c.41 0 .75-.34.75-.75V3.17zM15.75 12a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5zM15.75 7.5a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5zM15.75 3a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5zM4.5 12a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5zM4.5 7.5a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5zM4.5 3a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75h-1.5zM9 12a.75.75 0 00-.75.75v1.5c0 .41.34.75.75.75h1.5a.75.75 0 00.75-.75v-1.5a.75.75 0 00-.75-.75H9z" clip-rule="evenodd"></path></svg>
+                            Détails Techniques
+                        </h4>
+                        <div class="detail-item">
+                            <span class="detail-label">Message:</span>
+                            <span class="detail-value">${ecart.details.message || '-'}</span>
+                        </div>
+                        ${ecart.details.colonnes_differentes ? `
+                            <div class="detail-item">
+                                <span class="detail-label">Colonnes différentes:</span>
+                                <span class="detail-value">
+                                    <pre>${JSON.stringify(ecart.details.colonnes_differentes, null, 2)}</pre>
+                                </span>
+                            </div>
+                        ` : ''}
+                        ${ecart.details.cle_composite ? `
+                            <div class="detail-item">
+                                <span class="detail-label">Clé composite:</span>
+                                <span class="detail-value"><code>${ecart.details.cle_composite}</code></span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            // Ajouter les données sources si disponibles (seulement Cyrus)
+            if (ecart.valeur_source_b) {
+                html += `
+                    <div class="detail-section">
+                        <h4>
+                            <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2-1a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H4zM4 6h12v1H4V6zm0 3h12v1H4V9zm0 3h12v1H4v-1z"></path></svg>
+                            Données Source Cyrus
+                        </h4>
+                        <div class="detail-value">
+                            <pre>${JSON.stringify(ecart.valeur_source_b, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            modalBody.innerHTML = html;
+            modal.classList.add('active');
+            
+            // Empêcher le scroll du body quand le modal est ouvert
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeDetailsModal() {
+            const modal = document.getElementById('detailsModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Fermer le modal en cliquant sur l'overlay
+        const detailsModal = document.getElementById('detailsModal');
+        if (detailsModal) {
+            detailsModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeDetailsModal();
+                }
+            });
+        }
+        
+        // Fermer le modal avec la touche Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailsModal();
+            }
+        });
+        
+        // Fonction pour afficher les détails d'une commande Asten
+        function showCommandeAstenDetails(index) {
+            if (typeof commandesAstenData === 'undefined' || !commandesAstenData[index]) {
+                console.error('Données Asten non disponibles ou index invalide:', index);
+                return;
+            }
+            
+            const cmd = commandesAstenData[index];
+            const modal = document.getElementById('detailsModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            if (!modal || !modalBody) {
+                console.error('Modal non trouvé');
+                return;
+            }
+            
+            // Mettre à jour le titre du modal
+            const modalTitle = modal.querySelector('.modal-header h3');
+            if (modalTitle) {
+                modalTitle.innerHTML = '<svg class="icon icon-large icon-white"><use href="#icon-info"></use></svg> Détails de la Commande Asten';
+            }
+            
+            const statusBadge = cmd.trouve_dans_cyrus 
+                ? '<span class="badge badge-success" style="background: #10b981; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600;"><svg class="icon" style="fill: currentColor; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><use href="#icon-check"></use></svg>Intégrée dans Cyrus</span>'
+                : '<span class="badge badge-error" style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600;"><svg class="icon" style="fill: currentColor; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><use href="#icon-error"></use></svg>Non intégrée dans Cyrus</span>';
+            
+            let html = `
+                <div class="detail-section">
+                    <h4>
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+                        Statut d'Intégration
+                    </h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Statut:</span>
+                        <span class="detail-value">${statusBadge}</span>
+                    </div>
+                    ${cmd.trouve_dans_cyrus && cmd.data_cyrus_match ? `
+                    <div class="detail-item">
+                        <span class="detail-label">Référence dans Cyrus:</span>
+                        <span class="detail-value"><strong>${cmd.data_cyrus_match.reference || '-'}</strong></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date dans Cyrus:</span>
+                        <span class="detail-value">${cmd.data_cyrus_match.date_commande || '-'}</span>
+                    </div>
+                    ` : '<div class="detail-item"><span class="detail-value" style="color: #ef4444;">Cette commande n\'a pas été trouvée dans Cyrus.</span></div>'}
+                </div>
+                
+                <div class="detail-section">
+                    <h4>
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2-1a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H4zM4 6h12v1H4V6zm0 3h12v1H4V9zm0 3h12v1H4v-1z"></path></svg>
+                        Détails de la Commande Asten
+                    </h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Magasin:</span>
+                        <span class="detail-value"><strong>${cmd.magasin_num || 'N/A'}</strong> - ${cmd.magasin_nom || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Référence commande:</span>
+                        <span class="detail-value"><strong>${cmd.reference || '-'}</strong></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date commande:</span>
+                        <span class="detail-value">${cmd.date_commande || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date livraison:</span>
+                        <span class="detail-value">${cmd.date_livraison || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date validation:</span>
+                        <span class="detail-value">${cmd.date_validation || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Statut:</span>
+                        <span class="detail-value">${cmd.statut || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Créée par:</span>
+                        <span class="detail-value">${cmd.cree_par || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Validée par:</span>
+                        <span class="detail-value">${cmd.validee_par || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Fournisseur:</span>
+                        <span class="detail-value">${cmd.fournisseur || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Type commande:</span>
+                        <span class="detail-value">${cmd.type_commande || '-'}</span>
+                    </div>
+                </div>
+            `;
+            
+            modalBody.innerHTML = html;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Fonction pour afficher les détails d'une commande Cyrus
+        function showCommandeCyrusDetails(index) {
+            if (typeof commandesCyrusData === 'undefined' || !commandesCyrusData[index]) {
+                console.error('Données Cyrus non disponibles ou index invalide:', index);
+                return;
+            }
+            
+            const cmd = commandesCyrusData[index];
+            const modal = document.getElementById('detailsModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            if (!modal || !modalBody) {
+                console.error('Modal non trouvé');
+                return;
+            }
+            
+            // Mettre à jour le titre du modal
+            const modalTitle = modal.querySelector('.modal-header h3');
+            if (modalTitle) {
+                modalTitle.innerHTML = '<svg class="icon icon-large icon-white"><use href="#icon-info"></use></svg> Détails de la Commande Cyrus';
+            }
+            
+            const statusBadge = cmd.trouve_dans_asten 
+                ? '<span class="badge badge-success" style="background: #10b981; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600;"><svg class="icon" style="fill: currentColor; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><use href="#icon-check"></use></svg>Présente dans Asten</span>'
+                : '<span class="badge badge-warning" style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 600;"><svg class="icon" style="fill: currentColor; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><use href="#icon-warning"></use></svg>Non présente dans Asten</span>';
+            
+            let html = `
+                <div class="detail-section">
+                    <h4>
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+                        Statut de Présence
+                    </h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Statut:</span>
+                        <span class="detail-value">${statusBadge}</span>
+                    </div>
+                    ${cmd.trouve_dans_asten && cmd.data_asten_match ? `
+                    <div class="detail-item">
+                        <span class="detail-label">Référence dans Asten:</span>
+                        <span class="detail-value"><strong>${cmd.data_asten_match.reference || '-'}</strong></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date dans Asten:</span>
+                        <span class="detail-value">${cmd.data_asten_match.date_commande || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Statut dans Asten:</span>
+                        <span class="detail-value">${cmd.data_asten_match.statut || '-'}</span>
+                    </div>
+                    ` : '<div class="detail-item"><span class="detail-value" style="color: #f59e0b;">Cette commande n\'a pas été trouvée dans Asten.</span></div>'}
+                </div>
+                
+                <div class="detail-section">
+                    <h4>
+                        <svg class="icon" fill="currentColor" viewBox="0 0 20 20"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2-1a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H4zM4 6h12v1H4V6zm0 3h12v1H4V9zm0 3h12v1H4v-1z"></path></svg>
+                        Détails de la Commande Cyrus
+                    </h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Magasin:</span>
+                        <span class="detail-value"><strong>${cmd.magasin_num || 'N/A'}</strong> - ${cmd.magasin_nom || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Référence commande (NCDE):</span>
+                        <span class="detail-value"><strong>${cmd.reference || '-'}</strong></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date commande (DCDE):</span>
+                        <span class="detail-value">${cmd.date_commande || '-'}</span>
+                    </div>
+                </div>
+            `;
+            
+            modalBody.innerHTML = html;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    </script>
+    
+    <!-- Modal pour afficher les détails -->
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <svg class="icon icon-large icon-white"><use href="#icon-info"></use></svg>
+                    Détails de l'Écart
+                </h3>
+                <button class="modal-close" onclick="closeDetailsModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Le contenu sera injecté par JavaScript -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
