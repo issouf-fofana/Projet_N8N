@@ -45,3 +45,4 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Erreur lors du chargement: {str(e)}'))
 
+

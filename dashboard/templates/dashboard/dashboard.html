@@ -79,8 +79,27 @@
         <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres de recherche</h5>
     </div>
     <div class="card-body">
-        <form method="get" class="row g-3">
+        <form method="get" class="row g-3" id="filterForm">
             <input type="hidden" name="type_donnees" value="{{ filtres.type_donnees|default:'commandes_asten' }}">
+            
+            <!-- Filtres rapides -->
+            <div class="col-md-12 mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-clock-history"></i> Filtres rapides
+                </label>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="setDateFilter('aujourdhui')">
+                        <i class="bi bi-calendar-day"></i> Aujourd'hui
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="setDateFilter('hier')">
+                        <i class="bi bi-calendar-minus"></i> Hier
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="setDateFilter('semaine')">
+                        <i class="bi bi-calendar-week"></i> Semaine dernière
+                    </button>
+                </div>
+            </div>
+            
             <div class="col-md-3">
                 <label for="date_debut" class="form-label fw-semibold">
                     <i class="bi bi-calendar-event"></i> Date début
@@ -262,9 +281,6 @@
                                 <td>
                                     {% if item.cyrus %}
                                         <span class="badge bg-success"><i class="bi bi-check"></i> Cyrus</span>
-                                        {% if item.cyrus.montant %}
-                                            <br><small class="text-muted">{{ item.cyrus.montant|floatformat:0 }} FCFA</small>
-                                        {% endif %}
                                     {% else %}
                                         <span class="badge bg-danger"><i class="bi bi-x"></i> Absent</span>
                                     {% endif %}
@@ -376,6 +392,41 @@ function updateMagasinText() {
             return input && input.checked;
         });
         selectAll.checked = visibleChecked.length === visibleItems.length && visibleItems.length > 0;
+    }
+}
+
+function setDateFilter(periode) {
+    const aujourdhui = new Date();
+    const hier = new Date(aujourdhui);
+    hier.setDate(hier.getDate() - 1);
+    
+    // Calculer la semaine dernière (7 jours en arrière)
+    const semaineDerniere = new Date(aujourdhui);
+    semaineDerniere.setDate(semaineDerniere.getDate() - 7);
+    
+    const dateDebutInput = document.getElementById('date_debut');
+    const dateFinInput = document.getElementById('date_fin');
+    const filterForm = document.getElementById('filterForm');
+    
+    if (periode === 'aujourdhui') {
+        const dateStr = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = dateStr;
+        dateFinInput.value = dateStr;
+    } else if (periode === 'hier') {
+        const dateStr = hier.toISOString().split('T')[0];
+        dateDebutInput.value = dateStr;
+        dateFinInput.value = dateStr;
+    } else if (periode === 'semaine') {
+        // Semaine dernière : de 7 jours en arrière jusqu'à aujourd'hui
+        const dateDebutStr = semaineDerniere.toISOString().split('T')[0];
+        const dateFinStr = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = dateDebutStr;
+        dateFinInput.value = dateFinStr;
+    }
+    
+    // Soumettre automatiquement le formulaire
+    if (filterForm) {
+        filterForm.submit();
     }
 }
 
