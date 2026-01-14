@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'imports',
     'asten',
     'cyrus',
+    'gpv',
     'ecarts',
     'dashboard',
 ]

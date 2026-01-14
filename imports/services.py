@@ -9,6 +9,7 @@ from django.utils import timezone
 from core.models import Magasin
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
+from gpv.models import CommandeGPV
 from imports.models import ImportFichier
 
 
@@ -31,6 +32,21 @@ def parse_date_cyrus(date_str):
 def parse_date_asten(date_str):
     """
     Parse la date Asten au format DD/MM/YYYY HH:MM:SS (ex: 09/01/2026 12:08:03)
+    """
+    if not date_str:
+        return None
+    try:
+        # Extraire juste la partie date (avant l'espace)
+        date_part = date_str.split()[0] if ' ' in date_str else date_str
+        # Format DD/MM/YYYY
+        return datetime.strptime(date_part, '%d/%m/%Y').date()
+    except (ValueError, AttributeError):
+        return None
+
+
+def parse_date_gpv(date_str):
+    """
+    Parse la date GPV au format DD/MM/YYYY HH:MM (ex: 14/01/2026 14:06)
     """
     if not date_str:
         return None
@@ -267,16 +283,18 @@ def importer_fichier_cyrus(chemin_fichier):
 
 def scanner_et_importer_fichiers():
     """
-    Scanne les dossiers commande_asten/ et commande_cyrus/ 
+    Scanne les dossiers commande_asten/, commande_cyrus/ et commande_gpv/
     et importe les nouveaux fichiers ou les fichiers modifiés
     """
     media_root = Path(settings.MEDIA_ROOT)
     dossier_asten = media_root / 'commande_asten'
     dossier_cyrus = media_root / 'commande_cyrus'
+    dossier_gpv = media_root / 'commande_gpv'
     
     # Créer les dossiers s'ils n'existent pas
     dossier_asten.mkdir(parents=True, exist_ok=True)
     dossier_cyrus.mkdir(parents=True, exist_ok=True)
+    dossier_gpv.mkdir(parents=True, exist_ok=True)
     
     fichiers_importes = []
     
@@ -297,6 +315,8 @@ def scanner_et_importer_fichiers():
             if not import_existant or date_modif_fichier_tz > import_existant.date_import:
                 # Si le fichier a déjà été importé mais modifié, supprimer l'ancien import
                 if import_existant:
+                    # Supprimer les anciennes données
+                    CommandeAsten.objects.filter(fichier_source=fichier.name).delete()
                     import_existant.delete()
                 
                 import_obj = importer_fichier_asten(str(fichier))
@@ -321,6 +341,8 @@ def scanner_et_importer_fichiers():
             if not import_existant or date_modif_fichier_tz > import_existant.date_import:
                 # Si le fichier a déjà été importé mais modifié, supprimer l'ancien import
                 if import_existant:
+                    # Supprimer les anciennes données
+                    CommandeCyrus.objects.filter(fichier_source=fichier.name).delete()
                     import_existant.delete()
                 
                 import_obj = importer_fichier_cyrus(str(fichier))
@@ -328,5 +350,130 @@ def scanner_et_importer_fichiers():
         except Exception as e:
             print(f"Erreur import fichier {fichier.name}: {e}")
     
+    # Importer les fichiers GPV
+    for fichier in dossier_gpv.glob('*.csv'):
+        try:
+            # Obtenir la date de modification du fichier
+            date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
+            date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
+            
+            # Vérifier si le fichier a déjà été importé
+            import_existant = ImportFichier.objects.filter(
+                type_fichier='gpv',
+                nom_fichier=fichier.name
+            ).first()
+            
+            # Importer si nouveau fichier ou si le fichier a été modifié après l'import
+            if not import_existant or date_modif_fichier_tz > import_existant.date_import:
+                # Si le fichier a déjà été importé mais modifié, supprimer l'ancien import
+                if import_existant:
+                    # Supprimer les anciennes données
+                    CommandeGPV.objects.filter(fichier_source=fichier.name).delete()
+                    import_existant.delete()
+                
+                import_obj = importer_fichier_gpv(str(fichier))
+                fichiers_importes.append(import_obj)
+        except Exception as e:
+            print(f"Erreur import fichier {fichier.name}: {e}")
+    
     return fichiers_importes
+
+
+def importer_fichier_gpv(chemin_fichier):
+    """
+    Importe un fichier CSV GPV dans la base de données
+    
+    Colonnes utilisées :
+    - NUMERO COMMANDE : numéro de commande
+    - CODE MAGASIN : code du magasin
+    - NOM  MAGASIN : nom du magasin
+    - DATE CREATION : date de création (format DD/MM/YYYY HH:MM)
+    - DATE VALIDATION : date de validation (format DD/MM/YYYY HH:MM)
+    - DATE TRANSFERT : date de transfert (peut être vide)
+    - STATUT : statut de la commande
+    """
+    nom_fichier = os.path.basename(chemin_fichier)
+    import_obj = ImportFichier.objects.create(
+        type_fichier='gpv',
+        nom_fichier=nom_fichier,
+        chemin_fichier=chemin_fichier,
+        statut='en_cours'
+    )
+    
+    try:
+        nombre_lignes = 0
+        nombre_nouveaux = 0
+        nombre_dupliques = 0
+        
+        # Détecter le délimiteur (point-virgule ou virgule)
+        with open(chemin_fichier, 'r', encoding='utf-8') as f:
+            first_line = f.readline()
+            delimiter = ';' if ';' in first_line else ','
+            f.seek(0)
+            
+            reader = csv.DictReader(f, delimiter=delimiter)
+            
+            for row in reader:
+                nombre_lignes += 1
+                
+                try:
+                    # Parsing des données avec les noms de colonnes réels
+                    numero_commande = row.get('NUMERO COMMANDE', '').strip()
+                    code_magasin = row.get('CODE MAGASIN', '').strip()
+                    nom_magasin = row.get('NOM  MAGASIN', '').strip() or None
+                    date_creation_str = row.get('DATE CREATION', '').strip()
+                    date_validation_str = row.get('DATE VALIDATION', '').strip()
+                    date_transfert_str = row.get('DATE TRANSFERT', '').strip()
+                    statut = row.get('STATUT', '').strip() or None
+                    
+                    # Parser les dates
+                    date_creation = parse_date_gpv(date_creation_str)
+                    date_validation = parse_date_gpv(date_validation_str) if date_validation_str else None
+                    date_transfert = parse_date_gpv(date_transfert_str) if date_transfert_str else None
+                    
+                    if not date_creation or not numero_commande or not code_magasin:
+                        continue
+                    
+                    # Vérifier que le magasin existe
+                    try:
+                        magasin = Magasin.objects.get(code=code_magasin)
+                    except Magasin.DoesNotExist:
+                        continue
+                    
+                    # Créer ou récupérer la commande (évite les doublons)
+                    commande, created = CommandeGPV.objects.get_or_create(
+                        date_creation=date_creation,
+                        numero_commande=numero_commande,
+                        code_magasin=magasin,
+                        defaults={
+                            'nom_magasin': nom_magasin,
+                            'date_validation': date_validation,
+                            'date_transfert': date_transfert,
+                            'statut': statut,
+                            'fichier_source': nom_fichier,
+                        }
+                    )
+                    
+                    if created:
+                        nombre_nouveaux += 1
+                    else:
+                        nombre_dupliques += 1
+                        
+                except Exception as e:
+                    print(f"Erreur ligne {nombre_lignes}: {e}")
+                    continue
+        
+        import_obj.nombre_lignes = nombre_lignes
+        import_obj.nombre_nouveaux = nombre_nouveaux
+        import_obj.nombre_dupliques = nombre_dupliques
+        import_obj.statut = 'termine'
+        import_obj.save()
+        
+        return import_obj
+        
+    except Exception as e:
+        import_obj.statut = 'erreur'
+        import_obj.message_erreur = str(e)
+        import_obj.save()
+        raise
 

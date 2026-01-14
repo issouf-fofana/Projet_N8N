@@ -1,0 +1,292 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Détail Commande GPV - Vérification Commandes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 25px;
+    }
+    
+    .detail-header {
+        background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        color: white;
+        padding: 25px 30px;
+    }
+    
+    .detail-body {
+        padding: 30px;
+        background: white;
+    }
+    
+    .info-row {
+        padding: 15px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        font-size: 1.1rem;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .comparison-card {
+        border-left: 4px solid #28a745;
+        background: #f8f9fa;
+    }
+    
+    .comparison-card.missing {
+        border-left-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'dashboard:liste_commandes_gpv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- En-tête de la commande -->
+<div class="detail-card">
+    <div class="detail-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-2"><i class="bi bi-box-seam"></i> Commande GPV #{{ commande.numero_commande }}</h3>
+                <p class="mb-0 opacity-75">
+                    <i class="bi bi-shop"></i> {{ commande.code_magasin.code }} - {{ commande.code_magasin.nom }}
+                </p>
+            </div>
+            <div class="text-end">
+                {% if commande.statut %}
+                    <span class="status-badge bg-white text-primary">{{ commande.statut }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="detail-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-calendar"></i> Date de Création</div>
+                    <div class="info-value">{{ commande.date_creation|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-hash"></i> Numéro de Commande</div>
+                    <div class="info-value"><strong class="text-primary">{{ commande.numero_commande }}</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-shop"></i> Magasin</div>
+                    <div class="info-value">
+                        <span class="badge bg-secondary fs-6">{{ commande.code_magasin.code }}</span>
+                        <div class="mt-2">{{ commande.code_magasin.nom }}</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-building"></i> Nom Magasin</div>
+                    <div class="info-value">{{ commande.nom_magasin|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-calendar-check"></i> Date de Validation</div>
+                    <div class="info-value">
+                        {% if commande.date_validation %}
+                            {{ commande.date_validation|date:"d/m/Y" }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-arrow-right-circle"></i> Date de Transfert</div>
+                    <div class="info-value">
+                        {% if commande.date_transfert %}
+                            {{ commande.date_transfert|date:"d/m/Y" }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-info-circle"></i> Statut</div>
+                    <div class="info-value">
+                        {% if commande.statut %}
+                            <span class="badge bg-info rounded-pill fs-6">{{ commande.statut }}</span>
+                        {% else %}
+                            <span class="text-muted">Non renseigné</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
+                    <div class="info-value">
+                        <code>{{ commande.fichier_source|default:"Non renseigné" }}</code>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-clock"></i> Date d'Import</div>
+                    <div class="info-value">{{ commande.date_import|date:"d/m/Y à H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comparaison avec Cyrus -->
+<div class="detail-card">
+    <div class="detail-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+        <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Comparaison avec Cyrus</h5>
+    </div>
+    <div class="detail-body">
+        {% if commande.statut == 'Transmise' or commande.statut == 'TRANSMISE' or commande.statut == 'TRANSMIS' %}
+            {% if commande_cyrus %}
+                <div class="comparison-card p-4 rounded">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-check-circle-fill text-success fs-3 me-3"></i>
+                        <div>
+                            <h5 class="mb-1 text-success">Commande Intégrée</h5>
+                            <p class="mb-0 text-muted">Cette commande GPV (Transmise) a été trouvée dans le système Cyrus</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="info-label">Date Commande Cyrus</div>
+                            <div class="info-value">{{ commande_cyrus.date_commande|date:"d/m/Y" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-label">Numéro Commande Cyrus</div>
+                            <div class="info-value"><strong class="text-success">{{ commande_cyrus.numero_commande }}</strong></div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'dashboard:detail_commande_cyrus' commande_cyrus.id %}" class="btn btn-success">
+                            <i class="bi bi-eye"></i> Voir la commande Cyrus correspondante
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="comparison-card missing p-4 rounded">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-exclamation-triangle-fill text-danger fs-3 me-3"></i>
+                        <div>
+                            <h5 class="mb-1 text-danger">Commande Non Intégrée</h5>
+                            <p class="mb-0 text-muted">Cette commande GPV (Transmise) n'a pas été trouvée dans le système Cyrus</p>
+                        </div>
+                    </div>
+                    {% if ecart %}
+                        <div class="mt-3">
+                            <a href="{% url 'dashboard:detail_ecart_gpv' ecart.id %}" class="btn btn-danger">
+                                <i class="bi bi-exclamation-triangle"></i> Voir le détail de l'écart
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="comparison-card p-4 rounded" style="border-left-color: #6c757d;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-info-circle-fill text-secondary fs-3 me-3"></i>
+                    <div>
+                        <h5 class="mb-1 text-secondary">Statut: {{ commande.statut|default:"Non renseigné" }}</h5>
+                        <p class="mb-0 text-muted">
+                            Seules les commandes GPV avec le statut "Transmise" doivent être présentes dans Cyrus.
+                            {% if commande.statut == 'Saisie' or commande.statut == 'SAISIE' %}
+                                Cette commande est encore en saisie et ne doit pas être dans Cyrus.
+                            {% elif commande.statut == 'Validée' or commande.statut == 'VALIDEE' %}
+                                Cette commande est validée mais pas encore transmise. Elle peut ne pas être dans Cyrus.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% if commande_cyrus %}
+                    <div class="mt-3">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Cette commande a été trouvée dans Cyrus même si son statut n'est pas "Transmise".
+                        </div>
+                        <a href="{% url 'dashboard:detail_commande_cyrus' commande_cyrus.id %}" class="btn btn-info">
+                            <i class="bi bi-eye"></i> Voir la commande Cyrus correspondante
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Informations supplémentaires -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations Complémentaires</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="info-label">Clé de Rapprochement</div>
+                        <div class="info-value">
+                            <code class="text-primary">
+                                Date: {{ commande.date_creation|date:"Y-m-d" }} | 
+                                N°: {{ commande.numero_commande }} | 
+                                Magasin: {{ commande.code_magasin.code }}
+                            </code>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">Système Source</div>
+                        <div class="info-value">
+                            <span class="badge bg-purple fs-6" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">GPV</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">Statut d'Intégration</div>
+                        <div class="info-value">
+                            {% if commande.statut == 'Transmise' or commande.statut == 'TRANSMISE' or commande.statut == 'TRANSMIS' %}
+                                {% if commande_cyrus %}
+                                    <span class="badge bg-success fs-6">
+                                        <i class="bi bi-check-circle"></i> Intégré
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="bi bi-x-circle"></i> Non Intégré
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary fs-6">
+                                    <i class="bi bi-info-circle"></i> Non requis
+                                </span>
+                                <br><small class="text-muted">Statut: {{ commande.statut|default:"N/A" }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

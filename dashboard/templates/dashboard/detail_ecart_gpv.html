@@ -1,0 +1,181 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Détail Écart GPV - Vérification Commandes{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'dashboard:liste_ecarts' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Détail de l'Écart GPV</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h6 class="text-muted">Informations Commande GPV</h6>
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="40%">Date Création</th>
+                        <td>{{ ecart.commande_gpv.date_creation|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Numéro Commande</th>
+                        <td><strong>{{ ecart.commande_gpv.numero_commande }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Code Magasin</th>
+                        <td>
+                            <strong>{{ ecart.commande_gpv.code_magasin.code }}</strong><br>
+                            <small>{{ ecart.commande_gpv.code_magasin.nom }}</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Nom Magasin</th>
+                        <td>{{ ecart.commande_gpv.nom_magasin|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date Validation</th>
+                        <td>
+                            {% if ecart.commande_gpv.date_validation %}
+                                {{ ecart.commande_gpv.date_validation|date:"d/m/Y" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Date Transfert</th>
+                        <td>
+                            {% if ecart.commande_gpv.date_transfert %}
+                                {{ ecart.commande_gpv.date_transfert|date:"d/m/Y" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Statut</th>
+                        <td>
+                            {% if ecart.commande_gpv.statut %}
+                                <span class="badge bg-info">{{ ecart.commande_gpv.statut }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Fichier Source</th>
+                        <td>{{ ecart.commande_gpv.fichier_source|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date Import</th>
+                        <td>{{ ecart.commande_gpv.date_import|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Informations Écart</h6>
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="40%">Statut Écart</th>
+                        <td>
+                            {% if ecart.statut == 'ouvert' %}
+                                <span class="badge bg-danger">Ouvert</span>
+                            {% elif ecart.statut == 'resolu' %}
+                                <span class="badge bg-success">Résolu</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Ignoré</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Date Création</th>
+                        <td>{{ ecart.date_creation|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date Modification</th>
+                        <td>{{ ecart.date_modification|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Commentaire</th>
+                        <td>
+                            {% if ecart.commentaire %}
+                                {{ ecart.commentaire }}
+                            {% else %}
+                                <span class="text-muted">Aucun commentaire</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        {% if existe_cyrus %}
+        <div class="alert alert-success">
+            <h6><i class="bi bi-check-circle"></i> Commande trouvée dans Cyrus</h6>
+            <p class="mb-0">
+                Cette commande GPV existe maintenant dans Cyrus. L'écart sera automatiquement marqué comme "Résolu" lors du prochain recalcul.
+            </p>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <h6><i class="bi bi-info-circle"></i> Explication de l'écart</h6>
+            <p class="mb-0">
+                Cette commande GPV avec le statut "Transmise" n'a pas été trouvée dans le système Cyrus avec les mêmes critères :
+                <strong>Date: {{ ecart.commande_gpv.date_creation|date:"d/m/Y" }}</strong>,
+                <strong>N°: {{ ecart.commande_gpv.numero_commande }}</strong>,
+                <strong>Magasin: {{ ecart.commande_gpv.code_magasin.code }}</strong>
+            </p>
+            <p class="mb-0 mt-2">
+                <small><strong>Note:</strong> Seules les commandes GPV avec le statut "Transmise" doivent être présentes dans Cyrus.</small>
+            </p>
+        </div>
+        {% endif %}
+        
+        <!-- Formulaire de modification du statut -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Modifier le statut de l'écart</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="statut" class="form-label fw-semibold">Nouveau statut</label>
+                            <select class="form-select" id="statut" name="statut" required>
+                                <option value="ouvert" {% if ecart.statut == 'ouvert' %}selected{% endif %}>
+                                    Ouvert - Écart détecté, en attente de résolution
+                                </option>
+                                <option value="resolu" {% if ecart.statut == 'resolu' %}selected{% endif %}>
+                                    Résolu - L'écart a été corrigé (la commande est maintenant dans Cyrus)
+                                </option>
+                                <option value="ignore" {% if ecart.statut == 'ignore' %}selected{% endif %}>
+                                    Ignoré - Écart ignoré manuellement (faux positif, écart intentionnel, etc.)
+                                </option>
+                            </select>
+                            <small class="form-text text-muted">
+                                <strong>Résolu</strong> : La commande est maintenant dans Cyrus (automatique lors du recalcul)<br>
+                                <strong>Ignoré</strong> : Vous décidez d'ignorer cet écart manuellement
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="commentaire" class="form-label fw-semibold">Commentaire (optionnel)</label>
+                            <textarea class="form-control" id="commentaire" name="commentaire" rows="3" 
+                                      placeholder="Ajoutez un commentaire pour expliquer le changement de statut...">{{ ecart.commentaire|default:'' }}</textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Enregistrer les modifications
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

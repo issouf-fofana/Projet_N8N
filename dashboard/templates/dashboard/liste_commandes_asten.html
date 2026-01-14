@@ -149,6 +149,43 @@
             </table>
         </div>
     </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Pagination">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_commande %}&numero_commande={{ filtres.numero_commande }}{% endif %}">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_commande %}&numero_commande={{ filtres.numero_commande }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_commande %}&numero_commande={{ filtres.numero_commande }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_commande %}&numero_commande={{ filtres.numero_commande }}{% endif %}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 

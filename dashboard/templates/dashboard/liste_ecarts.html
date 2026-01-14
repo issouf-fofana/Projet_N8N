@@ -84,28 +84,35 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for ecart in ecarts %}
+                    {% for item in ecarts %}
                         <tr class="align-middle">
-                            <td class="fw-semibold">{{ ecart.commande_asten.date_commande|date:"d/m/Y" }}</td>
-                            <td><strong class="text-primary">{{ ecart.commande_asten.numero_commande }}</strong></td>
+                            <td class="fw-semibold">{{ item.date_commande|date:"d/m/Y" }}</td>
                             <td>
-                                <span class="badge bg-secondary">{{ ecart.commande_asten.code_magasin.code }}</span><br>
-                                <small class="text-muted">{{ ecart.commande_asten.code_magasin.nom|truncatewords:3 }}</small>
+                                <strong class="text-primary">{{ item.numero_commande }}</strong>
+                                {% if item.type == 'gpv' %}
+                                    <br><small class="badge bg-info">GPV</small>
+                                {% else %}
+                                    <br><small class="badge bg-primary">Asten</small>
+                                {% endif %}
                             </td>
                             <td>
-                                {% if ecart.commande_asten.montant %}
-                                    <strong>{{ ecart.commande_asten.montant|floatformat:0 }} FCFA</strong>
+                                <span class="badge bg-secondary">{{ item.code_magasin.code }}</span><br>
+                                <small class="text-muted">{{ item.code_magasin.nom|truncatewords:3 }}</small>
+                            </td>
+                            <td>
+                                {% if item.montant %}
+                                    <strong>{{ item.montant|floatformat:0 }} FCFA</strong>
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td><small class="text-muted">{{ ecart.date_creation|date:"d/m/Y H:i" }}</small></td>
+                            <td><small class="text-muted">{{ item.date_creation|date:"d/m/Y H:i" }}</small></td>
                             <td>
-                                {% if ecart.statut == 'ouvert' %}
+                                {% if item.statut == 'ouvert' %}
                                     <span class="badge bg-danger rounded-pill">
                                         <i class="bi bi-exclamation-circle"></i> Ouvert
                                     </span>
-                                {% elif ecart.statut == 'resolu' %}
+                                {% elif item.statut == 'resolu' %}
                                     <span class="badge bg-success rounded-pill">
                                         <i class="bi bi-check-circle"></i> Résolu
                                     </span>
@@ -116,10 +123,17 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'dashboard:detail_ecart' ecart.id %}" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i> Détails
-                                </a>
+                                {% if item.type == 'gpv' %}
+                                    <a href="{% url 'dashboard:detail_ecart_gpv' item.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Détails
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'dashboard:detail_ecart' item.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Détails
+                                    </a>
+                                {% endif %}
                             </td>
                         </tr>
                     {% empty %}

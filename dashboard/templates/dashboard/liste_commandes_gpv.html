@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
 {% load dashboard_filters %}
 
-{% block title %}Liste Commandes Cyrus - Vérification Commandes{% endblock %}
+{% block title %}Liste Commandes GPV - Vérification Commandes{% endblock %}
 
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
-    <h1><i class="bi bi-box-seam text-success"></i> Liste des Commandes Cyrus</h1>
-    <span class="badge bg-success fs-6">{{ total }} commande(s)</span>
+    <h1><i class="bi bi-box-seam text-primary"></i> Liste des Commandes GPV</h1>
+    <span class="badge bg-primary fs-6">{{ total }} commande(s)</span>
 </div>
 
 <!-- Filtres -->
@@ -94,7 +94,7 @@
 <div class="card">
     <div class="card-header">
         <h5 class="mb-0">
-            <i class="bi bi-list-ul"></i> Commandes Cyrus 
+            <i class="bi bi-list-ul"></i> Commandes GPV 
             <span class="badge bg-light text-dark ms-2">{{ commandes.count }}</span>
         </h5>
     </div>
@@ -103,10 +103,11 @@
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="border-0"><i class="bi bi-calendar"></i> Date Commande</th>
+                        <th class="border-0"><i class="bi bi-calendar"></i> Date Création</th>
                         <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
                         <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
+                        <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-clock"></i> Date Import</th>
                         <th class="border-0"><i class="bi bi-gear"></i> Action</th>
                     </tr>
@@ -114,15 +115,22 @@
                 <tbody>
                     {% for commande in commandes %}
                         <tr class="align-middle">
-                            <td class="fw-semibold">{{ commande.date_commande|date:"d/m/Y" }}</td>
-                            <td><strong class="text-success">{{ commande.numero_commande }}</strong></td>
+                            <td class="fw-semibold">{{ commande.date_creation|date:"d/m/Y" }}</td>
+                            <td><strong class="text-primary">{{ commande.numero_commande }}</strong></td>
                             <td>
                                 <span class="badge bg-secondary">{{ commande.code_magasin.code }}</span><br>
                                 <small class="text-muted">{{ commande.code_magasin.nom|truncatewords:3 }}</small>
                             </td>
                             <td>
                                 {% if commande.statut %}
-                                    <span class="badge bg-success rounded-pill">{{ commande.statut }}</span>
+                                    <span class="badge bg-info rounded-pill">{{ commande.statut }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if commande.date_validation %}
+                                    <small class="text-muted">{{ commande.date_validation|date:"d/m/Y" }}</small>
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
@@ -131,17 +139,17 @@
                                 <small class="text-muted">{{ commande.date_import|date:"d/m/Y H:i" }}</small>
                             </td>
                             <td>
-                                <a href="{% url 'dashboard:detail_commande_cyrus' commande.id %}" 
-                                   class="btn btn-sm btn-outline-success">
+                                <a href="{% url 'dashboard:detail_commande_gpv' commande.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-eye"></i> Voir détail
                                 </a>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-5">
+                            <td colspan="7" class="text-center py-5">
                                 <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
-                                <p class="text-muted mt-3 mb-0">Aucune commande Cyrus trouvée pour les filtres sélectionnés.</p>
+                                <p class="text-muted mt-3 mb-0">Aucune commande GPV trouvée pour les filtres sélectionnés.</p>
                             </td>
                         </tr>
                     {% endfor %}
@@ -206,9 +214,6 @@ function filtrerMagasins(recherche) {
             item.style.display = 'none';
         }
     });
-    
-    // Mettre à jour le checkbox "Sélectionner tout"
-    updateSelectAllState();
 }
 
 function toggleAllMagasins(checkbox) {
@@ -222,18 +227,6 @@ function toggleAllMagasins(checkbox) {
     updateMagasinText();
 }
 
-function updateSelectAllState() {
-    const selectAll = document.getElementById('selectAllMagasins');
-    if (!selectAll) return;
-    
-    const visibleItems = document.querySelectorAll('.magasin-item:not([style*="display: none"])');
-    const visibleChecked = Array.from(visibleItems).filter(item => {
-        const input = item.querySelector('input[type="checkbox"]');
-        return input && input.checked;
-    });
-    selectAll.checked = visibleChecked.length === visibleItems.length && visibleItems.length > 0;
-}
-
 function updateMagasinText() {
     const checked = document.querySelectorAll('input[name="magasin"]:checked');
     const textElement = document.getElementById('magasinSelectedText');
@@ -244,7 +237,17 @@ function updateMagasinText() {
         textElement.textContent = checked.length + ' magasin(s) sélectionné(s)';
     }
     
-    updateSelectAllState();
+    // Mettre à jour le checkbox "Sélectionner tout"
+    const allCheckboxes = document.querySelectorAll('input[name="magasin"]');
+    const selectAll = document.getElementById('selectAllMagasins');
+    if (selectAll) {
+        const visibleItems = document.querySelectorAll('.magasin-item:not([style*="display: none"])');
+        const visibleChecked = Array.from(visibleItems).filter(item => {
+            const input = item.querySelector('input[type="checkbox"]');
+            return input && input.checked;
+        });
+        selectAll.checked = visibleChecked.length === visibleItems.length && visibleItems.length > 0;
+    }
 }
 
 // Empêcher la fermeture du dropdown en cliquant dedans

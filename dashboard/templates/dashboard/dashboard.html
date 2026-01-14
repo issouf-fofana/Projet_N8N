@@ -320,14 +320,91 @@
                                 </td>
                             </tr>
                         {% endif %}
+                    {% elif type_donnees == 'commandes_gpv' %}
+                        {% if commandes and commandes|length > 0 %}
+                            {% for item in commandes %}
+                            <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
+                                <td class="fw-semibold">{{ item.gpv.date_creation|date:"d/m/Y" }}</td>
+                                <td><strong class="text-dark">{{ item.gpv.numero_commande }}</strong></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ item.gpv.code_magasin.code }}</span><br>
+                                    <small class="text-muted">{{ item.gpv.code_magasin.nom|truncatewords:3 }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary"><i class="bi bi-check"></i> GPV</span>
+                                    {% if item.gpv.statut %}
+                                        <br><small class="text-muted">
+                                            <span class="badge bg-info" style="font-size: 0.7rem;">
+                                                {{ item.gpv.statut }}
+                                            </span>
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.doit_etre_dans_cyrus %}
+                                        {% if item.cyrus %}
+                                            <span class="badge bg-success"><i class="bi bi-check"></i> Cyrus</span>
+                                        {% else %}
+                                            <span class="badge bg-danger"><i class="bi bi-x"></i> Absent</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary"><i class="bi bi-info-circle"></i> Non requis</span>
+                                        <br><small class="text-muted" style="font-size: 0.75rem;">Statut: {{ item.gpv.statut|default:"N/A" }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.doit_etre_dans_cyrus %}
+                                        {% if item.integre %}
+                                            <span class="badge bg-success rounded-pill">
+                                                <i class="bi bi-check-circle"></i> Intégré
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger rounded-pill">
+                                                <i class="bi bi-exclamation-circle"></i> Non intégré
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary rounded-pill">
+                                            <i class="bi bi-info-circle"></i> OK
+                                        </span>
+                                        <br><small class="text-muted" style="font-size: 0.7rem;">Pas encore transmise</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.doit_etre_dans_cyrus %}
+                                    {% if not item.integre %}
+                                        {% if item.ecart %}
+                                            <a href="{% url 'dashboard:detail_ecart_gpv' item.ecart.id %}" 
+                                               class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-eye"></i> Voir écart
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">Écart non calculé</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-success"><i class="bi bi-check2"></i> OK</span>
+                                    {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary"><i class="bi bi-info-circle"></i> OK</span>
+                                        <br><small class="text-muted" style="font-size: 0.7rem;">Pas d'écart attendu</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                                    <p class="text-muted mt-3 mb-0">Aucune commande trouvée pour les filtres sélectionnés.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
                     {% else %}
                         <tr>
                             <td colspan="7" class="text-center py-5">
                                 <i class="bi bi-info-circle" style="font-size: 3rem; color: #3498db;"></i>
                                 <p class="text-muted mt-3 mb-0">
-                                    {% if filtres.type_donnees == 'commandes_gpv' %}
-                                        Les commandes GPV seront disponibles prochainement.
-                                    {% elif filtres.type_donnees == 'commandes_legend' %}
+                                    {% if filtres.type_donnees == 'commandes_legend' %}
                                         Les commandes Legend seront disponibles prochainement.
                                     {% elif filtres.type_donnees == 'factures' %}
                                         Les factures seront disponibles prochainement.

@@ -1,7 +1,8 @@
 from django.db import transaction
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
-from ecarts.models import EcartCommande
+from gpv.models import CommandeGPV
+from ecarts.models import EcartCommande, EcartGPV
 
 
 def recalculer_ecarts():
@@ -61,9 +62,75 @@ def recalculer_ecarts():
                     ecarts_crees += 1
                 # Si la commande existe dans Cyrus, pas besoin de créer un écart
         
+        # Recalculer aussi les écarts GPV
+        # IMPORTANT: Seules les commandes GPV avec statut "Transmise" doivent être dans Cyrus
+        commandes_gpv = CommandeGPV.objects.all()
+        ecarts_gpv_crees = 0
+        ecarts_gpv_resolus = 0
+        
+        for commande_gpv in commandes_gpv:
+            # Normaliser le statut (enlever les espaces, mettre en majuscules)
+            statut_gpv = (commande_gpv.statut or '').strip().upper()
+            
+            # Seules les commandes "TRANSMISE" doivent être dans Cyrus
+            # Les statuts "SAISIE" et "VALIDEE" ne doivent pas créer d'écart
+            doit_etre_dans_cyrus = (statut_gpv == 'TRANSMISE' or statut_gpv == 'TRANSMIS')
+            
+            # Si le statut n'est pas "Transmise", on ne crée pas d'écart
+            if not doit_etre_dans_cyrus:
+                # Supprimer l'écart existant s'il y en a un (car ce n'est plus un écart valide)
+                try:
+                    ecart_existant = commande_gpv.ecart
+                    # Si l'écart était "ignore", on le garde
+                    if ecart_existant.statut != 'ignore':
+                        ecart_existant.delete()
+                except EcartGPV.DoesNotExist:
+                    pass
+                continue
+            
+            # Vérifier si la commande existe dans Cyrus (seulement pour les commandes "Transmise")
+            existe_cyrus = CommandeCyrus.objects.filter(
+                date_commande=commande_gpv.date_creation,  # Utiliser date_creation comme date_commande
+                numero_commande=commande_gpv.numero_commande,
+                code_magasin=commande_gpv.code_magasin
+            ).exists()
+            
+            # Vérifier si un écart existe déjà pour cette commande
+            try:
+                ecart_existant = commande_gpv.ecart
+                
+                # Si la commande existe maintenant dans Cyrus
+                if existe_cyrus:
+                    # Si l'écart était "ouvert", le marquer comme "résolu"
+                    if ecart_existant.statut == 'ouvert':
+                        ecart_existant.statut = 'resolu'
+                        ecart_existant.save()
+                        ecarts_gpv_resolus += 1
+                    # Si l'écart était "ignore", on le garde tel quel (ignoré manuellement)
+                    # Si l'écart était déjà "resolu", on ne fait rien
+                else:
+                    # Si la commande n'existe toujours pas dans Cyrus
+                    # Si l'écart était "resolu", le remettre à "ouvert" (le problème est revenu)
+                    if ecart_existant.statut == 'resolu':
+                        ecart_existant.statut = 'ouvert'
+                        ecart_existant.save()
+                    # Si l'écart était "ignore", on le garde tel quel
+                    # Si l'écart était déjà "ouvert", on ne fait rien
+                    
+            except EcartGPV.DoesNotExist:
+                # Aucun écart existant, créer un nouveau si la commande n'existe pas dans Cyrus
+                # (et seulement si le statut est "Transmise")
+                if not existe_cyrus:
+                    EcartGPV.objects.create(
+                        commande_gpv=commande_gpv,
+                        statut='ouvert'
+                    )
+                    ecarts_gpv_crees += 1
+                # Si la commande existe dans Cyrus, pas besoin de créer un écart
+        
         return {
-            'ecarts_crees': ecarts_crees,
-            'ecarts_resolus': ecarts_resolus
+            'ecarts_crees': ecarts_crees + ecarts_gpv_crees,
+            'ecarts_resolus': ecarts_resolus + ecarts_gpv_resolus
         }
 
 
