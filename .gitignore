@@ -4,12 +4,21 @@ __pycache__/
 *$py.class
 *.so
 .Python
-venv/
-env/
-ENV/
-*.egg-info/
-dist/
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Django
 *.log
@@ -19,9 +28,10 @@ db.sqlite3-journal
 /media
 /staticfiles
 
-# Environment
-.env
-.venv
+# Virtual Environment
+venv/
+env/
+ENV/
 
 # IDE
 .vscode/
@@ -33,10 +43,3 @@ db.sqlite3-journal
 # OS
 .DS_Store
 Thumbs.db
-
-# Extractions (données sensibles)
-extractions/
-*.csv
-!export1/*.csv
-!table_matirx/*.csv
-

@@ -1,0 +1,139 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Liste des Écarts - Vérification Commandes{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1><i class="bi bi-exclamation-triangle"></i> Liste des Écarts</h1>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres de recherche</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="date_debut" class="form-label fw-semibold">
+                    <i class="bi bi-calendar-event"></i> Date début
+                </label>
+                <input type="date" class="form-control form-control-lg" id="date_debut" name="date_debut" 
+                       value="{{ filtres.date_debut }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_fin" class="form-label fw-semibold">
+                    <i class="bi bi-calendar-check"></i> Date fin
+                </label>
+                <input type="date" class="form-control form-control-lg" id="date_fin" name="date_fin" 
+                       value="{{ filtres.date_fin }}">
+            </div>
+            <div class="col-md-2">
+                <label for="magasin" class="form-label fw-semibold">
+                    <i class="bi bi-shop"></i> Magasin
+                </label>
+                <select class="form-select form-select-lg" id="magasin" name="magasin">
+                    <option value="">Tous</option>
+                    {% for magasin in magasins %}
+                        <option value="{{ magasin.code }}" {% if filtres.magasin == magasin.code %}selected{% endif %}>
+                            {{ magasin.code }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="statut" class="form-label fw-semibold">
+                    <i class="bi bi-info-circle"></i> Statut
+                </label>
+                <select class="form-select form-select-lg" id="statut" name="statut">
+                    <option value="" {% if not filtres.statut or filtres.statut == '' %}selected{% endif %}>Tous</option>
+                    <option value="ouvert" {% if filtres.statut == 'ouvert' %}selected{% endif %}>Ouvert</option>
+                    <option value="resolu" {% if filtres.statut == 'resolu' %}selected{% endif %}>Résolu</option>
+                    <option value="ignore" {% if filtres.statut == 'ignore' %}selected{% endif %}>Ignoré</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                    <i class="bi bi-funnel-fill"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des écarts -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-list-ul"></i> Écarts détectés 
+            <span class="badge bg-light text-dark ms-2">{{ ecarts.count }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="border-0"><i class="bi bi-calendar"></i> Date Commande</th>
+                        <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
+                        <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                        <th class="border-0"><i class="bi bi-currency-exchange"></i> Montant</th>
+                        <th class="border-0"><i class="bi bi-clock"></i> Date Création Écart</th>
+                        <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
+                        <th class="border-0"><i class="bi bi-gear"></i> Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ecart in ecarts %}
+                        <tr class="align-middle">
+                            <td class="fw-semibold">{{ ecart.commande_asten.date_commande|date:"d/m/Y" }}</td>
+                            <td><strong class="text-primary">{{ ecart.commande_asten.numero_commande }}</strong></td>
+                            <td>
+                                <span class="badge bg-secondary">{{ ecart.commande_asten.code_magasin.code }}</span><br>
+                                <small class="text-muted">{{ ecart.commande_asten.code_magasin.nom|truncatewords:3 }}</small>
+                            </td>
+                            <td>
+                                {% if ecart.commande_asten.montant %}
+                                    <strong>{{ ecart.commande_asten.montant|floatformat:0 }} FCFA</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ ecart.date_creation|date:"d/m/Y H:i" }}</small></td>
+                            <td>
+                                {% if ecart.statut == 'ouvert' %}
+                                    <span class="badge bg-danger rounded-pill">
+                                        <i class="bi bi-exclamation-circle"></i> Ouvert
+                                    </span>
+                                {% elif ecart.statut == 'resolu' %}
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="bi bi-check-circle"></i> Résolu
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary rounded-pill">
+                                        <i class="bi bi-x-circle"></i> Ignoré
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard:detail_ecart' ecart.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Détails
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-3 mb-0">Aucun écart trouvé pour les filtres sélectionnés.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,221 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Détail Commande Cyrus - Vérification Commandes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 25px;
+    }
+    
+    .detail-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 25px 30px;
+    }
+    
+    .detail-body {
+        padding: 30px;
+        background: white;
+    }
+    
+    .info-row {
+        padding: 15px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        font-size: 1.1rem;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .comparison-card {
+        border-left: 4px solid #3498db;
+        background: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'dashboard:liste_commandes_cyrus' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- En-tête de la commande -->
+<div class="detail-card">
+    <div class="detail-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-2"><i class="bi bi-box-seam"></i> Commande Cyrus #{{ commande.numero_commande }}</h3>
+                <p class="mb-0 opacity-75">
+                    <i class="bi bi-shop"></i> {{ commande.code_magasin.code }} - {{ commande.code_magasin.nom }}
+                </p>
+            </div>
+            <div class="text-end">
+                {% if commande.statut %}
+                    <span class="status-badge bg-white text-success">{{ commande.statut }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="detail-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-calendar"></i> Date de Commande</div>
+                    <div class="info-value">{{ commande.date_commande|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-hash"></i> Numéro de Commande</div>
+                    <div class="info-value"><strong class="text-success">{{ commande.numero_commande }}</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-shop"></i> Magasin</div>
+                    <div class="info-value">
+                        <span class="badge bg-secondary fs-6">{{ commande.code_magasin.code }}</span>
+                        <div class="mt-2">{{ commande.code_magasin.nom }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
+                    <div class="info-value">
+                        <code>{{ commande.fichier_source|default:"Non renseigné" }}</code>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-clock"></i> Date d'Import</div>
+                    <div class="info-value">{{ commande.date_import|date:"d/m/Y à H:i" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-info-circle"></i> Statut</div>
+                    <div class="info-value">
+                        {% if commande.statut %}
+                            <span class="badge bg-success rounded-pill fs-6">{{ commande.statut }}</span>
+                        {% else %}
+                            <span class="text-muted">Non renseigné</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comparaison avec Asten -->
+<div class="detail-card">
+    <div class="detail-header" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">
+        <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Comparaison avec Asten</h5>
+    </div>
+    <div class="detail-body">
+        {% if commande_asten %}
+            <div class="comparison-card p-4 rounded">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-check-circle-fill text-primary fs-3 me-3"></i>
+                    <div>
+                        <h5 class="mb-1 text-primary">Commande Trouvée dans Asten</h5>
+                        <p class="mb-0 text-muted">Cette commande correspond à une commande Asten</p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="info-label">Date Commande Asten</div>
+                        <div class="info-value">{{ commande_asten.date_commande|date:"d/m/Y" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label">Numéro Commande Asten</div>
+                        <div class="info-value"><strong class="text-primary">{{ commande_asten.numero_commande }}</strong></div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="{% url 'dashboard:detail_commande_asten' commande_asten.id %}" class="btn btn-primary">
+                        <i class="bi bi-eye"></i> Voir la commande Asten correspondante
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <div class="comparison-card p-4 rounded">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-info-circle-fill text-info fs-3 me-3"></i>
+                    <div>
+                        <h5 class="mb-1 text-info">Commande Unique à Cyrus</h5>
+                        <p class="mb-0 text-muted">Cette commande n'existe que dans le système Cyrus</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Informations supplémentaires -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations Complémentaires</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="info-label">Clé de Rapprochement</div>
+                        <div class="info-value">
+                            <code class="text-success">
+                                Date: {{ commande.date_commande|date:"Y-m-d" }} | 
+                                N°: {{ commande.numero_commande }} | 
+                                Magasin: {{ commande.code_magasin.code }}
+                            </code>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">Système Source</div>
+                        <div class="info-value">
+                            <span class="badge bg-success fs-6">CYRUS</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">Statut d'Intégration</div>
+                        <div class="info-value">
+                            {% if commande_asten %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="bi bi-check-circle"></i> Intégré
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info fs-6">
+                                    <i class="bi bi-info-circle"></i> Unique à Cyrus
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

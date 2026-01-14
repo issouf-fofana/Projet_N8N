@@ -1,929 +1,231 @@
-import json
-import os
-import subprocess
-import pandas as pd
-import logging
-import glob
-import re
 from django.shortcuts import render, redirect
+from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q, Count, Sum
-from django.conf import settings
 from django.views.decorators.http import require_http_methods
-from django.core.serializers.json import DjangoJSONEncoder
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from traitement.models import Controle, Ecart, FichierSource
-from traitement.management.commands.process_commande import Command as ProcessCommandeCommand
-from django.utils import timezone
-from datetime import datetime, timedelta
-
-logger = logging.getLogger(__name__)
-
-
-def load_magasins():
-    """Charge les magasins depuis le fichier JSON"""
-    from pathlib import Path
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    json_path = BASE_DIR / 'magasins.json'
-    try:
-        with open(json_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
-def parse_data(value):
-    """Parse les données depuis une string"""
-    if not value:
-        return {}
-    
-    # Remplacer 'nan' par None pour éviter les erreurs de parsing
-    if isinstance(value, str):
-        # Remplacer nan, NaN, None par des valeurs null JSON
-        value_cleaned = value.replace('nan', 'None').replace('NaN', 'None')
-    else:
-        value_cleaned = value
-    
-    # Essayer d'abord avec ast.literal_eval
-    try:
-        import ast
-        result = ast.literal_eval(value_cleaned)
-        # Convertir None en dict vide si nécessaire
-        if result is None:
-            return {}
-        return result if isinstance(result, dict) else {}
-    except:
-        pass
-    
-    # Essayer avec json (remplacer None par null)
-    try:
-        value_json = value_cleaned.replace('None', 'null').replace("'", '"')
-        return json.loads(value_json)
-    except:
-        pass
-    
-    # Si c'est une string de dict Python, utiliser eval avec précaution
-    try:
-        # Remplacer None par null pour JSON
-        value_eval = value_cleaned.replace('None', 'null')
-        result = eval(value_eval, {"__builtins__": {}}, {})
-        return result if isinstance(result, dict) else {}
-    except:
-        pass
-    
-    # Si c'est une string simple, essayer de parser comme CSV-like
-    return {}
-
-
-def get_value(data, *keys):
-    """Récupère une valeur depuis un dict en essayant plusieurs clés"""
-    if not isinstance(data, dict):
-        return None
-    for key in keys:
-        if key in data:
-            return data[key]
-    return None
-
-
-def format_cyrus_date(date_str):
-    """
-    Formate une date Cyrus du format YYMMDD (ex: 260107) vers DD/MM/YYYY (ex: 07/01/2026)
-    Format Cyrus : YYMMDD où YY = année (2 chiffres), MM = mois, DD = jour
-    Exemple : 260107 = 07/01/2026 (7 janvier 2026)
-    """
-    if not date_str or str(date_str).strip() in ['', 'nan', 'None', 'NaN']:
-        return '-'
-    
-    date_str = str(date_str).strip()
-    
-    # Format YYMMDD (6 chiffres) - Format Cyrus
-    if len(date_str) == 6 and date_str.isdigit():
-        year_short = date_str[:2]  # YY
-        month = date_str[2:4]      # MM
-        day = date_str[4:6]         # DD
-        try:
-            year_int = int(year_short)
-            # Si année < 50, assumer 20xx, sinon 20xx aussi (car on est en 2026+)
-            if year_int < 50:
-                year = f"20{year_short}"
-            else:
-                year = f"20{year_short}"  # Pour les années 50-99, on assume 2050-2099
-            return f"{day}/{month}/{year}"
-        except:
-            return date_str
-    
-    # Format DDMMYY (6 chiffres) - Ancien format (pour compatibilité)
-    if len(date_str) == 6 and date_str.isdigit():
-        day = date_str[:2]
-        month = date_str[2:4]
-        year_short = date_str[4:6]
-        try:
-            year_int = int(year_short)
-            if year_int < 50:
-                year = f"20{year_short}"
-            else:
-                year = f"19{year_short}"
-            return f"{day}/{month}/{year}"
-        except:
-            return date_str
-    
-    # Format DDMMYYYY (8 chiffres)
-    if len(date_str) == 8 and date_str.isdigit():
-        day = date_str[:2]
-        month = date_str[2:4]
-        year = date_str[4:8]
-        return f"{day}/{month}/{year}"
-    
-    # Si déjà formaté, retourner tel quel
-    return date_str
+from django.utils.dateparse import parse_date
+from django.urls import reverse
+from imports.services import scanner_et_importer_fichiers
+from ecarts.services import recalculer_ecarts, get_statistiques
+from asten.models import CommandeAsten
+from cyrus.models import CommandeCyrus
+from ecarts.models import EcartCommande
+from core.models import Magasin
 
 
 def dashboard(request):
     """Vue principale du dashboard"""
-    # Charger les magasins
-    magasins = load_magasins()
+    # Les données existantes en base sont TOUJOURS chargées et affichées
+    # L'actualisation automatique se fait silencieusement (une seule fois par session)
+    # Les données restent en base de données donc elles persistent même si on change de type
+    if 'donnees_actualisees' not in request.session:
+        try:
+            # Scanner et importer les nouveaux fichiers (silencieux, en arrière-plan)
+            scanner_et_importer_fichiers()
+            # Recalculer les écarts (silencieux, en arrière-plan)
+            recalculer_ecarts()
+            # Marquer comme actualisé dans la session
+            request.session['donnees_actualisees'] = True
+        except Exception as e:
+            # En cas d'erreur, on continue quand même (pas de message visible pour l'utilisateur)
+            # Les erreurs sont loggées mais n'interrompent pas l'affichage
+            pass
     
-    # Récupérer les paramètres de filtrage
-    magasin_filter = request.GET.get('magasin', '')
-    periode_filter = request.GET.get('periode', '')
-    type_ecart_filter = request.GET.get('type_ecart', '')
-    date_debut = request.GET.get('date_debut', '')
-    date_fin = request.GET.get('date_fin', '')
-    controle_id = request.GET.get('controle', '')
+    # Récupérer les filtres (gérer les valeurs "None" en string et la sélection multiple)
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
+    type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
     
-    # Base queryset pour les écarts
-    ecarts = Ecart.objects.select_related('controle').all()
+    # Nettoyer les valeurs "None" en string
+    if date_debut == 'None' or date_debut == '':
+        date_debut = None
+    if date_fin == 'None' or date_fin == '':
+        date_fin = None
+    # Nettoyer la liste des magasins
+    if code_magasin:
+        code_magasin = [m for m in code_magasin if m and m != 'None' and m != '']
+        if not code_magasin:
+            code_magasin = None
+        elif len(code_magasin) == 1:
+            # Si un seul magasin est sélectionné, garder comme liste pour cohérence
+            pass
     
-    # Appliquer les filtres
-    # Si un contrôle spécifique est sélectionné, filtrer par ce contrôle
-    if controle_id:
-        ecarts = ecarts.filter(controle_id=controle_id)
+    # Convertir les dates
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
     
-    # Appliquer le filtre de période (même si un contrôle est sélectionné, on peut encore filtrer)
-    if periode_filter:
-        ecarts = ecarts.filter(controle__periode=periode_filter)
+    # Liste des magasins pour le filtre
+    magasins = Magasin.objects.all().order_by('code')
     
-    # Les filtres de date seront appliqués après sur les données extraites (date de commande, pas date de traitement)
-    # On ne filtre plus par date_execution (date de traitement)
+    # Initialiser les variables avec des valeurs par défaut
+    # IMPORTANT: Les données doivent TOUJOURS être chargées depuis la base, même sans actualisation
+    stats = {
+        'total_source': 0,
+        'total_target': 0,
+        'integres': 0,
+        'non_integres': 0,
+        'taux_integration': 0,
+        'taux_non_integration': 0,
+    }
+    commandes_data = []
+    titre_tableau = "Comparaison Asten vs Cyrus"
     
-    # Filtrer par type d'écart
-    if type_ecart_filter:
-        ecarts = ecarts.filter(type_ecart=type_ecart_filter)
-    
-    # Les filtres par magasin et date de commande seront appliqués après extraction des données
-    # On ne filtre plus ici pour permettre l'extraction complète des données
-    
-    # Trier par date de création (plus récent en premier)
-    ecarts = ecarts.order_by('-date_creation')
-    
-    # Récupérer TOUS les écarts (sans pagination pour pouvoir filtrer sur les données)
-    all_ecarts = list(ecarts)
-    
-    # Préparer les données pour l'affichage et appliquer les filtres sur les données de commande
-    ecarts_data = []
-    for ecart in all_ecarts:
-        # Parser les données JSON de valeur_source_a
-        data_asten = parse_data(ecart.valeur_source_a)
-        data_cyrus = parse_data(ecart.valeur_source_b)
+    # Traiter selon le type de données sélectionné
+    if type_donnees == 'commandes_asten':
+        # Récupérer les commandes avec leurs statuts d'intégration
+        # TOUJOURS charger les données existantes en base, même sans actualisation
+        filtres_asten = {}
+        filtres_cyrus = {}
+        if date_debut_parsed:
+            filtres_asten['date_commande__gte'] = date_debut_parsed
+            filtres_cyrus['date_commande__gte'] = date_debut_parsed
+        if date_fin_parsed:
+            filtres_asten['date_commande__lte'] = date_fin_parsed
+            filtres_cyrus['date_commande__lte'] = date_fin_parsed
+        if code_magasin:
+            # Gérer la sélection multiple de magasins
+            filtres_asten['code_magasin__code__in'] = code_magasin
+            filtres_cyrus['code_magasin__code__in'] = code_magasin
         
-        # Extraire le numéro de magasin
-        magasin_num = get_value(data_asten, 'Magasin', 'magasin', 'MAGASIN') or ''
-        # Si c'est un nombre, le convertir en string
-        if magasin_num:
-            magasin_num = str(magasin_num).strip()
-        if not magasin_num and isinstance(ecart.valeur_source_a, str):
-            # Essayer d'extraire depuis une string avec plusieurs patterns
-            import re
-            patterns = [
-                r"'Magasin':\s*(\d+)",
-                r'"Magasin":\s*(\d+)',
-                r'"Magasin":\s*"(\d+)"',
-                r"'Magasin':\s*'(\d+)'",
-                r'Magasin["\']?\s*[:;]\s*["\']?(\d+)',
-            ]
-            for pattern in patterns:
-                match = re.search(pattern, ecart.valeur_source_a)
-                if match:
-                    magasin_num = str(match.group(1)).strip()
-                    break
+        # Calculer les statistiques avec les filtres appliqués
+        total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
+        total_cyrus = CommandeCyrus.objects.filter(**filtres_cyrus).count()
         
-        # Obtenir le nom du magasin
-        magasin_nom = magasins.get(str(magasin_num), {}).get('name', f'Magasin {magasin_num}' if magasin_num else 'N/A')
+        # Compter les commandes intégrées
+        commandes_asten_filtered = CommandeAsten.objects.filter(**filtres_asten)
+        commandes_integres = 0
+        for cmd_asten in commandes_asten_filtered:
+            if CommandeCyrus.objects.filter(
+                date_commande=cmd_asten.date_commande,
+                numero_commande=cmd_asten.numero_commande,
+                code_magasin=cmd_asten.code_magasin
+            ).exists():
+                commandes_integres += 1
         
-        # Appliquer le filtre par magasin sur les données extraites
-        if magasin_filter and magasin_num != magasin_filter:
-            continue
+        # Compter les écarts avec les filtres
+        filtres_ecarts = {}
+        if date_debut_parsed:
+            filtres_ecarts['commande_asten__date_commande__gte'] = date_debut_parsed
+        if date_fin_parsed:
+            filtres_ecarts['commande_asten__date_commande__lte'] = date_fin_parsed
+        if code_magasin:
+            filtres_ecarts['commande_asten__code_magasin__code__in'] = code_magasin
         
-        # Extraire toutes les colonnes importantes
-        # Essayer plusieurs variantes de noms de colonnes
-        colonnes = {
-            'reference': get_value(data_asten, 'Référence commande', 'Référence commande', 'Référence', 'reference', 'REFERENCE', 'NCDE'),
-            'date_commande': get_value(data_asten, 'Date commande', 'Date commande', 'Date', 'date_commande', 'DCDE', 'Date de commande'),
-            'date_livraison': get_value(data_asten, 'Date livraison', 'Date livraison', 'date_livraison', 'Date de livraison'),
-            'date_validation': get_value(data_asten, 'Date validation', 'Date validation', 'date_validation', 'Date de validation'),
-            'statut': get_value(data_asten, 'Statut', 'statut', 'STATUT', 'Status'),
-            'cree_par': get_value(data_asten, 'Créée par', 'Créée par', 'cree_par', 'Crée par', 'Créé par', 'Créé par'),
-            'validee_par': get_value(data_asten, 'Validée par', 'Validée par', 'validee_par', 'Validée par', 'Validé par'),
-            'fournisseur': get_value(data_asten, 'Fournisseur', 'fournisseur', 'FOURNISSEUR', 'Fournisseur'),
-            'type_commande': get_value(data_asten, 'Type commande', 'Type commande', 'type_commande', 'Type', 'Type de commande'),
+        total_ecarts = EcartCommande.objects.filter(**filtres_ecarts).count()
+        
+        # Calculer les taux
+        taux_integration = round((commandes_integres / total_asten * 100) if total_asten > 0 else 0, 2)
+        taux_non_integration = round((total_ecarts / total_asten * 100) if total_asten > 0 else 0, 2)
+        
+        # Normaliser les statistiques pour correspondre au template
+        stats = {
+            'total_source': total_asten,
+            'total_target': total_cyrus,
+            'integres': commandes_integres,
+            'non_integres': total_ecarts,
+            'taux_integration': taux_integration,
+            'taux_non_integration': taux_non_integration,
         }
         
-        # Appliquer le filtre par date de commande (pas date de traitement)
-        if date_debut or date_fin:
-            date_commande_str = colonnes.get('date_commande', '')
-            if date_commande_str:
-                # Essayer de parser la date de commande
-                date_commande_obj = None
-                try:
-                    # Essayer différents formats
-                    for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
-                        try:
-                            date_commande_obj = datetime.strptime(date_commande_str, fmt).date()
-                            break
-                        except ValueError:
-                            continue
-                    
-                    # Si format DDMMYY (6 chiffres)
-                    if not date_commande_obj and len(date_commande_str) == 6 and date_commande_str.isdigit():
-                        day = date_commande_str[:2]
-                        month = date_commande_str[2:4]
-                        year_short = date_commande_str[4:6]
-                        year_int = int(year_short)
-                        if year_int < 50:
-                            year = f"20{year_short}"
-                        else:
-                            year = f"19{year_short}"
-                        date_commande_str = f"{day}/{month}/{year}"
-                        try:
-                            date_commande_obj = datetime.strptime(date_commande_str, '%d/%m/%Y').date()
-                        except:
-                            pass
-                    
-                    if date_commande_obj:
-                        # Appliquer les filtres de date
-                        if date_debut:
-                            try:
-                                date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date()
-                                if date_commande_obj < date_debut_obj:
-                                    continue
-                            except:
-                                pass
-                        
-                        if date_fin:
-                            try:
-                                date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date()
-                                if date_commande_obj > date_fin_obj:
-                                    continue
-                            except:
-                                pass
-                except:
-                    pass
+        # Charger TOUTES les données existantes en base (pas de limite pour l'affichage)
+        commandes_asten = CommandeAsten.objects.filter(**filtres_asten).select_related('code_magasin').order_by('-date_commande', 'numero_commande')
         
-        # Préparer les détails pour le JSON (convertir en string JSON sécurisée)
-        import json as json_lib
-        details_json = {}
-        if ecart.details:
+        # Préparer les données pour l'affichage
+        commandes_integres_list = []
+        commandes_non_integres_list = []
+        
+        for cmd_asten in commandes_asten:
+            # Vérifier si intégrée dans Cyrus
+            cmd_cyrus = CommandeCyrus.objects.filter(
+                date_commande=cmd_asten.date_commande,
+                numero_commande=cmd_asten.numero_commande,
+                code_magasin=cmd_asten.code_magasin
+            ).first()
+            
+            # Récupérer l'écart si existe
             try:
-                if isinstance(ecart.details, dict):
-                    details_json = ecart.details
-                else:
-                    details_json = parse_data(ecart.details)
+                ecart = cmd_asten.ecart
             except:
-                details_json = {}
-        
-        # Préparer les valeurs sources pour le JSON
-        valeur_source_a_json = None
-        valeur_source_b_json = None
-        try:
-            if ecart.valeur_source_a:
-                valeur_source_a_json = parse_data(ecart.valeur_source_a)
-            if ecart.valeur_source_b:
-                valeur_source_b_json = parse_data(ecart.valeur_source_b)
-        except:
-            pass
-        
-        # Vérifier si la commande existe dans Cyrus (même si avec différences)
-        trouve_dans_cyrus = ecart.type_ecart != 'absent_b' and ecart.valeur_source_b is not None
-        
-        # Extraire les colonnes de Cyrus aussi
-        colonnes_cyrus = {}
-        if data_cyrus:
-            colonnes_cyrus = {
-                'reference': get_value(data_cyrus, 'NCDE', 'Référence', 'reference', 'REFERENCE'),
-                'date_commande': get_value(data_cyrus, 'DCDE', 'Date', 'date_commande', 'DCDE'),
-                'date_livraison': get_value(data_cyrus, 'Date livraison', 'date_livraison'),
-                'date_validation': get_value(data_cyrus, 'Date validation', 'date_validation'),
-                'statut': get_value(data_cyrus, 'Statut', 'statut', 'STATUT'),
-                'fournisseur': get_value(data_cyrus, 'Fournisseur', 'fournisseur', 'FOURNISSEUR'),
-                'type_commande': get_value(data_cyrus, 'Type commande', 'type_commande', 'Type'),
+                ecart = None
+            
+            item = {
+                'asten': cmd_asten,
+                'cyrus': cmd_cyrus,
+                'integre': cmd_cyrus is not None,
+                'ecart': ecart,
             }
+            
+            # Séparer les intégrées et non intégrées
+            if cmd_cyrus is not None:
+                commandes_integres_list.append(item)
+            else:
+                commandes_non_integres_list.append(item)
         
-        ecarts_data.append({
-            'ecart': ecart,
-            'data_asten': data_asten,
-            'data_cyrus': data_cyrus,
-            'magasin_num': magasin_num,
-            'magasin_nom': magasin_nom,
-            'colonnes': colonnes,
-            'colonnes_cyrus': colonnes_cyrus,
-            'details_json': details_json,
-            'valeur_source_a_json': valeur_source_a_json,
-            'valeur_source_b_json': valeur_source_b_json,
-            'trouve_dans_cyrus': trouve_dans_cyrus,  # Indique si trouvé dans Cyrus
-        })
-    
-    # Pagination après filtrage
-    paginator = Paginator(ecarts_data, 25)
-    page = request.GET.get('page', 1)
-    try:
-        ecarts_page = paginator.page(page)
-    except PageNotAnInteger:
-        ecarts_page = paginator.page(1)
-    except EmptyPage:
-        ecarts_page = paginator.page(paginator.num_pages)
-    
-    # Mettre à jour ecarts_data avec la page paginée
-    ecarts_data = list(ecarts_page.object_list)
-    
-    # Statistiques globales (sur les données filtrées)
-    total_ecarts = paginator.count
-    ecarts_absent_b = sum(1 for e in ecarts_data if e['ecart'].type_ecart == 'absent_b')
-    ecarts_valeur_differente = sum(1 for e in ecarts_data if e['ecart'].type_ecart == 'valeur_differente')
-    ecarts_corriges = sum(1 for e in ecarts_data if e['ecart'].type_ecart == 'corrige')
-    # Note: Pour les commandes, on ne cherche pas les écarts de type 'absent_a' 
-    # car toutes les commandes Asten doivent être dans Cyrus, mais pas l'inverse
-    ecarts_absent_a = 0
-    
-    # Calculer le nombre total de commandes dans Asten et Cyrus
-    # On compte les lignes uniques à partir des écarts et des contrôles
-    
-    # Récupérer les contrôles concernés
-    # Si on a des écarts filtrés, utiliser leurs contrôles
-    # Sinon, utiliser tous les contrôles de type 'commande' pour les statistiques
-    if ecarts_data:
-        controles_ids = list(set([e['ecart'].controle_id for e in ecarts_data]))
-        controles_concernes = Controle.objects.filter(id__in=controles_ids) if controles_ids else Controle.objects.none()
-    else:
-        # Si pas d'écarts, charger tous les contrôles récents pour les statistiques
-        controles_concernes = Controle.objects.filter(type_controle='commande').order_by('-date_execution')
-    
-    # Compter les lignes uniques dans Asten depuis les fichiers
-    lignes_asten_uniques = set()
-    
-    # Charger tous les fichiers Asten des contrôles pour compter toutes les lignes
-    for controle_obj in controles_concernes:
-        fichiers_asten = FichierSource.objects.filter(controle=controle_obj, origine='asten')
-        for fichier_asten in fichiers_asten:
-            # Vérifier si le fichier existe, sinon chercher dans l'archive
-            chemin_fichier = fichier_asten.chemin
-            if not os.path.exists(chemin_fichier):
-                # Chercher dans l'archive
-                nom_fichier = os.path.basename(chemin_fichier)
-                archive_path = os.path.join(settings.EXTRACTIONS_PATHS.get('archive', ''), '*', nom_fichier)
-                fichiers_archive = glob.glob(archive_path)
-                if fichiers_archive:
-                    chemin_fichier = fichiers_archive[0]
-                else:
-                    continue
-            try:
-                df_asten = pd.read_csv(chemin_fichier, sep=';', encoding='utf-8', low_memory=False)
-                if len(df_asten.columns) == 1:
-                    df_asten = pd.read_csv(chemin_fichier, sep=',', encoding='utf-8', low_memory=False)
-                
-                # Compter les lignes uniques avec Référence commande et Date commande
-                if 'Référence commande' in df_asten.columns and 'Date commande' in df_asten.columns:
-                    df_asten['Référence commande'] = df_asten['Référence commande'].astype(str).str.strip()
-                    df_asten['Date commande'] = df_asten['Date commande'].astype(str).str.strip()
-                    df_asten = df_asten[
-                        ~df_asten['Référence commande'].isin(['', 'nan', 'None', 'NaN']) &
-                        ~df_asten['Date commande'].isin(['', 'nan', 'None', 'NaN'])
-                    ]
-                    for idx, row in df_asten.iterrows():
-                        ref = str(row['Référence commande']).strip()
-                        date = str(row['Date commande']).strip()
-                        if ref and date:
-                            lignes_asten_uniques.add(f"{ref}|{date}")
-            except Exception as e:
-                logger.warning(f'Erreur lors du chargement du fichier Asten {fichier_asten.chemin}: {str(e)}')
-                continue
-    
-    # Si aucun fichier trouvé, compter depuis les écarts
-    if len(lignes_asten_uniques) == 0:
-        for ecart in ecarts.filter(valeur_source_a__isnull=False):
-            data_asten = parse_data(ecart.valeur_source_a)
-            ref = get_value(data_asten, 'Référence commande', 'Référence', 'reference', 'REFERENCE')
-            date = get_value(data_asten, 'Date commande', 'Date', 'date_commande', 'DCDE')
-            if ref and date:
-                lignes_asten_uniques.add(f"{ref}|{date}")
-    
-    total_asten = len(lignes_asten_uniques)
-    
-    # Pour Cyrus, compter toutes les lignes depuis les FichierSource
-    # Récupérer tous les fichiers Cyrus des contrôles concernés
-    lignes_cyrus_uniques = set()
-    
-    # Charger tous les fichiers Cyrus des contrôles pour compter toutes les lignes
-    for controle_obj in controles_concernes:
-        fichiers_cyrus = FichierSource.objects.filter(controle=controle_obj, origine='cyrus')
-        for fichier_cyrus in fichiers_cyrus:
-            # Vérifier si le fichier existe, sinon chercher dans l'archive
-            chemin_fichier = fichier_cyrus.chemin
-            if not os.path.exists(chemin_fichier):
-                # Chercher dans l'archive
-                nom_fichier = os.path.basename(chemin_fichier)
-                archive_path = os.path.join(settings.EXTRACTIONS_PATHS.get('archive', ''), '*', nom_fichier)
-                fichiers_archive = glob.glob(archive_path)
-                if fichiers_archive:
-                    chemin_fichier = fichiers_archive[0]
-                else:
-                    continue
-            try:
-                df_cyrus = pd.read_csv(chemin_fichier, sep=';', encoding='utf-8', low_memory=False)
-                if len(df_cyrus.columns) == 1:
-                    df_cyrus = pd.read_csv(chemin_fichier, sep=',', encoding='utf-8', low_memory=False)
-                
-                # Compter les lignes uniques avec NCDE et DCDE
-                if 'NCDE' in df_cyrus.columns and 'DCDE' in df_cyrus.columns:
-                    df_cyrus['NCDE'] = df_cyrus['NCDE'].astype(str).str.strip()
-                    df_cyrus['DCDE'] = df_cyrus['DCDE'].astype(str).str.strip()
-                    df_cyrus = df_cyrus[
-                        ~df_cyrus['NCDE'].isin(['', 'nan', 'None', 'NaN']) &
-                        ~df_cyrus['DCDE'].isin(['', 'nan', 'None', 'NaN'])
-                    ]
-                    for idx, row in df_cyrus.iterrows():
-                        ref = str(row['NCDE']).strip()
-                        date = str(row['DCDE']).strip()
-                        if ref and date:
-                            # Normaliser la date Cyrus (format YYMMDD -> DDMMYYYY)
-                            if len(date) == 6 and date.isdigit():
-                                # Format Cyrus : YYMMDD
-                                year_short = date[:2]  # YY
-                                month = date[2:4]      # MM
-                                day = date[4:6]        # DD
-                                try:
-                                    year = f"20{year_short}"
-                                    date_normalized = f"{day}{month}{year}"
-                                    lignes_cyrus_uniques.add(f"{ref}|{date_normalized}")
-                                except:
-                                    lignes_cyrus_uniques.add(f"{ref}|{date}")
-                            else:
-                                lignes_cyrus_uniques.add(f"{ref}|{date}")
-            except Exception as e:
-                logger.warning(f'Erreur lors du chargement du fichier Cyrus {chemin_fichier}: {str(e)}')
-                continue
-    
-    total_cyrus = len(lignes_cyrus_uniques)
-    
-    # Si aucun fichier trouvé dans controles_concernes, essayer tous les contrôles récents
-    if total_cyrus == 0 and not controles_concernes.exists():
-        # Charger depuis tous les contrôles récents
-        all_controles = Controle.objects.filter(type_controle='commande').order_by('-date_execution')[:5]
-        for controle_obj in all_controles:
-            fichiers_cyrus = FichierSource.objects.filter(controle=controle_obj, origine='cyrus')
-            for fichier_cyrus in fichiers_cyrus:
-                # Vérifier si le fichier existe, sinon chercher dans l'archive
-                chemin_fichier = fichier_cyrus.chemin
-                if not os.path.exists(chemin_fichier):
-                    # Chercher dans l'archive
-                    nom_fichier = os.path.basename(chemin_fichier)
-                    archive_path = os.path.join(settings.EXTRACTIONS_PATHS.get('archive', ''), '*', nom_fichier)
-                    fichiers_archive = glob.glob(archive_path)
-                    if fichiers_archive:
-                        chemin_fichier = fichiers_archive[0]
-                    else:
-                        continue
-                try:
-                    df_cyrus = pd.read_csv(chemin_fichier, sep=';', encoding='utf-8', low_memory=False)
-                    if len(df_cyrus.columns) == 1:
-                        df_cyrus = pd.read_csv(chemin_fichier, sep=',', encoding='utf-8', low_memory=False)
-                    
-                    if 'NCDE' in df_cyrus.columns and 'DCDE' in df_cyrus.columns:
-                        df_cyrus['NCDE'] = df_cyrus['NCDE'].astype(str).str.strip()
-                        df_cyrus['DCDE'] = df_cyrus['DCDE'].astype(str).str.strip()
-                        df_cyrus = df_cyrus[
-                            ~df_cyrus['NCDE'].isin(['', 'nan', 'None', 'NaN']) &
-                            ~df_cyrus['DCDE'].isin(['', 'nan', 'None', 'NaN'])
-                        ]
-                        for idx, row in df_cyrus.iterrows():
-                            ref = str(row['NCDE']).strip()
-                            date = str(row['DCDE']).strip()
-                            if ref and date:
-                                # Normaliser la date Cyrus (format YYMMDD -> DDMMYYYY)
-                                if len(date) == 6 and date.isdigit():
-                                    year_short = date[:2]
-                                    month = date[2:4]
-                                    day = date[4:6]
-                                    try:
-                                        year = f"20{year_short}"
-                                        date_normalized = f"{day}{month}{year}"
-                                        lignes_cyrus_uniques.add(f"{ref}|{date_normalized}")
-                                    except:
-                                        lignes_cyrus_uniques.add(f"{ref}|{date}")
-                                else:
-                                    lignes_cyrus_uniques.add(f"{ref}|{date}")
-                except Exception as e:
-                    logger.warning(f'Erreur lors du chargement du fichier Cyrus {fichier_cyrus.chemin}: {str(e)}')
-                    continue
-        total_cyrus = len(lignes_cyrus_uniques)
-    
-    # Si aucun fichier trouvé, essayer de compter depuis les écarts
-    if total_cyrus == 0:
-        for ecart in ecarts.filter(valeur_source_b__isnull=False):
-            data_cyrus = parse_data(ecart.valeur_source_b)
-            ref = get_value(data_cyrus, 'NCDE', 'Référence', 'reference', 'REFERENCE')
-            date = get_value(data_cyrus, 'DCDE', 'Date', 'date_commande', 'DCDE')
-            if ref and date:
-                lignes_cyrus_uniques.add(f"{ref}|{date}")
-        total_cyrus = len(lignes_cyrus_uniques)
-    
-    # Si on a un contrôle spécifique, utiliser ses données pour améliorer l'estimation
-    if controle_id:
-        controle_selected = Controle.objects.filter(id=controle_id).first()
-        if controle_selected:
-            # Le contrôle a déjà total_lignes qui est la somme
-            # On peut estimer en utilisant les proportions des écarts
-            if controle_selected.total_lignes > 0:
-                # Estimation basée sur les proportions
-                ecarts_du_controle = ecarts.filter(controle=controle_selected)
-                if ecarts_du_controle.exists():
-                    # Asten = lignes avec valeur_source_a dans ce contrôle
-                    asten_controle = set()
-                    for ecart in ecarts_du_controle.filter(valeur_source_a__isnull=False):
-                        data_asten = parse_data(ecart.valeur_source_a)
-                        ref = get_value(data_asten, 'Référence commande', 'Référence', 'reference', 'REFERENCE')
-                        date = get_value(data_asten, 'Date commande', 'Date', 'date_commande', 'DCDE')
-                        if ref and date:
-                            asten_controle.add(f"{ref}|{date}")
-                    
-                    # Cyrus = lignes avec valeur_source_b + lignes trouvées (valeur_differente)
-                    cyrus_controle = set()
-                    for ecart in ecarts_du_controle.filter(valeur_source_b__isnull=False):
-                        data_cyrus = parse_data(ecart.valeur_source_b)
-                        ref = get_value(data_cyrus, 'NCDE', 'Référence', 'reference', 'REFERENCE')
-                        date = get_value(data_cyrus, 'DCDE', 'Date', 'date_commande', 'DCDE')
-                        if ref and date:
-                            cyrus_controle.add(f"{ref}|{date}")
-                    
-                    for ecart in ecarts_du_controle.filter(type_ecart='valeur_differente'):
-                        if ecart.valeur_source_b:
-                            data_cyrus = parse_data(ecart.valeur_source_b)
-                            ref = get_value(data_cyrus, 'NCDE', 'Référence', 'reference', 'REFERENCE')
-                            date = get_value(data_cyrus, 'DCDE', 'Date', 'date_commande', 'DCDE')
-                            if ref and date:
-                                cyrus_controle.add(f"{ref}|{date}")
-                    
-                    if len(asten_controle) > 0:
-                        total_asten = len(asten_controle)
-                    if len(cyrus_controle) > 0:
-                        total_cyrus = len(cyrus_controle)
-    
-    # Écarts = éléments dans Asten qui ne sont pas dans Cyrus
-    # C'est exactement les écarts de type 'absent_b' (présent dans Asten mais absent dans Cyrus)
-    ecarts_asten_cyrus = ecarts_absent_b
-    
-    # Liste des contrôles récents pour le filtre - grouper par période pour éviter les doublons
-    # Prendre le contrôle le plus récent pour chaque période
-    controles_par_periode = {}
-    all_controles = Controle.objects.filter(type_controle='commande').order_by('-date_execution')
-    for controle in all_controles:
-        if controle.periode not in controles_par_periode:
-            controles_par_periode[controle.periode] = controle
-    
-    # Convertir en liste triée par date décroissante
-    controles = sorted(controles_par_periode.values(), key=lambda x: x.date_execution, reverse=True)[:20]
-    
-    # Liste des périodes disponibles
-    periodes = Controle.objects.filter(type_controle='commande').values_list('periode', flat=True).distinct().order_by('-periode')
-    
-    # Statistiques par magasin
-    stats_magasins = {}
-    for ecart_data in ecarts_data:
-        mag_num = ecart_data['magasin_num']
-        if mag_num:
-            if mag_num not in stats_magasins:
-                stats_magasins[mag_num] = {
-                    'nom': ecart_data['magasin_nom'],
-                    'total': 0,
-                    'absent_b': 0,
-                    'valeur_differente': 0,
-                }
-            stats_magasins[mag_num]['total'] += 1
-            if ecart_data['ecart'].type_ecart == 'absent_b':
-                stats_magasins[mag_num]['absent_b'] += 1
-            elif ecart_data['ecart'].type_ecart == 'valeur_differente':
-                stats_magasins[mag_num]['valeur_differente'] += 1
-    
-    # Convertir les données JSON pour le template (sérialiser en JSON string)
-    for item in ecarts_data:
-               try:
-                   item['details_json_str'] = json.dumps(item.get('details_json', {}), ensure_ascii=False, cls=DjangoJSONEncoder)
-                   item['valeur_source_a_json_str'] = json.dumps(item.get('valeur_source_a_json'), ensure_ascii=False, cls=DjangoJSONEncoder) if item.get('valeur_source_a_json') else 'null'
-                   item['valeur_source_b_json_str'] = json.dumps(item.get('valeur_source_b_json'), ensure_ascii=False, cls=DjangoJSONEncoder) if item.get('valeur_source_b_json') else 'null'
-                   # Sérialiser row_data pour Asten et Cyrus
-                   if 'row_data' in item.get('data_asten', {}):
-                       item['data_asten']['row_data_str'] = json.dumps(item['data_asten']['row_data'], ensure_ascii=False, cls=DjangoJSONEncoder, default=str)
-               except Exception as e:
-                   item['details_json_str'] = '{}'
-                   item['valeur_source_a_json_str'] = 'null'
-                   item['valeur_source_b_json_str'] = 'null'
-    
-    # Préparer les données pour les onglets Asten et Cyrus
-    # Charger toutes les commandes Asten et Cyrus depuis les fichiers
-    commandes_asten_data = []
-    commandes_cyrus_data = []
-    
-    # Récupérer le contrôle sélectionné ou le plus récent avec des fichiers
-    # Priorité : contrôle_id > période > contrôle le plus récent avec fichiers
-    controle_selected = None
-    if controle_id:
-        controle_selected = Controle.objects.filter(id=controle_id).first()
-    elif periode_filter:
-        # Si une période est sélectionnée, prendre le contrôle le plus récent de cette période
-        controles_periode = Controle.objects.filter(
-            type_controle='commande',
-            periode=periode_filter
-        ).order_by('-date_execution')
-        for controle in controles_periode:
-            if FichierSource.objects.filter(controle=controle).exists():
-                controle_selected = controle
-                break
-        if not controle_selected:
-            controle_selected = controles_periode.first()
-    elif controles_concernes.exists():
-        # Chercher dans controles_concernes celui qui a des fichiers
-        for controle in controles_concernes:
-            if FichierSource.objects.filter(controle=controle).exists():
-                controle_selected = controle
-                break
-        # Si aucun contrôle avec fichiers dans controles_concernes, chercher ailleurs
-        if not controle_selected:
-            all_controles = Controle.objects.filter(type_controle='commande').order_by('-date_execution')
-            for controle in all_controles:
-                if FichierSource.objects.filter(controle=controle).exists():
-                    controle_selected = controle
-                    break
-    else:
-        # Si pas de contrôles concernés, prendre le plus récent qui a des fichiers
-        # Chercher parmi tous les contrôles celui qui a des fichiers
-        all_controles = Controle.objects.filter(type_controle='commande').order_by('-date_execution')
-        for controle in all_controles:
-            if FichierSource.objects.filter(controle=controle).exists():
-                controle_selected = controle
-                break
-        # Si aucun contrôle avec fichiers, prendre le plus récent quand même
-        if not controle_selected:
-            controle_selected = all_controles.first()
-    
-    if controle_selected:
-        # Charger les commandes Asten
-        fichiers_asten = FichierSource.objects.filter(controle=controle_selected, origine='asten')
-        for fichier_asten in fichiers_asten:
-            # Vérifier si le fichier existe, sinon chercher dans l'archive
-            chemin_fichier = fichier_asten.chemin
-            if not os.path.exists(chemin_fichier):
-                # Chercher dans l'archive
-                nom_fichier = os.path.basename(chemin_fichier)
-                archive_path = os.path.join(settings.EXTRACTIONS_PATHS.get('archive', ''), '*', nom_fichier)
-                fichiers_archive = glob.glob(archive_path)
-                if fichiers_archive:
-                    chemin_fichier = fichiers_archive[0]
-                else:
-                    continue
-            try:
-                df_asten = pd.read_csv(chemin_fichier, sep=';', encoding='utf-8', low_memory=False)
-                if len(df_asten.columns) == 1:
-                    df_asten = pd.read_csv(chemin_fichier, sep=',', encoding='utf-8', low_memory=False)
-                
-                for idx, row in df_asten.iterrows():
-                    magasin_num = str(row.get('Magasin', '')).strip() if 'Magasin' in row else ''
-                    magasin_nom = magasins.get(str(magasin_num), {}).get('name', f'Magasin {magasin_num}' if magasin_num else 'N/A')
-                    
-                    commandes_asten_data.append({
-                        'reference': str(row.get('Référence commande', '')).strip() if 'Référence commande' in row else '',
-                        'date_commande': str(row.get('Date commande', '')).strip() if 'Date commande' in row else '',
-                        'date_livraison': str(row.get('Date livraison', '')).strip() if 'Date livraison' in row else '',
-                        'date_validation': str(row.get('Date validation', '')).strip() if 'Date validation' in row else '',
-                        'statut': str(row.get('Statut', '')).strip() if 'Statut' in row else '',
-                        'cree_par': str(row.get('Créée par', '')).strip() if 'Créée par' in row else '',
-                        'validee_par': str(row.get('Validée par', '')).strip() if 'Validée par' in row else '',
-                        'fournisseur': str(row.get('Fournisseur', '')).strip() if 'Fournisseur' in row else '',
-                        'type_commande': str(row.get('Type commande', '')).strip() if 'Type commande' in row else '',
-                        'magasin_num': magasin_num,
-                        'magasin_nom': magasin_nom,
-                        'row_data': row.to_dict(),
-                    })
-            except Exception as e:
-                logger.warning(f'Erreur lors du chargement du fichier Asten {fichier_asten.chemin}: {str(e)}')
-                continue
+        # Mettre les non intégrées en premier, puis les intégrées
+        commandes_data = commandes_non_integres_list + commandes_integres_list
+        titre_tableau = "Comparaison Asten vs Cyrus"
         
-        # Charger les commandes Cyrus
-        fichiers_cyrus = FichierSource.objects.filter(controle=controle_selected, origine='cyrus')
-        for fichier_cyrus in fichiers_cyrus:
-            # Vérifier si le fichier existe, sinon chercher dans l'archive
-            chemin_fichier = fichier_cyrus.chemin
-            if not os.path.exists(chemin_fichier):
-                # Chercher dans l'archive
-                nom_fichier = os.path.basename(chemin_fichier)
-                archive_path = os.path.join(settings.EXTRACTIONS_PATHS.get('archive', ''), '*', nom_fichier)
-                fichiers_archive = glob.glob(archive_path)
-                if fichiers_archive:
-                    chemin_fichier = fichiers_archive[0]
-                else:
-                    continue
-            try:
-                df_cyrus = pd.read_csv(chemin_fichier, sep=';', encoding='utf-8', low_memory=False)
-                if len(df_cyrus.columns) == 1:
-                    df_cyrus = pd.read_csv(chemin_fichier, sep=',', encoding='utf-8', low_memory=False)
-                
-                for idx, row in df_cyrus.iterrows():
-                    magasin_num = str(row.get('NCID', '')).strip() if 'NCID' in row else ''
-                    if not magasin_num:
-                        # Essayer d'extraire depuis NOMMAGASIN ou autres colonnes (peut avoir des caractères spéciaux)
-                        for col in df_cyrus.columns:
-                            if 'NOMMAGASIN' in col or 'MAGASIN' in col:
-                                magasin_val = str(row.get(col, '')).strip()
-                                # Extraire les 3 premiers chiffres si c'est un numéro de magasin
-                                if magasin_val:
-                                    # Chercher les chiffres dans la valeur
-                                    digits = re.findall(r'\d+', magasin_val)
-                                    if digits:
-                                        magasin_num = digits[0][:3] if len(digits[0]) >= 3 else digits[0]
-                                break
-                    magasin_nom = magasins.get(str(magasin_num), {}).get('name', f'Magasin {magasin_num}' if magasin_num else 'N/A')
-                    
-                    date_commande_raw = str(row.get('DCDE', '')).strip() if 'DCDE' in row else ''
-                    date_commande_formatted = format_cyrus_date(date_commande_raw)
-                    
-                    commandes_cyrus_data.append({
-                        'reference': str(row.get('NCDE', '')).strip() if 'NCDE' in row else '',
-                        'date_commande': date_commande_formatted,
-                        'date_commande_raw': date_commande_raw,  # Garder la version brute pour le tri
-                        'magasin_num': magasin_num,
-                        'magasin_nom': magasin_nom,
-                        'row_data': row.to_dict(),
-                    })
-            except Exception as e:
-                logger.warning(f'Erreur lors du chargement du fichier Cyrus {chemin_fichier}: {str(e)}')
-                continue
-    
-    # Identifier les commandes communes (présentes dans Asten ET Cyrus)
-    commandes_communes_data = []
-    total_communes = 0
-    
-    if controle_selected and commandes_asten_data and commandes_cyrus_data:
-        # Fonction pour normaliser les dates
-        def normalize_date_for_key(date_str, is_cyrus=False):
-            """
-            Normalise une date pour créer une clé de comparaison.
-            Pour Cyrus : format YYMMDD (ex: 260107 = 07/01/2026)
-            Pour Asten : format DD/MM/YYYY ou DDMMYY
-            """
-            if not date_str or str(date_str).strip() in ['', 'nan', 'None', 'NaN']:
-                return ''
-            date_str = str(date_str).strip()
-            
-            # Format YYMMDD (6 chiffres) - Format Cyrus
-            if is_cyrus and len(date_str) == 6 and date_str.isdigit():
-                year_short = date_str[:2]  # YY
-                month = date_str[2:4]      # MM
-                day = date_str[4:6]        # DD
-                try:
-                    year = f"20{year_short}"
-                    return f"{day}{month}{year}"  # DDMMYYYY pour comparaison
-                except:
-                    pass
-            
-            # Format DDMMYY (6 chiffres) - Format Asten
-            if not is_cyrus and len(date_str) == 6 and date_str.isdigit():
-                day = date_str[:2]
-                month = date_str[2:4]
-                year_short = date_str[4:6]
-                try:
-                    year_int = int(year_short)
-                    if year_int < 50:
-                        year = f"20{year_short}"
-                    else:
-                        year = f"19{year_short}"
-                    return f"{day}{month}{year}"
-                except:
-                    pass
-            
-            # Essayer de parser les formats courants
-            from datetime import datetime
-            for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
-                try:
-                    return datetime.strptime(date_str, fmt).strftime('%d%m%Y')
-                except ValueError:
-                    pass
-            
-            return date_str
+    elif type_donnees == 'commandes_gpv':
+        # TODO: À implémenter quand les modèles GPV seront créés
+        stats = {
+            'total_source': 0,
+            'total_target': 0,
+            'integres': 0,
+            'non_integres': 0,
+            'taux_integration': 0,
+            'taux_non_integration': 0,
+        }
+        titre_tableau = "Comparaison GPV vs Cyrus"
         
-        # Créer un dictionnaire des commandes Cyrus avec clé composite
-        cyrus_dict = {}
-        for cmd_cyrus in commandes_cyrus_data:
-            ref = cmd_cyrus.get('reference', '').strip()
-            date = normalize_date_for_key(cmd_cyrus.get('date_commande', ''))
-            if ref and date:
-                key = f"{ref}|{date}"
-                if key not in cyrus_dict:
-                    cyrus_dict[key] = []
-                cyrus_dict[key].append(cmd_cyrus)
+    elif type_donnees == 'commandes_legend':
+        # TODO: À implémenter quand les modèles Legend seront créés
+        stats = {
+            'total_source': 0,
+            'total_target': 0,
+            'integres': 0,
+            'non_integres': 0,
+            'taux_integration': 0,
+            'taux_non_integration': 0,
+        }
+        titre_tableau = "Comparaison Legend vs Cyrus"
         
-        # Parcourir les commandes Asten et vérifier si elles existent dans Cyrus
-        for cmd_asten in commandes_asten_data:
-            ref_asten = cmd_asten.get('reference', '').strip()
-            date_asten = normalize_date_for_key(cmd_asten.get('date_commande', ''))
-            trouve_dans_cyrus = False
-            cmd_cyrus_match = None
-            
-            if ref_asten and date_asten:
-                key = f"{ref_asten}|{date_asten}"
-                if key in cyrus_dict:
-                    trouve_dans_cyrus = True
-                    cmd_cyrus_match = cyrus_dict[key][0]  # Prendre le premier match
-                    # Commande trouvée dans les deux sources
-                    commandes_communes_data.append({
-                        'reference': ref_asten,
-                        'date_commande': cmd_asten.get('date_commande', ''),
-                        'magasin_num': cmd_asten.get('magasin_num', ''),
-                        'magasin_nom': cmd_asten.get('magasin_nom', ''),
-                        'data_asten': cmd_asten,
-                        'data_cyrus': cmd_cyrus_match,
-                        'date_livraison_asten': cmd_asten.get('date_livraison', ''),
-                        'date_livraison_cyrus': cmd_cyrus_match.get('date_livraison', ''),
-                        'date_validation_asten': cmd_asten.get('date_validation', ''),
-                        'date_validation_cyrus': cmd_cyrus_match.get('date_validation', ''),
-                        'statut_asten': cmd_asten.get('statut', ''),
-                        'statut_cyrus': cmd_cyrus_match.get('statut', ''),
-                        'fournisseur_asten': cmd_asten.get('fournisseur', ''),
-                        'fournisseur_cyrus': cmd_cyrus_match.get('fournisseur', ''),
-                        'type_commande_asten': cmd_asten.get('type_commande', ''),
-                        'type_commande_cyrus': cmd_cyrus_match.get('type_commande', ''),
-                    })
-            
-            # Ajouter l'information de correspondance à la commande Asten
-            cmd_asten['trouve_dans_cyrus'] = trouve_dans_cyrus
-            cmd_asten['data_cyrus_match'] = cmd_cyrus_match
+    elif type_donnees == 'factures':
+        # TODO: À implémenter quand les modèles Factures seront créés
+        stats = {
+            'total_source': 0,
+            'total_target': 0,
+            'integres': 0,
+            'non_integres': 0,
+            'taux_integration': 0,
+            'taux_non_integration': 0,
+        }
+        titre_tableau = "Comparaison Factures Asten vs Cyrus"
         
-        # Parcourir les commandes Cyrus et vérifier si elles existent dans Asten
-        asten_dict = {}
-        for cmd_asten in commandes_asten_data:
-            ref_asten = cmd_asten.get('reference', '').strip()
-            date_asten = normalize_date_for_key(cmd_asten.get('date_commande', ''))
-            if ref_asten and date_asten:
-                key = f"{ref_asten}|{date_asten}"
-                if key not in asten_dict:
-                    asten_dict[key] = []
-                asten_dict[key].append(cmd_asten)
-        
-        for cmd_cyrus in commandes_cyrus_data:
-            ref_cyrus = cmd_cyrus.get('reference', '').strip()
-            date_cyrus = normalize_date_for_key(cmd_cyrus.get('date_commande', ''), is_cyrus=True)
-            trouve_dans_asten = False
-            cmd_asten_match = None
-            
-            if ref_cyrus and date_cyrus:
-                key = f"{ref_cyrus}|{date_cyrus}"
-                if key in asten_dict:
-                    trouve_dans_asten = True
-                    cmd_asten_match = asten_dict[key][0]
-            
-            # Ajouter l'information de correspondance à la commande Cyrus
-            cmd_cyrus['trouve_dans_asten'] = trouve_dans_asten
-            cmd_cyrus['data_asten_match'] = cmd_asten_match
-        
-        total_communes = len(commandes_communes_data)
-    
-    # Vérifier si on doit afficher la vue "commandes communes"
-    vue_communes = request.GET.get('vue', '') == 'communes'
+    elif type_donnees == 'br':
+        # TODO: À implémenter quand les modèles BR seront créés
+        stats = {
+            'total_source': 0,
+            'total_target': 0,
+            'integres': 0,
+            'non_integres': 0,
+            'taux_integration': 0,
+            'taux_non_integration': 0,
+        }
+        titre_tableau = "Comparaison BR Asten vs Cyrus"
     
     context = {
-        'ecarts_data': ecarts_data,
-        'ecarts_page': ecarts_page,  # Objet pagination
-        'commandes_asten_data': commandes_asten_data,  # Afficher toutes les données
-        'commandes_cyrus_data': commandes_cyrus_data,  # Afficher toutes les données
-        'commandes_communes_data': commandes_communes_data,  # Afficher toutes les données
-        'total_communes': total_communes,
-        'vue_communes': vue_communes,
+        'stats': stats,
+        'commandes': commandes_data,
         'magasins': magasins,
-        'total_ecarts': total_ecarts,
-        'total_asten': total_asten,
-        'total_cyrus': total_cyrus,
-        'ecarts_asten_cyrus': ecarts_asten_cyrus,  # Éléments dans Asten mais pas dans Cyrus
-        'ecarts_absent_b': ecarts_absent_b,  # Commandes Asten absentes de Cyrus
-        'ecarts_valeur_differente': ecarts_valeur_differente,  # Commandes avec valeurs différentes
-        'ecarts_corriges': ecarts_corriges,  # Écarts corrigés (étaient absents, maintenant présents)
-        'ecarts_absent_a': ecarts_absent_a,  # Toujours 0 pour les commandes (non utilisé)
-        'controles': controles,
-        'periodes': periodes,
-        'stats_magasins': sorted(stats_magasins.items(), key=lambda x: x[1]['total'], reverse=True),
-        'filters': {
-            'magasin': magasin_filter,
-            'periode': periode_filter,
-            'type_ecart': type_ecart_filter,
-            'date_debut': date_debut,
-            'date_fin': date_fin,
-            'controle': controle_id,
+        'type_donnees': type_donnees,
+        'titre_tableau': titre_tableau,
+        'stats_label_source': 'Asten' if type_donnees == 'commandes_asten' else 'Source',
+        'stats_label_target': 'Cyrus',
+        'filtres': {
+            'date_debut': date_debut or '',
+            'date_fin': date_fin or '',
+            'magasin': code_magasin if code_magasin else [],
+            'type_donnees': type_donnees,
         }
     }
     
@@ -931,237 +233,283 @@ def dashboard(request):
 
 
 @require_http_methods(["POST"])
-def traiter_fichiers(request):
-    """Traite les fichiers déposés dans les dossiers"""
-    periode = request.POST.get('periode', timezone.now().strftime('%Y-%m'))
-    force = request.POST.get('force', 'false') == 'true'
+def actualiser_donnees(request):
+    """Actualise TOUTES les données globalement : importe les fichiers et recalcule les écarts pour tous les types"""
+    try:
+        # ACTUALISATION GLOBALE : Scanner et importer les nouveaux fichiers pour TOUS les types
+        # (Asten, GPV, Legend, Factures, BR - quand ils seront implémentés)
+        fichiers_importes = scanner_et_importer_fichiers()
+        
+        # Recalculer les écarts pour TOUS les types
+        resultat_ecarts = recalculer_ecarts()
+        
+        # recalculer_ecarts() retourne maintenant un dictionnaire
+        if isinstance(resultat_ecarts, dict):
+            nombre_ecarts_crees = resultat_ecarts.get('ecarts_crees', 0)
+            nombre_ecarts_resolus = resultat_ecarts.get('ecarts_resolus', 0)
+        else:
+            # Compatibilité avec l'ancien format
+            nombre_ecarts_crees = resultat_ecarts if isinstance(resultat_ecarts, int) else 0
+            nombre_ecarts_resolus = 0
+        
+        # TODO: Quand les autres types seront implémentés, ajouter ici :
+        # - scanner_et_importer_fichiers_gpv()
+        # - scanner_et_importer_fichiers_legend()
+        # - scanner_et_importer_fichiers_factures()
+        # - scanner_et_importer_fichiers_br()
+        # - recalculer_ecarts_gpv()
+        # - recalculer_ecarts_legend()
+        # - etc.
+        
+        # Les données sont maintenant en base de données et restent PERMANENTES
+        # même si on change de type (Asten, GPV, Legend, Factures, BR)
+        # Réinitialiser le flag de session pour permettre une nouvelle actualisation automatique
+        request.session['donnees_actualisees'] = False
+        
+        message = f"Actualisation globale réussie ! {len(fichiers_importes)} fichier(s) importé(s)."
+        if nombre_ecarts_crees > 0:
+            message += f" {nombre_ecarts_crees} nouvel(le)(s) écart(s) détecté(s)."
+        if nombre_ecarts_resolus > 0:
+            message += f" {nombre_ecarts_resolus} écart(s) résolu(s) automatiquement."
+        message += " Toutes les données sont maintenant à jour et permanentes."
+        
+        messages.success(request, message)
+    except Exception as e:
+        messages.error(request, f"Erreur lors de l'actualisation : {str(e)}")
+    
+    # Préserver le type de données dans la redirection
+    type_donnees = request.POST.get('type_donnees', 'commandes_asten')
+    redirect_url = f"{reverse('dashboard:dashboard')}?type_donnees={type_donnees}"
+    
+    return redirect(redirect_url)
+
+
+def detail_ecart(request, ecart_id):
+    """Affiche le détail d'un écart et permet de modifier son statut"""
+    from ecarts.models import EcartCommande
+    from cyrus.models import CommandeCyrus
     
     try:
-        # Appeler la commande de traitement directement
-        from io import StringIO
-        import sys
-        from django.core.management import call_command
+        ecart = EcartCommande.objects.select_related('commande_asten__code_magasin').get(pk=ecart_id)
         
-        # Capturer la sortie
-        output = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = output
+        # Vérifier si la commande existe maintenant dans Cyrus
+        existe_cyrus = CommandeCyrus.objects.filter(
+            date_commande=ecart.commande_asten.date_commande,
+            numero_commande=ecart.commande_asten.numero_commande,
+            code_magasin=ecart.commande_asten.code_magasin
+        ).first()
         
-        try:
-            call_command('process_commande', periode=periode, force=force)
-            output_str = output.getvalue()
-        finally:
-            sys.stdout = old_stdout
+        # Gérer la modification du statut
+        if request.method == 'POST':
+            nouveau_statut = request.POST.get('statut')
+            commentaire = request.POST.get('commentaire', '').strip()
+            
+            if nouveau_statut in ['ouvert', 'resolu', 'ignore']:
+                ecart.statut = nouveau_statut
+                if commentaire:
+                    ecart.commentaire = commentaire
+                ecart.save()
+                
+                if nouveau_statut == 'resolu':
+                    messages.success(request, "L'écart a été marqué comme résolu.")
+                elif nouveau_statut == 'ignore':
+                    messages.info(request, "L'écart a été marqué comme ignoré.")
+                else:
+                    messages.info(request, "L'écart a été remis à ouvert.")
+                
+                return redirect('dashboard:detail_ecart', ecart_id=ecart_id)
         
-        # Compter les nouveaux écarts créés
-        nouveaux_ecarts = Ecart.objects.filter(
-            controle__periode=periode,
-            controle__date_execution__gte=timezone.now() - timedelta(minutes=5)
-        ).count()
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'Traitement terminé avec succès ! {nouveaux_ecarts} écarts détectés pour la période {periode}',
-            'periode': periode,
-            'ecarts': nouveaux_ecarts
-        })
-    except Exception as e:
-        import traceback
-        error_msg = str(e)
-        return JsonResponse({
-            'success': False,
-            'message': f'Erreur lors du traitement: {error_msg}'
-        }, status=500)
+        context = {
+            'ecart': ecart,
+            'existe_cyrus': existe_cyrus,
+        }
+        return render(request, 'dashboard/detail_ecart.html', context)
+    except EcartCommande.DoesNotExist:
+        messages.error(request, "Écart introuvable.")
+        return redirect('dashboard:dashboard')
 
 
-def commandes_communes(request):
-    """Vue dédiée pour afficher les commandes communes"""
-    # Charger les magasins
-    magasins = load_magasins()
+def liste_ecarts(request):
+    """Affiche la liste des écarts"""
+    # Filtres
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    code_magasin = request.GET.get('magasin')
+    statut = request.GET.get('statut', '')  # Par défaut, afficher tous les statuts
     
-    # Récupérer les paramètres de filtrage
-    controle_id = request.GET.get('controle', '')
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
     
-    # Récupérer le contrôle sélectionné ou le plus récent
-    controle_selected = None
-    if controle_id:
-        controle_selected = Controle.objects.filter(id=controle_id, type_controle='commande').first()
-    else:
-        controle_selected = Controle.objects.filter(type_controle='commande').order_by('-date_execution').first()
+    # Construire les filtres
+    filtres = {}
     
-    commandes_communes_data = []
-    total_communes = 0
+    # Filtrer par statut seulement si un statut spécifique est sélectionné
+    if statut and statut != '':
+        filtres['statut'] = statut
     
-    if controle_selected:
-        # Charger les commandes Asten
-        commandes_asten_data = []
-        fichiers_asten = FichierSource.objects.filter(controle=controle_selected, origine='asten')
-        for fichier_asten in fichiers_asten:
-            # Vérifier si le fichier existe, sinon chercher dans l'archive
-            chemin_fichier = fichier_asten.chemin
-            if not os.path.exists(chemin_fichier):
-                # Chercher dans l'archive
-                nom_fichier = os.path.basename(chemin_fichier)
-                archive_path = os.path.join(settings.EXTRACTIONS_PATHS.get('archive', ''), '*', nom_fichier)
-                fichiers_archive = glob.glob(archive_path)
-                if fichiers_archive:
-                    chemin_fichier = fichiers_archive[0]
-                else:
-                    continue
-            try:
-                df_asten = pd.read_csv(chemin_fichier, sep=';', encoding='utf-8', low_memory=False)
-                if len(df_asten.columns) == 1:
-                    df_asten = pd.read_csv(chemin_fichier, sep=',', encoding='utf-8', low_memory=False)
-                
-                for idx, row in df_asten.iterrows():
-                    magasin_num = str(row.get('Magasin', '')).strip() if 'Magasin' in row else ''
-                    magasin_nom = magasins.get(str(magasin_num), {}).get('name', f'Magasin {magasin_num}' if magasin_num else 'N/A')
-                    
-                    commandes_asten_data.append({
-                        'reference': str(row.get('Référence commande', '')).strip() if 'Référence commande' in row else '',
-                        'date_commande': str(row.get('Date commande', '')).strip() if 'Date commande' in row else '',
-                        'magasin_num': magasin_num,
-                        'magasin_nom': magasin_nom,
-                        'row_data': row.to_dict(),
-                    })
-            except Exception as e:
-                logger.warning(f'Erreur lors du chargement du fichier Asten {fichier_asten.chemin}: {str(e)}')
-                continue
-        
-        # Charger les commandes Cyrus
-        commandes_cyrus_data = []
-        fichiers_cyrus = FichierSource.objects.filter(controle=controle_selected, origine='cyrus')
-        for fichier_cyrus in fichiers_cyrus:
-            # Vérifier si le fichier existe, sinon chercher dans l'archive
-            chemin_fichier = fichier_cyrus.chemin
-            if not os.path.exists(chemin_fichier):
-                # Chercher dans l'archive
-                nom_fichier = os.path.basename(chemin_fichier)
-                archive_path = os.path.join(settings.EXTRACTIONS_PATHS.get('archive', ''), '*', nom_fichier)
-                fichiers_archive = glob.glob(archive_path)
-                if fichiers_archive:
-                    chemin_fichier = fichiers_archive[0]
-                else:
-                    continue
-            try:
-                df_cyrus = pd.read_csv(chemin_fichier, sep=';', encoding='utf-8', low_memory=False)
-                if len(df_cyrus.columns) == 1:
-                    df_cyrus = pd.read_csv(chemin_fichier, sep=',', encoding='utf-8', low_memory=False)
-                
-                for idx, row in df_cyrus.iterrows():
-                    magasin_num = str(row.get('NCID', '')).strip() if 'NCID' in row else ''
-                    if not magasin_num:
-                        magasin_num = str(row.get('NOMMAGASIN NOMMAG ASIN', '')).strip()[:3] if 'NOMMAGASIN NOMMAG ASIN' in row else ''
-                    magasin_nom = magasins.get(str(magasin_num), {}).get('name', f'Magasin {magasin_num}' if magasin_num else 'N/A')
-                    
-                    date_commande_raw = str(row.get('DCDE', '')).strip() if 'DCDE' in row else ''
-                    date_commande_formatted = format_cyrus_date(date_commande_raw)
-                    
-                    commandes_cyrus_data.append({
-                        'reference': str(row.get('NCDE', '')).strip() if 'NCDE' in row else '',
-                        'date_commande': date_commande_formatted,
-                        'date_commande_raw': date_commande_raw,
-                        'magasin_num': magasin_num,
-                        'magasin_nom': magasin_nom,
-                        'row_data': row.to_dict(),
-                    })
-            except Exception as e:
-                logger.warning(f'Erreur lors du chargement du fichier Cyrus {chemin_fichier}: {str(e)}')
-                continue
-        
-        # Identifier les commandes communes
-        if commandes_asten_data and commandes_cyrus_data:
-            # Fonction pour normaliser les dates
-            def normalize_date_for_key(date_str, is_cyrus=False):
-                """
-                Normalise une date pour créer une clé de comparaison.
-                Pour Cyrus : format YYMMDD (ex: 260107 = 07/01/2026)
-                Pour Asten : format DD/MM/YYYY ou DDMMYY
-                """
-                if not date_str or str(date_str).strip() in ['', 'nan', 'None', 'NaN']:
-                    return ''
-                date_str = str(date_str).strip()
-                
-                # Format YYMMDD (6 chiffres) - Format Cyrus
-                if is_cyrus and len(date_str) == 6 and date_str.isdigit():
-                    year_short = date_str[:2]  # YY
-                    month = date_str[2:4]      # MM
-                    day = date_str[4:6]        # DD
-                    try:
-                        year = f"20{year_short}"
-                        return f"{day}{month}{year}"  # DDMMYYYY pour comparaison
-                    except:
-                        pass
-                
-                # Format DDMMYY (6 chiffres) - Format Asten
-                if not is_cyrus and len(date_str) == 6 and date_str.isdigit():
-                    day = date_str[:2]
-                    month = date_str[2:4]
-                    year_short = date_str[4:6]
-                    try:
-                        year_int = int(year_short)
-                        if year_int < 50:
-                            year = f"20{year_short}"
-                        else:
-                            year = f"19{year_short}"
-                        return f"{day}{month}{year}"
-                    except:
-                        pass
-                
-                # Essayer de parser les formats courants
-                for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
-                    try:
-                        return datetime.strptime(date_str, fmt).strftime('%d%m%Y')
-                    except ValueError:
-                        pass
-                
-                return date_str
-            
-            # Créer un dictionnaire des commandes Cyrus avec clé composite
-            cyrus_dict = {}
-            for cmd_cyrus in commandes_cyrus_data:
-                ref = cmd_cyrus.get('reference', '').strip()
-                # Pour Cyrus, utiliser is_cyrus=True pour le format YYMMDD
-                date = normalize_date_for_key(cmd_cyrus.get('date_commande_raw', ''), is_cyrus=True)
-                if ref and date:
-                    key = f"{ref}|{date}"
-                    if key not in cyrus_dict:
-                        cyrus_dict[key] = []
-                    cyrus_dict[key].append(cmd_cyrus)
-            
-            # Parcourir les commandes Asten et vérifier si elles existent dans Cyrus
-            for cmd_asten in commandes_asten_data:
-                ref_asten = cmd_asten.get('reference', '').strip()
-                # Pour Asten, utiliser is_cyrus=False pour le format DD/MM/YYYY ou DDMMYY
-                date_asten = normalize_date_for_key(cmd_asten.get('date_commande', ''), is_cyrus=False)
-                if ref_asten and date_asten:
-                    key = f"{ref_asten}|{date_asten}"
-                    if key in cyrus_dict:
-                        # Commande trouvée dans les deux sources
-                        cmd_cyrus = cyrus_dict[key][0]
-                        commandes_communes_data.append({
-                            'reference': ref_asten,
-                            'date_commande_asten': cmd_asten.get('date_commande', ''),
-                            'date_commande_cyrus': cmd_cyrus.get('date_commande', ''),
-                            'magasin_num': cmd_asten.get('magasin_num', ''),
-                            'magasin_nom': cmd_asten.get('magasin_nom', ''),
-                            'data_asten': cmd_asten,
-                            'data_cyrus': cmd_cyrus,
-                        })
-            
-            total_communes = len(commandes_communes_data)
+    if date_debut_parsed:
+        filtres['commande_asten__date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['commande_asten__date_commande__lte'] = date_fin_parsed
+    if code_magasin:
+        filtres['commande_asten__code_magasin__code'] = code_magasin
     
-    # Liste des contrôles pour le filtre
-    controles = Controle.objects.filter(type_controle='commande').order_by('-date_execution')[:20]
+    ecarts = EcartCommande.objects.filter(**filtres).select_related(
+        'commande_asten__code_magasin'
+    ).order_by('-date_creation')
+    
+    magasins = Magasin.objects.all().order_by('code')
     
     context = {
-        'commandes_communes_data': commandes_communes_data[:100],
-        'total_communes': total_communes,
-        'controle_selected': controle_selected,
-        'controles': controles,
-        'filters': {
-            'controle': controle_id,
+        'ecarts': ecarts,
+        'magasins': magasins,
+        'filtres': {
+            'date_debut': date_debut or '',
+            'date_fin': date_fin or '',
+            'magasin': code_magasin or '',
+            'statut': statut or '',
         }
     }
     
-    return render(request, 'dashboard/commandes_communes.html', context)
+    return render(request, 'dashboard/liste_ecarts.html', context)
+
+
+def liste_commandes_asten(request):
+    """Affiche la liste des commandes Asten"""
+    # Filtres
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    codes_magasins = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs
+    numero_commande = request.GET.get('numero_commande', '').strip()
+    recherche_magasin = request.GET.get('recherche_magasin', '').strip()  # Recherche par code ou nom
+    
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
+    
+    filtres = {}
+    if date_debut_parsed:
+        filtres['date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['date_commande__lte'] = date_fin_parsed
+    if codes_magasins:
+        filtres['code_magasin__code__in'] = codes_magasins
+    if numero_commande:
+        filtres['numero_commande__icontains'] = numero_commande
+    
+    commandes = CommandeAsten.objects.filter(**filtres).select_related(
+        'code_magasin'
+    ).order_by('-date_commande', 'numero_commande')
+    
+    # Charger tous les magasins pour le select (le filtrage se fait côté client)
+    magasins = Magasin.objects.all().order_by('code')
+    
+    context = {
+        'commandes': commandes,
+        'magasins': magasins,
+        'filtres': {
+            'date_debut': date_debut,
+            'date_fin': date_fin,
+            'magasin': codes_magasins,
+            'numero_commande': numero_commande,
+            'recherche_magasin': recherche_magasin,
+        },
+        'total': commandes.count(),
+    }
+    
+    return render(request, 'dashboard/liste_commandes_asten.html', context)
+
+
+def liste_commandes_cyrus(request):
+    """Affiche la liste des commandes Cyrus"""
+    # Filtres
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    codes_magasins = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs
+    numero_commande = request.GET.get('numero_commande', '').strip()
+    recherche_magasin = request.GET.get('recherche_magasin', '').strip()  # Recherche par code ou nom
+    
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
+    
+    filtres = {}
+    if date_debut_parsed:
+        filtres['date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['date_commande__lte'] = date_fin_parsed
+    if codes_magasins:
+        filtres['code_magasin__code__in'] = codes_magasins
+    if numero_commande:
+        filtres['numero_commande__icontains'] = numero_commande
+    
+    commandes = CommandeCyrus.objects.filter(**filtres).select_related(
+        'code_magasin'
+    ).order_by('-date_commande', 'numero_commande')
+    
+    # Charger tous les magasins pour le select (le filtrage se fait côté client)
+    magasins = Magasin.objects.all().order_by('code')
+    
+    context = {
+        'commandes': commandes,
+        'magasins': magasins,
+        'filtres': {
+            'date_debut': date_debut,
+            'date_fin': date_fin,
+            'magasin': codes_magasins,
+            'numero_commande': numero_commande,
+            'recherche_magasin': recherche_magasin,
+        },
+        'total': commandes.count(),
+    }
+    
+    return render(request, 'dashboard/liste_commandes_cyrus.html', context)
+
+
+def detail_commande_asten(request, commande_id):
+    """Affiche le détail d'une commande Asten"""
+    try:
+        commande = CommandeAsten.objects.select_related('code_magasin').get(pk=commande_id)
+        
+        # Vérifier si la commande existe dans Cyrus
+        commande_cyrus = CommandeCyrus.objects.filter(
+            date_commande=commande.date_commande,
+            numero_commande=commande.numero_commande,
+            code_magasin=commande.code_magasin
+        ).first()
+        
+        # Vérifier si un écart existe
+        try:
+            ecart = commande.ecart
+        except:
+            ecart = None
+        
+        context = {
+            'commande': commande,
+            'commande_cyrus': commande_cyrus,
+            'ecart': ecart,
+        }
+        return render(request, 'dashboard/detail_commande_asten.html', context)
+    except CommandeAsten.DoesNotExist:
+        messages.error(request, "Commande introuvable.")
+        return redirect('dashboard:liste_commandes_asten')
+
+
+def detail_commande_cyrus(request, commande_id):
+    """Affiche le détail d'une commande Cyrus"""
+    try:
+        commande = CommandeCyrus.objects.select_related('code_magasin').get(pk=commande_id)
+        
+        # Vérifier si la commande existe dans Asten
+        commande_asten = CommandeAsten.objects.filter(
+            date_commande=commande.date_commande,
+            numero_commande=commande.numero_commande,
+            code_magasin=commande.code_magasin
+        ).first()
+        
+        context = {
+            'commande': commande,
+            'commande_asten': commande_asten,
+        }
+        return render(request, 'dashboard/detail_commande_cyrus.html', context)
+    except CommandeCyrus.DoesNotExist:
+        messages.error(request, "Commande introuvable.")
+        return redirect('dashboard:liste_commandes_cyrus')

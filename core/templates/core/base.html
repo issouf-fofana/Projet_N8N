@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vérification Commandes{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-bg: #1e293b;
+            --sidebar-color: #f1f5f9;
+            --main-bg: #f1f5f9;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--main-bg);
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-color);
+            padding: 20px 0;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-header h4 {
+            color: white;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin: 0;
+        }
+        
+        .sidebar-menu a {
+            display: block;
+            padding: 12px 20px;
+            color: var(--sidebar-color);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left-color: #3498db;
+            color: white;
+        }
+        
+        .sidebar-menu a.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-left-color: #3498db;
+            color: white;
+        }
+        
+        .sidebar-menu i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        /* Accordion styles */
+        .sidebar-accordion {
+            padding: 0;
+        }
+        
+        .sidebar-accordion .accordion-item {
+            border: none;
+            background: transparent;
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-accordion .accordion-button {
+            background: transparent;
+            color: var(--sidebar-color);
+            padding: 12px 20px;
+            border: none;
+            border-left: 3px solid transparent;
+            box-shadow: none;
+            font-size: 0.95rem;
+        }
+        
+        .sidebar-accordion .accordion-button:not(.collapsed) {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left-color: #3498db;
+            color: white;
+        }
+        
+        .sidebar-accordion .accordion-button:focus {
+            box-shadow: none;
+            border-color: transparent;
+        }
+        
+        .sidebar-accordion .accordion-button::after {
+            margin-left: auto;
+            filter: brightness(0) invert(1);
+        }
+        
+        .sidebar-accordion .accordion-body {
+            padding: 0;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        .sidebar-accordion .accordion-body a {
+            padding: 10px 20px 10px 50px;
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-accordion .accordion-body a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left-color: #3498db;
+            color: white;
+            padding-left: 55px;
+        }
+        
+        .sidebar-accordion .accordion-body a.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-left-color: #3498db;
+            color: white;
+        }
+        
+        .sidebar-accordion .accordion-body i {
+            margin-right: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 40px;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .page-header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            color: white;
+        }
+        
+        /* Boutons radio pour type de données */
+        .btn-check:checked + .btn-outline-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-color: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-outline-primary {
+            border: 2px solid #e2e8f0;
+            color: #475569;
+            background: white;
+            transition: all 0.3s;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: #f1f5f9;
+            border-color: #3b82f6;
+            color: #3b82f6;
+            transform: translateY(-1px);
+        }
+        
+        .card {
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            overflow: hidden;
+            transition: box-shadow 0.3s;
+            background: #ffffff;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: white;
+            border-radius: 0 !important;
+            padding: 18px 25px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card-header.bg-primary {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: white;
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-card.success {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border-left-color: #10b981;
+        }
+        
+        .stat-card.warning {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border-left-color: #ef4444;
+        }
+        
+        .stat-card.info {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            border-left-color: #60a5fa;
+        }
+        
+        .stat-card.primary {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            border-left-color: #64748b;
+        }
+        
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 15px 0 5px 0;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        
+        .stat-icon {
+            font-size: 3.5rem;
+            opacity: 0.3;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .badge-integre {
+            background-color: #28a745;
+        }
+        
+        .badge-non-integre {
+            background-color: #dc3545;
+        }
+        
+        /* Dropdown avec checkboxes */
+        .dropdown {
+            position: relative;
+            z-index: 1000;
+        }
+        
+        .dropdown-menu {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            border: 1px solid #dee2e6;
+            z-index: 1055 !important;
+            position: absolute !important;
+            top: 100% !important;
+            left: 0 !important;
+            margin-top: 0.125rem !important;
+        }
+        
+        .dropdown.show .dropdown-menu {
+            display: block !important;
+        }
+        
+        /* S'assurer que le card ne cache pas le dropdown */
+        .card {
+            overflow: visible !important;
+        }
+        
+        .card-body {
+            overflow: visible !important;
+        }
+        
+        /* S'assurer que le form ne cache pas le dropdown */
+        form {
+            position: relative;
+            z-index: 1;
+        }
+        
+        form .dropdown {
+            z-index: 1055;
+        }
+        
+        .magasin-item {
+            padding: 10px 15px 10px 25px;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .magasin-item:last-child {
+            border-bottom: none;
+        }
+        
+        .magasin-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .magasin-item label {
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 0;
+            font-size: 0.95rem;
+            padding-left: 10px;
+        }
+        
+        .magasin-item .form-check-input {
+            margin-top: 0.35rem;
+            margin-left: 0;
+            width: 1.1rem;
+            height: 1.1rem;
+            cursor: pointer;
+            position: relative;
+            left: 0;
+        }
+        
+        .form-check-input:checked {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        
+        #magasinList {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        #magasinList::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #magasinList::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        #magasinList::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        #magasinList::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Table row colors - professional and subtle */
+        .table-row-success {
+            background-color: #f0fdf4 !important;
+        }
+        
+        .table-row-success:hover {
+            background-color: #dcfce7 !important;
+        }
+        
+        .table-row-danger {
+            background-color: #fef2f2 !important;
+        }
+        
+        .table-row-danger:hover {
+            background-color: #fee2e2 !important;
+        }
+        
+        /* Professional badge colors */
+        /* Professional badge colors - light and modern */
+        .badge.bg-primary {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-success {
+            background-color: #10b981 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-danger {
+            background-color: #ef4444 !important;
+            color: white !important;
+        }
+        
+        .badge.bg-secondary {
+            background-color: #64748b !important;
+            color: white !important;
+        }
+        
+        /* Button outline danger - professional red */
+        .btn-outline-danger {
+            border-color: #f56565;
+            color: #f56565;
+        }
+        
+        .btn-outline-danger:hover {
+            background-color: #f56565;
+            border-color: #f56565;
+            color: white;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-shield-check"></i> Vérification</h4>
+        </div>
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{% url 'dashboard:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+        </ul>
+        
+        <!-- Accordion Menu -->
+        <div class="accordion sidebar-accordion" id="sidebarAccordion">
+            <!-- Commandes -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCommandes">
+                        <i class="bi bi-box-seam"></i> Commandes
+                    </button>
+                </h2>
+                <div id="collapseCommandes" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                    <div class="accordion-body">
+                        <a href="{% url 'dashboard:liste_ecarts' %}" class="{% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' %}active{% endif %}">
+                            <i class="bi bi-exclamation-triangle"></i> Écarts
+                        </a>
+                        <a href="{% url 'dashboard:liste_commandes_asten' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Commandes Asten
+                        </a>
+                        <a href="{% url 'dashboard:liste_commandes_cyrus' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Commandes Cyrus
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Factures -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFactures">
+                        <i class="bi bi-file-earmark-text"></i> Factures
+                    </button>
+                </h2>
+                <div id="collapseFactures" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                    <div class="accordion-body">
+                        <a href="#"><i class="bi bi-exclamation-triangle"></i> Écarts de facture</a>
+                        <a href="#"><i class="bi bi-list-ul"></i> Liste factures Asten</a>
+                        <a href="#"><i class="bi bi-list-ul"></i> Liste factures Cyrus</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- BR (Bon de réception) -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBR">
+                        <i class="bi bi-receipt"></i> BR (Bon de réception)
+                    </button>
+                </h2>
+                <div id="collapseBR" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                    <div class="accordion-body">
+                        <a href="#"><i class="bi bi-exclamation-triangle"></i> Écarts de BR</a>
+                        <a href="#"><i class="bi bi-list-ul"></i> Liste BR Asten</a>
+                        <a href="#"><i class="bi bi-list-ul"></i> Liste BR Cyrus</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Paramètres -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
+                        <i class="bi bi-gear"></i> Paramètres
+                    </button>
+                </h2>
+                <div id="collapseParametres" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                    <div class="accordion-body">
+                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Configuration système</a>
+                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Gestion des magasins</a>
+                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Utilisateurs</a>
+                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Préférences</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rapports -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRapports">
+                        <i class="bi bi-graph-up"></i> Rapports
+                    </button>
+                </h2>
+                <div id="collapseRapports" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                    <div class="accordion-body">
+                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Rapport journalier</a>
+                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Rapport mensuel</a>
+                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Rapport par magasin</a>
+                        <a href="#"><i class="bi bi-download"></i> Exporter les données</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+
