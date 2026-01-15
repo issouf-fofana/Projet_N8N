@@ -11,7 +11,8 @@ from ecarts.services import recalculer_ecarts, get_statistiques
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
 from gpv.models import CommandeGPV
-from ecarts.models import EcartCommande, EcartGPV
+from legend.models import CommandeLegend
+from ecarts.models import EcartCommande, EcartGPV, EcartLegend
 from core.models import Magasin
 
 
@@ -82,6 +83,15 @@ def dashboard(request):
     commandes_data = []
     titre_tableau = "Comparaison Asten vs Cyrus"
     
+    # Assurer l'import Legend si nécessaire (ex: nouveaux fichiers déposés sans actualisation)
+    if type_donnees == 'commandes_legend' and not CommandeLegend.objects.exists():
+        try:
+            scanner_et_importer_fichiers()
+            recalculer_ecarts()
+            request.session['donnees_actualisees'] = True
+        except Exception:
+            pass
+
     # Traiter selon le type de données sélectionné
     if type_donnees == 'commandes_asten':
         # Récupérer les commandes avec leurs statuts d'intégration
@@ -380,15 +390,103 @@ def dashboard(request):
         titre_tableau = "Comparaison GPV vs Cyrus"
         
     elif type_donnees == 'commandes_legend':
-        # TODO: À implémenter quand les modèles Legend seront créés
+        # Récupérer les commandes Legend (seules les exportées sont éligibles)
+        filtres_legend = {}
+        if date_debut_parsed:
+            filtres_legend['date_commande__gte'] = date_debut_parsed
+        if date_fin_parsed:
+            filtres_legend['date_commande__lte'] = date_fin_parsed
+
+        # Statistiques basées uniquement sur les commandes exportées
+        total_legend_exportee = CommandeLegend.objects.filter(exportee=True, **filtres_legend).count()
+
+        # Total Cyrus sur la même période (comparaison sans code magasin)
+        filtres_cyrus = {}
+        if date_debut_parsed:
+            filtres_cyrus['date_commande__gte'] = date_debut_parsed
+        if date_fin_parsed:
+            filtres_cyrus['date_commande__lte'] = date_fin_parsed
+        total_cyrus = CommandeCyrus.objects.filter(**filtres_cyrus).count()
+
+        # Compter les écarts Legend ouverts
+        filtres_ecarts = {'commande_legend__exportee': True}
+        if date_debut_parsed:
+            filtres_ecarts['commande_legend__date_commande__gte'] = date_debut_parsed
+        if date_fin_parsed:
+            filtres_ecarts['commande_legend__date_commande__lte'] = date_fin_parsed
+        total_ecarts_ouverts = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='ouvert').count()
+
+        commandes_integres = total_legend_exportee - total_ecarts_ouverts
+        commandes_non_integres = total_ecarts_ouverts
+
+        taux_integration = round((commandes_integres / total_legend_exportee * 100) if total_legend_exportee > 0 else 0, 2)
+        taux_non_integration = round((commandes_non_integres / total_legend_exportee * 100) if total_legend_exportee > 0 else 0, 2)
+
         stats = {
-            'total_source': 0,
-            'total_target': 0,
-            'integres': 0,
-            'non_integres': 0,
-            'taux_integration': 0,
-            'taux_non_integration': 0,
+            'total_source': total_legend_exportee,
+            'total_target': total_cyrus,
+            'integres': commandes_integres,
+            'non_integres': commandes_non_integres,
+            'taux_integration': taux_integration,
+            'taux_non_integration': taux_non_integration,
         }
+
+        # Préparer les données pour l'affichage
+        commandes_legend = CommandeLegend.objects.filter(**filtres_legend).prefetch_related(
+            Prefetch('ecart', queryset=EcartLegend.objects.all())
+        ).order_by('-date_commande', 'numero_commande')
+
+        commandes_legend_limited = list(commandes_legend[:200])
+
+        legend_keys = [(cmd.date_commande, cmd.numero_commande) for cmd in commandes_legend_limited]
+        cyrus_lookup = set()
+        cyrus_numero_lookup = set()
+
+        if legend_keys:
+            # Cyrus lookup par lots (date + numero)
+            for i in range(0, len(legend_keys), 50):
+                batch_keys = legend_keys[i:i+50]
+                q_objects = Q()
+                for date, numero in batch_keys:
+                    q_objects |= Q(date_commande=date, numero_commande=numero)
+                if q_objects:
+                    for cyrus_cmd in CommandeCyrus.objects.filter(q_objects):
+                        cyrus_lookup.add((cyrus_cmd.date_commande, cyrus_cmd.numero_commande))
+            # Cyrus lookup par numero (fallback)
+            numeros = list({numero for _, numero in legend_keys})
+            if numeros:
+                for cyrus_cmd in CommandeCyrus.objects.filter(numero_commande__in=numeros):
+                    cyrus_numero_lookup.add(cyrus_cmd.numero_commande)
+
+        commandes_data = []
+        for cmd_legend in commandes_legend_limited:
+            key = (cmd_legend.date_commande, cmd_legend.numero_commande)
+            cyrus_present = key in cyrus_lookup
+            if not cyrus_present:
+                cyrus_present = cmd_legend.numero_commande in cyrus_numero_lookup
+
+            try:
+                ecart = cmd_legend.ecart
+            except Exception:
+                ecart = None
+
+            integre = True
+            etape_blocage = None
+            if cmd_legend.exportee:
+                if not cyrus_present:
+                    integre = False
+                    etape_blocage = "Absente dans Cyrus"
+
+            commandes_data.append({
+                'legend': cmd_legend,
+                'cyrus_present': cyrus_present,
+                'integre': integre,
+                'etape_blocage': etape_blocage,
+                'ecart': ecart,
+            })
+
+        # Mettre les non intégrées en premier
+        commandes_data.sort(key=lambda x: x['integre'])
         titre_tableau = "Comparaison Legend vs Cyrus"
         
     elif type_donnees == 'factures':
@@ -534,7 +632,7 @@ def detail_ecart(request, ecart_id):
 
 
 def liste_ecarts(request):
-    """Affiche la liste des écarts (Asten et GPV)"""
+    """Affiche la liste des écarts (Asten, GPV et Legend)"""
     # Filtres
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
@@ -547,18 +645,22 @@ def liste_ecarts(request):
     # Construire les filtres pour Asten
     filtres_asten = {}
     filtres_gpv = {}
+    filtres_legend = {}
     
     # Filtrer par statut seulement si un statut spécifique est sélectionné
     if statut and statut != '':
         filtres_asten['statut'] = statut
         filtres_gpv['statut'] = statut
+        filtres_legend['statut'] = statut
     
     if date_debut_parsed:
         filtres_asten['commande_asten__date_commande__gte'] = date_debut_parsed
         filtres_gpv['commande_gpv__date_creation__gte'] = date_debut_parsed
+        filtres_legend['commande_legend__date_commande__gte'] = date_debut_parsed
     if date_fin_parsed:
         filtres_asten['commande_asten__date_commande__lte'] = date_fin_parsed
         filtres_gpv['commande_gpv__date_creation__lte'] = date_fin_parsed
+        filtres_legend['commande_legend__date_commande__lte'] = date_fin_parsed
     if code_magasin:
         filtres_asten['commande_asten__code_magasin__code'] = code_magasin
         filtres_gpv['commande_gpv__code_magasin__code'] = code_magasin
@@ -571,6 +673,11 @@ def liste_ecarts(request):
     # Récupérer les écarts GPV
     ecarts_gpv = EcartGPV.objects.filter(**filtres_gpv).select_related(
         'commande_gpv__code_magasin'
+    ).order_by('-date_creation')
+
+    # Récupérer les écarts Legend
+    ecarts_legend = EcartLegend.objects.filter(**filtres_legend).select_related(
+        'commande_legend'
     ).order_by('-date_creation')
     
     # Combiner les écarts avec un indicateur de type
@@ -628,6 +735,35 @@ def liste_ecarts(request):
             'date_creation': ecart.date_creation,
             'statut': ecart.statut,
         })
+
+    for ecart in ecarts_legend:
+        # Vérifier si la commande existe dans Cyrus (fallback par numero)
+        existe_cyrus = CommandeCyrus.objects.filter(
+            date_commande=ecart.commande_legend.date_commande,
+            numero_commande=ecart.commande_legend.numero_commande
+        ).exists()
+        if not existe_cyrus:
+            existe_cyrus = CommandeCyrus.objects.filter(
+                numero_commande=ecart.commande_legend.numero_commande
+            ).exists()
+
+        # Ne pas afficher les écarts résolus automatiquement (résolu ET existe dans Cyrus)
+        # Afficher seulement : ouverts, ignorés, et résolus manuellement (résolu mais n'existe pas dans Cyrus)
+        if ecart.statut == 'resolu' and existe_cyrus:
+            continue
+
+        ecarts_combined.append({
+            'type': 'legend',
+            'ecart': ecart,
+            'id': ecart.id,
+            'date_commande': ecart.commande_legend.date_commande,
+            'numero_commande': ecart.commande_legend.numero_commande,
+            'depot_origine': ecart.commande_legend.depot_origine,
+            'depot_destination': ecart.commande_legend.depot_destination,
+            'montant': None,
+            'date_creation': ecart.date_creation,
+            'statut': ecart.statut,
+        })
     
     # Trier par date de création (plus récent en premier)
     ecarts_combined.sort(key=lambda x: x['date_creation'], reverse=True)
@@ -636,6 +772,7 @@ def liste_ecarts(request):
     
     context = {
         'ecarts': ecarts_combined,
+        'ecarts_count': len(ecarts_combined),
         'magasins': magasins,
         'filtres': {
             'date_debut': date_debut or '',
@@ -801,6 +938,48 @@ def detail_commande_cyrus(request, commande_id):
         return redirect('dashboard:liste_commandes_cyrus')
 
 
+def detail_commande_legend(request, commande_id):
+    """Affiche le détail d'une commande Legend"""
+    from legend.models import CommandeLegend
+    from gpv.models import CommandeGPV
+    from cyrus.models import CommandeCyrus
+
+    try:
+        commande = CommandeLegend.objects.get(pk=commande_id)
+
+        # Vérifier si la commande existe dans GPV et Cyrus (comparaison sans code magasin)
+        commande_gpv = CommandeGPV.objects.filter(
+            date_creation=commande.date_commande,
+            numero_commande=commande.numero_commande
+        ).first()
+
+        commande_cyrus = CommandeCyrus.objects.filter(
+            date_commande=commande.date_commande,
+            numero_commande=commande.numero_commande
+        ).first()
+        if commande_cyrus is None:
+            commande_cyrus = CommandeCyrus.objects.filter(
+                numero_commande=commande.numero_commande
+            ).first()
+
+        # Vérifier s'il y a un écart
+        try:
+            ecart = commande.ecart
+        except Exception:
+            ecart = None
+
+        context = {
+            'commande': commande,
+            'commande_gpv': commande_gpv,
+            'commande_cyrus': commande_cyrus,
+            'ecart': ecart,
+        }
+        return render(request, 'dashboard/detail_commande_legend.html', context)
+    except CommandeLegend.DoesNotExist:
+        messages.error(request, "Commande introuvable.")
+        return redirect('dashboard:dashboard')
+
+
 def detail_ecart_gpv(request, ecart_id):
     """Affiche le détail d'un écart GPV et permet de modifier son statut"""
     from ecarts.models import EcartGPV
@@ -844,6 +1023,55 @@ def detail_ecart_gpv(request, ecart_id):
         }
         return render(request, 'dashboard/detail_ecart_gpv.html', context)
     except EcartGPV.DoesNotExist:
+        messages.error(request, "Écart introuvable.")
+        return redirect('dashboard:dashboard')
+
+
+def detail_ecart_legend(request, ecart_id):
+    """Affiche le détail d'un écart Legend et permet de modifier son statut"""
+    from ecarts.models import EcartLegend
+    from gpv.models import CommandeGPV
+    from cyrus.models import CommandeCyrus
+
+    try:
+        ecart = EcartLegend.objects.select_related('commande_legend').get(pk=ecart_id)
+
+        # Vérifier si la commande existe dans Cyrus
+        existe_cyrus = CommandeCyrus.objects.filter(
+            date_commande=ecart.commande_legend.date_commande,
+            numero_commande=ecart.commande_legend.numero_commande
+        ).first()
+        if existe_cyrus is None:
+            existe_cyrus = CommandeCyrus.objects.filter(
+                numero_commande=ecart.commande_legend.numero_commande
+            ).first()
+
+        if request.method == 'POST':
+            nouveau_statut = request.POST.get('statut')
+            commentaire = request.POST.get('commentaire', '').strip()
+
+            if nouveau_statut in ['ouvert', 'resolu', 'ignore']:
+                ecart.statut = nouveau_statut
+                if commentaire:
+                    ecart.commentaire = commentaire
+                ecart.save()
+
+                if nouveau_statut == 'resolu':
+                    messages.success(request, "L'écart a été marqué comme résolu. Les pourcentages seront mis à jour sur le dashboard.")
+                elif nouveau_statut == 'ignore':
+                    messages.info(request, "L'écart a été marqué comme ignoré. Les pourcentages seront mis à jour sur le dashboard.")
+                else:
+                    messages.info(request, "L'écart a été remis à ouvert. Les pourcentages seront mis à jour sur le dashboard.")
+
+                type_donnees = request.GET.get('type_donnees', 'commandes_legend')
+                return redirect(f"{reverse('dashboard:dashboard')}?type_donnees={type_donnees}")
+
+        context = {
+            'ecart': ecart,
+            'existe_cyrus': existe_cyrus,
+        }
+        return render(request, 'dashboard/detail_ecart_legend.html', context)
+    except EcartLegend.DoesNotExist:
         messages.error(request, "Écart introuvable.")
         return redirect('dashboard:dashboard')
 
@@ -897,6 +1125,80 @@ def liste_commandes_gpv(request):
     }
     
     return render(request, 'dashboard/liste_commandes_gpv.html', context)
+
+
+def liste_commandes_legend(request):
+    """Affiche la liste des commandes Legend"""
+    # Filtres
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    numero_commande = request.GET.get('numero_commande', '').strip()
+    depot_recherche = request.GET.get('depot', '').strip()
+    exportee = request.GET.get('exportee', '')
+
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    filtres = {}
+    if date_debut_parsed:
+        filtres['date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['date_commande__lte'] = date_fin_parsed
+    if numero_commande:
+        filtres['numero_commande__icontains'] = numero_commande
+    if exportee == 'oui':
+        filtres['exportee'] = True
+    elif exportee == 'non':
+        filtres['exportee'] = False
+    if depot_recherche:
+        filtres['depot_origine__icontains'] = depot_recherche
+
+    commandes = CommandeLegend.objects.filter(**filtres).order_by('-date_commande', 'numero_commande')
+
+    # Pagination pour améliorer les performances
+    paginator = Paginator(commandes, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    # Préparer les données de comparaison Cyrus (clé date + numéro, puis fallback numéro)
+    legend_keys = [(cmd.date_commande, cmd.numero_commande) for cmd in page_obj.object_list]
+    cyrus_lookup = set()
+    cyrus_numero_lookup = set()
+
+    if legend_keys:
+        for i in range(0, len(legend_keys), 50):
+            batch_keys = legend_keys[i:i+50]
+            q_objects = Q()
+            for date, numero in batch_keys:
+                q_objects |= Q(date_commande=date, numero_commande=numero)
+            if q_objects:
+                for cyrus_cmd in CommandeCyrus.objects.filter(q_objects):
+                    cyrus_lookup.add((cyrus_cmd.date_commande, cyrus_cmd.numero_commande))
+        numeros = list({numero for _, numero in legend_keys})
+        if numeros:
+            for cyrus_cmd in CommandeCyrus.objects.filter(numero_commande__in=numeros):
+                cyrus_numero_lookup.add(cyrus_cmd.numero_commande)
+
+    # Annoter les objets du page_obj pour l'affichage
+    for cmd in page_obj.object_list:
+        key = (cmd.date_commande, cmd.numero_commande)
+        cyrus_present = key in cyrus_lookup or cmd.numero_commande in cyrus_numero_lookup
+        cmd.cyrus_present = cyrus_present
+
+    context = {
+        'commandes': page_obj,
+        'page_obj': page_obj,
+        'filtres': {
+            'date_debut': date_debut,
+            'date_fin': date_fin,
+            'numero_commande': numero_commande,
+            'depot': depot_recherche,
+            'exportee': exportee,
+        },
+        'total': paginator.count,
+    }
+
+    return render(request, 'dashboard/liste_commandes_legend.html', context)
 
 
 def detail_commande_gpv(request, commande_id):

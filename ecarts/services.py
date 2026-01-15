@@ -1,8 +1,10 @@
 from django.db import transaction
+from django.db.models import Exists, OuterRef, Q
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
 from gpv.models import CommandeGPV
-from ecarts.models import EcartCommande, EcartGPV
+from legend.models import CommandeLegend
+from ecarts.models import EcartCommande, EcartGPV, EcartLegend
 
 
 def recalculer_ecarts():
@@ -128,9 +130,67 @@ def recalculer_ecarts():
                     ecarts_gpv_crees += 1
                 # Si la commande existe dans Cyrus, pas besoin de créer un écart
         
+        # Recalculer les écarts Legend (Legend -> Cyrus uniquement)
+        ecarts_legend_crees = 0
+        ecarts_legend_resolus = 0
+
+        commandes_legend = CommandeLegend.objects.all()
+        for commande_legend in commandes_legend:
+            # Les commandes non exportées sont ignorées
+            if not commande_legend.exportee:
+                try:
+                    ecart_existant = commande_legend.ecart
+                    if ecart_existant.statut != 'ignore':
+                        ecart_existant.delete()
+                except EcartLegend.DoesNotExist:
+                    pass
+                continue
+
+            cyrus_existe = CommandeCyrus.objects.filter(
+                date_commande=commande_legend.date_commande,
+                numero_commande=commande_legend.numero_commande
+            ).exists()
+            if not cyrus_existe:
+                # Fallback: présence dans Cyrus sur une autre date
+                cyrus_existe = CommandeCyrus.objects.filter(
+                    numero_commande=commande_legend.numero_commande
+                ).exists()
+
+            # Déterminer le type d'écart selon la règle consolidée
+            type_ecart = None
+            if not cyrus_existe:
+                type_ecart = 'cyrus_absent'
+
+            if type_ecart is None:
+                # Pas d'écart : résoudre si nécessaire
+                try:
+                    ecart_existant = commande_legend.ecart
+                    if ecart_existant.statut == 'ouvert':
+                        ecart_existant.statut = 'resolu'
+                        ecart_existant.save()
+                        ecarts_legend_resolus += 1
+                except EcartLegend.DoesNotExist:
+                    pass
+            else:
+                # Écart détecté ou réouvert
+                try:
+                    ecart_existant = commande_legend.ecart
+                    if ecart_existant.statut == 'resolu':
+                        ecart_existant.statut = 'ouvert'
+                    if ecart_existant.statut != 'ignore':
+                        ecart_existant.type_ecart = type_ecart
+                    ecart_existant.save()
+                except EcartLegend.DoesNotExist:
+                    EcartLegend.objects.create(
+                        commande_legend=commande_legend,
+                        statut='ouvert',
+                        type_ecart=type_ecart
+                    )
+                    ecarts_legend_crees += 1
+
         return {
-            'ecarts_crees': ecarts_crees + ecarts_gpv_crees,
-            'ecarts_resolus': ecarts_resolus + ecarts_gpv_resolus
+            'ecarts_crees': ecarts_crees + ecarts_gpv_crees + ecarts_legend_crees,
+            'ecarts_resolus': ecarts_resolus + ecarts_gpv_resolus + ecarts_legend_resolus
         }
 
 

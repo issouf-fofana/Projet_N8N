@@ -118,7 +118,7 @@
                             <td><strong class="text-primary">{{ commande.numero_commande }}</strong></td>
                             <td>
                                 <span class="badge bg-secondary">{{ commande.code_magasin.code }}</span><br>
-                                <small class="text-muted">{{ commande.code_magasin.nom|truncatewords:3 }}</small>
+                                <small class="text-muted">{{ commande.code_magasin.nom }}</small>
                             </td>
                             <td>
                                 {% if commande.statut %}

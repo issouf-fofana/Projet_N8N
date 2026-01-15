@@ -502,23 +502,26 @@
             <!-- Commandes -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'detail_ecart_gpv' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCommandes">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'detail_ecart_gpv' or request.resolver_match.url_name == 'detail_ecart_legend' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'detail_commande_gpv' or request.resolver_match.url_name == 'liste_commandes_legend' or request.resolver_match.url_name == 'detail_commande_legend' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCommandes">
                         <i class="bi bi-box-seam"></i> Commandes
                     </button>
                 </h2>
-                <div id="collapseCommandes" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'detail_ecart_gpv' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                <div id="collapseCommandes" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'detail_ecart_gpv' or request.resolver_match.url_name == 'detail_ecart_legend' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'detail_commande_gpv' or request.resolver_match.url_name == 'liste_commandes_legend' or request.resolver_match.url_name == 'detail_commande_legend' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
                         <a href="{% url 'dashboard:liste_ecarts' %}" class="{% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' %}active{% endif %}">
                             <i class="bi bi-exclamation-triangle"></i> Écarts
                         </a>
                         <a href="{% url 'dashboard:liste_commandes_asten' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' %}active{% endif %}">
-                            <i class="bi bi-list-ul"></i> Commandes Asten
+                            <i class="bi bi-list-ul"></i> Asten
                         </a>
-                        <a href="{% url 'dashboard:liste_commandes_gpv' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_gpv' %}active{% endif %}">
-                            <i class="bi bi-list-ul"></i> Commandes GPV
+                        <a href="{% url 'dashboard:liste_commandes_gpv' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'detail_commande_gpv' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> GPV
+                        </a>
+                        <a href="{% url 'dashboard:liste_commandes_legend' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_legend' or request.resolver_match.url_name == 'detail_commande_legend' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Legend
                         </a>
                         <a href="{% url 'dashboard:liste_commandes_cyrus' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}active{% endif %}">
-                            <i class="bi bi-list-ul"></i> Commandes Cyrus
+                            <i class="bi bi-list-ul"></i> Cyrus
                         </a>
                     </div>
                 </div>

@@ -270,7 +270,7 @@
                                 <td><strong class="text-dark">{{ item.asten.numero_commande }}</strong></td>
                                 <td>
                                     <span class="badge bg-secondary">{{ item.asten.code_magasin.code }}</span><br>
-                                    <small class="text-muted">{{ item.asten.code_magasin.nom|truncatewords:3 }}</small>
+                                    <small class="text-muted">{{ item.asten.code_magasin.nom }}</small>
                                 </td>
                                 <td>
                                     <span class="badge bg-primary"><i class="bi bi-check"></i> Asten</span>
@@ -328,7 +328,7 @@
                                 <td><strong class="text-dark">{{ item.gpv.numero_commande }}</strong></td>
                                 <td>
                                     <span class="badge bg-secondary">{{ item.gpv.code_magasin.code }}</span><br>
-                                    <small class="text-muted">{{ item.gpv.code_magasin.nom|truncatewords:3 }}</small>
+                                    <small class="text-muted">{{ item.gpv.code_magasin.nom }}</small>
                                 </td>
                                 <td>
                                     <span class="badge bg-primary"><i class="bi bi-check"></i> GPV</span>
@@ -399,14 +399,82 @@
                                 </td>
                             </tr>
                         {% endif %}
+                    {% elif type_donnees == 'commandes_legend' %}
+                        {% if commandes and commandes|length > 0 %}
+                            {% for item in commandes %}
+                            <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
+                                <td class="fw-semibold">{{ item.legend.date_commande|date:"d/m/Y" }}</td>
+                                <td><strong class="text-dark">{{ item.legend.numero_commande }}</strong></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ item.legend.depot_origine }}</span><br>
+                                    <small class="text-muted">{{ item.legend.depot_destination|default:"-" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-check"></i> Legend</span>
+                                    {% if item.legend.exportee %}
+                                        <br><small class="text-muted">
+                                            <span class="badge bg-info" style="font-size: 0.7rem;">Exportée</span>
+                                        </small>
+                                    {% else %}
+                                        <br><small class="text-muted">
+                                            <span class="badge bg-secondary" style="font-size: 0.7rem;">Non exportée</span>
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.cyrus_present %}
+                                        <span class="badge bg-success"><i class="bi bi-check"></i> Cyrus</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="bi bi-x"></i> Cyrus absent</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.integre %}
+                                        <span class="badge bg-success rounded-pill">
+                                            <i class="bi bi-check-circle"></i> Intégré
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger rounded-pill">
+                                            <i class="bi bi-exclamation-circle"></i> Non intégré
+                                        </span>
+                                        {% if item.etape_blocage %}
+                                            <br><small class="text-muted" style="font-size: 0.7rem;">{{ item.etape_blocage }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not item.integre %}
+                                        {% if item.ecart %}
+                                            <a href="{% url 'dashboard:detail_ecart_legend' item.ecart.id %}" 
+                                               class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-eye"></i> Voir écart
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted small">Écart non calculé</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <a href="{% url 'dashboard:detail_commande_legend' item.legend.id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Voir détail
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                                    <p class="text-muted mt-3 mb-0">Aucune commande trouvée pour les filtres sélectionnés.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
                     {% else %}
                         <tr>
                             <td colspan="7" class="text-center py-5">
                                 <i class="bi bi-info-circle" style="font-size: 3rem; color: #3498db;"></i>
                                 <p class="text-muted mt-3 mb-0">
-                                    {% if filtres.type_donnees == 'commandes_legend' %}
-                                        Les commandes Legend seront disponibles prochainement.
-                                    {% elif filtres.type_donnees == 'factures' %}
+                                    {% if filtres.type_donnees == 'factures' %}
                                         Les factures seront disponibles prochainement.
                                     {% elif filtres.type_donnees == 'br' %}
                                         Les BR seront disponibles prochainement.

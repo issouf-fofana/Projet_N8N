@@ -66,7 +66,7 @@
     <div class="card-header">
         <h5 class="mb-0">
             <i class="bi bi-list-ul"></i> Écarts détectés 
-            <span class="badge bg-light text-dark ms-2">{{ ecarts.count }}</span>
+            <span class="badge bg-light text-dark ms-2">{{ ecarts_count }}</span>
         </h5>
     </div>
     <div class="card-body p-0">
@@ -77,7 +77,6 @@
                         <th class="border-0"><i class="bi bi-calendar"></i> Date Commande</th>
                         <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
-                        <th class="border-0"><i class="bi bi-currency-exchange"></i> Montant</th>
                         <th class="border-0"><i class="bi bi-clock"></i> Date Création Écart</th>
                         <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
                         <th class="border-0"><i class="bi bi-gear"></i> Action</th>
@@ -91,19 +90,19 @@
                                 <strong class="text-primary">{{ item.numero_commande }}</strong>
                                 {% if item.type == 'gpv' %}
                                     <br><small class="badge bg-info">GPV</small>
+                                {% elif item.type == 'legend' %}
+                                    <br><small class="badge bg-warning text-dark">Legend</small>
                                 {% else %}
                                     <br><small class="badge bg-primary">Asten</small>
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-secondary">{{ item.code_magasin.code }}</span><br>
-                                <small class="text-muted">{{ item.code_magasin.nom|truncatewords:3 }}</small>
-                            </td>
-                            <td>
-                                {% if item.montant %}
-                                    <strong>{{ item.montant|floatformat:0 }} FCFA</strong>
+                                {% if item.type == 'legend' %}
+                                    <span class="badge bg-secondary">{{ item.depot_origine }}</span><br>
+                                    <small class="text-muted">{{ item.depot_destination|default:"-" }}</small>
                                 {% else %}
-                                    <span class="text-muted">-</span>
+                                    <span class="badge bg-secondary">{{ item.code_magasin.code }}</span><br>
+                                    <small class="text-muted">{{ item.code_magasin.nom }}</small>
                                 {% endif %}
                             </td>
                             <td><small class="text-muted">{{ item.date_creation|date:"d/m/Y H:i" }}</small></td>
@@ -125,6 +124,11 @@
                             <td>
                                 {% if item.type == 'gpv' %}
                                     <a href="{% url 'dashboard:detail_ecart_gpv' item.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Détails
+                                    </a>
+                                {% elif item.type == 'legend' %}
+                                    <a href="{% url 'dashboard:detail_ecart_legend' item.id %}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> Détails
                                     </a>

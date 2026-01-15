@@ -10,6 +10,10 @@ from core.models import Magasin
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
 from gpv.models import CommandeGPV
+try:
+    from legend.models import CommandeLegend
+except Exception:
+    CommandeLegend = None
 from imports.models import ImportFichier
 
 
@@ -57,6 +61,128 @@ def parse_date_gpv(date_str):
         return datetime.strptime(date_part, '%d/%m/%Y').date()
     except (ValueError, AttributeError):
         return None
+
+
+
+
+def parse_date_legend(date_str):
+    """
+    Parse la date Legend au format DD/MM/YYYY (ex: 13/01/2026)
+    """
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str.strip(), '%d/%m/%Y').date()
+    except (ValueError, AttributeError):
+        return None
+
+
+def extraire_numero_legend(numero_brut):
+    """
+    Extrait la partie numérique d'un numéro Legend (ex: DIV-260148 -> 260148)
+    """
+    if not numero_brut:
+        return None
+    numero_brut = numero_brut.strip()
+    if '-' in numero_brut:
+        return numero_brut.split('-')[-1].strip()
+    return numero_brut
+
+
+def parse_exportee_legend(valeur):
+    """
+    Convertit le statut Exportée Legend en booléen.
+    Valeurs attendues : "Coché", "Oui", "True", "1"
+    """
+    if not valeur:
+        return False
+    valeur = str(valeur).strip().lower()
+    return valeur in ['coché', 'coche', 'oui', 'true', '1', 'x']
+
+
+def importer_fichier_legend(chemin_fichier):
+    """
+    Importe un fichier CSV Legend dans la base de données.
+    """
+    if CommandeLegend is None:
+        raise RuntimeError("L'application legend n'est pas installée.")
+    nom_fichier = os.path.basename(chemin_fichier)
+    import_obj = ImportFichier.objects.create(
+        type_fichier='legend',
+        nom_fichier=nom_fichier,
+        chemin_fichier=chemin_fichier,
+        statut='en_cours'
+    )
+
+    try:
+        nombre_lignes = 0
+        nombre_nouveaux = 0
+        nombre_dupliques = 0
+
+        with open(chemin_fichier, 'r', encoding='utf-8') as f:
+            first_line = f.readline()
+            delimiter = ';' if ';' in first_line else ','
+            f.seek(0)
+
+            reader = csv.DictReader(f, delimiter=delimiter)
+            for row in reader:
+                nombre_lignes += 1
+                try:
+                    # Normaliser les clés pour gérer un éventuel BOM (﻿) et les espaces
+                    row_normalized = {str(k).lstrip('\ufeff').strip(): v for k, v in row.items()}
+
+                    numero_brut = row_normalized.get('Numéro', '').strip()
+                    numero_commande = extraire_numero_legend(numero_brut)
+                    depot_destination = row_normalized.get('Dépôt de destination', '').strip() or None
+                    depot_origine = row_normalized.get("Dépôt d'origine", '').strip() or None
+                    date_commande = parse_date_legend(row_normalized.get('Date', '').strip())
+                    observation = row_normalized.get('Observation', '').strip() or None
+                    transfert = row_normalized.get('Transfert entre dépôt', '').strip() or None
+                    exportee = parse_exportee_legend(row_normalized.get('Exportée', '').strip())
+                    code_client = row_normalized.get('Code du client', '').strip() or None
+                    code_depot = row_normalized.get('Code du dépôt', '').strip() or None
+                    date_livraison_prevue = parse_date_legend(row_normalized.get('Date de livraison prévue', '').strip())
+
+                    if not numero_commande or not date_commande or not depot_origine:
+                        continue
+
+                    commande, created = CommandeLegend.objects.get_or_create(
+                        date_commande=date_commande,
+                        numero_commande=numero_commande,
+                        depot_origine=depot_origine,
+                        defaults={
+                            'numero_brut': numero_brut,
+                            'depot_destination': depot_destination,
+                            'observation': observation,
+                            'transfert': transfert,
+                            'exportee': exportee,
+                            'code_client': code_client,
+                            'code_depot': code_depot,
+                            'date_livraison_prevue': date_livraison_prevue,
+                            'fichier_source': nom_fichier,
+                        }
+                    )
+
+                    if created:
+                        nombre_nouveaux += 1
+                    else:
+                        nombre_dupliques += 1
+                except Exception as e:
+                    print(f"Erreur ligne {nombre_lignes}: {e}")
+                    continue
+
+        import_obj.nombre_lignes = nombre_lignes
+        import_obj.nombre_nouveaux = nombre_nouveaux
+        import_obj.nombre_dupliques = nombre_dupliques
+        import_obj.statut = 'termine'
+        import_obj.save()
+
+        return import_obj
+    except Exception as e:
+        import_obj.statut = 'erreur'
+        import_obj.message_erreur = str(e)
+        import_obj.save()
+        raise
 
 
 def importer_fichier_asten(chemin_fichier):
@@ -283,23 +409,26 @@ def importer_fichier_cyrus(chemin_fichier):
 
 def scanner_et_importer_fichiers():
     """
-    Scanne les dossiers commande_asten/, commande_cyrus/ et commande_gpv/
+    Scanne les dossiers commande_asten/, commande_cyrus/, commande_gpv/ et commande_legend/
     et importe les nouveaux fichiers ou les fichiers modifiés
     """
     media_root = Path(settings.MEDIA_ROOT)
     dossier_asten = media_root / 'commande_asten'
     dossier_cyrus = media_root / 'commande_cyrus'
     dossier_gpv = media_root / 'commande_gpv'
+    dossier_legend = media_root / 'commande_legend'
     
     # Créer les dossiers s'ils n'existent pas
     dossier_asten.mkdir(parents=True, exist_ok=True)
     dossier_cyrus.mkdir(parents=True, exist_ok=True)
     dossier_gpv.mkdir(parents=True, exist_ok=True)
+    dossier_legend.mkdir(parents=True, exist_ok=True)
     
     fichiers_importes = []
     
     # Importer les fichiers Asten
-    for fichier in dossier_asten.glob('*.csv'):
+    fichiers_asten = list(dossier_asten.glob('*.csv')) + list(dossier_asten.glob('*.CSV'))
+    for fichier in fichiers_asten:
         try:
             # Obtenir la date de modification du fichier
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
@@ -325,7 +454,8 @@ def scanner_et_importer_fichiers():
             print(f"Erreur import fichier {fichier.name}: {e}")
     
     # Importer les fichiers Cyrus
-    for fichier in dossier_cyrus.glob('*.csv'):
+    fichiers_cyrus = list(dossier_cyrus.glob('*.csv')) + list(dossier_cyrus.glob('*.CSV'))
+    for fichier in fichiers_cyrus:
         try:
             # Obtenir la date de modification du fichier
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
@@ -351,7 +481,8 @@ def scanner_et_importer_fichiers():
             print(f"Erreur import fichier {fichier.name}: {e}")
     
     # Importer les fichiers GPV
-    for fichier in dossier_gpv.glob('*.csv'):
+    fichiers_gpv = list(dossier_gpv.glob('*.csv')) + list(dossier_gpv.glob('*.CSV'))
+    for fichier in fichiers_gpv:
         try:
             # Obtenir la date de modification du fichier
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)

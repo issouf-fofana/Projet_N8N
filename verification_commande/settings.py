@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'asten',
     'cyrus',
     'gpv',
+    'legend',
     'ecarts',
     'dashboard',
 ]
