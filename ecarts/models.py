@@ -21,6 +21,7 @@ class EcartCommande(models.Model):
         ('ouvert', 'Ouvert'),
         ('resolu', 'Résolu'),
         ('ignore', 'Ignoré'),
+        ('quantite_0', 'Quantité 0'),
     ]
     statut = models.CharField(
         max_length=20,
@@ -57,6 +58,7 @@ class EcartGPV(models.Model):
         ('ouvert', 'Ouvert'),
         ('resolu', 'Résolu'),
         ('ignore', 'Ignoré'),
+        ('quantite_0', 'Quantité 0'),
     ]
     statut = models.CharField(
         max_length=20,
@@ -93,6 +95,7 @@ class EcartLegend(models.Model):
         ('ouvert', 'Ouvert'),
         ('resolu', 'Résolu'),
         ('ignore', 'Ignoré'),
+        ('quantite_0', 'Quantité 0'),
     ]
     statut = models.CharField(
         max_length=20,
@@ -122,3 +125,4 @@ class EcartLegend(models.Model):
 
     def __str__(self):
         return f"Écart Legend - {self.commande_legend.numero_commande} - {self.commande_legend.depot_origine}"
+

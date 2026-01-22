@@ -10,3 +10,9 @@ class CommandeLegendAdmin(admin.ModelAdmin):
     readonly_fields = ('date_import',)
     date_hierarchy = 'date_commande'
 
+
+
+
+
+
+

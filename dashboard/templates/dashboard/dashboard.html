@@ -6,13 +6,18 @@
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
-    <form method="post" action="{% url 'dashboard:actualiser' %}" class="d-inline">
-        {% csrf_token %}
-        <input type="hidden" name="type_donnees" value="{{ filtres.type_donnees|default:'commandes_asten' }}">
-        <button type="submit" class="btn btn-primary">
-            <i class="bi bi-arrow-clockwise"></i> Actualiser / Recalculer
-        </button>
-    </form>
+    <div class="btn-group">
+        <a href="{% url 'tickets:liste' %}" class="btn btn-outline-primary">
+            <i class="bi bi-ticket-perforated"></i> Voir les remontées
+        </a>
+        <form method="post" action="{% url 'dashboard:actualiser' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="type_donnees" value="{{ filtres.type_donnees|default:'commandes_asten' }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-arrow-clockwise"></i> Actualiser / Recalculer
+            </button>
+        </form>
+    </div>
 </div>
 
 <!-- Filtre Type de Données -->
@@ -164,6 +169,18 @@
                     </div>
                 </div>
             </div>
+            {% if type_donnees == 'br' %}
+            <div class="col-md-3">
+                <label for="statut_ic" class="form-label fw-semibold">
+                    <i class="bi bi-check2-circle"></i> Statut IC
+                </label>
+                <select class="form-select form-select-lg" id="statut_ic" name="statut_ic">
+                    <option value="">Tous</option>
+                    <option value="integre" {% if filtres.statut_ic == 'integre' %}selected{% endif %}>Intégré IC</option>
+                    <option value="non_integre" {% if filtres.statut_ic == 'non_integre' %}selected{% endif %}>Non intégré IC</option>
+                </select>
+            </div>
+            {% endif %}
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100 btn-lg">
                     <i class="bi bi-funnel-fill"></i> Filtrer
@@ -197,8 +214,12 @@
         <div class="stat-card primary">
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
-                    <div class="stat-label">Total Cyrus</div>
-                    <div class="stat-value">{{ stats.total_target|default:0 }}</div>
+                    <div class="stat-label">
+                        {% if filtres.type_donnees == 'br' %}Taux intégration IC{% else %}Total Cyrus{% endif %}
+                    </div>
+                    <div class="stat-value">
+                        {% if filtres.type_donnees == 'br' %}{{ stats.taux_integration|default:0 }}%{% else %}{{ stats.total_target|default:0 }}{% endif %}
+                    </div>
                 </div>
                 <i class="bi bi-box-seam stat-icon"></i>
             </div>
@@ -208,7 +229,9 @@
         <div class="stat-card success">
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
-                    <div class="stat-label">Commandes Intégrées</div>
+                    <div class="stat-label">
+                        {% if filtres.type_donnees == 'br' %}BR Trouvées{% else %}Commandes Intégrées{% endif %}
+                    </div>
                     <div class="stat-value">{{ stats.integres|default:0 }}</div>
                     <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
                         <i class="bi bi-percent"></i> {{ stats.taux_integration|default:0 }}%
@@ -222,7 +245,9 @@
         <div class="stat-card warning">
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
-                    <div class="stat-label">Commandes Non Intégrées</div>
+                    <div class="stat-label">
+                        {% if filtres.type_donnees == 'br' %}BR Non Trouvées{% else %}Commandes Non Intégrées{% endif %}
+                    </div>
                     <div class="stat-value">{{ stats.non_integres|default:0 }}</div>
                     <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
                         <i class="bi bi-percent"></i> {{ stats.taux_non_integration|default:0 }}%
@@ -240,12 +265,85 @@
         <h5 class="mb-0"><i class="bi bi-table"></i> {{ titre_tableau }}</h5>
     </div>
     <div class="card-body p-0">
+        {% if type_donnees == 'br' %}
+        <div class="p-3">
+            <h6 class="mb-3"><i class="bi bi-check-circle"></i> BR Trouvées (Intégrées IC)</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="border-0"><i class="bi bi-calendar"></i> Date</th>
+                            <th class="border-0"><i class="bi bi-hash"></i> N° BR</th>
+                            <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                            <th class="border-0"><i class="bi bi-check2-circle"></i> Statut IC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if br_trouvees and br_trouvees|length > 0 %}
+                            {% for br in br_trouvees %}
+                            <tr class="align-middle">
+                                <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
+                                <td><strong class="text-dark">{{ br.numero_br }}</strong></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
+                                    <small class="text-muted">{{ br.code_magasin.nom }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">Aucun BR trouvé.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h6 class="mb-3"><i class="bi bi-exclamation-circle"></i> BR Non Trouvées (Non intégrées IC)</h6>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="border-0"><i class="bi bi-calendar"></i> Date</th>
+                            <th class="border-0"><i class="bi bi-hash"></i> N° BR</th>
+                            <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                            <th class="border-0"><i class="bi bi-x-circle"></i> Statut IC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if br_non_trouvees and br_non_trouvees|length > 0 %}
+                            {% for br in br_non_trouvees %}
+                            <tr class="align-middle">
+                                <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
+                                <td><strong class="text-dark">{{ br.numero_br }}</strong></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
+                                    <small class="text-muted">{{ br.code_magasin.nom }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">{{ br.statut_ic|default:"Non intégré" }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">Aucun BR non trouvé.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         <th class="border-0"><i class="bi bi-calendar"></i> Date</th>
-                        <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
+                        <th class="border-0"><i class="bi bi-hash"></i> {% if type_donnees == 'br' %}N° BR{% else %}N° Commande{% endif %}</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
                         <th class="border-0">
                             <i class="bi bi-box-seam"></i> 
@@ -256,7 +354,7 @@
                             {% elif filtres.type_donnees == 'br' %}BR Asten
                             {% else %}Asten{% endif %}
                         </th>
-                        <th class="border-0"><i class="bi bi-box-seam"></i> Cyrus</th>
+                        <th class="border-0"><i class="bi bi-box-seam"></i> {{ stats_label_target }}</th>
                         <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
                         <th class="border-0"><i class="bi bi-gear"></i> Action</th>
                     </tr>
@@ -283,6 +381,11 @@
                                         <span class="badge bg-success"><i class="bi bi-check"></i> Cyrus</span>
                                     {% else %}
                                         <span class="badge bg-danger"><i class="bi bi-x"></i> Absent</span>
+                                        <br>
+                                        <a href="{% url 'dashboard:detail_commande_asten' item.asten.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                           class="btn btn-sm btn-outline-info mt-1" title="Voir pourquoi cette commande est absente dans Cyrus">
+                                            <i class="bi bi-info-circle"></i> Voir +
+                                        </a>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -297,17 +400,17 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if not item.integre %}
-                                        {% if item.ecart %}
-                                            <a href="{% url 'dashboard:detail_ecart' item.ecart.id %}" 
-                                               class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-eye"></i> Voir écart
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">Écart non calculé</span>
-                                        {% endif %}
-                                    {% else %}
+                                    {% if item.ecart and item.ecart.statut == 'quantite_0' %}
+                                        <span class="text-muted small">Écart non calculé</span>
+                                    {% elif item.integre or item.ecart and item.ecart.statut == 'resolu' %}
                                         <span class="badge bg-success"><i class="bi bi-check2"></i> OK</span>
+                                    {% elif item.ecart and item.ecart.statut != 'resolu' %}
+                                        <a href="{% url 'dashboard:detail_ecart' item.ecart.id %}" 
+                                           class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-eye"></i> Voir écart
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Écart non calculé</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -346,6 +449,11 @@
                                             <span class="badge bg-success"><i class="bi bi-check"></i> Cyrus</span>
                                         {% else %}
                                             <span class="badge bg-danger"><i class="bi bi-x"></i> Absent</span>
+                                            <br>
+                                            <a href="{% url 'dashboard:detail_commande_gpv' item.gpv.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                               class="btn btn-sm btn-outline-info mt-1" title="Voir pourquoi cette commande est absente dans Cyrus">
+                                                <i class="bi bi-info-circle"></i> Voir +
+                                            </a>
                                         {% endif %}
                                     {% else %}
                                         <span class="badge bg-secondary"><i class="bi bi-info-circle"></i> Non requis</span>
@@ -372,17 +480,17 @@
                                 </td>
                                 <td>
                                     {% if item.doit_etre_dans_cyrus %}
-                                    {% if not item.integre %}
-                                        {% if item.ecart %}
-                                            <a href="{% url 'dashboard:detail_ecart_gpv' item.ecart.id %}" 
-                                               class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-eye"></i> Voir écart
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">Écart non calculé</span>
-                                        {% endif %}
-                                    {% else %}
+                                    {% if item.ecart and item.ecart.statut == 'quantite_0' %}
+                                        <span class="text-muted small">Écart non calculé</span>
+                                    {% elif item.integre or item.ecart and item.ecart.statut == 'resolu' %}
                                         <span class="badge bg-success"><i class="bi bi-check2"></i> OK</span>
+                                    {% elif item.ecart and item.ecart.statut != 'resolu' %}
+                                        <a href="{% url 'dashboard:detail_ecart_gpv' item.ecart.id %}" 
+                                           class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-eye"></i> Voir écart
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Écart non calculé</span>
                                     {% endif %}
                                     {% else %}
                                         <span class="badge bg-secondary"><i class="bi bi-info-circle"></i> OK</span>
@@ -443,20 +551,20 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if not item.integre %}
-                                        {% if item.ecart %}
-                                            <a href="{% url 'dashboard:detail_ecart_legend' item.ecart.id %}" 
-                                               class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-eye"></i> Voir écart
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted small">Écart non calculé</span>
-                                        {% endif %}
-                                    {% else %}
+                                    {% if item.ecart and item.ecart.statut == 'quantite_0' %}
+                                        <span class="text-muted small">Écart non calculé</span>
+                                    {% elif item.integre or item.ecart and item.ecart.statut == 'resolu' %}
                                         <a href="{% url 'dashboard:detail_commande_legend' item.legend.id %}" 
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-eye"></i> Voir détail
                                         </a>
+                                    {% elif item.ecart and item.ecart.statut != 'resolu' %}
+                                        <a href="{% url 'dashboard:detail_ecart_legend' item.ecart.id %}" 
+                                           class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-eye"></i> Voir écart
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Écart non calculé</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -469,6 +577,54 @@
                                 </td>
                             </tr>
                         {% endif %}
+                    {% elif type_donnees == 'br' %}
+                        {% if commandes and commandes|length > 0 %}
+                            {% for item in commandes %}
+                            <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
+                                <td class="fw-semibold">{{ item.asten.date_br|date:"d/m/Y" }}</td>
+                                <td><strong class="text-dark">{{ item.asten.numero_br }}</strong></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ item.asten.code_magasin.code }}</span><br>
+                                    <small class="text-muted">{{ item.asten.code_magasin.nom }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary"><i class="bi bi-check"></i> Asten</span>
+                                </td>
+                                <td>
+                                    {% if item.ic_present %}
+                                        <span class="badge bg-success"><i class="bi bi-check"></i> IC</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="bi bi-x"></i> Absent</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.integre %}
+                                        <span class="badge bg-success rounded-pill">
+                                            <i class="bi bi-check-circle"></i> Intégré
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger rounded-pill">
+                                            <i class="bi bi-exclamation-circle"></i> Non intégré
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not item.integre %}
+                                        <span class="text-muted small">Absent dans IC</span>
+                                    {% else %}
+                                        <span class="badge bg-success"><i class="bi bi-check2"></i> OK</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                                    <p class="text-muted mt-3 mb-0">Aucun BR trouvé pour les filtres sélectionnés.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
                     {% else %}
                         <tr>
                             <td colspan="7" class="text-center py-5">
@@ -476,8 +632,6 @@
                                 <p class="text-muted mt-3 mb-0">
                                     {% if filtres.type_donnees == 'factures' %}
                                         Les factures seront disponibles prochainement.
-                                    {% elif filtres.type_donnees == 'br' %}
-                                        Les BR seront disponibles prochainement.
                                     {% endif %}
                                 </p>
                             </td>
@@ -486,6 +640,7 @@
                 </tbody>
             </table>
         </div>
+        {% endif %}
     </div>
 </div>
 

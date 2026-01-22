@@ -1,0 +1,587 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Remontées{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glpi-toolbar { 
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border-radius: 15px; 
+        padding: 20px 25px; 
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        margin-bottom: 25px;
+    }
+    .glpi-toolbar .fw-semibold {
+        color: white !important;
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+    .glpi-toolbar .text-muted {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+    .glpi-toolbar,
+    .glpi-toolbar *,
+    .glpi-toolbar div,
+    .glpi-toolbar span,
+    .glpi-toolbar button,
+    .glpi-toolbar a {
+        color: white !important;
+    }
+    .glpi-toolbar .btn {
+        color: white !important;
+    }
+    .glpi-toolbar .btn i {
+        color: white !important;
+    }
+    .glpi-table th { background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); font-size: 0.95rem; color: #1e293b; font-weight: 600; padding: 15px !important; }
+    .glpi-table td { font-size: 0.95rem; padding: 12px !important; }
+    .glpi-table .fw-semibold { font-size: 1rem; }
+    .glpi-table .badge { font-size: 0.85rem; padding: 6px 10px; font-weight: 500; }
+    .glpi-table .btn-sm { font-size: 0.85rem; padding: 4px 8px; }
+    .ticket-checkbox { width: 18px; height: 18px; cursor: pointer; }
+    #selectAll { width: 18px; height: 18px; cursor: pointer; }
+    #btnSupprimerSelection:disabled { opacity: 0.5; cursor: not-allowed; }
+    .glpi-pill { border-radius: 12px; padding: 4px 12px; font-size: 0.8rem; font-weight: 500; display: inline-block; }
+    .glpi-card { 
+        border: none; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+        border-radius: 15px;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .glpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    .glpi-card .card-body { padding: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="glpi-toolbar d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <div class="fw-semibold">Remontées</div>
+        <div class="text-muted small">Suivi des incidents et demandes</div>
+    </div>
+    <div class="btn-group">
+        <button type="button" class="btn btn-sm" id="btnSupprimerSelection" 
+                onclick="supprimerSelection()" disabled style="background: rgba(255,255,255,0.25) !important; border: 1px solid rgba(255,255,255,0.4) !important; color: white !important; font-weight: 500;">
+            <i class="bi bi-trash" style="color: white !important;"></i> Supprimer la sélection
+        </button>
+        <a href="{% url 'tickets:nouveau' %}" class="btn btn-sm" style="background: rgba(255,255,255,0.25) !important; border: 1px solid rgba(255,255,255,0.4) !important; color: white !important; font-weight: 500;">
+            <i class="bi bi-plus-circle" style="color: white !important;"></i> Nouvelle remontée
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4 glpi-card">
+    <div class="card-header bg-white" style="padding: 12px 16px;">
+        <h6 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h6>
+    </div>
+    <div class="card-body" style="padding: 16px;">
+        <form method="get" class="row g-2 align-items-end" id="filterForm">
+            <!-- Filtres rapides -->
+            <div class="col-auto">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateFilter('aujourdhui')">
+                        <i class="bi bi-calendar-day"></i> Aujourd'hui
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateFilter('hier')">
+                        <i class="bi bi-calendar-minus"></i> Hier
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateFilter('semaine')">
+                        <i class="bi bi-calendar-week"></i> Semaine
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Type</label>
+                <select name="type_demande" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    {% for value, label in type_choices %}
+                        <option value="{{ value }}" {% if value == type_demande %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Statut</label>
+                <select name="statut" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    {% for value, label in statut_choices %}
+                        <option value="{{ value }}" {% if value == statut %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Urgence</label>
+                <select name="urgence" class="form-select form-select-sm">
+                    <option value="">Toutes</option>
+                    {% for value, label in urgence_choices %}
+                        <option value="{{ value }}" {% if value == urgence %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Magasin</label>
+                <input type="text" name="magasin" class="form-control form-control-sm" value="{{ request.GET.magasin|default:magasin|default:'' }}" placeholder="Code">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Date début</label>
+                <input type="date" name="date_debut" id="date_debut" class="form-control form-control-sm" value="{{ date_debut_str|default:'' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Date fin</label>
+                <input type="date" name="date_fin" id="date_fin" class="form-control form-control-sm" value="{{ date_fin_str|default:'' }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">
+                        <i class="bi bi-ticket-perforated"></i> Total remontées
+                    </div>
+                    <div class="stat-value">{{ stats.total }}</div>
+                </div>
+                <i class="bi bi-ticket-perforated stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">
+                        <i class="bi bi-check-circle"></i> Résolus
+                    </div>
+                    <div class="stat-value">{{ stats.resolu }}</div>
+                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
+                        <i class="bi bi-percent"></i> {{ stats.taux_resolu }}%
+                    </div>
+                </div>
+                <i class="bi bi-check-circle stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card primary">
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">
+                        <i class="bi bi-arrow-repeat"></i> En cours
+                    </div>
+                    <div class="stat-value">{{ stats.en_cours }}</div>
+                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
+                        <i class="bi bi-percent"></i> {{ stats.taux_en_cours }}%
+                    </div>
+                </div>
+                <i class="bi bi-arrow-repeat stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">
+                        <i class="bi bi-clock"></i> En attente
+                    </div>
+                    <div class="stat-value">{{ stats.en_attente }}</div>
+                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
+                        <i class="bi bi-percent"></i> {{ stats.taux_en_attente }}%
+                    </div>
+                </div>
+                <i class="bi bi-clock stat-icon"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Magasins les plus touchés -->
+<div class="row mb-2">
+    <div class="col-md-12">
+        <div class="card shadow-sm" style="border: none; border-left: 4px solid #6366f1; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+            <div class="card-header" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border: none; padding: 8px 16px;">
+                <h6 class="mb-0 text-white fw-semibold" style="font-size: 0.9rem;">
+                    <i class="bi bi-building"></i> Magasins les plus touchés
+                </h6>
+            </div>
+            <div class="card-body py-2" style="background: #ffffff;">
+                <div class="row g-2">
+                    {% if magasins_touches %}
+                        {% for magasin in magasins_touches %}
+                            <div class="col-md-6 col-lg-3">
+                                <div class="magasin-card p-2 rounded" style="background: linear-gradient(135deg, {{ magasin.bg_start }} 0%, {{ magasin.bg_end }} 100%); border-left: 3px solid {{ magasin.border_color }}; transition: all 0.3s ease; cursor: pointer;" 
+                                     onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px {{ magasin.shadow }}';" 
+                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <div class="magasin-icon me-2" style="width: 32px; height: 32px; background: linear-gradient(135deg, {{ magasin.color_start }} 0%, {{ magasin.color_end }} 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px {{ magasin.shadow }};">
+                                                <i class="bi bi-shop text-white" style="font-size: 1rem;"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark" style="font-size: 0.85rem; line-height: 1.2;">{{ magasin.magasin__code }}</div>
+                                                <div class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">{{ magasin.magasin__nom|truncatewords:3 }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="ticket-count-badge px-2 py-1 rounded-pill" style="background: linear-gradient(135deg, {{ magasin.color_start }} 0%, {{ magasin.color_end }} 100%); color: white; font-weight: 700; font-size: 0.95rem; box-shadow: 0 2px 6px {{ magasin.shadow }}; min-width: 45px;">{{ magasin.count }}</div>
+                                            <small class="text-muted d-block mt-1" style="font-size: 0.65rem;">remontée{{ magasin.count|pluralize }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="text-center py-4">
+                                <i class="bi bi-inbox" style="font-size: 2rem; color: #cbd5e1;"></i>
+                                <p class="text-muted mt-2 mb-0">Aucun magasin avec des remontées</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card glpi-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle glpi-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Tout sélectionner">
+                        </th>
+                        <th>Remontée</th>
+                        <th>Type</th>
+                        <th>Statut</th>
+                        <th>Urgence</th>
+                        <th>Magasin</th>
+                        <th>Assigné à</th>
+                        <th>Mise à jour</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in page_obj %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="ticket-checkbox" value="{{ ticket.id }}" 
+                                   data-numero="{{ ticket.numero_ticket }}" onchange="updateSupprimerButton()">
+                        </td>
+                        <td><strong style="font-size: 1rem; color: #1e293b;">#{{ ticket.numero_ticket }}</strong></td>
+                        <td>
+                            {% if ticket.type_demande == 'incident' %}
+                                <span class="badge bg-danger">Incident</span>
+                            {% else %}
+                                <span class="badge bg-info">Demande</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ticket.statut == 'resolu' %}
+                                <span class="badge bg-success rounded-pill">
+                                    <i class="bi bi-check-circle"></i> {{ ticket.get_statut_display }}
+                                </span>
+                            {% elif ticket.statut == 'ferme' %}
+                                <span class="badge bg-secondary rounded-pill">
+                                    <i class="bi bi-x-circle"></i> {{ ticket.get_statut_display }}
+                                </span>
+                            {% elif ticket.statut == 'en_cours' %}
+                                <span class="badge bg-primary rounded-pill">
+                                    <i class="bi bi-arrow-repeat"></i> {{ ticket.get_statut_display }}
+                                </span>
+                            {% elif ticket.statut == 'en_attente' %}
+                                <span class="badge bg-warning rounded-pill text-dark">
+                                    <i class="bi bi-clock"></i> {{ ticket.get_statut_display }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info rounded-pill">
+                                    <i class="bi bi-plus-circle"></i> {{ ticket.get_statut_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ticket.urgence == 'haute' %}
+                                <span class="badge bg-danger rounded-pill">
+                                    <i class="bi bi-exclamation-triangle"></i> {{ ticket.get_urgence_display }}
+                                </span>
+                            {% elif ticket.urgence == 'moyenne' %}
+                                <span class="badge bg-warning rounded-pill text-dark">
+                                    <i class="bi bi-exclamation-circle"></i> {{ ticket.get_urgence_display }}
+                                </span>
+                            {% elif ticket.urgence == 'basse' %}
+                                <span class="badge bg-info rounded-pill">
+                                    <i class="bi bi-info-circle"></i> {{ ticket.get_urgence_display }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">{{ ticket.get_urgence_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ticket.magasin }}</td>
+                        <td>
+                            {% if ticket.assigne_a.all %}
+                                {% for tech in ticket.assigne_a.all %}
+                                    <span class="badge bg-secondary">{{ tech }}</span>{% if not forloop.last %} {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</small></td>
+                        <td>
+                            <a href="{% url 'tickets:detail' ticket.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Voir
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox"></i> Aucune remontée trouvée
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if request.GET.type_demande %}type_demande={{ request.GET.type_demande }}&{% endif %}{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.urgence %}urgence={{ request.GET.urgence }}&{% endif %}{% if request.GET.magasin %}magasin={{ request.GET.magasin }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Précédent</span></li>
+        {% endif %}
+
+        <li class="page-item disabled">
+            <span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if request.GET.type_demande %}type_demande={{ request.GET.type_demande }}&{% endif %}{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.urgence %}urgence={{ request.GET.urgence }}&{% endif %}{% if request.GET.magasin %}magasin={{ request.GET.magasin }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">Suivant</span></li>
+        {% endif %}
+    </ul>
+</nav>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="modalSuppression" tabindex="-1" aria-labelledby="modalSuppressionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalSuppressionLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmation de suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <strong>Êtes-vous sûr de vouloir supprimer le(s) ticket(s) sélectionné(s) ?</strong>
+                </p>
+                <div id="listeTicketsSuppression" class="alert alert-warning mb-0">
+                    <!-- Liste des tickets à supprimer -->
+                </div>
+                <p class="text-danger mt-3 mb-0">
+                    <i class="bi bi-exclamation-circle"></i> <strong>Cette action est irréversible.</strong>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Annuler
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmerSuppression()">
+                    <i class="bi bi-trash"></i> Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setDateFilter(periode) {
+    const aujourdhui = new Date();
+    const hier = new Date(aujourdhui);
+    hier.setDate(hier.getDate() - 1);
+    
+    // Calculer la semaine dernière (7 jours en arrière)
+    const semaineDerniere = new Date(aujourdhui);
+    semaineDerniere.setDate(semaineDerniere.getDate() - 7);
+    
+    const dateDebutInput = document.getElementById('date_debut');
+    const dateFinInput = document.getElementById('date_fin');
+    const filterForm = document.getElementById('filterForm');
+    
+    if (periode === 'aujourdhui') {
+        const dateStr = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = dateStr;
+        dateFinInput.value = dateStr;
+    } else if (periode === 'hier') {
+        const dateStr = hier.toISOString().split('T')[0];
+        dateDebutInput.value = dateStr;
+        dateFinInput.value = dateStr;
+    } else if (periode === 'semaine') {
+        // Semaine dernière : de 7 jours en arrière jusqu'à aujourd'hui
+        const dateDebutStr = semaineDerniere.toISOString().split('T')[0];
+        const dateFinStr = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = dateDebutStr;
+        dateFinInput.value = dateFinStr;
+    }
+    
+    // Soumettre automatiquement le formulaire
+    if (filterForm) {
+        filterForm.submit();
+    }
+}
+
+// Gestion de la sélection des tickets
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.ticket-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateSupprimerButton();
+}
+
+function updateSupprimerButton() {
+    const checkboxes = document.querySelectorAll('.ticket-checkbox:checked');
+    const btnSupprimer = document.getElementById('btnSupprimerSelection');
+    if (checkboxes.length > 0) {
+        btnSupprimer.disabled = false;
+        btnSupprimer.textContent = `Supprimer (${checkboxes.length})`;
+    } else {
+        btnSupprimer.disabled = true;
+        btnSupprimer.textContent = 'Supprimer la sélection';
+    }
+    
+    // Mettre à jour la checkbox "Tout sélectionner"
+    const allCheckboxes = document.querySelectorAll('.ticket-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    if (allCheckboxes.length > 0) {
+        selectAll.checked = checkboxes.length === allCheckboxes.length;
+    }
+}
+
+function supprimerSelection() {
+    const checkboxes = document.querySelectorAll('.ticket-checkbox:checked');
+    if (checkboxes.length === 0) {
+        return;
+    }
+    
+    // Construire la liste des tickets à supprimer
+    const tickets = Array.from(checkboxes).map(cb => ({
+        id: cb.value,
+        numero: cb.getAttribute('data-numero')
+    }));
+    
+    // Afficher la liste dans le modal
+    const listeDiv = document.getElementById('listeTicketsSuppression');
+    if (tickets.length === 1) {
+        listeDiv.innerHTML = `<strong>Ticket #${tickets[0].numero}</strong>`;
+    } else {
+        listeDiv.innerHTML = '<strong>Tickets à supprimer :</strong><ul class="mb-0 mt-2">' +
+            tickets.map(t => `<li>Ticket #${t.numero}</li>`).join('') +
+            '</ul>';
+    }
+    
+    // Stocker les IDs pour la suppression
+    window.ticketsASupprimer = tickets.map(t => t.id);
+    
+    // Afficher le modal
+    const modal = new bootstrap.Modal(document.getElementById('modalSuppression'));
+    modal.show();
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function confirmerSuppression() {
+    const ticketsIds = window.ticketsASupprimer;
+    if (!ticketsIds || ticketsIds.length === 0) {
+        alert('Aucune remontée sélectionnée.');
+        return;
+    }
+    
+    // Récupérer le token CSRF
+    let csrfTokenValue = null;
+    
+    // Essayer de récupérer depuis le formulaire existant (input généré par {% csrf_token %})
+    const csrfTokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (csrfTokenInput) {
+        csrfTokenValue = csrfTokenInput.value;
+    } else {
+        // Récupérer depuis les cookies
+        csrfTokenValue = getCookie('csrftoken');
+    }
+    
+    if (!csrfTokenValue) {
+        alert('Erreur: Token CSRF introuvable. Veuillez recharger la page.');
+        return;
+    }
+    
+    // Créer un seul formulaire pour supprimer tous les tickets
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "tickets:supprimer_multiple" %}';
+    form.style.display = 'none';
+    
+    // Ajouter le token CSRF
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfTokenValue;
+    form.appendChild(csrfInput);
+    
+    // Ajouter tous les IDs des tickets à supprimer
+    ticketsIds.forEach(ticketId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ticket_ids';
+        input.value = ticketId;
+        form.appendChild(input);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Initialiser le bouton au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    updateSupprimerButton();
+});
+</script>
+{% endblock %}
+

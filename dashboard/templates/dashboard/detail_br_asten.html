@@ -1,0 +1,275 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Détail BR - Vérification Commandes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 25px;
+    }
+    
+    .detail-header {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+        padding: 25px 30px;
+    }
+    
+    .detail-header.success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    
+    .detail-header.danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    
+    .detail-body {
+        padding: 30px;
+        background: white;
+    }
+    
+    .info-row {
+        padding: 15px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        font-size: 1.1rem;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+    
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .form-card {
+        border-left: 4px solid #007bff;
+        background: #f8f9fa;
+    }
+    
+    .avis-card {
+        border-left: 4px solid #17a2b8;
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'dashboard:liste_br_ecart' %}{% if request.GET.date_debut %}?date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}{% if request.GET.date_debut %}&{% else %}?{% endif %}date_fin={{ request.GET.date_fin }}{% endif %}{% if request.GET.magasin %}{% for m in request.GET.magasin %}{% if forloop.first %}{% if request.GET.date_debut or request.GET.date_fin %}&{% else %}?{% endif %}{% else %}&{% endif %}magasin={{ m }}{% endfor %}{% endif %}{% if request.GET.numero_br %}{% if request.GET.date_debut or request.GET.date_fin or request.GET.magasin %}&{% else %}?{% endif %}numero_br={{ request.GET.numero_br }}{% endif %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- En-tête du BR -->
+<div class="detail-card">
+    <div class="detail-header {% if br.ic_integre %}success{% else %}danger{% endif %}">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-2"><i class="bi bi-receipt"></i> BR #{{ br.numero_br }}</h3>
+                <p class="mb-0 opacity-75">
+                    <i class="bi bi-shop"></i> {{ br.code_magasin.code }} - {{ br.code_magasin.nom }}
+                </p>
+            </div>
+            <div class="text-end">
+                {% if br.ic_integre %}
+                    <span class="status-badge bg-white text-success">
+                        <i class="bi bi-check-circle"></i> Intégré
+                    </span>
+                {% else %}
+                    <span class="status-badge bg-white text-danger">
+                        <i class="bi bi-x-circle"></i> Non Intégré
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="detail-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-calendar"></i> Date BR</div>
+                    <div class="info-value">{{ br.date_br|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-hash"></i> Numéro BR</div>
+                    <div class="info-value"><strong class="text-primary">{{ br.numero_br }}</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-shop"></i> Magasin</div>
+                    <div class="info-value">
+                        <span class="badge bg-secondary fs-6">{{ br.code_magasin.code }}</span>
+                        <div class="mt-2">{{ br.code_magasin.nom }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-check2-circle"></i> Statut IC</div>
+                    <div class="info-value">
+                        {% if br.ic_integre %}
+                            <span class="badge bg-success rounded-pill fs-6">{{ br.statut_ic|default:"Intégré" }}</span>
+                        {% else %}
+                            <span class="badge bg-danger rounded-pill fs-6">{{ br.statut_ic|default:"Non intégré" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
+                    <div class="info-value">
+                        <code>{{ br.fichier_source|default:"Non renseigné" }}</code>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-clock"></i> Date d'Import</div>
+                    <div class="info-value">{{ br.date_import|date:"d/m/Y à H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Avis/Commentaire -->
+{% if br.avis %}
+<div class="avis-card">
+    <div class="d-flex align-items-start">
+        <i class="bi bi-chat-left-text-fill text-info fs-4 me-3"></i>
+        <div class="flex-grow-1">
+            <h6 class="mb-2"><i class="bi bi-person-circle"></i> Avis/Commentaire</h6>
+            <p class="mb-0 text-dark">{{ br.avis }}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Formulaire de modification -->
+<div class="detail-card">
+    <div class="detail-header" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);">
+        <h5 class="mb-0"><i class="bi bi-gear"></i> Modifier le statut du BR</h5>
+    </div>
+    <div class="detail-body form-card">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="statut_ic" class="form-label fw-semibold">
+                        <i class="bi bi-tag"></i> Statut IC
+                    </label>
+                    <select class="form-select form-select-lg" id="statut_ic" name="statut_ic">
+                        <option value="Intégré" {% if br.statut_ic == 'Intégré' %}selected{% endif %}>
+                            Intégré
+                        </option>
+                        <option value="Non intégré" {% if br.statut_ic == 'Non intégré' %}selected{% endif %}>
+                            Non intégré
+                        </option>
+                    </select>
+                    <small class="form-text text-muted">Sélectionnez le statut d'intégration IC</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold d-block">
+                        <i class="bi bi-toggle-on"></i> Intégré IC
+                    </label>
+                    <div class="form-check form-switch form-switch-lg mt-2">
+                        <input class="form-check-input" type="checkbox" id="ic_integre" name="ic_integre" 
+                               {% if br.ic_integre %}checked{% endif %}>
+                        <label class="form-check-label" for="ic_integre">
+                            {% if br.ic_integre %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="bi bi-check-circle"></i> Intégré
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="bi bi-x-circle"></i> Non intégré
+                                </span>
+                            {% endif %}
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">Activez ou désactivez l'intégration IC</small>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="avis" class="form-label fw-semibold">
+                    <i class="bi bi-chat-left-text"></i> Avis/Commentaire (optionnel)
+                </label>
+                <textarea class="form-control form-control-lg" id="avis" name="avis" rows="4"
+                          placeholder="Ajoutez votre avis ou commentaire sur ce BR...">{{ br.avis|default:'' }}</textarea>
+                <small class="form-text text-muted">Ajoutez un commentaire pour expliquer votre décision</small>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'dashboard:liste_br_ecart' %}{% if request.GET.date_debut %}?date_debut={{ request.GET.date_debut }}{% endif %}{% if request.GET.date_fin %}{% if request.GET.date_debut %}&{% else %}?{% endif %}date_fin={{ request.GET.date_fin }}{% endif %}{% if request.GET.magasin %}{% for m in request.GET.magasin %}{% if forloop.first %}{% if request.GET.date_debut or request.GET.date_fin %}&{% else %}?{% endif %}{% else %}&{% endif %}magasin={{ m }}{% endfor %}{% endif %}{% if request.GET.numero_br %}{% if request.GET.date_debut or request.GET.date_fin or request.GET.magasin %}&{% else %}?{% endif %}numero_br={{ request.GET.numero_br }}{% endif %}" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-save"></i> Enregistrer les modifications
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Informations supplémentaires -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations Complémentaires</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="info-label">Clé de Rapprochement</div>
+                        <div class="info-value">
+                            <code class="text-primary">
+                                Date: {{ br.date_br|date:"Y-m-d" }} | 
+                                N°: {{ br.numero_br }} | 
+                                Magasin: {{ br.code_magasin.code }}
+                            </code>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">Système Source</div>
+                        <div class="info-value">
+                            <span class="badge bg-primary fs-6">ASTEN</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">Statut d'Intégration</div>
+                        <div class="info-value">
+                            {% if br.ic_integre %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="bi bi-check-circle"></i> Intégré
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="bi bi-x-circle"></i> Non Intégré
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

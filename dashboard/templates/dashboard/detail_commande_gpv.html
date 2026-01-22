@@ -65,8 +65,8 @@
 
 {% block content %}
 <div class="mb-4">
-    <a href="{% url 'dashboard:liste_commandes_gpv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> Retour à la liste
+    <a href="{% url 'dashboard:dashboard' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour au dashboard
     </a>
 </div>
 
@@ -197,6 +197,104 @@
                             <p class="mb-0 text-muted">Cette commande GPV (Transmise) n'a pas été trouvée dans le système Cyrus</p>
                         </div>
                     </div>
+                    
+                    <!-- Raisons de l'absence -->
+                    {% if raisons_absence %}
+                    <div class="mt-4">
+                        <h6 class="text-danger mb-3"><i class="bi bi-question-circle"></i> Pourquoi cette commande est absente ?</h6>
+                        <ul class="list-group">
+                            {% for raison in raisons_absence %}
+                            <li class="list-group-item">
+                                <i class="bi bi-arrow-right text-danger me-2"></i>
+                                {{ raison }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Commandes similaires trouvées -->
+                    {% if commande_cyrus_alt %}
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="bi bi-info-circle"></i> Commande similaire trouvée</h6>
+                        <p class="mb-2">Une commande avec le même numéro et magasin existe dans Cyrus mais avec une date différente :</p>
+                        <ul class="mb-0">
+                            <li><strong>Date GPV:</strong> {{ commande.date_creation|date:"d/m/Y" }}</li>
+                            <li><strong>Date Cyrus:</strong> {{ commande_cyrus_alt.date_commande|date:"d/m/Y" }}</li>
+                            <li><strong>Numéro:</strong> {{ commande.numero_commande }}</li>
+                            <li><strong>Magasin:</strong> {{ commande.code_magasin.code }}</li>
+                        </ul>
+                        <a href="{% url 'dashboard:detail_commande_cyrus' commande_cyrus_alt.id %}" class="btn btn-sm btn-warning mt-2">
+                            <i class="bi bi-eye"></i> Voir la commande Cyrus
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if commande_cyrus_numero and not commande_cyrus_alt %}
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="bi bi-info-circle"></i> Commande avec même numéro trouvée</h6>
+                        <p class="mb-2">Une commande avec le même numéro existe dans Cyrus mais pour un autre magasin :</p>
+                        <ul class="mb-0">
+                            <li><strong>Numéro:</strong> {{ commande.numero_commande }}</li>
+                            <li><strong>Magasin GPV:</strong> {{ commande.code_magasin.code }} - {{ commande.code_magasin.nom }}</li>
+                            <li><strong>Magasin Cyrus:</strong> {{ commande_cyrus_numero.code_magasin.code }} - {{ commande_cyrus_numero.code_magasin.nom }}</li>
+                        </ul>
+                        <a href="{% url 'dashboard:detail_commande_cyrus' commande_cyrus_numero.id %}" class="btn btn-sm btn-info mt-2">
+                            <i class="bi bi-eye"></i> Voir la commande Cyrus
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Détails de la commande GPV -->
+                    <div class="mt-4">
+                        <h6 class="mb-3"><i class="bi bi-box-seam"></i> Détails de la commande GPV</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="info-label">Numéro de commande</div>
+                                <div class="info-value"><strong>{{ commande.numero_commande }}</strong></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Date de création</div>
+                                <div class="info-value">{{ commande.date_creation|date:"d/m/Y" }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Magasin</div>
+                                <div class="info-value">
+                                    <span class="badge bg-secondary">{{ commande.code_magasin.code }}</span>
+                                    <div class="mt-1">{{ commande.code_magasin.nom }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="info-label">Statut</div>
+                                <div class="info-value">
+                                    <span class="badge bg-info">{{ commande.statut|default:"N/A" }}</span>
+                                </div>
+                            </div>
+                            {% if commande.date_validation %}
+                            <div class="col-md-4">
+                                <div class="info-label">Date de validation</div>
+                                <div class="info-value">{{ commande.date_validation|date:"d/m/Y" }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Critères de recherche dans Cyrus -->
+                    <div class="mt-4">
+                        <h6 class="mb-3"><i class="bi bi-search"></i> Critères de recherche dans Cyrus</h6>
+                        <div class="alert alert-light">
+                            <p class="mb-2">La recherche dans Cyrus s'effectue avec les critères suivants :</p>
+                            <ul class="mb-0">
+                                <li><strong>Date:</strong> {{ commande.date_creation|date:"Y-m-d" }}</li>
+                                <li><strong>Numéro:</strong> {{ commande.numero_commande }}</li>
+                                <li><strong>Magasin:</strong> {{ commande.code_magasin.code }}</li>
+                            </ul>
+                            <p class="mb-0 mt-2"><small class="text-muted">Les trois critères doivent correspondre exactement pour que la commande soit considérée comme intégrée.</small></p>
+                        </div>
+                    </div>
+                    
                     {% if ecart %}
                         <div class="mt-3">
                             <a href="{% url 'dashboard:detail_ecart_gpv' ecart.id %}" class="btn btn-danger">
@@ -289,4 +387,10 @@
     </div>
 </div>
 {% endblock %}
+
+
+
+
+
+
 

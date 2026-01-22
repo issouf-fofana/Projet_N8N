@@ -1,0 +1,696 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Détail Remontée{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glpi-header { 
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border-radius: 15px; 
+        padding: 20px 25px; 
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        margin-bottom: 25px;
+    }
+    .glpi-title { font-size: 1.4rem; font-weight: 700; color: white; margin: 0; }
+    .glpi-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.9); margin-top: 5px; }
+    .glpi-badge { 
+        background: rgba(255,255,255,0.2); 
+        color: white; 
+        border-radius: 20px; 
+        padding: 6px 14px; 
+        font-size: 0.85rem;
+        backdrop-filter: blur(10px);
+    }
+    .glpi-card { 
+        background: #fff; 
+        border-radius: 15px; 
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .glpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    .glpi-card-header { 
+        padding: 16px 20px; 
+        border-bottom: 2px solid #f1f5f9; 
+        font-weight: 600;
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        border-radius: 15px 15px 0 0;
+        color: #1e293b;
+    }
+    .glpi-card-body { padding: 20px; }
+    .ticket-meta { font-size: 0.92rem; }
+    .suivi-card { 
+        border-left: 4px solid #3b82f6; 
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+    .suivi-card:hover {
+        border-left-width: 6px;
+        box-shadow: 0 2px 10px rgba(59, 130, 246, 0.15);
+    }
+    .suivi-card + .suivi-card { margin-top: 15px; }
+    .pj-thumb { width: 180px; height: 130px; object-fit: cover; border-radius: 10px; }
+    .pj-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 6px; background: #fff; cursor: pointer; transition: transform 0.2s; }
+    .pj-card:hover { transform: scale(1.05); }
+    .preview-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .preview-item { width: 180px; height: 130px; border: 2px dashed #cbd5e1; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f8fafc; padding: 4px; text-align: center; font-size: 0.8rem; position: relative; }
+    .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-item .remove-btn { position: absolute; top: 5px; right: 5px; background: rgba(220,38,38,0.8); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s; }
+    .preview-item .remove-btn:hover { background: rgba(220,38,38,1); transform: scale(1.1); }
+    .paste-zone { 
+        border: 2px dashed #cbd5e1; 
+        border-radius: 10px; 
+        padding: 15px; 
+        text-align: center; 
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        cursor: pointer; 
+        transition: all 0.3s; 
+        margin-top: 10px; 
+    }
+    .paste-zone:hover, .paste-zone.active { 
+        border-color: #3b82f6; 
+        background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    .paste-zone p { margin: 0; color: #64748b; font-size: 0.85rem; }
+    .glpi-form-label { font-size: 0.9rem; color: #475569; margin-bottom: 8px; font-weight: 600; }
+    .glpi-actions { display: flex; gap: 8px; }
+    .suivis-scroll { max-height: 520px; overflow-y: auto; padding-right: 8px; }
+    .suivis-scroll::-webkit-scrollbar { width: 6px; }
+    .suivis-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    .suivis-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .suivis-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* Section scrollable pour modifier les informations */
+    .modifier-section {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+    .modifier-section::-webkit-scrollbar { width: 8px; }
+    .modifier-section::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    .modifier-section::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 10px; }
+    .modifier-section::-webkit-scrollbar-thumb:hover { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); }
+    
+    .assign-select { height: 180px; }
+    .assign-select.hidden { display: none; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+    .chip { 
+        background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%); 
+        color: #1e3a8a; 
+        border-radius: 20px; 
+        padding: 6px 12px; 
+        font-size: 0.85rem; 
+        display: inline-flex; 
+        align-items: center; 
+        gap: 6px;
+        border: 1px solid #c7d2fe;
+    }
+    .chip button { border: none; background: transparent; color: #64748b; cursor: pointer; font-size: 0.9rem; transition: color 0.2s; }
+    .chip button:hover { color: #dc2626; }
+    
+    /* Styles pour les formulaires */
+    .form-control, .form-select {
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 10px 14px;
+        transition: all 0.3s;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    }
+    .btn-outline-primary {
+        border: 2px solid #3b82f6;
+        color: #3b82f6;
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.3s;
+    }
+    .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-color: transparent;
+        color: white;
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="glpi-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <div class="glpi-title">{{ ticket.numero_ticket }}</div>
+            <div class="glpi-subtitle">{{ ticket.get_type_demande_display }} • {{ ticket.get_statut_display }}</div>
+        </div>
+        <div class="glpi-actions">
+            {% if ticket.date_fermeture %}
+                <span class="badge bg-success">Fermé</span>
+            {% endif %}
+            <span class="glpi-badge">{{ ticket.magasin }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="glpi-card mb-4">
+            <div class="glpi-card-header">Suivis</div>
+            <div class="glpi-card-body suivis-scroll">
+                {% for suivi in ticket.suivis.all %}
+                    <div class="suivi-card rounded p-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ suivi.auteur|default:"-" }}</strong>
+                            <small class="text-muted">{{ suivi.date_creation|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <p class="mb-2">{{ suivi.message }}</p>
+                        {% if suivi.pieces_jointes.all %}
+                            <div class="preview-grid">
+                                {% for piece in suivi.pieces_jointes.all %}
+                                    {% if piece.est_image %}
+                                        <div class="pj-card">
+                                            <img src="{{ piece.fichier.url }}" alt="image" class="pj-thumb" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ piece.fichier.url }}">
+                                        </div>
+                                    {% else %}
+                                        <a href="{{ piece.fichier.url }}" target="_blank" class="badge bg-light text-dark">
+                                            {{ piece.fichier.name|slice:"-30:" }}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted mb-0">Aucune pièce jointe.</p>
+                        {% endif %}
+                        <form method="post" enctype="multipart/form-data" class="mt-3" data-suivi-id="{{ suivi.id }}">
+                            {% csrf_token %}
+                            <label class="glpi-form-label">Modifier le suivi</label>
+                            <textarea name="message_{{ suivi.id }}" class="form-control" rows="3">{{ suivi.message }}</textarea>
+                            <label class="glpi-form-label mt-2">Ajouter des fichiers</label>
+                            <input type="file" name="fichiers_{{ suivi.id }}" class="form-control suivi-file-input" data-suivi-id="{{ suivi.id }}" multiple>
+                            <div class="paste-zone paste-zone-suivi" data-suivi-id="{{ suivi.id }}" tabindex="0">
+                                <p><i class="bi bi-clipboard"></i> Cliquez ici ou collez (Ctrl+V) une image</p>
+                            </div>
+                            <div class="preview-grid preview-suivi-{{ suivi.id }} mt-2"></div>
+                            <button type="submit" name="modifier_suivi" value="{{ suivi.id }}" class="btn btn-outline-primary btn-sm mt-2">
+                                Enregistrer
+                            </button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">Aucun suivi.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if can_update %}
+        <div class="glpi-card">
+            <div class="glpi-card-header">Ajouter un suivi</div>
+            <div class="glpi-card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ suivi_form.message.label_tag }}
+                    {{ suivi_form.message }}
+                    {{ suivi_form.fichiers.label_tag }}
+                    {{ suivi_form.fichiers }}
+                    <div class="paste-zone" id="paste-zone" tabindex="0">
+                        <p><i class="bi bi-clipboard"></i> Cliquez ici ou collez (Ctrl+V) une image depuis votre presse-papiers</p>
+                    </div>
+                    <div id="preview-container" class="preview-grid mt-3"></div>
+                    <button type="submit" name="ajouter_suivi" class="btn btn-primary mt-3">
+                        Ajouter
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="modifier-section">
+        {% if can_update %}
+        <div class="glpi-card mb-4">
+            <div class="glpi-card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); color: #1e293b;">
+                <span><i class="bi bi-pencil-square me-2 text-primary"></i>Modifier les informations</span>
+            </div>
+            <div class="glpi-card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ modifier_form.type_demande.label }}</label>
+                        {{ modifier_form.type_demande }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ modifier_form.categorie.label }}</label>
+                        {{ modifier_form.categorie }}
+                        <small class="text-muted d-block mt-1">ou</small>
+                        {{ modifier_form.nouvelle_categorie }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ modifier_form.urgence.label }}</label>
+                        {{ modifier_form.urgence }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ modifier_form.impact.label }}</label>
+                        {{ modifier_form.impact }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ modifier_form.magasin.label }}</label>
+                        {{ modifier_form.magasin }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ modifier_form.demandeur.label }}</label>
+                        {{ modifier_form.demandeur }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ modifier_form.description.label }}</label>
+                        {{ modifier_form.description }}
+                    </div>
+                    <button type="submit" name="modifier_ticket" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Enregistrer les modifications
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="glpi-card mb-4">
+            <div class="glpi-card-header" style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+                <i class="bi bi-info-circle me-2 text-primary"></i>Informations de la remontée
+            </div>
+            <div class="glpi-card-body ticket-meta">
+                <p><strong>Type:</strong> {{ ticket.get_type_demande_display }}</p>
+                <p><strong>Catégorie:</strong> {{ ticket.categorie|default:"-" }}</p>
+                <p><strong>Urgence:</strong> {{ ticket.get_urgence_display }}</p>
+                <p><strong>Impact:</strong> {{ ticket.get_impact_display }}</p>
+                <p><strong>Magasin:</strong> {{ ticket.magasin }}</p>
+                <p><strong>Demandeur:</strong> {{ ticket.demandeur|default:"-" }}</p>
+                <p><strong>Assigné à:</strong>
+                    {% if ticket.assigne_a.all %}
+                        {% for tech in ticket.assigne_a.all %}
+                            {{ tech }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </p>
+                <p><strong>Créé le:</strong> {{ ticket.date_creation|date:"d/m/Y H:i" }}</p>
+                <p><strong>Mise à jour:</strong> {{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</p>
+                {% if ticket.date_fermeture %}
+                    <p><strong>Fermé le:</strong> {{ ticket.date_fermeture|date:"d/m/Y H:i" }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if can_update %}
+        <div class="glpi-card mb-4">
+            <div class="glpi-card-header" style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+                <i class="bi bi-person-check me-2 text-primary"></i>Assignation
+            </div>
+            <div class="glpi-card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="chips" id="assigne-chips"></div>
+                    <div class="d-flex gap-2 align-items-center mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="toggle-assign-select">
+                            Assignation +
+                        </button>
+                    </div>
+                    {{ assignation_form.assigne_a }}
+                    <button type="submit" name="changer_assignes" class="btn btn-outline-primary mt-2">
+                        Mettre à jour
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="glpi-card mb-4">
+            <div class="glpi-card-header" style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+                <i class="bi bi-flag me-2 text-primary"></i>Statut
+            </div>
+            <div class="glpi-card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ statut_form.statut }}
+                    <button type="submit" name="changer_statut" class="btn btn-primary mt-3">
+                        Mettre à jour
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="glpi-card">
+            <div class="glpi-card-header" style="background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+                <i class="bi bi-clock-history me-2 text-primary"></i>Historique des statuts
+            </div>
+            <div class="glpi-card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for hist in ticket.historiques_statut.all %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>{{ hist.ancien_statut|default:"-" }} → {{ hist.nouveau_statut }}</span>
+                            <small class="text-muted">{{ hist.date_changement|date:"d/m/Y H:i" }}</small>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted">Aucun historique</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal image -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Aperçu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" alt="aperçu" style="max-width: 100%; height: auto;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const imageModal = document.getElementById('imageModal');
+    if (imageModal) {
+        imageModal.addEventListener('show.bs.modal', function (event) {
+            const img = event.relatedTarget;
+            const src = img.getAttribute('data-image');
+            const modalImg = document.getElementById('modalImage');
+            modalImg.src = src;
+        });
+    }
+
+    const fileInput = document.getElementById('id_fichiers');
+    const previewContainer = document.getElementById('preview-container');
+    const pasteZone = document.getElementById('paste-zone');
+    const DataTransfer = window.DataTransfer || window.Clipboard;
+    let dataTransfer = new DataTransfer();
+
+    function addFileToInput(file) {
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.dataset.fileName = file.name;
+            
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            item.appendChild(img);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.type = 'button';
+            removeBtn.onclick = function() {
+                const dt = new DataTransfer();
+                Array.from(fileInput.files).forEach(f => {
+                    if (f.name !== file.name) {
+                        dt.items.add(f);
+                    }
+                });
+                fileInput.files = dt.files;
+                dataTransfer = dt;
+                item.remove();
+            };
+            item.appendChild(removeBtn);
+            previewContainer.appendChild(item);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Gérer le collage dans toute la page
+    document.addEventListener('paste', function(e) {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const blob = items[i].getAsFile();
+                const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: 'image/png' });
+                addFileToInput(file);
+                if (pasteZone) {
+                    pasteZone.classList.add('active');
+                    setTimeout(() => pasteZone.classList.remove('active'), 500);
+                }
+                break;
+            }
+        }
+    });
+
+    // Gérer le clic sur la zone de collage
+    if (pasteZone) {
+        pasteZone.addEventListener('click', function() {
+            pasteZone.focus();
+        });
+    }
+
+    if (fileInput && previewContainer) {
+        fileInput.addEventListener('change', function () {
+            previewContainer.innerHTML = '';
+            dataTransfer = new DataTransfer();
+            const files = Array.from(fileInput.files || []);
+            files.forEach(file => {
+                dataTransfer.items.add(file);
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.dataset.fileName = file.name;
+                
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        item.appendChild(img);
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.textContent = '×';
+                        removeBtn.type = 'button';
+                        removeBtn.onclick = function() {
+                            const dt = new DataTransfer();
+                            Array.from(fileInput.files).forEach(f => {
+                                if (f.name !== file.name) {
+                                    dt.items.add(f);
+                                }
+                            });
+                            fileInput.files = dt.files;
+                            dataTransfer = dt;
+                            item.remove();
+                        };
+                        item.appendChild(removeBtn);
+                        previewContainer.appendChild(item);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    item.textContent = file.name;
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.textContent = '×';
+                    removeBtn.type = 'button';
+                    removeBtn.onclick = function() {
+                        const dt = new DataTransfer();
+                        Array.from(fileInput.files).forEach(f => {
+                            if (f.name !== file.name) {
+                                dt.items.add(f);
+                            }
+                        });
+                        fileInput.files = dt.files;
+                        dataTransfer = dt;
+                        item.remove();
+                    };
+                    item.appendChild(removeBtn);
+                    previewContainer.appendChild(item);
+                }
+            });
+        });
+    }
+
+    const assigneSelect = document.querySelector('.assign-select');
+    const chipsContainer = document.getElementById('assigne-chips');
+
+    function renderChips() {
+        if (!assigneSelect || !chipsContainer) return;
+        chipsContainer.innerHTML = '';
+        Array.from(assigneSelect.selectedOptions).forEach(option => {
+            const chip = document.createElement('span');
+            chip.className = 'chip';
+            chip.textContent = option.text;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                option.selected = false;
+                assigneSelect.dispatchEvent(new Event('change'));
+            });
+            chip.appendChild(removeBtn);
+            chipsContainer.appendChild(chip);
+        });
+    }
+
+    if (assigneSelect) {
+        assigneSelect.addEventListener('change', renderChips);
+        renderChips();
+    }
+
+    const toggleAssignBtn = document.getElementById('toggle-assign-select');
+    if (toggleAssignBtn && assigneSelect) {
+        assigneSelect.classList.add('hidden');
+        toggleAssignBtn.addEventListener('click', function () {
+            assigneSelect.classList.toggle('hidden');
+        });
+    }
+
+    if (assigneSelect) {
+        assigneSelect.addEventListener('mousedown', function (e) {
+            const option = e.target;
+            if (option.tagName === 'OPTION') {
+                e.preventDefault();
+                option.selected = !option.selected;
+                assigneSelect.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    // Gestion du collage pour les formulaires de modification de suivi
+    document.querySelectorAll('.suivi-file-input').forEach(input => {
+        const suiviId = input.dataset.suiviId;
+        const pasteZoneSuivi = document.querySelector(`.paste-zone-suivi[data-suivi-id="${suiviId}"]`);
+        const previewSuivi = document.querySelector(`.preview-suivi-${suiviId}`);
+        let dataTransferSuivi = new DataTransfer();
+
+        function addFileToSuiviInput(file) {
+            dataTransferSuivi.items.add(file);
+            input.files = dataTransferSuivi.files;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.dataset.fileName = file.name;
+                
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                item.appendChild(img);
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '×';
+                removeBtn.type = 'button';
+                removeBtn.onclick = function() {
+                    const dt = new DataTransfer();
+                    Array.from(input.files).forEach(f => {
+                        if (f.name !== file.name) {
+                            dt.items.add(f);
+                        }
+                    });
+                    input.files = dt.files;
+                    dataTransferSuivi = dt;
+                    item.remove();
+                };
+                item.appendChild(removeBtn);
+                previewSuivi.appendChild(item);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        if (pasteZoneSuivi) {
+            pasteZoneSuivi.addEventListener('click', function() {
+                pasteZoneSuivi.focus();
+            });
+
+            // Gérer le collage spécifique pour ce suivi
+            pasteZoneSuivi.addEventListener('paste', function(e) {
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const blob = items[i].getAsFile();
+                        const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: 'image/png' });
+                        addFileToSuiviInput(file);
+                        pasteZoneSuivi.classList.add('active');
+                        setTimeout(() => pasteZoneSuivi.classList.remove('active'), 500);
+                        break;
+                    }
+                }
+            });
+        }
+
+        input.addEventListener('change', function() {
+            if (previewSuivi) {
+                previewSuivi.innerHTML = '';
+                dataTransferSuivi = new DataTransfer();
+                Array.from(input.files).forEach(file => {
+                    dataTransferSuivi.items.add(file);
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const item = document.createElement('div');
+                        item.className = 'preview-item';
+                        item.dataset.fileName = file.name;
+                        
+                        if (file.type.startsWith('image/')) {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            item.appendChild(img);
+                        } else {
+                            item.textContent = file.name;
+                        }
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.textContent = '×';
+                        removeBtn.type = 'button';
+                        removeBtn.onclick = function() {
+                            const dt = new DataTransfer();
+                            Array.from(input.files).forEach(f => {
+                                if (f.name !== file.name) {
+                                    dt.items.add(f);
+                                }
+                            });
+                            input.files = dt.files;
+                            dataTransferSuivi = dt;
+                            item.remove();
+                        };
+                        item.appendChild(removeBtn);
+                        previewSuivi.appendChild(item);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}
+

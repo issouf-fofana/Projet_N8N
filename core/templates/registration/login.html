@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Connexion{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Connexion</h1>
+    <p class="text-muted mb-0">Merci de vous connecter pour accéder aux tickets.</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="id_username">Nom d'utilisateur</label>
+                <input type="text" name="username" class="form-control" id="id_username" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="id_password">Mot de passe</label>
+                <input type="password" name="password" class="form-control" id="id_password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Se connecter</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+
+

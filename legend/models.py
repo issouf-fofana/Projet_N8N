@@ -33,3 +33,9 @@ class CommandeLegend(models.Model):
     def __str__(self):
         return f"Legend - {self.numero_commande} - {self.depot_origine} - {self.date_commande}"
 
+
+
+
+
+
+

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,12 +7,29 @@
     <title>{% block title %}Vérification Commandes{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="icon" type="image/svg+xml" href="{% static 'core/favicon.svg' %}">
+    <link rel="alternate icon" href="{% static 'core/favicon.svg' %}">
     <style>
         :root {
             --sidebar-width: 250px;
             --sidebar-bg: #1e293b;
             --sidebar-color: #f1f5f9;
             --main-bg: #f1f5f9;
+            /* Palette limitée à 3 couleurs + transparences */
+            --color-primary: #3b82f6;      /* Bleu - Principal */
+            --color-success: #10b981;      /* Vert - Succès */
+            --color-alert: #f59e0b;       /* Orange - Alerte/Warning/Danger */
+            --color-neutral: #6b7280;      /* Gris (neutre) */
+            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --alert-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            /* Transparences pour variations */
+            --primary-light: rgba(59, 130, 246, 0.1);
+            --primary-medium: rgba(59, 130, 246, 0.2);
+            --success-light: rgba(16, 185, 129, 0.1);
+            --success-medium: rgba(16, 185, 129, 0.2);
+            --alert-light: rgba(245, 158, 11, 0.1);
+            --alert-medium: rgba(245, 158, 11, 0.2);
         }
         
         body {
@@ -153,39 +171,145 @@
             margin-left: var(--sidebar-width);
             padding: 40px;
             min-height: 100vh;
-            background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
         
         .page-header {
-            background: white;
+            background: var(--primary-gradient);
+            color: white;
             padding: 25px 30px;
             border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
             margin-bottom: 30px;
         }
         
         .page-header h1 {
             margin: 0;
             font-size: 2rem;
-            font-weight: 600;
-            color: #2c3e50;
+            font-weight: 700;
+            color: white;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: var(--primary-gradient);
             border: none;
             padding: 10px 25px;
             border-radius: 8px;
-            font-weight: 500;
+            font-weight: 600;
             transition: all 0.3s;
             color: white;
         }
         
         .btn-primary:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
             color: white;
+        }
+        
+        .btn-success {
+            background: var(--success-gradient);
+            border: none;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--alert-gradient);
+            border: none;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--alert-gradient);
+            border: none;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            color: white;
+        }
+        
+        .btn-info {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .table thead {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+        
+        .table thead th {
+            border-bottom: 2px solid #e5e7eb;
+            font-weight: 600;
+            color: #1e293b;
+            padding: 15px;
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s;
+        }
+        
+        .table tbody tr:hover {
+            background: #f8fafc;
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .badge.bg-primary {
+            background: var(--primary-gradient) !important;
+        }
+        
+        .badge.bg-success {
+            background: var(--success-gradient) !important;
+        }
+        
+        .badge.bg-warning {
+            background: var(--alert-gradient) !important;
+        }
+        
+        .badge.bg-danger {
+            background: var(--alert-gradient) !important;
+        }
+        
+        .badge.bg-info {
+            background: var(--primary-gradient) !important;
         }
         
         /* Boutons radio pour type de données */
@@ -244,16 +368,17 @@
         }
         
         .stat-card {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            color: white;
+            background: rgba(59, 130, 246, 0.1);
+            color: #1e293b;
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             transition: transform 0.3s, box-shadow 0.3s;
             position: relative;
             overflow: hidden;
-            border-left: 4px solid #3b82f6;
+            border-left: 4px solid var(--color-primary);
+            backdrop-filter: blur(10px);
         }
         
         .stat-card::before {
@@ -263,46 +388,78 @@
             right: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
             pointer-events: none;
         }
         
         .stat-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+            background: rgba(59, 130, 246, 0.15);
         }
         
         .stat-card.success {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            border-left-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            border-left-color: var(--color-success);
         }
         
-        .stat-card.warning {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            border-left-color: #ef4444;
+        .stat-card.success::before {
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+        }
+        
+        .stat-card.success:hover {
+            background: rgba(16, 185, 129, 0.15);
+        }
+        
+        .stat-card.warning, .stat-card.danger {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--color-alert);
+        }
+        
+        .stat-card.warning::before, .stat-card.danger::before {
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%);
+        }
+        
+        .stat-card.warning:hover, .stat-card.danger:hover {
+            background: rgba(245, 158, 11, 0.15);
         }
         
         .stat-card.info {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            border-left-color: #60a5fa;
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--color-primary);
+        }
+        
+        .stat-card.info::before {
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+        }
+        
+        .stat-card.info:hover {
+            background: rgba(59, 130, 246, 0.15);
         }
         
         .stat-card.primary {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            border-left-color: #64748b;
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--color-primary);
+        }
+        
+        .stat-card.primary::before {
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+        }
+        
+        .stat-card.primary:hover {
+            background: rgba(59, 130, 246, 0.15);
         }
         
         .stat-value {
             font-size: 3rem;
             font-weight: 700;
             margin: 15px 0 5px 0;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            color: #1e293b;
         }
         
         .stat-label {
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.9);
+            color: #475569;
             font-weight: 600;
             letter-spacing: 0.3px;
             text-transform: uppercase;
@@ -310,12 +467,12 @@
         
         .stat-icon {
             font-size: 3.5rem;
-            opacity: 0.3;
+            opacity: 0.2;
             position: absolute;
             right: 20px;
             top: 50%;
             transform: translateY(-50%);
-            color: white;
+            color: #1e293b;
         }
         
         .table-responsive {
@@ -546,28 +703,53 @@
             <!-- BR (Bon de réception) -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBR">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'liste_br_asten' or request.resolver_match.url_name == 'liste_br_ecart' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBR">
                         <i class="bi bi-receipt"></i> BR (Bon de réception)
                     </button>
                 </h2>
-                <div id="collapseBR" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div id="collapseBR" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'liste_br_asten' or request.resolver_match.url_name == 'liste_br_ecart' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
-                        <a href="#"><i class="bi bi-exclamation-triangle"></i> Écarts de BR</a>
-                        <a href="#"><i class="bi bi-list-ul"></i> Liste BR Asten</a>
-                        <a href="#"><i class="bi bi-list-ul"></i> Liste BR Cyrus</a>
+                        <a href="/br/asten/" class="{% if request.resolver_match.url_name == 'liste_br_asten' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Liste BR
+                        </a>
+                        <a href="{% url 'dashboard:liste_br_ecart' %}" class="{% if request.resolver_match.url_name == 'liste_br_ecart' %}active{% endif %}">
+                            <i class="bi bi-exclamation-triangle"></i> BR en écart
+                        </a>
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Remontées -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if request.resolver_match.app_name == 'tickets' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTickets">
+                        <i class="bi bi-ticket-perforated"></i> Remontées
+                    </button>
+                </h2>
+                <div id="collapseTickets" class="accordion-collapse collapse {% if request.resolver_match.app_name == 'tickets' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                    <div class="accordion-body">
+                        <a href="{% url 'tickets:liste' %}" class="{% if request.resolver_match.url_name == 'liste' and request.resolver_match.app_name == 'tickets' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Liste des remontées
+                        </a>
+                        <a href="{% url 'tickets:nouveau' %}" class="{% if request.resolver_match.url_name == 'nouveau' and request.resolver_match.app_name == 'tickets' %}active{% endif %}">
+                            <i class="bi bi-plus-circle"></i> Nouvelle remontée
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Paramètres -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'historique_imports' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
                         <i class="bi bi-gear"></i> Paramètres
                     </button>
                 </h2>
-                <div id="collapseParametres" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'historique_imports' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
+                        <a href="{% url 'dashboard:historique_imports' %}" class="{% if request.resolver_match.url_name == 'historique_imports' %}active{% endif %}">
+                            <i class="bi bi-clock-history"></i> Historique des imports
+                        </a>
                         <a href="#"><i class="bi bi-arrow-right-circle"></i> Configuration système</a>
                         <a href="#"><i class="bi bi-arrow-right-circle"></i> Gestion des magasins</a>
                         <a href="#"><i class="bi bi-arrow-right-circle"></i> Utilisateurs</a>

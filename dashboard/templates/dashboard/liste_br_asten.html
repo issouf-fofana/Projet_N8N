@@ -1,0 +1,255 @@
+{% extends 'core/base.html' %}
+{% load dashboard_filters %}
+
+{% block title %}Liste BR Asten - Vérification Commandes{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1><i class="bi bi-receipt text-primary"></i> {{ titre|default:"Liste BR" }}</h1>
+    <span class="badge bg-primary fs-6">{{ total }} BR</span>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres de recherche</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="date_debut" class="form-label fw-semibold">
+                    <i class="bi bi-calendar-event"></i> Date début
+                </label>
+                <input type="date" class="form-control form-control-lg" id="date_debut" name="date_debut"
+                       value="{{ filtres.date_debut }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_fin" class="form-label fw-semibold">
+                    <i class="bi bi-calendar-check"></i> Date fin
+                </label>
+                <input type="date" class="form-control form-control-lg" id="date_fin" name="date_fin"
+                       value="{{ filtres.date_fin }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-shop"></i> Magasin(s)
+                </label>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary form-control form-control-lg dropdown-toggle" type="button" id="dropdownMagasin" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span id="magasinSelectedText">
+                            {% if filtres.magasin %}
+                                {{ filtres.magasin|length }} magasin(s) sélectionné(s)
+                            {% else %}
+                                Tous les magasins
+                            {% endif %}
+                        </span>
+                    </button>
+                    <div class="dropdown-menu w-100 p-3" style="min-width: 450px;">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="recherche_magasin"
+                                   placeholder="Rechercher par code ou nom..."
+                                   onkeyup="filtrerMagasins(this.value)">
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="selectAllMagasins" onchange="toggleAllMagasins(this)">
+                            <label class="form-check-label fw-bold" for="selectAllMagasins">
+                                Sélectionner tout
+                            </label>
+                        </div>
+                        <hr class="my-2">
+                        <div id="magasinList" style="max-height: 500px; overflow-y: auto; padding-right: 5px;">
+                            {% for magasin in magasins %}
+                                <div class="form-check magasin-item" data-code="{{ magasin.code }}" data-nom="{{ magasin.nom|lower }}">
+                                    <input class="form-check-input" type="checkbox" name="magasin"
+                                           value="{{ magasin.code }}"
+                                           id="magasin_{{ magasin.code }}"
+                                           {% if magasin.code|in_list:filtres.magasin %}checked{% endif %}
+                                           onchange="updateMagasinText()">
+                                    <label class="form-check-label" for="magasin_{{ magasin.code }}">
+                                        <strong>{{ magasin.code }}</strong> - {{ magasin.nom }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="numero_br" class="form-label fw-semibold">
+                    <i class="bi bi-hash"></i> N° BR
+                </label>
+                <input type="text" class="form-control form-control-lg" id="numero_br" name="numero_br"
+                       value="{{ filtres.numero_br }}" placeholder="Rechercher...">
+            </div>
+            <div class="col-md-3">
+                <label for="statut_ic" class="form-label fw-semibold">
+                    <i class="bi bi-check2-circle"></i> Statut IC
+                </label>
+                <select class="form-select form-select-lg" id="statut_ic" name="statut_ic">
+                    <option value="">Tous</option>
+                    <option value="integre" {% if filtres.statut_ic == 'integre' %}selected{% endif %}>Intégré IC</option>
+                    <option value="non_integre" {% if filtres.statut_ic == 'non_integre' %}selected{% endif %}>Non intégré IC</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                    <i class="bi bi-funnel-fill"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-list-ul"></i> {{ titre|default:"Liste BR" }}
+            <span class="badge bg-light text-dark ms-2">{{ brs.count }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="border-0"><i class="bi bi-calendar"></i> Date BR</th>
+                        <th class="border-0"><i class="bi bi-hash"></i> N° BR</th>
+                        <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                        <th class="border-0"><i class="bi bi-check2-circle"></i> Statut IC</th>
+                        <th class="border-0"><i class="bi bi-clock"></i> Date Import</th>
+                        <th class="border-0"><i class="bi bi-gear"></i> Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for br in brs %}
+                        <tr class="align-middle">
+                            <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
+                            <td><strong class="text-primary">{{ br.numero_br }}</strong></td>
+                            <td>
+                                <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
+                                <small class="text-muted">{{ br.code_magasin.nom }}</small>
+                            </td>
+                            <td>
+                                {% if br.ic_integre %}
+                                    <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ br.statut_ic|default:"Non intégré" }}</span>
+                                {% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ br.date_import|date:"d/m/Y H:i" }}</small></td>
+                            <td>
+                                <a href="{% url 'dashboard:detail_br_asten' br.id %}?{% if filtres.date_debut %}date_debut={{ filtres.date_debut }}&{% endif %}{% if filtres.date_fin %}date_fin={{ filtres.date_fin }}&{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}magasin={{ m }}&{% endfor %}{% endif %}{% if filtres.numero_br %}numero_br={{ filtres.numero_br }}{% endif %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Voir détail
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                                <p class="text-muted mt-3 mb-0">Aucun BR Asten trouvé pour les filtres sélectionnés.</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Pagination">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_br %}&numero_br={{ filtres.numero_br }}{% endif %}{% if filtres.statut_ic %}&statut_ic={{ filtres.statut_ic }}{% endif %}">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_br %}&numero_br={{ filtres.numero_br }}{% endif %}{% if filtres.statut_ic %}&statut_ic={{ filtres.statut_ic }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_br %}&numero_br={{ filtres.numero_br }}{% endif %}{% if filtres.statut_ic %}&statut_ic={{ filtres.statut_ic }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% endif %}{% if filtres.numero_br %}&numero_br={{ filtres.numero_br }}{% endif %}{% if filtres.statut_ic %}&statut_ic={{ filtres.statut_ic }}{% endif %}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtrerMagasins(recherche) {
+    const items = document.querySelectorAll('.magasin-item');
+    const rechercheLower = recherche.toLowerCase();
+    items.forEach(item => {
+        const code = item.getAttribute('data-code') || '';
+        const nom = item.getAttribute('data-nom') || '';
+        const texte = (code + ' ' + nom).toLowerCase();
+        if (texte.includes(rechercheLower) || recherche === '') {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+function toggleAllMagasins(checkbox) {
+    const items = document.querySelectorAll('.magasin-item:not([style*="display: none"])');
+    items.forEach(item => {
+        const input = item.querySelector('input[type="checkbox"]');
+        if (input && input.id !== 'selectAllMagasins') {
+            input.checked = checkbox.checked;
+        }
+    });
+    updateMagasinText();
+}
+function updateMagasinText() {
+    const checked = document.querySelectorAll('input[name="magasin"]:checked');
+    const textElement = document.getElementById('magasinSelectedText');
+    if (checked.length === 0) {
+        textElement.textContent = 'Tous les magasins';
+    } else {
+        textElement.textContent = checked.length + ' magasin(s) sélectionné(s)';
+    }
+    const selectAll = document.getElementById('selectAllMagasins');
+    if (selectAll) {
+        const visibleItems = document.querySelectorAll('.magasin-item:not([style*="display: none"])');
+        const visibleChecked = Array.from(visibleItems).filter(item => {
+            const input = item.querySelector('input[type="checkbox"]');
+            return input && input.checked;
+        });
+        selectAll.checked = visibleChecked.length === visibleItems.length && visibleItems.length > 0;
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdown = document.querySelector('.dropdown-menu');
+    if (dropdown) {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+    updateMagasinText();
+});
+</script>
+{% endblock %}
+
+
+

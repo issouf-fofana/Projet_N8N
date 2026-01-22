@@ -26,8 +26,10 @@ def recalculer_ecarts():
         
         for commande_asten in commandes_asten:
             # Vérifier si la commande existe dans Cyrus
+            # Fallback: si la date diffère, considérer intégrée si numéro+magasin existe
             existe_cyrus = CommandeCyrus.objects.filter(
-                date_commande=commande_asten.date_commande,
+                Q(date_commande=commande_asten.date_commande) |
+                Q(numero_commande=commande_asten.numero_commande, code_magasin=commande_asten.code_magasin),
                 numero_commande=commande_asten.numero_commande,
                 code_magasin=commande_asten.code_magasin
             ).exists()
@@ -38,21 +40,17 @@ def recalculer_ecarts():
                 
                 # Si la commande existe maintenant dans Cyrus
                 if existe_cyrus:
-                    # Si l'écart était "ouvert", le marquer comme "résolu"
+                    # Si l'écart était "ouvert", le supprimer complètement (résolu automatiquement)
                     if ecart_existant.statut == 'ouvert':
-                        ecart_existant.statut = 'resolu'
-                        ecart_existant.save()
+                        ecart_existant.delete()
                         ecarts_resolus += 1
                     # Si l'écart était "ignore", on le garde tel quel (ignoré manuellement)
-                    # Si l'écart était déjà "resolu", on ne fait rien
+                    # Si l'écart était déjà "resolu", on ne fait rien (ne devrait plus arriver)
                 else:
                     # Si la commande n'existe toujours pas dans Cyrus
-                    # Si l'écart était "resolu", le remettre à "ouvert" (le problème est revenu)
-                    if ecart_existant.statut == 'resolu':
-                        ecart_existant.statut = 'ouvert'
-                        ecart_existant.save()
-                    # Si l'écart était "ignore", on le garde tel quel
-                    # Si l'écart était déjà "ouvert", on ne fait rien
+                    # Ne pas réouvrir un écart résolu manuellement
+                    # Si l'écart était "ignore" ou "resolu", on le garde tel quel
+                    pass
                     
             except EcartCommande.DoesNotExist:
                 # Aucun écart existant, créer un nouveau si la commande n'existe pas dans Cyrus
@@ -91,8 +89,10 @@ def recalculer_ecarts():
                 continue
             
             # Vérifier si la commande existe dans Cyrus (seulement pour les commandes "Transmise")
+            # Fallback: si la date diffère, considérer intégrée si numéro+magasin existe
             existe_cyrus = CommandeCyrus.objects.filter(
-                date_commande=commande_gpv.date_creation,  # Utiliser date_creation comme date_commande
+                Q(date_commande=commande_gpv.date_creation) |
+                Q(numero_commande=commande_gpv.numero_commande, code_magasin=commande_gpv.code_magasin),
                 numero_commande=commande_gpv.numero_commande,
                 code_magasin=commande_gpv.code_magasin
             ).exists()
@@ -103,21 +103,15 @@ def recalculer_ecarts():
                 
                 # Si la commande existe maintenant dans Cyrus
                 if existe_cyrus:
-                    # Si l'écart était "ouvert", le marquer comme "résolu"
+                    # Si l'écart était "ouvert", le supprimer complètement (résolu automatiquement)
                     if ecart_existant.statut == 'ouvert':
-                        ecart_existant.statut = 'resolu'
-                        ecart_existant.save()
+                        ecart_existant.delete()
                         ecarts_gpv_resolus += 1
                     # Si l'écart était "ignore", on le garde tel quel (ignoré manuellement)
-                    # Si l'écart était déjà "resolu", on ne fait rien
                 else:
                     # Si la commande n'existe toujours pas dans Cyrus
-                    # Si l'écart était "resolu", le remettre à "ouvert" (le problème est revenu)
-                    if ecart_existant.statut == 'resolu':
-                        ecart_existant.statut = 'ouvert'
-                        ecart_existant.save()
-                    # Si l'écart était "ignore", on le garde tel quel
-                    # Si l'écart était déjà "ouvert", on ne fait rien
+                    # Ne pas réouvrir un écart résolu manuellement
+                    pass
                     
             except EcartGPV.DoesNotExist:
                 # Aucun écart existant, créer un nouveau si la commande n'existe pas dans Cyrus
@@ -162,12 +156,11 @@ def recalculer_ecarts():
                 type_ecart = 'cyrus_absent'
 
             if type_ecart is None:
-                # Pas d'écart : résoudre si nécessaire
+                # Pas d'écart : supprimer l'écart existant si nécessaire
                 try:
                     ecart_existant = commande_legend.ecart
                     if ecart_existant.statut == 'ouvert':
-                        ecart_existant.statut = 'resolu'
-                        ecart_existant.save()
+                        ecart_existant.delete()
                         ecarts_legend_resolus += 1
                 except EcartLegend.DoesNotExist:
                     pass
@@ -175,11 +168,10 @@ def recalculer_ecarts():
                 # Écart détecté ou réouvert
                 try:
                     ecart_existant = commande_legend.ecart
-                    if ecart_existant.statut == 'resolu':
-                        ecart_existant.statut = 'ouvert'
-                    if ecart_existant.statut != 'ignore':
+                    # Ne pas réouvrir un écart résolu manuellement
+                    if ecart_existant.statut != 'ignore' and ecart_existant.statut != 'resolu':
                         ecart_existant.type_ecart = type_ecart
-                    ecart_existant.save()
+                        ecart_existant.save()
                 except EcartLegend.DoesNotExist:
                     EcartLegend.objects.create(
                         commande_legend=commande_legend,

@@ -1,0 +1,76 @@
+{% load static %}
+{% extends 'core/base.html' %}
+
+{% block title %}Erreur serveur - 500{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-container {
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    .error-code {
+        font-size: 8rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+        margin-bottom: 20px;
+    }
+    .error-message {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    .error-description {
+        font-size: 1rem;
+        color: #6b7280;
+        margin-bottom: 30px;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .error-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .error-icon {
+        font-size: 6rem;
+        color: #fca5a5;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div>
+        <div class="error-icon">
+            <i class="bi bi-x-circle"></i>
+        </div>
+        <div class="error-code">500</div>
+        <div class="error-message">Erreur serveur</div>
+        <div class="error-description">
+            Une erreur interne s'est produite. Notre équipe a été notifiée et travaille à résoudre le problème.
+        </div>
+        <div class="error-actions">
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-house"></i> Retour au dashboard
+            </a>
+            <a href="javascript:history.back()" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-arrow-left"></i> Page précédente
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

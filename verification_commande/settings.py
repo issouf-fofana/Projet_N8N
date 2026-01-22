@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-#b64ydqegmz%*=qb%w_mw5ynh!k^=yiqd38xte&0&f%6gwu)n*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['10.10.9.1', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -43,8 +43,10 @@ INSTALLED_APPS = [
     'cyrus',
     'gpv',
     'legend',
+    'br',
     'ecarts',
     'dashboard',
+    'tickets',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +64,7 @@ ROOT_URLCONF = 'verification_commande.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'core' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,6 +126,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'core' / 'static',
+]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

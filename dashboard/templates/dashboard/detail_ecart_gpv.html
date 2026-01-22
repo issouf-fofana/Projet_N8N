@@ -152,10 +152,13 @@
                                     Ouvert - Écart détecté, en attente de résolution
                                 </option>
                                 <option value="resolu" {% if ecart.statut == 'resolu' %}selected{% endif %}>
-                                    Résolu - L'écart a été corrigé (la commande est maintenant dans Cyrus)
+                                    Résolu - L'écart a été corrigé (la commande sera comptée comme intégrée)
                                 </option>
                                 <option value="ignore" {% if ecart.statut == 'ignore' %}selected{% endif %}>
                                     Ignoré - Écart ignoré manuellement (faux positif, écart intentionnel, etc.)
+                                </option>
+                                <option value="quantite_0" {% if ecart.statut == 'quantite_0' %}selected{% endif %}>
+                                    Quantité 0 - Écart non calculé (ne compte ni intégré ni non intégré)
                                 </option>
                             </select>
                             <small class="form-text text-muted">
@@ -178,4 +181,10 @@
     </div>
 </div>
 {% endblock %}
+
+
+
+
+
+
 

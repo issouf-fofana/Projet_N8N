@@ -1,0 +1,262 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Nouvelle Remontée{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glpi-form-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .glpi-form-header { background: #fff; border-radius: 12px; padding: 12px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .assign-select { height: 180px; }
+    .assign-select.hidden { display: none; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+    .chip { background: #eef2ff; color: #1e3a8a; border-radius: 16px; padding: 4px 8px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; }
+    .chip button { border: none; background: transparent; color: #64748b; cursor: pointer; font-size: 0.9rem; }
+    .paste-zone { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s; }
+    .paste-zone:hover, .paste-zone.active { border-color: #2563eb; background: #eff6ff; }
+    .paste-zone p { margin: 0; color: #64748b; font-size: 0.9rem; }
+    .preview-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .preview-item { width: 180px; height: 130px; border: 1px dashed #cbd5e1; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f8fafc; padding: 4px; text-align: center; font-size: 0.8rem; position: relative; }
+    .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-item .remove-btn { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .preview-item .remove-btn:hover { background: rgba(220,38,38,0.8); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="glpi-form-header mb-3">
+    <div class="fw-semibold">Nouvelle Remontée</div>
+    <div class="text-muted small">Créer un incident ou une demande</div>
+</div>
+
+<div class="card glpi-form-card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    {{ form.type_demande.label_tag }}
+                    {{ form.type_demande }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.categorie.label_tag }}
+                    {{ form.categorie }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.demandeur.label_tag }}
+                    {{ form.demandeur }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.nouvelle_categorie.label_tag }}
+                    {{ form.nouvelle_categorie }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.statut.label_tag }}
+                    {{ form.statut }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.urgence.label_tag }}
+                    {{ form.urgence }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.impact.label_tag }}
+                    {{ form.impact }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.magasin.label_tag }}
+                    {{ form.magasin }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.assigne_a.label_tag }}
+                    <div class="chips" id="assigne-chips"></div>
+                    <div class="d-flex gap-2 align-items-center mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="toggle-assign-select">
+                            Assignation +
+                        </button>
+                    </div>
+                    {{ form.assigne_a }}
+                </div>
+                <div class="col-md-12">
+                    {{ form.description.label_tag }}
+                    {{ form.description }}
+                </div>
+                <div class="col-md-12">
+                    {{ form.fichiers.label_tag }}
+                    {{ form.fichiers }}
+                    <div class="paste-zone mt-2" id="paste-zone" tabindex="0">
+                        <p><i class="bi bi-clipboard"></i> Cliquez ici ou collez (Ctrl+V) une image depuis votre presse-papiers</p>
+                    </div>
+                    <div id="preview-container" class="preview-grid"></div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">
+                Créer la remontée
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const assigneSelect = document.querySelector('.assign-select');
+    const chipsContainer = document.getElementById('assigne-chips');
+
+    function renderChips() {
+        if (!assigneSelect || !chipsContainer) return;
+        chipsContainer.innerHTML = '';
+        Array.from(assigneSelect.selectedOptions).forEach(option => {
+            const chip = document.createElement('span');
+            chip.className = 'chip';
+            chip.textContent = option.text;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                option.selected = false;
+                assigneSelect.dispatchEvent(new Event('change'));
+            });
+            chip.appendChild(removeBtn);
+            chipsContainer.appendChild(chip);
+        });
+    }
+
+    if (assigneSelect) {
+        assigneSelect.addEventListener('change', renderChips);
+        renderChips();
+    }
+
+    const toggleAssignBtn = document.getElementById('toggle-assign-select');
+    if (toggleAssignBtn && assigneSelect) {
+        assigneSelect.classList.add('hidden');
+        toggleAssignBtn.addEventListener('click', function () {
+            assigneSelect.classList.toggle('hidden');
+        });
+    }
+
+    if (assigneSelect) {
+        assigneSelect.addEventListener('mousedown', function (e) {
+            const option = e.target;
+            if (option.tagName === 'OPTION') {
+                e.preventDefault();
+                option.selected = !option.selected;
+                assigneSelect.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    // Gestion du collage d'images depuis le presse-papiers
+    const fileInput = document.getElementById('id_fichiers');
+    const pasteZone = document.getElementById('paste-zone');
+    const previewContainer = document.getElementById('preview-container');
+    const DataTransfer = window.DataTransfer || window.Clipboard;
+
+    // Créer un DataTransfer pour gérer les fichiers
+    let dataTransfer = new DataTransfer();
+
+    function addFileToInput(file) {
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+        
+        // Afficher l'aperçu
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.dataset.fileName = file.name;
+            
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            item.appendChild(img);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.type = 'button';
+            removeBtn.onclick = function() {
+                // Retirer le fichier du DataTransfer
+                const dt = new DataTransfer();
+                Array.from(fileInput.files).forEach(f => {
+                    if (f.name !== file.name) {
+                        dt.items.add(f);
+                    }
+                });
+                fileInput.files = dt.files;
+                dataTransfer = dt;
+                item.remove();
+            };
+            item.appendChild(removeBtn);
+            previewContainer.appendChild(item);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Gérer le collage dans toute la page
+    document.addEventListener('paste', function(e) {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const blob = items[i].getAsFile();
+                const file = new File([blob], `pasted-image-${Date.now()}.png`, { type: 'image/png' });
+                addFileToInput(file);
+                pasteZone.classList.add('active');
+                setTimeout(() => pasteZone.classList.remove('active'), 500);
+                break;
+            }
+        }
+    });
+
+    // Gérer le clic sur la zone de collage
+    if (pasteZone) {
+        pasteZone.addEventListener('click', function() {
+            pasteZone.focus();
+        });
+    }
+
+    // Aperçu des fichiers sélectionnés via le file input
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            previewContainer.innerHTML = '';
+            dataTransfer = new DataTransfer();
+            Array.from(fileInput.files).forEach(file => {
+                dataTransfer.items.add(file);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const item = document.createElement('div');
+                    item.className = 'preview-item';
+                    item.dataset.fileName = file.name;
+                    
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        item.appendChild(img);
+                    } else {
+                        item.textContent = file.name;
+                    }
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.textContent = '×';
+                    removeBtn.type = 'button';
+                    removeBtn.onclick = function() {
+                        const dt = new DataTransfer();
+                        Array.from(fileInput.files).forEach(f => {
+                            if (f.name !== file.name) {
+                                dt.items.add(f);
+                            }
+                        });
+                        fileInput.files = dt.files;
+                        dataTransfer = dt;
+                        item.remove();
+                    };
+                    item.appendChild(removeBtn);
+                    previewContainer.appendChild(item);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    }
+</script>
+{% endblock %}
+

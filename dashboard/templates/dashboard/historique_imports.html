@@ -1,0 +1,237 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Historique des imports{% endblock %}
+
+{% block extra_css %}
+<style>
+    .import-card { border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; }
+    .import-header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0; }
+    .stat-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .stat-number { font-size: 2rem; font-weight: 700; }
+    .stat-label { font-size: 0.9rem; color: #6b7280; margin-top: 5px; }
+    .badge-statut { padding: 6px 12px; border-radius: 20px; font-weight: 500; }
+    .badge-termine { background: #d1fae5; color: #065f46; }
+    .badge-erreur { background: #fee2e2; color: #991b1b; }
+    .badge-en-cours { background: #dbeafe; color: #1e40af; }
+    .table-imports { background: white; border-radius: 12px; overflow: hidden; }
+    .table-imports thead { background: #f8fafc; }
+    .filters-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="import-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="mb-2"><i class="bi bi-clock-history"></i> Historique des imports</h3>
+            <p class="mb-0 opacity-75">Suivi de tous les imports de fichiers de commandes</p>
+        </div>
+        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-light">
+            <i class="bi bi-arrow-left"></i> Retour au dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Statistiques globales -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number text-primary">{{ stats.total }}</div>
+            <div class="stat-label">Total imports</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number text-success">{{ stats.termines }}</div>
+            <div class="stat-label">Terminés</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number text-danger">{{ stats.erreur }}</div>
+            <div class="stat-label">En erreur</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number text-info">{{ stats.en_cours }}</div>
+            <div class="stat-label">En cours</div>
+        </div>
+    </div>
+</div>
+
+<!-- Derniers imports par type -->
+{% if derniers_imports %}
+<div class="import-card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Derniers imports par type</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for type_f, import_obj in derniers_imports.items %}
+            <div class="col-md-4 mb-3">
+                <div class="border rounded p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>{{ import_obj.get_type_fichier_display }}</strong>
+                        {% if import_obj.statut == 'termine' %}
+                            <span class="badge-statut badge-termine">Terminé</span>
+                        {% elif import_obj.statut == 'erreur' %}
+                            <span class="badge-statut badge-erreur">Erreur</span>
+                        {% else %}
+                            <span class="badge-statut badge-en-cours">En cours</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted small mb-1">{{ import_obj.nom_fichier|truncatechars:40 }}</div>
+                    <div class="text-muted small mb-1">
+                        <i class="bi bi-calendar"></i> {{ import_obj.date_import|date:"d/m/Y H:i" }}
+                    </div>
+                    <div class="text-muted small">
+                        <i class="bi bi-list-ul"></i> {{ import_obj.nombre_lignes }} lignes
+                        {% if import_obj.nombre_nouveaux > 0 %}
+                            • {{ import_obj.nombre_nouveaux }} nouveaux
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filtres -->
+<div class="filters-card">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label for="type_fichier" class="form-label">Type de fichier</label>
+            <select name="type_fichier" id="type_fichier" class="form-select">
+                <option value="">Tous les types</option>
+                {% for value, label in type_choices %}
+                    <option value="{{ value }}" {% if type_fichier == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="statut" class="form-label">Statut</label>
+            <select name="statut" id="statut" class="form-select">
+                <option value="">Tous les statuts</option>
+                {% for value, label in statut_choices %}
+                    <option value="{{ value }}" {% if statut == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="bi bi-funnel"></i> Filtrer
+            </button>
+            <a href="{% url 'dashboard:historique_imports' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Réinitialiser
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Tableau des imports -->
+<div class="table-imports">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Date/Heure</th>
+                <th>Type</th>
+                <th>Fichier</th>
+                <th>Statut</th>
+                <th>Lignes</th>
+                <th>Nouveaux</th>
+                <th>Doublons</th>
+                <th>Erreur</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for import_obj in page_obj %}
+            <tr>
+                <td>{{ import_obj.date_import|date:"d/m/Y H:i:s" }}</td>
+                <td>
+                    <span class="badge bg-secondary">{{ import_obj.get_type_fichier_display }}</span>
+                </td>
+                <td>
+                    <code class="small">{{ import_obj.nom_fichier|truncatechars:50 }}</code>
+                </td>
+                <td>
+                    {% if import_obj.statut == 'termine' %}
+                        <span class="badge-statut badge-termine">Terminé</span>
+                    {% elif import_obj.statut == 'erreur' %}
+                        <span class="badge-statut badge-erreur">Erreur</span>
+                    {% else %}
+                        <span class="badge-statut badge-en-cours">En cours</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>{{ import_obj.nombre_lignes }}</strong>
+                </td>
+                <td>
+                    {% if import_obj.nombre_nouveaux > 0 %}
+                        <span class="text-success">{{ import_obj.nombre_nouveaux }}</span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if import_obj.nombre_dupliques > 0 %}
+                        <span class="text-warning">{{ import_obj.nombre_dupliques }}</span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if import_obj.message_erreur %}
+                        <span class="text-danger small" title="{{ import_obj.message_erreur }}">
+                            <i class="bi bi-exclamation-triangle"></i> Oui
+                        </span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1;"></i>
+                    <p class="text-muted mt-3">Aucun import trouvé</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if type_fichier %}&type_fichier={{ type_fichier }}{% endif %}{% if statut %}&statut={{ statut }}{% endif %}">Premier</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if type_fichier %}&type_fichier={{ type_fichier }}{% endif %}{% if statut %}&statut={{ statut }}{% endif %}">Précédent</a>
+            </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if type_fichier %}&type_fichier={{ type_fichier }}{% endif %}{% if statut %}&statut={{ statut }}{% endif %}">Suivant</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if type_fichier %}&type_fichier={{ type_fichier }}{% endif %}{% if statut %}&statut={{ statut }}{% endif %}">Dernier</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}
+

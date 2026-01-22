@@ -6,6 +6,9 @@ class ImportFichier(models.Model):
     TYPE_CHOICES = [
         ('asten', 'Asten'),
         ('cyrus', 'Cyrus'),
+        ('gpv', 'GPV'),
+        ('legend', 'Legend'),
+        ('br_asten', 'BR Asten'),
     ]
     
     type_fichier = models.CharField(max_length=10, choices=TYPE_CHOICES, verbose_name="Type de fichier")

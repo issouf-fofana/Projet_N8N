@@ -40,3 +40,4 @@ class EcartLegendAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('date_creation', 'date_modification')
     date_hierarchy = 'date_creation'
+

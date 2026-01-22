@@ -46,3 +46,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Erreur lors du chargement: {str(e)}'))
 
 
+
+
+
+
+
+

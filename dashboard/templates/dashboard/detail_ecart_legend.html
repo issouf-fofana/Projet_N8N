@@ -132,10 +132,13 @@
                                     Ouvert - Écart détecté
                                 </option>
                                 <option value="resolu" {% if ecart.statut == 'resolu' %}selected{% endif %}>
-                                    Résolu - Commande intégrée
+                                    Résolu - Commande intégrée (sera comptée comme intégrée)
                                 </option>
                                 <option value="ignore" {% if ecart.statut == 'ignore' %}selected{% endif %}>
                                     Ignoré - Écart ignoré manuellement
+                                </option>
+                                <option value="quantite_0" {% if ecart.statut == 'quantite_0' %}selected{% endif %}>
+                                    Quantité 0 - Écart non calculé (ne compte ni intégré ni non intégré)
                                 </option>
                             </select>
                         </div>
