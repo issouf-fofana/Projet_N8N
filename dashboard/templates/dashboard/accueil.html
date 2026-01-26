@@ -1,0 +1,1102 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Accueil - Vérification{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Style exact comme dans la capture */
+    body {
+        background-color: #e5e7eb !important;
+    }
+    
+    .main-content {
+        background: #e5e7eb !important;
+        padding: 20px;
+    }
+    
+    /* Animation d'apparition des cartes */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+    
+    @keyframes shimmer {
+        0% {
+            background-position: -1000px 0;
+        }
+        100% {
+            background-position: 1000px 0;
+        }
+    }
+    
+    .accueil-card {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        background: #ffffff;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 20px;
+        animation: fadeInUp 0.6s ease-out;
+        position: relative;
+    }
+    
+    .accueil-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+    }
+    
+    .accueil-card:hover::before {
+        left: 100%;
+    }
+    
+    .accueil-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    
+    .accueil-card-header {
+        padding: 14px 16px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: none;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .accueil-card-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    .accueil-card:hover .accueil-card-header::after {
+        left: 100%;
+    }
+    
+    .accueil-card-header i {
+        font-size: 1rem;
+        margin-right: 8px;
+        transition: transform 0.3s ease;
+    }
+    
+    .accueil-card:hover .accueil-card-header i {
+        transform: scale(1.2) rotate(5deg);
+    }
+    
+    /* Couleurs uniques pour chaque carte */
+    .card-asten {
+        border-top: 4px solid #3b82f6;
+    }
+    .card-asten .accueil-card-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    .card-asten .btn-details {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    .card-asten .btn-details:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+    
+    .card-gpv {
+        border-top: 4px solid #6366f1;
+    }
+    .card-gpv .accueil-card-header {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    }
+    .card-gpv .btn-details {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    }
+    .card-gpv .btn-details:hover {
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+    
+    .card-legend {
+        border-top: 4px solid #8b5cf6;
+    }
+    .card-legend .accueil-card-header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    }
+    .card-legend .btn-details {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    }
+    .card-legend .btn-details:hover {
+        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
+    
+    .card-br {
+        border-top: 4px solid #06b6d4;
+    }
+    .card-br .accueil-card-header {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    }
+    .card-br .btn-details {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    }
+    .card-br .btn-details:hover {
+        background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+    }
+    
+    .card-factures {
+        border-top: 4px solid #ec4899;
+    }
+    .card-factures .accueil-card-header {
+        background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    }
+    .card-factures .btn-details {
+        background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    }
+    .card-factures .btn-details:hover {
+        background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+    }
+    
+    .card-remontees {
+        border-top: 4px solid #f59e0b;
+    }
+    .card-remontees .accueil-card-header {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    .card-remontees .btn-details {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    .card-remontees .btn-details:hover {
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+    
+    .accueil-card-body {
+        padding: 14px 16px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+        animation: fadeInUp 0.4s ease-out;
+    }
+    
+    .stat-row:hover {
+        background: rgba(0, 0, 0, 0.02);
+        padding-left: 4px;
+        padding-right: 4px;
+        border-radius: 6px;
+    }
+    
+    .stat-row:last-child {
+        border-bottom: none;
+    }
+    
+    .stat-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .stat-row:hover .stat-label {
+        color: #475569;
+        font-weight: 600;
+    }
+    
+    .stat-label i {
+        font-size: 0.9rem;
+        transition: transform 0.2s ease;
+    }
+    
+    .stat-row:hover .stat-label i {
+        transform: scale(1.2);
+    }
+    
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1f2937;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-row:hover .stat-value {
+        transform: scale(1.1);
+    }
+    
+    .stat-value.success {
+        color: #10b981; /* Vert pour intégrées/résolues */
+    }
+    
+    .stat-value.warning {
+        color: #f59e0b; /* Orange pour en cours */
+    }
+    
+    .stat-value.info {
+        color: #1f2937; /* Noir pour total */
+    }
+    
+    .progress-container {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .progress {
+        height: 8px;
+        border-radius: 8px;
+        background-color: #e5e7eb;
+        overflow: hidden;
+        position: relative;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .progress-bar {
+        border-radius: 8px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .progress-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        animation: shimmer 2s infinite;
+    }
+    
+    .progress-bar.bg-success {
+        background-color: #10b981 !important;
+        background: #10b981 !important;
+    }
+    
+    .progress-bar.bg-warning {
+        background-color: #f59e0b !important;
+        background: #f59e0b !important;
+    }
+    
+    .progress-bar.bg-danger {
+        background-color: #ef4444 !important;
+        background: #ef4444 !important;
+    }
+    
+    .btn-details {
+        margin-top: 12px;
+        padding: 10px 16px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        width: 100%;
+        color: #ffffff;
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .btn-details::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn-details:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .btn-details:hover {
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-details:active {
+        transform: translateY(0);
+    }
+    
+    .btn-details i {
+        transition: transform 0.3s ease;
+    }
+    
+    .btn-details:hover i {
+        transform: translateX(4px);
+    }
+    
+    .filtres-section {
+        background: white;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e5e7eb;
+        animation: fadeInUp 0.4s ease-out;
+        transition: all 0.3s ease;
+    }
+    
+    .filtres-section:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-filtre {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #e5e7eb;
+        color: #374151;
+        background: white;
+        font-weight: 500;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-filtre::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, 0.1);
+        transform: translate(-50%, -50%);
+        transition: width 0.4s, height 0.4s;
+    }
+    
+    .btn-filtre:hover::before {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .btn-filtre:hover {
+        background: #f9fafb;
+        border-color: #3b82f6;
+        color: #3b82f6;
+        transform: translateY(-1px);
+    }
+    
+    .btn-filtre.active {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        font-weight: 600;
+        transform: translateY(-1px);
+    }
+    
+    .btn-filtre.active::before {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-filtre i {
+        transition: transform 0.2s ease;
+    }
+    
+    .btn-filtre:hover i {
+        transform: scale(1.1);
+    }
+    
+    .date-picker-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .date-picker-group input {
+        padding: 8px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    
+    .date-picker-group input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Titre du tableau de bord */
+    h1 {
+        color: #1f2937;
+        font-weight: 600;
+        font-size: 1.5rem;
+        animation: fadeInUp 0.5s ease-out;
+        transition: all 0.3s ease;
+    }
+    
+    h1:hover {
+        transform: translateX(4px);
+    }
+    
+    h1 i {
+        transition: transform 0.3s ease;
+    }
+    
+    h1:hover i {
+        transform: rotate(15deg) scale(1.1);
+    }
+    
+    /* Animation pour les valeurs numériques */
+    .stat-value[data-value] {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    /* Délai d'animation pour chaque carte */
+    .col-md-6:nth-child(1) .accueil-card,
+    .col-lg-4:nth-child(1) .accueil-card {
+        animation-delay: 0.1s;
+    }
+    .col-md-6:nth-child(2) .accueil-card,
+    .col-lg-4:nth-child(2) .accueil-card {
+        animation-delay: 0.2s;
+    }
+    .col-md-6:nth-child(3) .accueil-card,
+    .col-lg-4:nth-child(3) .accueil-card {
+        animation-delay: 0.3s;
+    }
+    .col-md-6:nth-child(4) .accueil-card,
+    .col-lg-4:nth-child(4) .accueil-card {
+        animation-delay: 0.4s;
+    }
+    .col-md-6:nth-child(5) .accueil-card,
+    .col-lg-4:nth-child(5) .accueil-card {
+        animation-delay: 0.5s;
+    }
+    .col-md-6:nth-child(6) .accueil-card,
+    .col-lg-4:nth-child(6) .accueil-card {
+        animation-delay: 0.6s;
+    }
+    
+    /* Couleurs des valeurs dans les statistiques */
+    .stat-value[style*="color: #15803d"] {
+        color: #10b981 !important; /* Vert plus vif */
+    }
+    
+    .text-success {
+        color: #10b981 !important;
+    }
+    
+    .text-danger {
+        color: #ef4444 !important;
+    }
+    
+    .text-warning {
+        color: #f59e0b !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0" style="color: #1e293b; font-weight: 600;">
+            <i class="bi bi-speedometer2"></i> Tableau de bord
+        </h1>
+    </div>
+
+    <!-- Filtres de période -->
+    <div class="filtres-section">
+        <form method="get" id="filtreForm">
+            <div class="row align-items-end g-2">
+                <div class="col-auto">
+                    <label class="form-label small mb-1 fw-semibold" style="color: #475569;">
+                        <i class="bi bi-funnel-fill me-1"></i> Période
+                    </label>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-filtre {% if periode == 'aujourdhui' or not periode %}active{% endif %}" 
+                                onclick="setPeriode('aujourdhui')">
+                            <i class="bi bi-calendar-day me-1"></i> Aujourd'hui
+                        </button>
+                        <button type="button" class="btn btn-filtre {% if periode == 'hier' %}active{% endif %}" 
+                                onclick="setPeriode('hier')">
+                            <i class="bi bi-calendar-minus me-1"></i> Hier
+                        </button>
+                        <button type="button" class="btn btn-filtre {% if periode == 'semaine' %}active{% endif %}" 
+                                onclick="setPeriode('semaine')">
+                            <i class="bi bi-calendar-week me-1"></i> Semaine
+                        </button>
+                        <button type="button" class="btn btn-filtre {% if periode == 'mois' %}active{% endif %}" 
+                                onclick="setPeriode('mois')">
+                            <i class="bi bi-calendar-month me-1"></i> Mois
+                        </button>
+                        <button type="button" class="btn btn-filtre {% if periode == '3mois' %}active{% endif %}" 
+                                onclick="setPeriode('3mois')">
+                            <i class="bi bi-calendar3 me-1"></i> 3 mois
+                        </button>
+                        <button type="button" class="btn btn-filtre {% if periode == 'annee' %}active{% endif %}" 
+                                onclick="setPeriode('annee')">
+                            <i class="bi bi-calendar-year me-1"></i> Année
+                        </button>
+                        <button type="button" class="btn btn-filtre {% if periode == 'personnalise' %}active{% endif %}" 
+                                onclick="setPeriode('personnalise')">
+                            <i class="bi bi-calendar-range me-1"></i> Personnalisé
+                        </button>
+                    </div>
+                </div>
+                <div class="col-auto" id="datePickerGroup" style="display: {% if periode == 'personnalise' %}flex{% else %}none{% endif %};">
+                    <div class="date-picker-group">
+                        <div>
+                            <label class="form-label small mb-1 fw-semibold" style="color: #475569;">
+                                <i class="bi bi-calendar-event me-1"></i> Date début
+                            </label>
+                            <input type="date" name="date_debut" class="form-control form-control-sm" 
+                                   value="{{ date_debut }}" id="date_debut">
+                        </div>
+                        <div>
+                            <label class="form-label small mb-1 fw-semibold" style="color: #475569;">
+                                <i class="bi bi-calendar-event-fill me-1"></i> Date fin
+                            </label>
+                            <input type="date" name="date_fin" class="form-control form-control-sm" 
+                                   value="{{ date_fin }}" id="date_fin">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="periode" id="periodeInput" value="{{ periode|default:'aujourdhui' }}">
+        </form>
+    </div>
+
+    <!-- Statistiques globales -->
+    <div class="row g-3">
+        <!-- Commandes Asten -->
+        <div class="col-md-6 col-lg-4">
+            <div class="accueil-card card-asten">
+                <div class="accueil-card-header">
+                    <i class="bi bi-box-seam me-2"></i> Commandes Asten
+                </div>
+                <div class="accueil-card-body">
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
+                        <span class="stat-value info">{{ stats_asten.total|default:0|floatformat:0 }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
+                        </span>
+                        <span class="stat-value" style="font-size: 1.3rem; color: #10b981;">
+                            {{ stats_asten.integres|default:0|floatformat:0 }}
+                        </span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
+                        </span>
+                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
+                           class="stat-value text-danger fw-bold text-decoration-none"
+                           style="font-size: 1.3rem;">
+                            {{ stats_asten.non_integres|default:0|floatformat:0 }}
+                        </a>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress" style="background-color: #e5e7eb; position: relative; height: 6px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ stats_asten.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0; height: 100%; z-index: 1;"
+                                 aria-valuenow="{{ stats_asten.taux_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ stats_asten.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_asten.taux_integration|default:0 }}%; height: 100%; z-index: 1;"
+                                 aria-valuenow="{{ stats_asten.taux_non_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="text-center mt-1">
+                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_asten.taux_integration|default:0 }}">0</span>% intégrées
+                            </small>
+                        </div>
+                    </div>
+                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commandes GPV -->
+        <div class="col-md-6 col-lg-4">
+            <div class="accueil-card card-gpv">
+                <div class="accueil-card-header">
+                    <i class="bi bi-box-seam me-2"></i> Commandes GPV
+                </div>
+                <div class="accueil-card-body">
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
+                        <span class="stat-value info" data-value="{{ stats_gpv.total|default:0 }}">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
+                        </span>
+                        <span class="stat-value" data-value="{{ stats_gpv.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
+                        </span>
+                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
+                           class="stat-value text-danger fw-bold text-decoration-none"
+                           data-value="{{ stats_gpv.non_integres|default:0 }}"
+                           style="font-size: 1.3rem;">
+                            0
+                        </a>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ stats_gpv.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
+                                 aria-valuenow="{{ stats_gpv.taux_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ stats_gpv.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_gpv.taux_integration|default:0 }}%;"
+                                 aria-valuenow="{{ stats_gpv.taux_non_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="text-center mt-1">
+                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_gpv.taux_integration|default:0 }}">0</span>% intégrées
+                            </small>
+                        </div>
+                    </div>
+                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commandes Legend -->
+        <div class="col-md-6 col-lg-4">
+            <div class="accueil-card card-legend">
+                <div class="accueil-card-header">
+                    <i class="bi bi-box-seam me-2"></i> Commandes Legend
+                </div>
+                <div class="accueil-card-body">
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
+                        <span class="stat-value info" data-value="{{ stats_legend.total|default:0 }}">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
+                        </span>
+                        <span class="stat-value" data-value="{{ stats_legend.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
+                        </span>
+                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
+                           class="stat-value text-danger fw-bold text-decoration-none"
+                           data-value="{{ stats_legend.non_integres|default:0 }}"
+                           style="font-size: 1.3rem;">
+                            0
+                        </a>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ stats_legend.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
+                                 aria-valuenow="{{ stats_legend.taux_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ stats_legend.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_legend.taux_integration|default:0 }}%;"
+                                 aria-valuenow="{{ stats_legend.taux_non_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="text-center mt-1">
+                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_legend.taux_integration|default:0 }}">0</span>% intégrées
+                            </small>
+                        </div>
+                    </div>
+                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- BR Asten -->
+        <div class="col-md-6 col-lg-4">
+            <div class="accueil-card card-br">
+                <div class="accueil-card-header">
+                    <i class="bi bi-receipt-cutoff me-2"></i> BR Asten
+                </div>
+                <div class="accueil-card-body">
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-list-ul text-success"></i> Total</span>
+                        <span class="stat-value info" data-value="{{ stats_br.total|default:0 }}">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-check-circle-fill text-success"></i> Trouvées
+                        </span>
+                        <span class="stat-value" data-value="{{ stats_br.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non trouvées
+                        </span>
+                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=br&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
+                           class="stat-value text-danger fw-bold text-decoration-none"
+                           data-value="{{ stats_br.non_integres|default:0 }}"
+                           style="font-size: 1.3rem;">
+                            0
+                        </a>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ stats_br.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
+                                 aria-valuenow="{{ stats_br.taux_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ stats_br.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_br.taux_integration|default:0 }}%;"
+                                 aria-valuenow="{{ stats_br.taux_non_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="text-center mt-1">
+                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_br.taux_integration|default:0 }}">0</span>% trouvées
+                            </small>
+                        </div>
+                    </div>
+                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=br{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Factures -->
+        <div class="col-md-6 col-lg-4">
+            <div class="accueil-card card-factures">
+                <div class="accueil-card-header">
+                    <i class="bi bi-file-earmark-text me-2"></i> Factures
+                </div>
+                <div class="accueil-card-body">
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
+                        <span class="stat-value info" data-value="{{ stats_factures.total|default:0 }}">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
+                        </span>
+                        <span class="stat-value" data-value="{{ stats_factures.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
+                        </span>
+                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
+                           class="stat-value text-danger fw-bold text-decoration-none"
+                           data-value="{{ stats_factures.non_integres|default:0 }}"
+                           style="font-size: 1.3rem;">
+                            0
+                        </a>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ stats_factures.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
+                                 aria-valuenow="{{ stats_factures.taux_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ stats_factures.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_factures.taux_integration|default:0 }}%;"
+                                 aria-valuenow="{{ stats_factures.taux_non_integration|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="text-center mt-1">
+                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_factures.taux_integration|default:0 }}">0</span>% intégrées
+                            </small>
+                        </div>
+                    </div>
+                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remontées -->
+        <div class="col-md-6 col-lg-4">
+            <div class="accueil-card card-remontees">
+                <div class="accueil-card-header">
+                    <i class="bi bi-ticket-perforated me-2"></i> Remontées
+                </div>
+                <div class="accueil-card-body">
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-list-ul text-info"></i> Total</span>
+                        <span class="stat-value info" data-value="{{ stats_remontees.total|default:0 }}">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-check-circle-fill text-success"></i> Résolues</span>
+                        <span class="stat-value success" data-value="{{ stats_remontees.resolu|default:0 }}">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label"><i class="bi bi-clock-history text-warning"></i> En cours</span>
+                        <span class="stat-value warning" data-value="{{ stats_remontees.en_cours|default:0 }}">0</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress" style="background-color: #e5e7eb; position: relative; height: 6px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ stats_remontees.taux_resolu|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0; height: 100%; z-index: 1;"
+                                 aria-valuenow="{{ stats_remontees.taux_resolu|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ stats_remontees.taux_non_resolu|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_remontees.taux_resolu|default:0 }}%; height: 100%; z-index: 1;"
+                                 aria-valuenow="{{ stats_remontees.taux_non_resolu|default:0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="text-center mt-1">
+                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_remontees.taux_resolu|default:0 }}">0</span>% résolues
+                            </small>
+                        </div>
+                    </div>
+                    <a href="{% url 'tickets:liste' %}{% if date_debut %}?date_debut={{ date_debut }}{% endif %}{% if date_fin %}{% if date_debut %}&{% else %}?{% endif %}date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setPeriode(periode) {
+    document.getElementById('periodeInput').value = periode;
+    
+    // Afficher/masquer les sélecteurs de date
+    const datePickerGroup = document.getElementById('datePickerGroup');
+    if (periode === 'personnalise') {
+        datePickerGroup.style.display = 'flex';
+    } else {
+        datePickerGroup.style.display = 'none';
+    }
+    
+    // Mettre à jour les boutons actifs
+    document.querySelectorAll('.btn-filtre').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Soumettre le formulaire
+    document.getElementById('filtreForm').submit();
+}
+
+function animateValue(element, start, end, duration, suffix = '') {
+    if (start === end) {
+        const formatted = end.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        element.textContent = formatted + suffix;
+        element.style.opacity = '1';
+        return;
+    }
+    
+    element.style.opacity = '0';
+    element.style.transform = 'translateY(10px)';
+    
+    const maxSteps = 60;
+    const stepTime = duration / maxSteps;
+    const stepValue = (end - start) / maxSteps;
+    
+    let current = start;
+    let stepCount = 0;
+    
+    // Animation d'opacité et de position
+    const fadeIn = setInterval(function() {
+        const progress = stepCount / maxSteps;
+        element.style.opacity = Math.min(progress * 2, 1);
+        element.style.transform = `translateY(${10 * (1 - progress)}px)`;
+    }, stepTime);
+    
+    const timer = setInterval(function() {
+        current += stepValue;
+        stepCount++;
+        
+        if (stepCount >= maxSteps || (stepValue > 0 && current >= end) || (stepValue < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+            clearInterval(fadeIn);
+            element.style.opacity = '1';
+            element.style.transform = 'translateY(0)';
+        }
+        
+        const formatted = Math.round(current).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        element.textContent = formatted + suffix;
+    }, stepTime);
+}
+
+function animatePercentage(element, start, end, duration) {
+    if (start === end) {
+        element.textContent = end.toFixed(2).replace('.', ',');
+        element.style.opacity = '1';
+        return;
+    }
+    
+    element.style.opacity = '0';
+    element.style.transform = 'scale(0.8)';
+    
+    const maxSteps = 60;
+    const stepTime = duration / maxSteps;
+    const stepValue = (end - start) / maxSteps;
+    
+    let current = start;
+    let stepCount = 0;
+    
+    // Animation d'opacité et de scale
+    const fadeIn = setInterval(function() {
+        const progress = stepCount / maxSteps;
+        element.style.opacity = Math.min(progress * 2, 1);
+        element.style.transform = `scale(${0.8 + 0.2 * progress})`;
+    }, stepTime);
+    
+    const timer = setInterval(function() {
+        current += stepValue;
+        stepCount++;
+        
+        if (stepCount >= maxSteps || (stepValue > 0 && current >= end) || (stepValue < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+            clearInterval(fadeIn);
+            element.style.opacity = '1';
+            element.style.transform = 'scale(1)';
+        }
+        
+        element.textContent = current.toFixed(2).replace('.', ',');
+    }, stepTime);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const duration = 800; // 800ms pour une animation plus fluide
+    
+    // Animer les valeurs numériques avec délai progressif
+    document.querySelectorAll('.stat-value[data-value]').forEach(function(element, index) {
+        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
+        element.textContent = '0';
+        element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        
+        setTimeout(function() {
+            animateValue(element, 0, targetValue, duration);
+        }, 150 + (index * 50));
+    });
+    
+    // Animer les pourcentages avec délai progressif
+    document.querySelectorAll('.stat-percentage[data-value]').forEach(function(element, index) {
+        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
+        element.textContent = '0';
+        element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        
+        setTimeout(function() {
+            animatePercentage(element, 0, targetValue, duration);
+        }, 300 + (index * 50));
+    });
+    
+    // Animer les barres de progression avec effet de rebond
+    document.querySelectorAll('.progress-bar').forEach(function(bar, index) {
+        const widthAttr = bar.getAttribute('aria-valuenow') || bar.style.width;
+        const widthPercent = parseFloat(widthAttr) || 0;
+        const leftPercent = parseFloat(bar.style.left) || 0;
+        
+        // S'assurer que la couleur est visible
+        if (bar.classList.contains('bg-success')) {
+            if (!bar.style.backgroundColor || bar.style.backgroundColor === '') {
+                bar.style.backgroundColor = '#10b981';
+            }
+        } else if (bar.classList.contains('bg-danger')) {
+            if (!bar.style.backgroundColor || bar.style.backgroundColor === '') {
+                bar.style.backgroundColor = '#ef4444';
+            }
+        }
+        
+        bar.style.width = '0%';
+        bar.style.display = 'block';
+        bar.style.opacity = '0';
+        bar.style.height = '100%';
+        bar.style.position = 'absolute';
+        bar.style.left = leftPercent + '%';
+        bar.style.zIndex = '1';
+        bar.style.transform = 'scaleX(0)';
+        bar.style.transformOrigin = 'left';
+        
+        // Animation avec délai pour chaque barre
+        setTimeout(function() {
+            bar.style.transition = 'width 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease, transform 0.5s ease';
+            bar.style.opacity = '1';
+            bar.style.transform = 'scaleX(1)';
+            bar.style.width = widthPercent + '%';
+        }, 400 + (index * 100));
+    });
+});
+</script>
+{% endblock %}

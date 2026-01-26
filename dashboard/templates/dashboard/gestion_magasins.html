@@ -1,0 +1,120 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Gestion des magasins{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h1><i class="bi bi-shop"></i> Gestion des magasins</h1>
+</div>
+
+<!-- Formulaire d'ajout / modification de magasin -->
+<div class="card dashboard-card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            {% if magasin_edit %}
+                <i class="bi bi-pencil-square"></i> Modifier le magasin {{ magasin_edit.code }}
+            {% else %}
+                <i class="bi bi-plus-circle"></i> Ajouter un magasin
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post" class="row g-3 align-items-end">
+            {% csrf_token %}
+            <div class="col-md-3">
+                <label for="code" class="form-label fw-semibold small text-uppercase">Code magasin</label>
+                <input
+                    type="text"
+                    name="code"
+                    id="code"
+                    maxlength="10"
+                    class="form-control"
+                    placeholder="Ex : 332"
+                    value="{% if magasin_edit %}{{ magasin_edit.code }}{% endif %}"
+                    {% if magasin_edit %}readonly{% else %}required{% endif %}
+                >
+            </div>
+            <div class="col-md-6">
+                <label for="nom" class="form-label fw-semibold small text-uppercase">Nom du magasin</label>
+                <input
+                    type="text"
+                    name="nom"
+                    id="nom"
+                    class="form-control"
+                    placeholder="Nom complet du magasin"
+                    value="{% if magasin_edit %}{{ magasin_edit.nom }}{% endif %}"
+                    required
+                >
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                {% if magasin_edit %}
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="original_code" value="{{ magasin_edit.code }}">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check2-circle"></i> Mettre à jour
+                    </button>
+                {% else %}
+                    <input type="hidden" name="action" value="create">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                {% endif %}
+            </div>
+        </form>
+        <p class="text-muted mt-2 mb-0" style="font-size: 0.8rem;">
+            Une fois créé, le magasin sera automatiquement disponible dans tous les filtres et écrans
+            (Dashboard, BR, commandes, remontées, etc.).
+        </p>
+    </div>
+</div>
+
+<!-- Liste des magasins -->
+<div class="card dashboard-card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Liste des magasins</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Nom</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if magasins %}
+                        {% for magasin in magasins %}
+                            <tr>
+                                <td class="fw-semibold">{{ magasin.code }}</td>
+                                <td>{{ magasin.nom }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'dashboard:gestion_magasins' %}?edit={{ magasin.code }}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'dashboard:gestion_magasins' %}" class="d-inline" onsubmit="return confirm('Supprimer le magasin {{ magasin.code }} - {{ magasin.nom }} ?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="code" value="{{ magasin.code }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox"></i> Aucun magasin trouvé.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

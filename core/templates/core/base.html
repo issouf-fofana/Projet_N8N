@@ -12,24 +12,28 @@
     <style>
         :root {
             --sidebar-width: 250px;
-            --sidebar-bg: #1e293b;
+            --sidebar-bg: #1e3a8a;  /* Bleu foncé comme dans la capture */
             --sidebar-color: #f1f5f9;
-            --main-bg: #f1f5f9;
-            /* Palette limitée à 3 couleurs + transparences */
-            --color-primary: #3b82f6;      /* Bleu - Principal */
-            --color-success: #10b981;      /* Vert - Succès */
-            --color-alert: #f59e0b;       /* Orange - Alerte/Warning/Danger */
-            --color-neutral: #6b7280;      /* Gris (neutre) */
+            --main-bg: #e5e7eb;     /* Gris clair comme dans la capture */
+            /* Palette principale : bleu moderne comme dans la capture */
+            --color-primary: #3b82f6;      /* Bleu principal */
+            --color-success: #10b981;       /* Vert pour succès */
+            --color-alert: #ef4444;         /* Rouge pour erreurs */
+            --color-warning: #f59e0b;       /* Orange/jaune pour avertissements */
+            --color-info: #3b82f6;         /* Bleu pour infos */
+            --color-neutral: #6b7280;       /* Gris neutre */
             --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            --alert-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --alert-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --info-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             /* Transparences pour variations */
-            --primary-light: rgba(59, 130, 246, 0.1);
-            --primary-medium: rgba(59, 130, 246, 0.2);
-            --success-light: rgba(16, 185, 129, 0.1);
-            --success-medium: rgba(16, 185, 129, 0.2);
-            --alert-light: rgba(245, 158, 11, 0.1);
-            --alert-medium: rgba(245, 158, 11, 0.2);
+            --primary-light: rgba(59, 130, 246, 0.10);
+            --primary-medium: rgba(59, 130, 246, 0.20);
+            --success-light: rgba(16, 185, 129, 0.10);
+            --success-medium: rgba(16, 185, 129, 0.20);
+            --alert-light: rgba(239, 68, 68, 0.10);
+            --alert-medium: rgba(239, 68, 68, 0.20);
         }
         
         body {
@@ -43,7 +47,7 @@
             left: 0;
             height: 100vh;
             width: var(--sidebar-width);
-            background-color: var(--sidebar-bg);
+            background-color: #1e3a8a;  /* Bleu foncé comme dans la capture */
             color: var(--sidebar-color);
             padding: 20px 0;
             overflow-y: auto;
@@ -83,13 +87,13 @@
         
         .sidebar-menu a:hover {
             background-color: rgba(255, 255, 255, 0.1);
-            border-left-color: #3498db;
+            border-left-color: #60a5fa;
             color: white;
         }
         
         .sidebar-menu a.active {
             background-color: rgba(255, 255, 255, 0.15);
-            border-left-color: #3498db;
+            border-left-color: #60a5fa;
             color: white;
         }
         
@@ -121,7 +125,7 @@
         
         .sidebar-accordion .accordion-button:not(.collapsed) {
             background-color: rgba(255, 255, 255, 0.1);
-            border-left-color: #3498db;
+            border-left-color: #60a5fa;
             color: white;
         }
         
@@ -151,14 +155,14 @@
         
         .sidebar-accordion .accordion-body a:hover {
             background-color: rgba(255, 255, 255, 0.1);
-            border-left-color: #3498db;
+            border-left-color: #60a5fa;
             color: white;
             padding-left: 55px;
         }
         
         .sidebar-accordion .accordion-body a.active {
             background-color: rgba(255, 255, 255, 0.15);
-            border-left-color: #3498db;
+            border-left-color: #60a5fa;
             color: white;
         }
         
@@ -171,79 +175,75 @@
             margin-left: var(--sidebar-width);
             padding: 40px;
             min-height: 100vh;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: #e5e7eb;  /* Gris clair uniforme comme dans la capture */
         }
         
         .page-header {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
             color: white;
-            padding: 25px 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
-            margin-bottom: 30px;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 25px;
         }
         
         .page-header h1 {
             margin: 0;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             color: white;
         }
         
         .btn-primary {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             border: none;
             padding: 10px 25px;
             border-radius: 8px;
             font-weight: 600;
-            transition: all 0.3s;
+            transition: all 0.2s;
             color: white;
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             color: white;
         }
         
         .btn-success {
-            background: var(--success-gradient);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border: none;
             color: white;
         }
         
         .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
             color: white;
         }
         
         .btn-warning {
-            background: var(--alert-gradient);
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             border: none;
             color: white;
         }
         
         .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
             color: white;
         }
         
         .btn-danger {
-            background: var(--alert-gradient);
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             border: none;
             color: white;
         }
         
         .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
             color: white;
         }
         
         .btn-info {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             border: none;
             color: white;
         }
@@ -293,23 +293,23 @@
         }
         
         .badge.bg-primary {
-            background: var(--primary-gradient) !important;
+            background: #3b82f6 !important;
         }
         
         .badge.bg-success {
-            background: var(--success-gradient) !important;
+            background: #10b981 !important;
         }
         
         .badge.bg-warning {
-            background: var(--alert-gradient) !important;
+            background: #f59e0b !important;
         }
         
         .badge.bg-danger {
-            background: var(--alert-gradient) !important;
+            background: #ef4444 !important;
         }
         
         .badge.bg-info {
-            background: var(--primary-gradient) !important;
+            background: #3b82f6 !important;
         }
         
         /* Boutons radio pour type de données */
@@ -317,50 +317,66 @@
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             border-color: #3b82f6;
             color: white;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
         }
         
         .btn-outline-primary {
-            border: 2px solid #e2e8f0;
-            color: #475569;
+            border: 2px solid #e5e7eb;
+            color: #374151;
             background: white;
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
         
         .btn-outline-primary:hover {
-            background-color: #f1f5f9;
+            background-color: #f9fafb;
             border-color: #3b82f6;
             color: #3b82f6;
-            transform: translateY(-1px);
         }
         
         .card {
-            border: 1px solid #cbd5e1;
+            border: 1px solid #e5e7eb;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
             overflow: hidden;
-            transition: box-shadow 0.3s;
+            transition: box-shadow 0.2s;
             background: #ffffff;
         }
         
         .card:hover {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
         }
         
         .card-header {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            color: white;
+            background: rgba(249, 250, 251, 0.9) !important;
+            backdrop-filter: blur(10px);
+            color: #1f2937 !important;
             border-radius: 0 !important;
-            padding: 18px 25px;
+            padding: 16px 20px;
             font-weight: 600;
-            font-size: 1.1rem;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            font-size: 1rem;
+            border-bottom: 1px solid #e5e7eb;
         }
         
-        .card-header.bg-primary {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            color: white;
+        .card-header.bg-primary,
+        .card-header.bg-danger,
+        .card-header.bg-warning,
+        .card-header.bg-info,
+        .card-header.bg-success {
+            background: rgba(249, 250, 251, 0.9) !important;
+            color: #1f2937 !important;
+        }
+        
+        .card-header.text-white {
+            color: #1f2937 !important;
+        }
+        
+        .card-header h5 {
+            color: #1f2937 !important;
+        }
+        
+        .card-header h5 i {
+            color: #3b82f6;
         }
         
         .card-body {
@@ -368,111 +384,92 @@
         }
         
         .stat-card {
-            background: rgba(59, 130, 246, 0.1);
-            color: #1e293b;
+            background: #ffffff;
+            color: #1f2937;
             border-radius: 12px;
-            padding: 25px;
+            padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             position: relative;
             overflow: hidden;
-            border-left: 4px solid var(--color-primary);
-            backdrop-filter: blur(10px);
+            border-top: 4px solid var(--color-primary);
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
         }
         
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-            pointer-events: none;
+        /* S'assurer que toutes les cartes dans une row ont la même hauteur */
+        .row .col-md-3 {
+            display: flex;
+        }
+        
+        .row .col-md-3 > .stat-card {
+            width: 100%;
         }
         
         .stat-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-            background: rgba(59, 130, 246, 0.15);
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
         }
         
         .stat-card.success {
-            background: rgba(16, 185, 129, 0.1);
-            border-left-color: var(--color-success);
-        }
-        
-        .stat-card.success::before {
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+            border-top-color: #10b981;
         }
         
         .stat-card.success:hover {
-            background: rgba(16, 185, 129, 0.15);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
         }
         
         .stat-card.warning, .stat-card.danger {
-            background: rgba(245, 158, 11, 0.1);
-            border-left-color: var(--color-alert);
-        }
-        
-        .stat-card.warning::before, .stat-card.danger::before {
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%);
+            border-top-color: #ef4444;
         }
         
         .stat-card.warning:hover, .stat-card.danger:hover {
-            background: rgba(245, 158, 11, 0.15);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
         }
         
         .stat-card.info {
-            background: rgba(59, 130, 246, 0.1);
-            border-left-color: var(--color-primary);
-        }
-        
-        .stat-card.info::before {
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+            border-top-color: #3b82f6;
         }
         
         .stat-card.info:hover {
-            background: rgba(59, 130, 246, 0.15);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
         }
         
         .stat-card.primary {
-            background: rgba(59, 130, 246, 0.1);
-            border-left-color: var(--color-primary);
-        }
-        
-        .stat-card.primary::before {
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+            border-top-color: #3b82f6;
         }
         
         .stat-card.primary:hover {
-            background: rgba(59, 130, 246, 0.15);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
         }
         
         .stat-value {
-            font-size: 3rem;
+            font-size: 2.2rem;
             font-weight: 700;
-            margin: 15px 0 5px 0;
-            color: #1e293b;
+            margin: 10px 0 5px 0;
+            color: #1f2937;
+            line-height: 1.2;
         }
         
         .stat-label {
-            font-size: 0.9rem;
-            color: #475569;
+            font-size: 0.85rem;
+            color: #6b7280;
             font-weight: 600;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
+            margin-bottom: 8px;
         }
         
         .stat-icon {
-            font-size: 3.5rem;
-            opacity: 0.2;
+            font-size: 3rem;
+            opacity: 0.15;
             position: absolute;
             right: 20px;
             top: 50%;
             transform: translateY(-50%);
-            color: #1e293b;
+            color: #1f2937;
         }
         
         .table-responsive {
@@ -637,6 +634,38 @@
             border-color: #f56565;
             color: white;
         }
+
+        /* Bouton Accueil flottant (visible partout) */
+        .btn-accueil-fixed {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 1200;
+            width: 50px;
+            height: 50px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-gradient);
+            color: #ffffff;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .btn-accueil-fixed i {
+            font-size: 1.3rem;
+        }
+
+        .btn-accueil-fixed:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.45);
+            text-decoration: none;
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            color: #ffffff;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -648,8 +677,13 @@
         </div>
         <ul class="sidebar-menu">
             <li>
+                <a href="{% url 'dashboard:accueil' %}" class="{% if request.resolver_match.url_name == 'accueil' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> Accueil
+                </a>
+            </li>
+            <li>
                 <a href="{% url 'dashboard:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                    <i class="bi bi-speedometer2"></i> Dashboard
+                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
                 </a>
             </li>
         </ul>
@@ -741,19 +775,26 @@
             <!-- Paramètres -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name == 'historique_imports' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
+                    <button class="accordion-button {% if request.resolver_match.url_name in 'historique_imports configuration_systeme gestion_magasins gestion_utilisateurs preferences_utilisateur' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
                         <i class="bi bi-gear"></i> Paramètres
                     </button>
                 </h2>
-                <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'historique_imports' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name in 'historique_imports configuration_systeme gestion_magasins gestion_utilisateurs preferences_utilisateur' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
                         <a href="{% url 'dashboard:historique_imports' %}" class="{% if request.resolver_match.url_name == 'historique_imports' %}active{% endif %}">
                             <i class="bi bi-clock-history"></i> Historique des imports
                         </a>
-                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Configuration système</a>
-                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Gestion des magasins</a>
-                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Utilisateurs</a>
-                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Préférences</a>
+                        <a href="{% url 'dashboard:configuration_systeme' %}" class="{% if request.resolver_match.url_name == 'configuration_systeme' %}active{% endif %}">
+                            <i class="bi bi-sliders"></i> Configuration système
+                        </a>
+                        <a href="{% url 'dashboard:gestion_magasins' %}" class="{% if request.resolver_match.url_name == 'gestion_magasins' %}active{% endif %}">
+                            <i class="bi bi-shop"></i> Gestion des magasins
+                        </a>
+                        <a href="{% url 'dashboard:gestion_utilisateurs' %}" class="{% if request.resolver_match.url_name == 'gestion_utilisateurs' %}active{% endif %}">
+                            <i class="bi bi-people"></i> Utilisateurs
+                        </a>
+                        <a href="{% url 'dashboard:preferences_utilisateur' %}" class="{% if request.resolver_match.url_name == 'preferences_utilisateur' %}active{% endif %}">
+                            <i class="bi bi-sliders2-vertical"></i> Préférences</a>
                     </div>
                 </div>
             </div>
@@ -790,8 +831,14 @@
         
         {% block content %}{% endblock %}
     </div>
+
+    <!-- Bouton flottant pour revenir à l'accueil à tout moment -->
+    <a href="{% url 'dashboard:accueil' %}" class="btn-accueil-fixed" title="Retour à l'accueil">
+        <i class="bi bi-house-door-fill"></i>
+    </a>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

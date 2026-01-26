@@ -3,6 +3,315 @@
 
 {% block title %}Dashboard - Vérification Commandes{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Style inspiré de la capture : header sombre, fond gris clair, cartes modernes */
+    body {
+        background-color: #e5e7eb !important;
+    }
+    
+    .main-content {
+        background: #e5e7eb !important;
+        padding: 20px;
+    }
+    
+    /* Header style dashboard moderne - transparent */
+    .page-header {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        color: #1f2937;
+        padding: 20px 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin-bottom: 25px;
+        border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+    
+    .page-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
+        color: #1f2937;
+    }
+    
+    .page-header h1 i {
+        color: #3b82f6;
+    }
+    
+    /* Boutons de période */
+    .btn-filtre {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        background: white;
+        font-weight: 500;
+    }
+    
+    .btn-filtre:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+        color: #1e293b;
+    }
+    
+    .btn-filtre.active {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        font-weight: 600;
+    }
+
+    .date-picker-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .date-picker-group input {
+        padding: 8px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    
+    .date-picker-group input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Cartes du dashboard : style moderne comme dans la capture */
+    .dashboard-card {
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        background: #ffffff;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .dashboard-card .card-header {
+        background: rgba(249, 250, 251, 0.9);
+        backdrop-filter: blur(10px);
+        color: #1f2937;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 16px 20px;
+    }
+
+    .dashboard-card .card-header h5 {
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        margin: 0;
+        color: #1f2937;
+    }
+    
+    .dashboard-card .card-header.bg-primary {
+        background: rgba(249, 250, 251, 0.9);
+        color: #1f2937;
+    }
+    
+    .dashboard-type-card .card-header {
+        background: rgba(249, 250, 251, 0.9) !important;
+        color: #1f2937 !important;
+    }
+
+    .dashboard-filters-card .card-body {
+        padding: 20px;
+        background: #ffffff;
+    }
+
+    .dashboard-filters-card .form-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        font-weight: 600;
+    }
+
+    .dashboard-filters-card .form-control,
+    .dashboard-filters-card .form-select {
+        border-radius: 8px;
+        border-color: #d1d5db;
+        font-size: 0.9rem;
+    }
+
+    .dashboard-filters-card .form-control:focus,
+    .dashboard-filters-card .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .dashboard-filters-card .btn-primary {
+        border-radius: 8px;
+        padding-inline: 24px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border: none;
+    }
+    
+    /* Cartes de statistiques : style moderne avec accents colorés */
+    .stat-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e5e7eb;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+    
+    /* Accent coloré en haut de chaque carte */
+    .stat-card.info {
+        border-top: 4px solid #3b82f6;
+    }
+    
+    .stat-card.success {
+        border-top: 4px solid #10b981;
+    }
+    
+    .stat-card.warning {
+        border-top: 4px solid #f59e0b;
+    }
+    
+    .stat-card.danger {
+        border-top: 4px solid #ef4444;
+    }
+    
+    .stat-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        font-size: 0.85rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+    }
+    
+    .stat-icon {
+        font-size: 3rem;
+        opacity: 0.15;
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #1f2937;
+    }
+    
+    /* Tableau */
+    .card {
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        background: #ffffff;
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: rgba(249, 250, 251, 0.9);
+        backdrop-filter: blur(10px);
+        color: #1f2937;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .card-header h5 {
+        color: #1f2937;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .table {
+        margin: 0;
+    }
+    
+    .table thead {
+        background: #f9fafb;
+    }
+    
+    .table thead th {
+        border-bottom: 2px solid #e5e7eb;
+        font-weight: 600;
+        color: #374151;
+        padding: 12px 15px;
+    }
+    
+    .table tbody tr {
+        transition: background 0.2s;
+    }
+    
+    .table tbody tr:hover {
+        background: #f9fafb;
+    }
+    
+    /* Badges */
+    .badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+    
+    .badge.bg-primary {
+        background: #3b82f6 !important;
+    }
+    
+    .badge.bg-success {
+        background: #10b981 !important;
+    }
+    
+    .badge.bg-danger {
+        background: #ef4444 !important;
+    }
+    
+    .badge.bg-warning {
+        background: #f59e0b !important;
+    }
+    
+    /* Boutons */
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border: none;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+    }
+    
+    .btn-outline-primary {
+        border: 2px solid #3b82f6;
+        color: #3b82f6;
+        background: white;
+    }
+    
+    .btn-outline-primary:hover {
+        background: #3b82f6;
+        color: white;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
@@ -21,8 +330,8 @@
 </div>
 
 <!-- Filtre Type de Données -->
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
+<div class="card mb-4 dashboard-card dashboard-type-card">
+    <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-filter-circle"></i> Type de Données</h5>
     </div>
     <div class="card-body">
@@ -79,45 +388,70 @@
 </div>
 
 <!-- Filtres -->
-<div class="card mb-4">
+<div class="card mb-4 dashboard-card dashboard-filters-card">
     <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres de recherche</h5>
     </div>
     <div class="card-body">
         <form method="get" class="row g-3" id="filterForm">
             <input type="hidden" name="type_donnees" value="{{ filtres.type_donnees|default:'commandes_asten' }}">
+            <input type="hidden" name="periode" id="periodeInput" value="{{ periode|default:'' }}">
             
-            <!-- Filtres rapides -->
+            <!-- Filtres de période (même style que sur l'accueil) -->
             <div class="col-md-12 mb-3">
-                <label class="form-label fw-semibold">
-                    <i class="bi bi-clock-history"></i> Filtres rapides
+                <label class="form-label fw-semibold mb-1">
+                    <i class="bi bi-funnel-fill"></i> Période
                 </label>
                 <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-outline-primary" onclick="setDateFilter('aujourdhui')">
+                    <button type="button" class="btn btn-filtre {% if periode == 'aujourdhui' or not periode %}active{% endif %}"
+                            onclick="setDateFilter('aujourdhui', event)">
                         <i class="bi bi-calendar-day"></i> Aujourd'hui
                     </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="setDateFilter('hier')">
+                    <button type="button" class="btn btn-filtre {% if periode == 'hier' %}active{% endif %}"
+                            onclick="setDateFilter('hier', event)">
                         <i class="bi bi-calendar-minus"></i> Hier
                     </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="setDateFilter('semaine')">
-                        <i class="bi bi-calendar-week"></i> Semaine dernière
+                    <button type="button" class="btn btn-filtre {% if periode == 'semaine' %}active{% endif %}"
+                            onclick="setDateFilter('semaine', event)">
+                        <i class="bi bi-calendar-week"></i> Semaine
+                    </button>
+                    <button type="button" class="btn btn-filtre {% if periode == 'mois' %}active{% endif %}"
+                            onclick="setDateFilter('mois', event)">
+                        <i class="bi bi-calendar-month"></i> Mois
+                    </button>
+                    <button type="button" class="btn btn-filtre {% if periode == '3mois' %}active{% endif %}"
+                            onclick="setDateFilter('3mois', event)">
+                        <i class="bi bi-calendar3"></i> 3 mois
+                    </button>
+                    <button type="button" class="btn btn-filtre {% if periode == 'annee' %}active{% endif %}"
+                            onclick="setDateFilter('annee', event)">
+                        <i class="bi bi-calendar-year"></i> Année
+                    </button>
+                    <button type="button" class="btn btn-filtre {% if periode == 'personnalise' %}active{% endif %}"
+                            onclick="setDateFilter('personnalise', event)">
+                        <i class="bi bi-calendar-range"></i> Personnalisé
                     </button>
                 </div>
             </div>
             
-            <div class="col-md-3">
-                <label for="date_debut" class="form-label fw-semibold">
-                    <i class="bi bi-calendar-event"></i> Date début
-                </label>
-                <input type="date" class="form-control form-control-lg" id="date_debut" name="date_debut" 
-                       value="{{ filtres.date_debut }}">
-            </div>
-            <div class="col-md-3">
-                <label for="date_fin" class="form-label fw-semibold">
-                    <i class="bi bi-calendar-check"></i> Date fin
-                </label>
-                <input type="date" class="form-control form-control-lg" id="date_fin" name="date_fin" 
-                       value="{{ filtres.date_fin }}">
+            <!-- Sélecteurs de dates : visibles uniquement en mode personnalisé, comme sur Accueil -->
+            <div class="col-md-6" id="datePickerGroup" style="display: {% if periode == 'personnalise' %}flex{% else %}none{% endif %};">
+                <div class="date-picker-group w-100">
+                    <div class="flex-fill">
+                        <label for="date_debut" class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event"></i> Date début
+                        </label>
+                        <input type="date" class="form-control" id="date_debut" name="date_debut" 
+                               value="{{ filtres.date_debut }}">
+                    </div>
+                    <div class="flex-fill">
+                        <label for="date_fin" class="form-label fw-semibold">
+                            <i class="bi bi-calendar-check"></i> Date fin
+                        </label>
+                        <input type="date" class="form-control" id="date_fin" name="date_fin" 
+                               value="{{ filtres.date_fin }}">
+                    </div>
+                </div>
             </div>
             <div class="col-md-4">
                 <label class="form-label fw-semibold">
@@ -204,22 +538,7 @@
                         {% elif filtres.type_donnees == 'br' %}Total BR Asten
                         {% else %}Total Commandes Asten{% endif %}
                     </div>
-                    <div class="stat-value">{{ stats.total_source|default:0 }}</div>
-                </div>
-                <i class="bi bi-box-seam stat-icon"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card primary">
-            <div class="d-flex justify-content-between align-items-center position-relative">
-                <div>
-                    <div class="stat-label">
-                        {% if filtres.type_donnees == 'br' %}Taux intégration IC{% else %}Total Cyrus{% endif %}
-                    </div>
-                    <div class="stat-value">
-                        {% if filtres.type_donnees == 'br' %}{{ stats.taux_integration|default:0 }}%{% else %}{{ stats.total_target|default:0 }}{% endif %}
-                    </div>
+                    <div class="stat-value" data-value="{{ stats.total_source|default:0 }}">0</div>
                 </div>
                 <i class="bi bi-box-seam stat-icon"></i>
             </div>
@@ -232,9 +551,9 @@
                     <div class="stat-label">
                         {% if filtres.type_donnees == 'br' %}BR Trouvées{% else %}Commandes Intégrées{% endif %}
                     </div>
-                    <div class="stat-value">{{ stats.integres|default:0 }}</div>
-                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
-                        <i class="bi bi-percent"></i> {{ stats.taux_integration|default:0 }}%
+                    <div class="stat-value" data-value="{{ stats.integres|default:0 }}">0</div>
+                    <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
+                        <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_integration|default:0 }}">0</span>%
                     </div>
                 </div>
                 <i class="bi bi-check-circle stat-icon"></i>
@@ -248,12 +567,22 @@
                     <div class="stat-label">
                         {% if filtres.type_donnees == 'br' %}BR Non Trouvées{% else %}Commandes Non Intégrées{% endif %}
                     </div>
-                    <div class="stat-value">{{ stats.non_integres|default:0 }}</div>
-                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
-                        <i class="bi bi-percent"></i> {{ stats.taux_non_integration|default:0 }}%
+                    <div class="stat-value" data-value="{{ stats.non_integres|default:0 }}">0</div>
+                    <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
+                        <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_non_integration|default:0 }}">0</span>%
                     </div>
                 </div>
                 <i class="bi bi-exclamation-triangle stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0;">
+            <div class="d-flex flex-column align-items-center justify-content-center" style="flex: 1;">
+                <div class="stat-label mb-2" style="font-size: 0.85rem; color: #64748b;">
+                    <i class="bi bi-pie-chart"></i> Répartition
+                </div>
+                <canvas id="pieChart" style="max-width: 120px; max-height: 120px;"></canvas>
             </div>
         </div>
     </div>
@@ -267,43 +596,9 @@
     <div class="card-body p-0">
         {% if type_donnees == 'br' %}
         <div class="p-3">
-            <h6 class="mb-3"><i class="bi bi-check-circle"></i> BR Trouvées (Intégrées IC)</h6>
-            <div class="table-responsive mb-4">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="border-0"><i class="bi bi-calendar"></i> Date</th>
-                            <th class="border-0"><i class="bi bi-hash"></i> N° BR</th>
-                            <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
-                            <th class="border-0"><i class="bi bi-check2-circle"></i> Statut IC</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if br_trouvees and br_trouvees|length > 0 %}
-                            {% for br in br_trouvees %}
-                            <tr class="align-middle">
-                                <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
-                                <td><strong class="text-dark">{{ br.numero_br }}</strong></td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
-                                    <small class="text-muted">{{ br.code_magasin.nom }}</small>
-                                </td>
-                                <td>
-                                    <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">Aucun BR trouvé.</td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-
+            <!-- Afficher les BR Non Trouvées en premier -->
             <h6 class="mb-3"><i class="bi bi-exclamation-circle"></i> BR Non Trouvées (Non intégrées IC)</h6>
-            <div class="table-responsive">
+            <div class="table-responsive mb-4">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
@@ -318,7 +613,12 @@
                             {% for br in br_non_trouvees %}
                             <tr class="align-middle">
                                 <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
-                                <td><strong class="text-dark">{{ br.numero_br }}</strong></td>
+                                <td>
+                                    <a href="{% url 'dashboard:detail_br_asten' br.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ br.numero_br }}</strong>
+                                    </a>
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
                                     <small class="text-muted">{{ br.code_magasin.nom }}</small>
@@ -331,6 +631,47 @@
                         {% else %}
                             <tr>
                                 <td colspan="4" class="text-center py-4 text-muted">Aucun BR non trouvé.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Afficher les BR Trouvées en second -->
+            <h6 class="mb-3"><i class="bi bi-check-circle"></i> BR Trouvées (Intégrées IC)</h6>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="border-0"><i class="bi bi-calendar"></i> Date</th>
+                            <th class="border-0"><i class="bi bi-hash"></i> N° BR</th>
+                            <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                            <th class="border-0"><i class="bi bi-check2-circle"></i> Statut IC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if br_trouvees and br_trouvees|length > 0 %}
+                            {% for br in br_trouvees %}
+                            <tr class="align-middle">
+                                <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
+                                <td>
+                                    <a href="{% url 'dashboard:detail_br_asten' br.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ br.numero_br }}</strong>
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
+                                    <small class="text-muted">{{ br.code_magasin.nom }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">Aucun BR trouvé.</td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -365,7 +706,12 @@
                             {% for item in commandes %}
                             <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
                                 <td class="fw-semibold">{{ item.asten.date_commande|date:"d/m/Y" }}</td>
-                                <td><strong class="text-dark">{{ item.asten.numero_commande }}</strong></td>
+                                <td>
+                                    <a href="{% url 'dashboard:detail_commande_asten' item.asten.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ item.asten.numero_commande }}</strong>
+                                    </a>
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ item.asten.code_magasin.code }}</span><br>
                                     <small class="text-muted">{{ item.asten.code_magasin.nom }}</small>
@@ -428,7 +774,12 @@
                             {% for item in commandes %}
                             <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
                                 <td class="fw-semibold">{{ item.gpv.date_creation|date:"d/m/Y" }}</td>
-                                <td><strong class="text-dark">{{ item.gpv.numero_commande }}</strong></td>
+                                <td>
+                                    <a href="{% url 'dashboard:detail_commande_gpv' item.gpv.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ item.gpv.numero_commande }}</strong>
+                                    </a>
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ item.gpv.code_magasin.code }}</span><br>
                                     <small class="text-muted">{{ item.gpv.code_magasin.nom }}</small>
@@ -512,7 +863,12 @@
                             {% for item in commandes %}
                             <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
                                 <td class="fw-semibold">{{ item.legend.date_commande|date:"d/m/Y" }}</td>
-                                <td><strong class="text-dark">{{ item.legend.numero_commande }}</strong></td>
+                                <td>
+                                    <a href="{% url 'dashboard:detail_commande_legend' item.legend.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ item.legend.numero_commande }}</strong>
+                                    </a>
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ item.legend.depot_origine }}</span><br>
                                     <small class="text-muted">{{ item.legend.depot_destination|default:"-" }}</small>
@@ -582,7 +938,12 @@
                             {% for item in commandes %}
                             <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
                                 <td class="fw-semibold">{{ item.asten.date_br|date:"d/m/Y" }}</td>
-                                <td><strong class="text-dark">{{ item.asten.numero_br }}</strong></td>
+                                <td>
+                                    <a href="{% url 'dashboard:detail_br_asten' item.asten.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ item.asten.numero_br }}</strong>
+                                    </a>
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ item.asten.code_magasin.code }}</span><br>
                                     <small class="text-muted">{{ item.asten.code_magasin.nom }}</small>
@@ -695,18 +1056,32 @@ function updateMagasinText() {
     }
 }
 
-function setDateFilter(periode) {
+function setDateFilter(periode, event) {
     const aujourdhui = new Date();
     const hier = new Date(aujourdhui);
     hier.setDate(hier.getDate() - 1);
     
-    // Calculer la semaine dernière (7 jours en arrière)
+    // Périodes supplémentaires
     const semaineDerniere = new Date(aujourdhui);
     semaineDerniere.setDate(semaineDerniere.getDate() - 7);
+    
+    const moisDernier = new Date(aujourdhui);
+    moisDernier.setDate(moisDernier.getDate() - 30);
+    
+    const troisMoisDerniers = new Date(aujourdhui);
+    troisMoisDerniers.setDate(troisMoisDerniers.getDate() - 90);
+    
+    const debutAnnee = new Date(aujourdhui.getFullYear(), 0, 1);
     
     const dateDebutInput = document.getElementById('date_debut');
     const dateFinInput = document.getElementById('date_fin');
     const filterForm = document.getElementById('filterForm');
+    const periodeInput = document.getElementById('periodeInput');
+    const datePickerGroup = document.getElementById('datePickerGroup');
+    
+    if (periodeInput) {
+        periodeInput.value = periode;
+    }
     
     if (periode === 'aujourdhui') {
         const dateStr = aujourdhui.toISOString().split('T')[0];
@@ -722,6 +1097,40 @@ function setDateFilter(periode) {
         const dateFinStr = aujourdhui.toISOString().split('T')[0];
         dateDebutInput.value = dateDebutStr;
         dateFinInput.value = dateFinStr;
+    } else if (periode === 'mois') {
+        const dateDebutStr = moisDernier.toISOString().split('T')[0];
+        const dateFinStr = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = dateDebutStr;
+        dateFinInput.value = dateFinStr;
+    } else if (periode === '3mois') {
+        const dateDebutStr = troisMoisDerniers.toISOString().split('T')[0];
+        const dateFinStr = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = dateDebutStr;
+        dateFinInput.value = dateFinStr;
+    } else if (periode === 'annee') {
+        const dateDebutStr = debutAnnee.toISOString().split('T')[0];
+        const dateFinStr = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = dateDebutStr;
+        dateFinInput.value = dateFinStr;
+    } else if (periode === 'personnalise') {
+        // Ne change pas les dates : l'utilisateur choisit manuellement
+    }
+    
+    // Afficher / masquer le bloc des dates comme sur l'accueil
+    if (datePickerGroup) {
+        if (periode === 'personnalise') {
+            datePickerGroup.style.display = 'flex';
+        } else {
+            datePickerGroup.style.display = 'none';
+        }
+    }
+    
+    // Mettre à jour l'état visuel des boutons
+    if (event && event.target) {
+        document.querySelectorAll('.btn-filtre').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
     }
     
     // Soumettre automatiquement le formulaire
@@ -752,5 +1161,200 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Animation d'incrémentation des valeurs (max 2 secondes)
+function animateValue(element, start, end, maxDuration, suffix = '') {
+    if (start === end) {
+        const formatted = end.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        element.textContent = formatted + suffix;
+        return;
+    }
+    
+    const range = Math.abs(end - start);
+    const maxSteps = 60; // Nombre maximum de pas pour une animation fluide
+    const stepValue = Math.max(1, Math.ceil(range / maxSteps)); // Pas d'incrémentation adaptatif
+    const stepTime = Math.floor(maxDuration / maxSteps); // Temps entre chaque pas
+    const increment = end > start ? stepValue : -stepValue;
+    let current = start;
+    
+    const timer = setInterval(function() {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+        }
+        
+        // Formater le nombre avec des espaces pour les milliers
+        const formatted = current.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        element.textContent = formatted + suffix;
+    }, stepTime);
+}
+
+// Animation pour les pourcentages (avec décimales, max 2 secondes)
+function animatePercentage(element, start, end, maxDuration) {
+    if (start === end) {
+        element.textContent = end.toFixed(2).replace('.', ',');
+        return;
+    }
+    
+    const range = Math.abs(end - start);
+    const maxSteps = 60; // Nombre maximum de pas
+    const stepValue = Math.max(0.01, range / maxSteps); // Pas adaptatif
+    const stepTime = Math.floor(maxDuration / maxSteps);
+    const increment = end > start ? stepValue : -stepValue;
+    let current = start;
+    
+    const timer = setInterval(function() {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+        }
+        
+        element.textContent = current.toFixed(2).replace('.', ',');
+    }, stepTime);
+}
+
+// Animer toutes les valeurs au chargement de la page (max 0.5 secondes)
+setTimeout(function() {
+    // Animer les valeurs principales
+    const statValues = document.querySelectorAll('.stat-value[data-value]');
+    statValues.forEach(function(element) {
+        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
+        const suffix = element.getAttribute('data-suffix') || '';
+        animateValue(element, 0, targetValue, 500, suffix);
+    });
+    
+    // Animer les pourcentages
+    const statPercentages = document.querySelectorAll('.stat-percentage[data-value]');
+    statPercentages.forEach(function(element) {
+        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
+        animatePercentage(element, 0, targetValue, 500);
+    });
+}, 300);
+
+// Réanimer les valeurs après un changement de filtre
+const filterForm = document.getElementById('filterForm');
+const typeForm = document.getElementById('typeForm');
+
+if (filterForm) {
+    const originalSubmit = filterForm.onsubmit;
+    filterForm.addEventListener('submit', function(e) {
+        sessionStorage.setItem('animateStats', 'true');
+    });
+}
+
+if (typeForm) {
+    typeForm.addEventListener('submit', function(e) {
+        sessionStorage.setItem('animateStats', 'true');
+    });
+}
+
+// Si on vient d'un changement de filtre, réanimer
+if (sessionStorage.getItem('animateStats') === 'true') {
+    sessionStorage.removeItem('animateStats');
+    
+    setTimeout(function() {
+        const statValues = document.querySelectorAll('.stat-value[data-value]');
+        statValues.forEach(function(element) {
+            const currentText = element.textContent.replace(/\s/g, '').replace(/[^0-9.]/g, '');
+            const currentValue = parseFloat(currentText) || 0;
+            const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
+            const suffix = element.getAttribute('data-suffix') || '';
+            animateValue(element, currentValue, targetValue, 500, suffix);
+        });
+        
+        const statPercentages = document.querySelectorAll('.stat-percentage[data-value]');
+        statPercentages.forEach(function(element) {
+            const currentText = element.textContent.replace(',', '.');
+            const currentValue = parseFloat(currentText) || 0;
+            const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
+            animatePercentage(element, currentValue, targetValue, 500);
+        });
+    }, 200);
+}
+
+// Diagramme circulaire (Pie Chart)
+let pieChartInstance = null;
+
+function updatePieChart() {
+    const ctx = document.getElementById('pieChart');
+    if (!ctx) return;
+    
+    // Récupérer les données depuis les éléments avec data-value
+    const integresElement = document.querySelector('.stat-card.success .stat-value[data-value]');
+    const nonIntegresElement = document.querySelector('.stat-card.warning .stat-value[data-value]');
+    
+    const integres = parseFloat(integresElement ? integresElement.getAttribute('data-value') : 0) || 0;
+    const nonIntegres = parseFloat(nonIntegresElement ? nonIntegresElement.getAttribute('data-value') : 0) || 0;
+    
+    // Déterminer les labels selon le type de données
+    const typeDonnees = '{{ filtres.type_donnees|default:"" }}';
+    const labelIntegres = typeDonnees === 'br' ? 'BR Trouvées' : 'Commandes Intégrées';
+    const labelNonIntegres = typeDonnees === 'br' ? 'BR Non Trouvées' : 'Commandes Non Intégrées';
+    
+    // Données pour le graphique
+    const data = {
+        labels: [labelIntegres, labelNonIntegres],
+        datasets: [{
+            data: [integres, nonIntegres],
+            backgroundColor: [
+                'rgba(16, 185, 129, 0.8)',  // Vert pour intégrées
+                'rgba(245, 158, 11, 0.8)'   // Orange pour non intégrées
+            ],
+            borderColor: [
+                'rgba(16, 185, 129, 1)',
+                'rgba(245, 158, 11, 1)'
+            ],
+            borderWidth: 2
+        }]
+    };
+    
+    // Configuration du graphique
+    const config = {
+        type: 'pie',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false  // Masquer la légende (on affiche les valeurs dans les cartes)
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(2) : 0;
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    };
+    
+    // Créer ou mettre à jour le graphique
+    if (window.pieChartInstance) {
+        window.pieChartInstance.data = data;
+        window.pieChartInstance.update('active');
+    } else {
+        window.pieChartInstance = new Chart(ctx, config);
+    }
+}
+
+// Initialiser le graphique au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(updatePieChart, 600);
+});
+
+// Mettre à jour le graphique après changement de filtre
+if (sessionStorage.getItem('animateStats') === 'true') {
+    setTimeout(function() {
+        updatePieChart();
+    }, 1000);
+}
 </script>
 {% endblock %}

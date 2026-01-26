@@ -8,6 +8,8 @@ from django.core.paginator import Paginator
 from datetime import datetime
 from django.utils import timezone
 from django.db.models import Q, Prefetch, Exists, OuterRef
+from django.db import IntegrityError
+from django.db.models.deletion import ProtectedError
 from imports.services import scanner_et_importer_fichiers
 from imports.models import ImportFichier
 from ecarts.services import recalculer_ecarts, get_statistiques
@@ -20,6 +22,7 @@ from ecarts.models import EcartCommande, EcartGPV, EcartLegend
 from core.models import Magasin
 from django.conf import settings
 from pathlib import Path
+from tickets.models import Ticket
 
 
 def dashboard(request):
@@ -30,12 +33,12 @@ def dashboard(request):
     if request.GET.get('type_donnees') != 'br':
         try:
             # Vérifier s'il y a de nouveaux fichiers à importer
-            media_root = Path(settings.MEDIA_ROOT)
+            # Utiliser les chemins configurables depuis settings
             sources = {
-                'asten': media_root / 'commande_asten',
-                'cyrus': media_root / 'commande_cyrus',
-                'gpv': media_root / 'commande_gpv',
-                'legend': media_root / 'commande_legend',
+                'asten': Path(settings.DOSSIER_COMMANDES_ASTEN_PATH),
+                'cyrus': Path(settings.DOSSIER_COMMANDES_CYRUS_PATH),
+                'gpv': Path(settings.DOSSIER_COMMANDES_GPV_PATH),
+                'legend': Path(settings.DOSSIER_COMMANDES_LEGEND_PATH),
             }
             nouveaux_fichiers = False
             for type_fichier, dossier in sources.items():
@@ -83,6 +86,8 @@ def dashboard(request):
     date_fin = request.GET.get('date_fin')
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
+    periode = request.GET.get('periode', '')
+    show = request.GET.get('show', '')  # 'non_integres' pour afficher uniquement les écarts ouverts
     
     # Nettoyer les valeurs "None" en string
     if date_debut == 'None' or date_debut == '':
@@ -160,29 +165,38 @@ def dashboard(request):
         if code_magasin:
             filtres_ecarts['commande_asten__code_magasin__code__in'] = code_magasin
         
-        # Compter les écarts "ouvert" uniquement (les "résolu" ne comptent pas comme non intégrés)
-        # Les écarts "quantite_0" ne comptent ni comme intégrés ni comme non intégrés
+        # Compter les écarts par statut
         total_ecarts_ouverts = EcartCommande.objects.filter(**filtres_ecarts).filter(statut='ouvert').count()
+        total_ecarts_resolus = EcartCommande.objects.filter(**filtres_ecarts).filter(statut='resolu').count()
+        total_ecarts_ignores = EcartCommande.objects.filter(**filtres_ecarts).filter(statut='ignore').count()
         total_ecarts_quantite_0 = EcartCommande.objects.filter(**filtres_ecarts).filter(statut='quantite_0').count()
         
-        # Logique simplifiée pour éviter le double comptage :
+        # Logique de calcul :
         # - Les écarts "ouverts" = commandes non intégrées
         # - Les écarts "résolus" = commandes considérées comme intégrées (même si pas encore dans Cyrus)
-        # - Les écarts "ignorés" = ne comptent ni comme intégrés ni comme non intégrés
-        # - Les écarts "quantite_0" = ne comptent ni comme intégrés ni comme non intégrés
+        # - Les écarts "ignorés" = commandes considérées comme intégrées
+        # - Les écarts "quantite_0" = NE COMPTENT PAS dans les statistiques (exclus du total)
+        # 
+        # Total pour les statistiques = total_asten - total_ecarts_quantite_0 (exclure les quantite_0)
+        # Commandes intégrées = total_asten - total_ecarts_ouverts - total_ecarts_quantite_0
+        # (les écarts résolus et ignorés sont déjà comptés comme intégrés dans cette formule)
+        
+        # Exclure les commandes avec écart "quantite_0" du total affiché
+        total_asten_pour_stats = total_asten - total_ecarts_quantite_0
+        
         # Commandes intégrées = total - écarts ouverts - écarts quantite_0
-        # (car si un écart est résolu ou ignoré, la commande est considérée comme intégrée)
-        # Les écarts quantite_0 sont exclus du total
+        # (les écarts résolus et ignorés sont déjà dans le total, donc ils sont comptés comme intégrés)
         commandes_integres = total_asten - total_ecarts_ouverts - total_ecarts_quantite_0
         commandes_non_integres = total_ecarts_ouverts
         
-        # Calculer les taux basés sur les commandes intégrées (réelles + résolues)
-        taux_integration = round((commandes_integres / total_asten * 100) if total_asten > 0 else 0, 2)
-        taux_non_integration = round((commandes_non_integres / total_asten * 100) if total_asten > 0 else 0, 2)
+        # Calculer les taux basés sur le total sans les quantite_0
+        taux_integration = round((commandes_integres / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
+        taux_non_integration = round((commandes_non_integres / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
         
         # Normaliser les statistiques pour correspondre au template
+        # Utiliser total_asten_pour_stats pour exclure les quantite_0 du total affiché
         stats = {
-            'total_source': total_asten,
+            'total_source': total_asten_pour_stats,  # Total sans les quantite_0
             'total_target': total_cyrus,
             'integres': commandes_integres,
             'non_integres': commandes_non_integres,  # Utiliser le calcul réel, pas les écarts
@@ -275,8 +289,11 @@ def dashboard(request):
             else:
                 commandes_non_integres_list.append(item)
         
-        # Mettre les non intégrées en premier, puis les intégrées
-        commandes_data = commandes_non_integres_list + commandes_integres_list
+        # Mettre les non intégrées en premier, puis les intégrées (ou seulement non intégrées selon le filtre)
+        if show == 'non_integres':
+            commandes_data = commandes_non_integres_list
+        else:
+            commandes_data = commandes_non_integres_list + commandes_integres_list
         titre_tableau = "Comparaison Asten vs Cyrus"
         
     elif type_donnees == 'commandes_gpv':
@@ -325,30 +342,38 @@ def dashboard(request):
         if code_magasin:
             filtres_ecarts['commande_gpv__code_magasin__code__in'] = code_magasin
         
-        # Compter les écarts "ouvert" uniquement (les "résolu" ne comptent pas comme non intégrés)
-        # Les écarts "quantite_0" ne comptent ni comme intégrés ni comme non intégrés
+        # Compter les écarts par statut
         total_ecarts_ouverts = EcartGPV.objects.filter(**filtres_ecarts).filter(statut='ouvert').count()
+        total_ecarts_resolus = EcartGPV.objects.filter(**filtres_ecarts).filter(statut='resolu').count()
+        total_ecarts_ignores = EcartGPV.objects.filter(**filtres_ecarts).filter(statut='ignore').count()
         total_ecarts_quantite_0 = EcartGPV.objects.filter(**filtres_ecarts).filter(statut='quantite_0').count()
         
-        # Logique simplifiée pour éviter le double comptage :
+        # Logique de calcul :
         # - Les écarts "ouverts" = commandes non intégrées
         # - Les écarts "résolus" = commandes considérées comme intégrées (même si pas encore dans Cyrus)
-        # - Les écarts "ignorés" = ne comptent ni comme intégrés ni comme non intégrés
-        # - Les écarts "quantite_0" = ne comptent ni comme intégrés ni comme non intégrés
-        # Commandes intégrées = total "Transmise" - écarts ouverts - écarts quantite_0
-        # (car si un écart est résolu ou ignoré, la commande est considérée comme intégrée)
+        # - Les écarts "ignorés" = commandes considérées comme intégrées
+        # - Les écarts "quantite_0" = NE COMPTENT PAS dans les statistiques (exclus du total)
+        # 
+        # Total pour les statistiques = total_gpv_transmise - total_ecarts_quantite_0 (exclure les quantite_0)
+        # Commandes intégrées = total_gpv_transmise - total_ecarts_ouverts - total_ecarts_quantite_0
+        # (les écarts résolus et ignorés sont déjà comptés comme intégrés dans cette formule)
+        
+        # Exclure les commandes avec écart "quantite_0" du total affiché
+        total_gpv_pour_stats = total_gpv_transmise - total_ecarts_quantite_0
+        
+        # Commandes intégrées = total - écarts ouverts - écarts quantite_0
+        # (les écarts résolus et ignorés sont déjà dans le total, donc ils sont comptés comme intégrés)
         commandes_integres = total_gpv_transmise - total_ecarts_ouverts - total_ecarts_quantite_0
         commandes_non_integres = total_ecarts_ouverts
         
-        # Calculer les taux (basés sur les commandes "Transmise" uniquement)
-        # Les pourcentages sont calculés en fonction des commandes intégrées (réelles + résolues)
-        taux_integration = round((commandes_integres / total_gpv_transmise * 100) if total_gpv_transmise > 0 else 0, 2)
-        taux_non_integration = round((commandes_non_integres / total_gpv_transmise * 100) if total_gpv_transmise > 0 else 0, 2)
+        # Calculer les taux basés sur le total sans les quantite_0
+        taux_integration = round((commandes_integres / total_gpv_pour_stats * 100) if total_gpv_pour_stats > 0 else 0, 2)
+        taux_non_integration = round((commandes_non_integres / total_gpv_pour_stats * 100) if total_gpv_pour_stats > 0 else 0, 2)
         
         # Normaliser les statistiques pour correspondre au template
-        # total_source = commandes "Transmise" uniquement (celles qui doivent être dans Cyrus)
+        # Utiliser total_gpv_pour_stats pour exclure les quantite_0 du total affiché
         stats = {
-            'total_source': total_gpv_transmise,  # Afficher seulement les "Transmise"
+            'total_source': total_gpv_pour_stats,  # Total sans les quantite_0
             'total_target': total_cyrus,
             'integres': commandes_integres,  # Seulement les "Transmise" intégrées
             'non_integres': commandes_non_integres,  # Calcul réel : total - intégrées
@@ -473,8 +498,11 @@ def dashboard(request):
             else:
                 commandes_non_integres_list.append(item)
         
-        # Mettre les non intégrées en premier, puis les intégrées
-        commandes_data = commandes_non_integres_list + commandes_integres_list
+        # Mettre les non intégrées en premier, puis les intégrées (ou seulement non intégrées selon le filtre)
+        if show == 'non_integres':
+            commandes_data = commandes_non_integres_list
+        else:
+            commandes_data = commandes_non_integres_list + commandes_integres_list
         titre_tableau = "Comparaison GPV vs Cyrus"
         
     elif type_donnees == 'commandes_legend':
@@ -496,23 +524,44 @@ def dashboard(request):
             filtres_cyrus['date_commande__lte'] = date_fin_parsed
         total_cyrus = CommandeCyrus.objects.filter(**filtres_cyrus).count()
 
-        # Compter les écarts Legend ouverts
+        # Compter les écarts Legend par statut
         filtres_ecarts = {'commande_legend__exportee': True}
         if date_debut_parsed:
             filtres_ecarts['commande_legend__date_commande__gte'] = date_debut_parsed
         if date_fin_parsed:
             filtres_ecarts['commande_legend__date_commande__lte'] = date_fin_parsed
+        
         total_ecarts_ouverts = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='ouvert').count()
+        total_ecarts_resolus = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='resolu').count()
+        total_ecarts_ignores = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='ignore').count()
         total_ecarts_quantite_0 = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='quantite_0').count()
-
+        
+        # Logique de calcul :
+        # - Les écarts "ouverts" = commandes non intégrées
+        # - Les écarts "résolus" = commandes considérées comme intégrées (même si pas encore dans Cyrus)
+        # - Les écarts "ignorés" = commandes considérées comme intégrées
+        # - Les écarts "quantite_0" = NE COMPTENT PAS dans les statistiques (exclus du total)
+        # 
+        # Total pour les statistiques = total_legend_exportee - total_ecarts_quantite_0 (exclure les quantite_0)
+        # Commandes intégrées = total_legend_exportee - total_ecarts_ouverts - total_ecarts_quantite_0
+        # (les écarts résolus et ignorés sont déjà comptés comme intégrés dans cette formule)
+        
+        # Exclure les commandes avec écart "quantite_0" du total affiché
+        total_legend_pour_stats = total_legend_exportee - total_ecarts_quantite_0
+        
+        # Commandes intégrées = total - écarts ouverts - écarts quantite_0
+        # (les écarts résolus et ignorés sont déjà dans le total, donc ils sont comptés comme intégrés)
         commandes_integres = total_legend_exportee - total_ecarts_ouverts - total_ecarts_quantite_0
         commandes_non_integres = total_ecarts_ouverts
 
-        taux_integration = round((commandes_integres / total_legend_exportee * 100) if total_legend_exportee > 0 else 0, 2)
-        taux_non_integration = round((commandes_non_integres / total_legend_exportee * 100) if total_legend_exportee > 0 else 0, 2)
+        # Calculer les taux basés sur le total sans les quantite_0
+        taux_integration = round((commandes_integres / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
+        taux_non_integration = round((commandes_non_integres / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
 
+        # Normaliser les statistiques pour correspondre au template
+        # Utiliser total_legend_pour_stats pour exclure les quantite_0 du total affiché
         stats = {
-            'total_source': total_legend_exportee,
+            'total_source': total_legend_pour_stats,  # Total sans les quantite_0
             'total_target': total_cyrus,
             'integres': commandes_integres,
             'non_integres': commandes_non_integres,
@@ -586,8 +635,23 @@ def dashboard(request):
                 'ecart': ecart,
             })
 
-        # Mettre les non intégrées en premier
-        commandes_data.sort(key=lambda x: x['integre'])
+        # Mettre les non intégrées en premier (False avant True)
+        # Trier : non intégrées (integre=False) en premier, puis intégrées (integre=True)
+        def sort_legend_key(x):
+            # Priorité 0 pour non intégrées (False), 1 pour intégrées (True)
+            priority = 1 if x['integre'] else 0
+            # Date la plus récente en premier
+            try:
+                date_cmd = x['legend'].date_commande
+                if hasattr(date_cmd, 'timestamp'):
+                    date_timestamp = date_cmd.timestamp()
+                else:
+                    date_timestamp = 0
+            except:
+                date_timestamp = 0
+            return (priority, -date_timestamp)
+        
+        commandes_data.sort(key=sort_legend_key)
         titre_tableau = "Comparaison Legend vs Cyrus"
         
     elif type_donnees == 'factures':
@@ -619,15 +683,36 @@ def dashboard(request):
         elif statut_ic == 'non_integre':
             br_queryset = br_queryset.filter(ic_integre=False)
 
+        # Exclure les BR avec statut_ic contenant "Quantité 0" ou "quantite_0" des statistiques
+        # Ces BR ne doivent pas être comptés dans le total ni dans les intégrés/non intégrés
+        br_quantite_0 = br_queryset.filter(
+            Q(statut_ic__icontains='Quantité 0') | 
+            Q(statut_ic__icontains='quantite_0') |
+            Q(statut_ic__icontains='Quantite 0')
+        ).count()
+        
+        # Total sans les BR "quantite_0"
         total_asten = br_queryset.count()
-        br_trouvees_count = br_queryset.filter(ic_integre=True).count()
-        br_non_trouvees_count = br_queryset.filter(ic_integre=False).count()
+        total_asten_pour_stats = total_asten - br_quantite_0
+        
+        # Compter les BR intégrées et non intégrées (sans les quantite_0)
+        br_trouvees_count = br_queryset.filter(ic_integre=True).exclude(
+            Q(statut_ic__icontains='Quantité 0') | 
+            Q(statut_ic__icontains='quantite_0') |
+            Q(statut_ic__icontains='Quantite 0')
+        ).count()
+        br_non_trouvees_count = br_queryset.filter(ic_integre=False).exclude(
+            Q(statut_ic__icontains='Quantité 0') | 
+            Q(statut_ic__icontains='quantite_0') |
+            Q(statut_ic__icontains='Quantite 0')
+        ).count()
 
-        taux_integration = round((br_trouvees_count / total_asten * 100) if total_asten > 0 else 0, 2)
-        taux_non_integration = round((br_non_trouvees_count / total_asten * 100) if total_asten > 0 else 0, 2)
+        # Calculer les taux basés sur le total sans les quantite_0
+        taux_integration = round((br_trouvees_count / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
+        taux_non_integration = round((br_non_trouvees_count / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
 
         stats = {
-            'total_source': total_asten,
+            'total_source': total_asten_pour_stats,  # Total sans les quantite_0
             'total_target': br_trouvees_count,
             'integres': br_trouvees_count,
             'non_integres': br_non_trouvees_count,
@@ -658,10 +743,252 @@ def dashboard(request):
             'magasin': code_magasin if code_magasin else [],
             'type_donnees': type_donnees,
             'statut_ic': statut_ic if type_donnees == 'br' else '',
-        }
+        },
+        'periode': periode,
+        'show': show,
     }
     
     return render(request, 'dashboard/dashboard.html', context)
+
+
+def accueil(request):
+    """Vue d'accueil affichant toutes les statistiques en un coup d'œil"""
+    from django.db.models import Q, Exists, OuterRef
+    from datetime import datetime, timedelta
+    from django.utils import timezone
+    
+    # Gérer les filtres de période
+    periode = request.GET.get('periode', '')
+    date_debut = None
+    date_fin = None
+    
+    if periode == 'aujourdhui':
+        date_debut = timezone.now().date()
+        date_fin = timezone.now().date()
+    elif periode == 'hier':
+        date_debut = timezone.now().date() - timedelta(days=1)
+        date_fin = timezone.now().date() - timedelta(days=1)
+    elif periode == 'semaine':
+        date_fin = timezone.now().date()
+        date_debut = date_fin - timedelta(days=7)
+    elif periode == 'mois':
+        date_fin = timezone.now().date()
+        date_debut = date_fin - timedelta(days=30)
+    elif periode == '3mois':
+        date_fin = timezone.now().date()
+        date_debut = date_fin - timedelta(days=90)
+    elif periode == 'annee':
+        date_fin = timezone.now().date()
+        date_debut = date_fin.replace(month=1, day=1)  # 1er janvier de l'année en cours
+    elif periode == 'personnalise':
+        date_debut_str = request.GET.get('date_debut', '')
+        date_fin_str = request.GET.get('date_fin', '')
+        if date_debut_str:
+            try:
+                date_debut = parse_date(date_debut_str)
+            except:
+                date_debut = None
+        if date_fin_str:
+            try:
+                date_fin = parse_date(date_fin_str)
+            except:
+                date_fin = None
+    
+    # Calculer les statistiques pour chaque type de données
+    stats_asten = {}
+    stats_gpv = {}
+    stats_legend = {}
+    stats_br = {}
+    stats_factures = {}
+    
+    # ASTEN
+    try:
+        filtres_asten = {}
+        if date_debut:
+            filtres_asten['date_commande__gte'] = date_debut
+        if date_fin:
+            filtres_asten['date_commande__lte'] = date_fin
+        
+        total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
+        
+        filtres_ecarts_asten = {}
+        if date_debut:
+            filtres_ecarts_asten['commande_asten__date_commande__gte'] = date_debut
+        if date_fin:
+            filtres_ecarts_asten['commande_asten__date_commande__lte'] = date_fin
+        
+        total_ecarts_ouverts_asten = EcartCommande.objects.filter(**filtres_ecarts_asten).filter(statut='ouvert').count()
+        total_ecarts_quantite_0_asten = EcartCommande.objects.filter(**filtres_ecarts_asten).filter(statut='quantite_0').count()
+        total_asten_pour_stats = total_asten - total_ecarts_quantite_0_asten
+        commandes_integres_asten = total_asten - total_ecarts_ouverts_asten - total_ecarts_quantite_0_asten
+        commandes_non_integres_asten = total_ecarts_ouverts_asten
+        taux_integration_asten = round((commandes_integres_asten / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
+        taux_non_integration_asten = round((commandes_non_integres_asten / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
+        stats_asten = {
+            'total': total_asten_pour_stats,
+            'integres': commandes_integres_asten,
+            'non_integres': commandes_non_integres_asten,
+            'taux_integration': taux_integration_asten,
+            'taux_non_integration': taux_non_integration_asten,
+        }
+    except:
+        stats_asten = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
+    
+    # GPV
+    try:
+        filtres_gpv = {'statut__iexact': 'Transmise'}
+        if date_debut:
+            filtres_gpv['date_creation__gte'] = date_debut
+        if date_fin:
+            filtres_gpv['date_creation__lte'] = date_fin
+        
+        total_gpv_transmise = CommandeGPV.objects.filter(**filtres_gpv).count()
+        
+        filtres_ecarts_gpv = {}
+        if date_debut:
+            filtres_ecarts_gpv['commande_gpv__date_creation__gte'] = date_debut
+        if date_fin:
+            filtres_ecarts_gpv['commande_gpv__date_creation__lte'] = date_fin
+        
+        total_ecarts_ouverts_gpv = EcartGPV.objects.filter(**filtres_ecarts_gpv).filter(statut='ouvert').count()
+        total_ecarts_quantite_0_gpv = EcartGPV.objects.filter(**filtres_ecarts_gpv).filter(statut='quantite_0').count()
+        total_gpv_pour_stats = total_gpv_transmise - total_ecarts_quantite_0_gpv
+        commandes_integres_gpv = total_gpv_transmise - total_ecarts_ouverts_gpv - total_ecarts_quantite_0_gpv
+        commandes_non_integres_gpv = total_ecarts_ouverts_gpv
+        taux_integration_gpv = round((commandes_integres_gpv / total_gpv_pour_stats * 100) if total_gpv_pour_stats > 0 else 0, 2)
+        taux_non_integration_gpv = round((commandes_non_integres_gpv / total_gpv_pour_stats * 100) if total_gpv_pour_stats > 0 else 0, 2)
+        stats_gpv = {
+            'total': total_gpv_pour_stats,
+            'integres': commandes_integres_gpv,
+            'non_integres': commandes_non_integres_gpv,
+            'taux_integration': taux_integration_gpv,
+            'taux_non_integration': taux_non_integration_gpv,
+        }
+    except:
+        stats_gpv = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
+    
+    # LEGEND
+    try:
+        filtres_legend = {'exportee': True}
+        if date_debut:
+            filtres_legend['date_commande__gte'] = date_debut
+        if date_fin:
+            filtres_legend['date_commande__lte'] = date_fin
+        
+        total_legend_exportee = CommandeLegend.objects.filter(**filtres_legend).count()
+        
+        filtres_ecarts_legend = {'commande_legend__exportee': True}
+        if date_debut:
+            filtres_ecarts_legend['commande_legend__date_commande__gte'] = date_debut
+        if date_fin:
+            filtres_ecarts_legend['commande_legend__date_commande__lte'] = date_fin
+        
+        total_ecarts_ouverts_legend = EcartLegend.objects.filter(**filtres_ecarts_legend).filter(statut='ouvert').count()
+        total_ecarts_quantite_0_legend = EcartLegend.objects.filter(**filtres_ecarts_legend).filter(statut='quantite_0').count()
+        total_legend_pour_stats = total_legend_exportee - total_ecarts_quantite_0_legend
+        commandes_integres_legend = total_legend_exportee - total_ecarts_ouverts_legend - total_ecarts_quantite_0_legend
+        commandes_non_integres_legend = total_ecarts_ouverts_legend
+        taux_integration_legend = round((commandes_integres_legend / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
+        taux_non_integration_legend = round((commandes_non_integres_legend / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
+        stats_legend = {
+            'total': total_legend_pour_stats,
+            'integres': commandes_integres_legend,
+            'non_integres': commandes_non_integres_legend,
+            'taux_integration': taux_integration_legend,
+            'taux_non_integration': taux_non_integration_legend,
+        }
+    except:
+        stats_legend = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
+    
+    # BR
+    try:
+        filtres_br = {}
+        if date_debut:
+            filtres_br['date_br__gte'] = date_debut
+        if date_fin:
+            filtres_br['date_br__lte'] = date_fin
+        
+        br_quantite_0 = BRAsten.objects.filter(**filtres_br).filter(
+            Q(statut_ic__icontains='Quantité 0') | 
+            Q(statut_ic__icontains='quantite_0') |
+            Q(statut_ic__icontains='Quantite 0')
+        ).count()
+        total_br = BRAsten.objects.filter(**filtres_br).count()
+        total_br_pour_stats = total_br - br_quantite_0
+        br_trouvees = BRAsten.objects.filter(**filtres_br, ic_integre=True).exclude(
+            Q(statut_ic__icontains='Quantité 0') | 
+            Q(statut_ic__icontains='quantite_0') |
+            Q(statut_ic__icontains='Quantite 0')
+        ).count()
+        br_non_trouvees = BRAsten.objects.filter(**filtres_br, ic_integre=False).exclude(
+            Q(statut_ic__icontains='Quantité 0') | 
+            Q(statut_ic__icontains='quantite_0') |
+            Q(statut_ic__icontains='Quantite 0')
+        ).count()
+        taux_integration_br = round((br_trouvees / total_br_pour_stats * 100) if total_br_pour_stats > 0 else 0, 2)
+        taux_non_integration_br = round((br_non_trouvees / total_br_pour_stats * 100) if total_br_pour_stats > 0 else 0, 2)
+        stats_br = {
+            'total': total_br_pour_stats,
+            'integres': br_trouvees,
+            'non_integres': br_non_trouvees,
+            'taux_integration': taux_integration_br,
+            'taux_non_integration': taux_non_integration_br,
+        }
+    except:
+        stats_br = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
+    
+    # FACTURES (pour l'instant vide, à implémenter plus tard)
+    stats_factures = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
+    
+    # REMONTÉES (Tickets)
+    try:
+        filtres_remontees = {}
+        if date_debut:
+            filtres_remontees['date_creation__date__gte'] = date_debut
+        if date_fin:
+            filtres_remontees['date_creation__date__lte'] = date_fin
+        
+        total_remontees = Ticket.objects.filter(**filtres_remontees).count()
+        resolu_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_RESOLU).count()
+        en_cours_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_EN_COURS).count()
+        en_attente_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_EN_ATTENTE).count()
+        ferme_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_FERME).count()
+        non_resolu_remontees = total_remontees - resolu_remontees - ferme_remontees
+        taux_resolu_remontees = round((resolu_remontees / total_remontees * 100) if total_remontees > 0 else 0, 2)
+        stats_remontees = {
+            'total': total_remontees,
+            'resolu': resolu_remontees,
+            'en_cours': en_cours_remontees,
+            'en_attente': en_attente_remontees,
+            'ferme': ferme_remontees,
+            'non_resolu': non_resolu_remontees,
+            'taux_resolu': taux_resolu_remontees,
+        }
+    except:
+        stats_remontees = {
+            'total': 0, 
+            'resolu': 0, 
+            'en_cours': 0, 
+            'en_attente': 0, 
+            'ferme': 0, 
+            'non_resolu': 0, 
+            'taux_resolu': 0,
+            'taux_non_resolu': 0
+        }
+    
+    context = {
+        'stats_asten': stats_asten,
+        'stats_gpv': stats_gpv,
+        'stats_legend': stats_legend,
+        'stats_br': stats_br,
+        'stats_factures': stats_factures,
+        'stats_remontees': stats_remontees,
+        'periode': periode,
+        'date_debut': date_debut.strftime('%Y-%m-%d') if date_debut else '',
+        'date_fin': date_fin.strftime('%Y-%m-%d') if date_fin else '',
+    }
+    
+    return render(request, 'dashboard/accueil.html', context)
 
 
 @require_http_methods(["POST"])
@@ -775,6 +1102,7 @@ def liste_ecarts(request):
     date_fin = request.GET.get('date_fin')
     code_magasin = request.GET.get('magasin')
     statut = request.GET.get('statut', '')  # Par défaut, afficher tous les statuts
+    type_ecart = request.GET.get('type_ecart', '')  # Filtre par type : asten, gpv, legend, br, factures
     
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
@@ -916,8 +1244,37 @@ def liste_ecarts(request):
             'statut': ecart.statut,
         })
     
-    # Trier par date de création (plus récent en premier)
-    ecarts_combined.sort(key=lambda x: x['date_creation'], reverse=True)
+    # Filtrer par type si spécifié
+    if type_ecart and type_ecart != '':
+        ecarts_combined = [e for e in ecarts_combined if e['type'] == type_ecart]
+    
+    # Trier : non intégrés (statut 'ouvert') en premier, puis les autres
+    # Priorité : 1. statut 'ouvert' (non intégré), 2. date de création (plus récent en premier)
+    from django.utils import timezone
+    def sort_key(ecart):
+        # Si statut 'ouvert', priorité 0 (en premier), sinon priorité 1
+        priority = 0 if ecart['statut'] == 'ouvert' else 1
+        # Convertir la date en timestamp pour le tri
+        date_creation = ecart['date_creation']
+        try:
+            if isinstance(date_creation, datetime):
+                if timezone.is_aware(date_creation):
+                    date_timestamp = date_creation.timestamp()
+                else:
+                    date_timestamp = timezone.make_aware(date_creation).timestamp()
+            elif hasattr(date_creation, 'timestamp'):
+                date_timestamp = date_creation.timestamp()
+            else:
+                # Si c'est une date naive, la convertir
+                if isinstance(date_creation, datetime):
+                    date_timestamp = timezone.make_aware(date_creation).timestamp()
+                else:
+                    date_timestamp = 0
+        except:
+            date_timestamp = 0
+        return (priority, -date_timestamp)
+    
+    ecarts_combined.sort(key=sort_key)
 
     paginator = Paginator(ecarts_combined, 50)
     page_number = request.GET.get('page', 1)
@@ -936,6 +1293,7 @@ def liste_ecarts(request):
             'date_fin': date_fin or '',
             'magasin': code_magasin or '',
             'statut': statut or '',
+            'type_ecart': type_ecart or '',
         }
     }
     
@@ -1690,3 +2048,101 @@ def historique_imports(request):
         ],
     }
     return render(request, 'dashboard/historique_imports.html', context)
+
+
+def configuration_systeme(request):
+    """
+    Page de configuration générale de l'application (place‑holder).
+    Permettra plus tard de gérer les paramètres globaux (chemins, options, etc.).
+    """
+    return render(request, 'dashboard/configuration_systeme.html', {})
+
+
+def gestion_magasins(request):
+    """
+    Page de gestion des magasins.
+    Permet d'ajouter / modifier / supprimer un magasin.
+    Les magasins sont ensuite visibles dans tous les filtres (commandes, BR, remontées, etc.).
+    """
+    # Code du magasin en édition (pour pré‑remplir le formulaire)
+    edit_code = request.GET.get('edit')
+    magasin_edit = None
+    if edit_code:
+        magasin_edit = Magasin.objects.filter(code=edit_code).first()
+
+    if request.method == 'POST':
+        action = request.POST.get('action') or 'create'
+        code = (request.POST.get('code') or '').strip()
+        nom = (request.POST.get('nom') or '').strip()
+
+        if action == 'delete':
+            # Suppression d'un magasin
+            if not code:
+                messages.error(request, "Code magasin manquant pour la suppression.")
+            else:
+                try:
+                    Magasin.objects.get(code=code).delete()
+                    messages.success(request, f"Magasin {code} supprimé avec succès.")
+                    return redirect('dashboard:gestion_magasins')
+                except Magasin.DoesNotExist:
+                    messages.error(request, "Magasin introuvable.")
+                except ProtectedError:
+                    messages.error(
+                        request,
+                        "Impossible de supprimer ce magasin car il est déjà utilisé dans des commandes, BR ou tickets."
+                    )
+        elif action == 'update':
+            # Mise à jour du nom du magasin (on ne touche pas au code car il est utilisé comme clé)
+            original_code = (request.POST.get('original_code') or '').strip()
+            if not original_code or not nom:
+                messages.error(request, "Le nom du magasin est obligatoire pour la modification.")
+            else:
+                try:
+                    magasin = Magasin.objects.get(code=original_code)
+                    magasin.nom = nom
+                    magasin.save()
+                    messages.success(request, f"Magasin {original_code} mis à jour avec succès.")
+                    return redirect('dashboard:gestion_magasins')
+                except Magasin.DoesNotExist:
+                    messages.error(request, "Magasin introuvable pour la modification.")
+        else:
+            # Création d'un nouveau magasin
+            if not code or not nom:
+                messages.error(request, "Le code et le nom du magasin sont obligatoires.")
+            elif len(code) > 10:
+                messages.error(request, "Le code du magasin ne doit pas dépasser 10 caractères.")
+            else:
+                try:
+                    Magasin.objects.create(code=code, nom=nom)
+                    messages.success(request, f"Magasin {code} - {nom} ajouté avec succès.")
+                    return redirect('dashboard:gestion_magasins')
+                except IntegrityError:
+                    messages.error(request, f"Un magasin avec le code {code} existe déjà.")
+
+    magasins = Magasin.objects.all().order_by('code')
+    return render(
+        request,
+        'dashboard/gestion_magasins.html',
+        {
+            'magasins': magasins,
+            'magasin_edit': magasin_edit,
+        },
+    )
+
+
+def gestion_utilisateurs(request):
+    """
+    Page de gestion des utilisateurs (lecture seule).
+    Utilise le modèle User standard de Django.
+    """
+    from django.contrib.auth.models import User
+    users = User.objects.all().order_by('username')
+    return render(request, 'dashboard/gestion_utilisateurs.html', {'users': users})
+
+
+def preferences_utilisateur(request):
+    """
+    Page de préférences utilisateur (place‑holder).
+    Pourra accueillir des réglages personnels par utilisateur.
+    """
+    return render(request, 'dashboard/preferences_utilisateur.html', {})

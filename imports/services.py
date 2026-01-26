@@ -767,12 +767,12 @@ def scanner_et_importer_fichiers():
     Scanne les dossiers commande_asten/, commande_cyrus/, commande_gpv/, commande_legend/ et br_asten/
     et importe les nouveaux fichiers ou les fichiers modifiés
     """
-    media_root = Path(settings.MEDIA_ROOT)
-    dossier_asten = media_root / 'commande_asten'
-    dossier_cyrus = media_root / 'commande_cyrus'
-    dossier_gpv = media_root / 'commande_gpv'
-    dossier_legend = media_root / 'commande_legend'
-    dossier_br_asten = media_root / 'br_asten'
+    # Utiliser les chemins configurables depuis settings
+    dossier_asten = Path(settings.DOSSIER_COMMANDES_ASTEN_PATH)
+    dossier_cyrus = Path(settings.DOSSIER_COMMANDES_CYRUS_PATH)
+    dossier_gpv = Path(settings.DOSSIER_COMMANDES_GPV_PATH)
+    dossier_legend = Path(settings.DOSSIER_COMMANDES_LEGEND_PATH)
+    dossier_br_asten = Path(settings.DOSSIER_BR_ASTEN_PATH)
     
     # Créer les dossiers s'ils n'existent pas
     dossier_asten.mkdir(parents=True, exist_ok=True)

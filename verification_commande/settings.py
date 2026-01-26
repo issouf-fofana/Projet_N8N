@@ -11,9 +11,17 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config, Csv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Charger le fichier config.env à la racine du projet si il existe
+config_file = BASE_DIR / 'config.env'
+if config_file.exists():
+    from decouple import Config, RepositoryEnv
+    config = Config(RepositoryEnv(str(config_file)))
 
 
 # Quick-start development settings - unsuitable for production
@@ -131,4 +139,39 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / config('MEDIA_ROOT', default='media')
+
+# Configuration des chemins des dossiers d'import
+# Les chemins peuvent être relatifs à MEDIA_ROOT ou absolus
+DOSSIER_COMMANDES_ASTEN = config('DOSSIER_COMMANDES_ASTEN', default='commande_asten')
+DOSSIER_COMMANDES_CYRUS = config('DOSSIER_COMMANDES_CYRUS', default='commande_cyrus')
+DOSSIER_COMMANDES_GPV = config('DOSSIER_COMMANDES_GPV', default='commande_gpv')
+DOSSIER_COMMANDES_LEGEND = config('DOSSIER_COMMANDES_LEGEND', default='commande_legend')
+DOSSIER_BR_ASTEN = config('DOSSIER_BR_ASTEN', default='br_asten')
+
+def get_dossier_path(dossier_config):
+    """
+    Retourne le chemin absolu du dossier.
+    Si le chemin est absolu (commence par / ou // pour UNC), il est utilisé tel quel.
+    Sinon, il est relatif à MEDIA_ROOT.
+    """
+    dossier_config_str = str(dossier_config).strip()
+    
+    # Détecter les chemins UNC (réseau Windows/Samba) qui commencent par // ou \\
+    if dossier_config_str.startswith('//') or dossier_config_str.startswith('\\\\'):
+        # Chemin réseau UNC - utiliser tel quel
+        return Path(dossier_config_str)
+    
+    # Détecter les chemins absolus Unix/Linux (commencent par /)
+    if dossier_config_str.startswith('/'):
+        return Path(dossier_config_str)
+    
+    # Sinon, chemin relatif à MEDIA_ROOT
+    return Path(MEDIA_ROOT) / dossier_config_str
+
+# Chemins absolus des dossiers
+DOSSIER_COMMANDES_ASTEN_PATH = get_dossier_path(DOSSIER_COMMANDES_ASTEN)
+DOSSIER_COMMANDES_CYRUS_PATH = get_dossier_path(DOSSIER_COMMANDES_CYRUS)
+DOSSIER_COMMANDES_GPV_PATH = get_dossier_path(DOSSIER_COMMANDES_GPV)
+DOSSIER_COMMANDES_LEGEND_PATH = get_dossier_path(DOSSIER_COMMANDES_LEGEND)
+DOSSIER_BR_ASTEN_PATH = get_dossier_path(DOSSIER_BR_ASTEN)
