@@ -22,9 +22,25 @@ from imports.models import ImportFichier
 def parse_date_cyrus(date_str):
     """
     Parse la date Cyrus au format YYMMDD (ex: 260107 = 2026-01-07)
+    Supporte aussi les formats avec séparateurs ou espaces
     """
-    if not date_str or len(date_str) != 6:
+    if not date_str:
         return None
+    
+    # Nettoyer la chaîne (enlever espaces, séparateurs)
+    date_str = str(date_str).strip().replace('/', '').replace('-', '').replace(' ', '')
+    
+    # Si la longueur n'est pas 6, essayer d'extraire les 6 premiers chiffres
+    if len(date_str) < 6:
+        return None
+    
+    # Extraire les 6 premiers chiffres
+    digits = ''.join(ch for ch in date_str if ch.isdigit())
+    if len(digits) < 6:
+        return None
+    
+    date_str = digits[:6]
+    
     try:
         # Format YYMMDD
         year = 2000 + int(date_str[:2])  # 26 -> 2026
@@ -642,7 +658,8 @@ def importer_fichier_cyrus(chemin_fichier):
             has_header = any(h in header_normalized for h in ['NCID', 'NCDE', 'DCDE'])
 
             def traiter_ligne(code_magasin, numero_commande, dcde_str, dcre_str, tycm, nom_magasin, qcduid_total):
-                nonlocal nombre_nouveaux, nombre_dupliques
+                nonlocal nombre_lignes, nombre_nouveaux, nombre_dupliques
+                nombre_lignes += 1
 
                 # Normaliser le code magasin sur 3 caractères
                 code_magasin = normalize_code_magasin(code_magasin)
@@ -656,13 +673,19 @@ def importer_fichier_cyrus(chemin_fichier):
                     numero_commande = numero_str.strip()
 
                 date_commande = parse_date_cyrus(dcde_str)
-                if not date_commande or not numero_commande or not code_magasin:
+                if not date_commande:
+                    # Log pour debug si la date ne peut pas être parsée
+                    if dcde_str:
+                        print(f"Date Cyrus non parsable: '{dcde_str}' (format attendu: YYMMDD)")
+                    return
+                if not numero_commande or not code_magasin:
                     return
 
                 # Vérifier que le magasin existe
                 try:
                     magasin = Magasin.objects.get(code=code_magasin)
                 except Magasin.DoesNotExist:
+                    print(f"Magasin '{code_magasin}' non trouvé pour la commande {numero_commande} du {dcde_str}. Ligne ignorée.")
                     return
 
                 # Montant optionnel
@@ -694,7 +717,6 @@ def importer_fichier_cyrus(chemin_fichier):
             if has_header:
                 dict_reader = csv.DictReader(f, delimiter=delimiter, fieldnames=header)
                 for row in dict_reader:
-                    nombre_lignes += 1
                     try:
                         row_normalized = {}
                         for key, value in row.items():
@@ -734,17 +756,15 @@ def importer_fichier_cyrus(chemin_fichier):
                     traiter_ligne(code_magasin, numero_commande, dcde_str, dcre_str, tycm, nom_magasin, qcduid_total)
 
                 if header:
-                    nombre_lignes += 1
                     try:
                         parse_row_cols(header)
                     except Exception as e:
-                        print(f"Erreur ligne {nombre_lignes}: {e}")
+                        print(f"Erreur ligne header: {e}")
                 for cols in reader:
-                    nombre_lignes += 1
                     try:
                         parse_row_cols(cols)
                     except Exception as e:
-                        print(f"Erreur ligne {nombre_lignes}: {e}")
+                        print(f"Erreur ligne: {e}")
                         continue
         
         import_obj.nombre_lignes = nombre_lignes
@@ -845,8 +865,11 @@ def scanner_et_importer_fichiers():
                 
                 import_obj = importer_fichier_cyrus(str(fichier))
                 fichiers_importes.append(import_obj)
-                if import_obj and import_obj.statut == 'termine':
+                # Ne supprimer le fichier que si l'import a réussi ET qu'au moins une ligne a été importée
+                if import_obj and import_obj.statut == 'termine' and import_obj.nombre_nouveaux > 0:
                     supprimer_fichier_source(fichier)
+                elif import_obj and import_obj.statut == 'termine' and import_obj.nombre_nouveaux == 0:
+                    print(f"Attention: Fichier Cyrus {fichier.name} importé avec 0 nouvelles lignes. Fichier conservé pour investigation.")
             elif import_existant and import_existant.statut == 'termine':
                 # Fichier déjà importé avec succès : nettoyer le dossier
                 supprimer_fichier_source(fichier)

@@ -44,16 +44,18 @@ def recalculer_ecarts():
                     if ecart_existant.statut == 'ouvert':
                         ecart_existant.delete()
                         ecarts_resolus += 1
-                    # Si l'écart était "ignore", on le garde tel quel (ignoré manuellement)
-                    # Si l'écart était déjà "resolu", on ne fait rien (ne devrait plus arriver)
+                    # Si l'écart était "ignore" ou "resolu", on le garde tel quel (modifié manuellement)
+                    # Ne PAS modifier les écarts qui ont été modifiés manuellement
                 else:
                     # Si la commande n'existe toujours pas dans Cyrus
-                    # Ne pas réouvrir un écart résolu manuellement
+                    # Ne pas réouvrir un écart résolu ou ignoré manuellement
                     # Si l'écart était "ignore" ou "resolu", on le garde tel quel
+                    # Si l'écart était "quantite_0", on le garde tel quel
                     pass
                     
             except EcartCommande.DoesNotExist:
                 # Aucun écart existant, créer un nouveau si la commande n'existe pas dans Cyrus
+                # Ne créer un écart que si la commande n'existe pas dans Cyrus
                 if not existe_cyrus:
                     EcartCommande.objects.create(
                         commande_asten=commande_asten,
@@ -107,10 +109,12 @@ def recalculer_ecarts():
                     if ecart_existant.statut == 'ouvert':
                         ecart_existant.delete()
                         ecarts_gpv_resolus += 1
-                    # Si l'écart était "ignore", on le garde tel quel (ignoré manuellement)
+                    # Si l'écart était "ignore", "resolu" ou "quantite_0", on le garde tel quel (modifié manuellement)
+                    # Ne PAS modifier les écarts qui ont été modifiés manuellement
                 else:
                     # Si la commande n'existe toujours pas dans Cyrus
-                    # Ne pas réouvrir un écart résolu manuellement
+                    # Ne pas réouvrir un écart résolu, ignoré ou quantite_0 manuellement
+                    # Si l'écart était "ignore", "resolu" ou "quantite_0", on le garde tel quel
                     pass
                     
             except EcartGPV.DoesNotExist:
@@ -128,6 +132,18 @@ def recalculer_ecarts():
         ecarts_legend_crees = 0
         ecarts_legend_resolus = 0
 
+        # Fonction de normalisation pour comparer les numéros de commande
+        def normalize_numero(numero):
+            """Normalise un numéro de commande pour la comparaison (enlève les zéros en tête)"""
+            if not numero:
+                return ''
+            numero_str = str(numero).strip()
+            # Extraire uniquement les chiffres
+            digits = ''.join(ch for ch in numero_str if ch.isdigit())
+            if digits:
+                return digits.lstrip('0') or '0'
+            return numero_str
+
         commandes_legend = CommandeLegend.objects.all()
         for commande_legend in commandes_legend:
             # Les commandes non exportées sont ignorées
@@ -140,15 +156,24 @@ def recalculer_ecarts():
                     pass
                 continue
 
-            cyrus_existe = CommandeCyrus.objects.filter(
-                date_commande=commande_legend.date_commande,
-                numero_commande=commande_legend.numero_commande
-            ).exists()
+            # Normaliser les numéros pour la comparaison
+            numero_legend_normalise = normalize_numero(commande_legend.numero_commande)
+            
+            # Récupérer toutes les commandes Cyrus de la même date et normaliser leurs numéros
+            cyrus_existe = False
+            for cyrus_cmd in CommandeCyrus.objects.filter(date_commande=commande_legend.date_commande):
+                numero_cyrus_normalise = normalize_numero(cyrus_cmd.numero_commande)
+                if numero_legend_normalise == numero_cyrus_normalise:
+                    cyrus_existe = True
+                    break
+            
             if not cyrus_existe:
-                # Fallback: présence dans Cyrus sur une autre date
-                cyrus_existe = CommandeCyrus.objects.filter(
-                    numero_commande=commande_legend.numero_commande
-                ).exists()
+                # Fallback: présence dans Cyrus sur une autre date (comparaison par numéro seulement)
+                for cyrus_cmd in CommandeCyrus.objects.all():
+                    numero_cyrus_normalise = normalize_numero(cyrus_cmd.numero_commande)
+                    if numero_legend_normalise == numero_cyrus_normalise:
+                        cyrus_existe = True
+                        break
 
             # Déterminer le type d'écart selon la règle consolidée
             type_ecart = None

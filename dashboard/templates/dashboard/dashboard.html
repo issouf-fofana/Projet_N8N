@@ -336,14 +336,23 @@
     </div>
     <div class="card-body">
         <form method="get" id="typeForm" class="row g-3 align-items-end">
-            {% if filtres.date_debut and filtres.date_debut != 'None' %}
-                <input type="hidden" name="date_debut" value="{{ filtres.date_debut }}">
+            {% if periode and periode != 'tous' %}
+                <input type="hidden" name="periode" value="{{ periode }}">
+            {% else %}
+                <input type="hidden" name="periode" value="tous">
             {% endif %}
-            {% if filtres.date_fin and filtres.date_fin != 'None' %}
-                <input type="hidden" name="date_fin" value="{{ filtres.date_fin }}">
+            {% if periode != 'tous' and periode != '' %}
+                {% if filtres.date_debut and filtres.date_debut != 'None' %}
+                    <input type="hidden" name="date_debut" value="{{ filtres.date_debut }}">
+                {% endif %}
+                {% if filtres.date_fin and filtres.date_fin != 'None' %}
+                    <input type="hidden" name="date_fin" value="{{ filtres.date_fin }}">
+                {% endif %}
             {% endif %}
             {% if filtres.magasin and filtres.magasin != 'None' %}
-                <input type="hidden" name="magasin" value="{{ filtres.magasin }}">
+                {% for m in filtres.magasin %}
+                    <input type="hidden" name="magasin" value="{{ m }}">
+                {% endfor %}
             {% endif %}
             <div class="col-md-12">
                 <div class="btn-group w-100" role="group">
@@ -395,7 +404,7 @@
     <div class="card-body">
         <form method="get" class="row g-3" id="filterForm">
             <input type="hidden" name="type_donnees" value="{{ filtres.type_donnees|default:'commandes_asten' }}">
-            <input type="hidden" name="periode" id="periodeInput" value="{{ periode|default:'' }}">
+            <input type="hidden" name="periode" id="periodeInput" value="{{ periode|default:'tous' }}">
             
             <!-- Filtres de période (même style que sur l'accueil) -->
             <div class="col-md-12 mb-3">
@@ -403,7 +412,11 @@
                     <i class="bi bi-funnel-fill"></i> Période
                 </label>
                 <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-filtre {% if periode == 'aujourdhui' or not periode %}active{% endif %}"
+                    <button type="button" class="btn btn-filtre {% if periode == 'tous' or not periode or periode == '' %}active{% endif %}"
+                            onclick="setDateFilter('tous', event)">
+                        <i class="bi bi-calendar-x"></i> Tous
+                    </button>
+                    <button type="button" class="btn btn-filtre {% if periode == 'aujourdhui' %}active{% endif %}"
                             onclick="setDateFilter('aujourdhui', event)">
                         <i class="bi bi-calendar-day"></i> Aujourd'hui
                     </button>
@@ -1083,7 +1096,11 @@ function setDateFilter(periode, event) {
         periodeInput.value = periode;
     }
     
-    if (periode === 'aujourdhui') {
+    if (periode === 'tous' || periode === '' || !periode) {
+        // Pour "Tous", vider les dates pour ne pas appliquer de filtre
+        if (dateDebutInput) dateDebutInput.value = '';
+        if (dateFinInput) dateFinInput.value = '';
+    } else if (periode === 'aujourdhui') {
         const dateStr = aujourdhui.toISOString().split('T')[0];
         dateDebutInput.value = dateStr;
         dateFinInput.value = dateStr;
@@ -1122,6 +1139,13 @@ function setDateFilter(periode, event) {
             datePickerGroup.style.display = 'flex';
         } else {
             datePickerGroup.style.display = 'none';
+        }
+    }
+    
+    // Si "Tous" est sélectionné, soumettre le formulaire automatiquement pour appliquer le filtre
+    if (periode === 'tous' || periode === '' || !periode) {
+        if (filterForm) {
+            filterForm.submit();
         }
     }
     
@@ -1193,7 +1217,12 @@ function animateValue(element, start, end, maxDuration, suffix = '') {
 // Animation pour les pourcentages (avec décimales, max 2 secondes)
 function animatePercentage(element, start, end, maxDuration) {
     if (start === end) {
-        element.textContent = end.toFixed(2).replace('.', ',');
+        // Afficher 2 décimales minimum, mais jusqu'à 3 si le nombre est très petit (< 1)
+        if (end < 1) {
+            element.textContent = end.toFixed(3).replace('.', ',');
+        } else {
+            element.textContent = end.toFixed(2).replace('.', ',');
+        }
         return;
     }
     
@@ -1211,7 +1240,12 @@ function animatePercentage(element, start, end, maxDuration) {
             clearInterval(timer);
         }
         
-        element.textContent = current.toFixed(2).replace('.', ',');
+        // Afficher 2 décimales minimum, mais jusqu'à 3 si le nombre est très petit (< 1)
+        if (current < 1) {
+            element.textContent = current.toFixed(3).replace('.', ',');
+        } else {
+            element.textContent = current.toFixed(2).replace('.', ',');
+        }
     }, stepTime);
 }
 

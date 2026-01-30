@@ -86,14 +86,25 @@ def dashboard(request):
     date_fin = request.GET.get('date_fin')
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
-    periode = request.GET.get('periode', '')
+    periode = request.GET.get('periode', 'tous')  # Par défaut: 'tous' pour afficher toutes les données
     show = request.GET.get('show', '')  # 'non_integres' pour afficher uniquement les écarts ouverts
     
-    # Nettoyer les valeurs "None" en string
-    if date_debut == 'None' or date_debut == '':
+    # Si periode est 'tous' ou vide, ne pas appliquer de filtre de date
+    if periode == 'tous' or periode == '':
         date_debut = None
-    if date_fin == 'None' or date_fin == '':
         date_fin = None
+        date_debut_parsed = None
+        date_fin_parsed = None
+    else:
+        # Nettoyer les valeurs "None" en string
+        if date_debut == 'None' or date_debut == '':
+            date_debut = None
+        if date_fin == 'None' or date_fin == '':
+            date_fin = None
+        # Convertir les dates seulement si periode n'est pas 'tous'
+        date_debut_parsed = parse_date(date_debut) if date_debut else None
+        date_fin_parsed = parse_date(date_fin) if date_fin else None
+    
     # Nettoyer la liste des magasins
     if code_magasin:
         code_magasin = [m for m in code_magasin if m and m != 'None' and m != '']
@@ -102,10 +113,6 @@ def dashboard(request):
         elif len(code_magasin) == 1:
             # Si un seul magasin est sélectionné, garder comme liste pour cohérence
             pass
-    
-    # Convertir les dates
-    date_debut_parsed = parse_date(date_debut) if date_debut else None
-    date_fin_parsed = parse_date(date_fin) if date_fin else None
     
     # Liste des magasins pour le filtre
     magasins = Magasin.objects.all().order_by('code')
@@ -576,32 +583,46 @@ def dashboard(request):
 
         commandes_legend_limited = list(commandes_legend[:200])
 
-        legend_keys = [(cmd.date_commande, cmd.numero_commande) for cmd in commandes_legend_limited]
+        # Fonction de normalisation pour comparer les numéros de commande
+        def normalize_numero(numero):
+            """Normalise un numéro de commande pour la comparaison (enlève les zéros en tête)"""
+            if not numero:
+                return ''
+            numero_str = str(numero).strip()
+            # Extraire uniquement les chiffres
+            digits = ''.join(ch for ch in numero_str if ch.isdigit())
+            if digits:
+                return digits.lstrip('0') or '0'
+            return numero_str
+
+        legend_keys = [(cmd.date_commande, normalize_numero(cmd.numero_commande)) for cmd in commandes_legend_limited]
         cyrus_lookup = set()
         cyrus_numero_lookup = set()
 
         if legend_keys:
-            # Cyrus lookup par lots (date + numero)
-            for i in range(0, len(legend_keys), 50):
-                batch_keys = legend_keys[i:i+50]
-                q_objects = Q()
-                for date, numero in batch_keys:
-                    q_objects |= Q(date_commande=date, numero_commande=numero)
-                if q_objects:
-                    for cyrus_cmd in CommandeCyrus.objects.filter(q_objects):
-                        cyrus_lookup.add((cyrus_cmd.date_commande, cyrus_cmd.numero_commande))
-            # Cyrus lookup par numero (fallback)
-            numeros = list({numero for _, numero in legend_keys})
-            if numeros:
-                for cyrus_cmd in CommandeCyrus.objects.filter(numero_commande__in=numeros):
-                    cyrus_numero_lookup.add(cyrus_cmd.numero_commande)
+            # Récupérer tous les numéros normalisés pour la recherche
+            numeros_normalises = list({numero for _, numero in legend_keys})
+            
+            # Récupérer toutes les commandes Cyrus de la période
+            filtres_cyrus_lookup = {}
+            if date_debut_parsed:
+                filtres_cyrus_lookup['date_commande__gte'] = date_debut_parsed
+            if date_fin_parsed:
+                filtres_cyrus_lookup['date_commande__lte'] = date_fin_parsed
+            
+            # Récupérer toutes les commandes Cyrus de la période et les normaliser
+            for cyrus_cmd in CommandeCyrus.objects.filter(**filtres_cyrus_lookup):
+                numero_normalise = normalize_numero(cyrus_cmd.numero_commande)
+                cyrus_lookup.add((cyrus_cmd.date_commande, numero_normalise))
+                cyrus_numero_lookup.add(numero_normalise)
 
         commandes_data = []
         for cmd_legend in commandes_legend_limited:
-            key = (cmd_legend.date_commande, cmd_legend.numero_commande)
+            numero_normalise = normalize_numero(cmd_legend.numero_commande)
+            key = (cmd_legend.date_commande, numero_normalise)
             cyrus_present = key in cyrus_lookup
             if not cyrus_present:
-                cyrus_present = cmd_legend.numero_commande in cyrus_numero_lookup
+                cyrus_present = numero_normalise in cyrus_numero_lookup
 
             try:
                 ecart = cmd_legend.ecart
@@ -668,62 +689,79 @@ def dashboard(request):
         
     elif type_donnees == 'br':
         # BR ASTEN (statut IC fourni dans le fichier)
-        filtres_br_asten = {}
-        if date_debut_parsed:
-            filtres_br_asten['date_br__gte'] = date_debut_parsed
-        if date_fin_parsed:
-            filtres_br_asten['date_br__lte'] = date_fin_parsed
+        # IMPORTANT: Les statistiques en haut affichent TOUJOURS le total global (sans filtre de date)
+        # Par défaut, on affiche tous les BR non intégrés (sans filtre de date)
+        
+        # Calculer les statistiques GLOBALES (sans filtre de date) pour l'affichage en haut
+        filtres_br_global = {}
         if code_magasin:
-            filtres_br_asten['code_magasin__code__in'] = code_magasin
-
-        statut_ic = request.GET.get('statut_ic')
-        br_queryset = BRAsten.objects.filter(**filtres_br_asten)
-        if statut_ic == 'integre':
-            br_queryset = br_queryset.filter(ic_integre=True)
-        elif statut_ic == 'non_integre':
-            br_queryset = br_queryset.filter(ic_integre=False)
-
-        # Exclure les BR avec statut_ic contenant "Quantité 0" ou "quantite_0" des statistiques
-        # Ces BR ne doivent pas être comptés dans le total ni dans les intégrés/non intégrés
-        br_quantite_0 = br_queryset.filter(
+            filtres_br_global['code_magasin__code__in'] = code_magasin
+        
+        br_queryset_global = BRAsten.objects.filter(**filtres_br_global)
+        br_quantite_0_global = br_queryset_global.filter(
             Q(statut_ic__icontains='Quantité 0') | 
             Q(statut_ic__icontains='quantite_0') |
             Q(statut_ic__icontains='Quantite 0')
         ).count()
         
-        # Total sans les BR "quantite_0"
-        total_asten = br_queryset.count()
-        total_asten_pour_stats = total_asten - br_quantite_0
+        total_asten_global = br_queryset_global.count()
+        total_asten_pour_stats_global = total_asten_global - br_quantite_0_global
         
-        # Compter les BR intégrées et non intégrées (sans les quantite_0)
-        br_trouvees_count = br_queryset.filter(ic_integre=True).exclude(
+        br_trouvees_count_global = br_queryset_global.filter(ic_integre=True).exclude(
             Q(statut_ic__icontains='Quantité 0') | 
             Q(statut_ic__icontains='quantite_0') |
             Q(statut_ic__icontains='Quantite 0')
         ).count()
-        br_non_trouvees_count = br_queryset.filter(ic_integre=False).exclude(
+        br_non_trouvees_count_global = br_queryset_global.filter(ic_integre=False).exclude(
             Q(statut_ic__icontains='Quantité 0') | 
             Q(statut_ic__icontains='quantite_0') |
             Q(statut_ic__icontains='Quantite 0')
         ).count()
 
-        # Calculer les taux basés sur le total sans les quantite_0
-        taux_integration = round((br_trouvees_count / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
-        taux_non_integration = round((br_non_trouvees_count / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
+        # Calculer les taux basés sur le total global
+        # Utiliser plus de décimales pour les petits pourcentages
+        taux_integration_global = round((br_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 3)
+        taux_non_integration_global = round((br_non_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 3)
 
+        # Statistiques globales pour l'affichage en haut
         stats = {
-            'total_source': total_asten_pour_stats,  # Total sans les quantite_0
-            'total_target': br_trouvees_count,
-            'integres': br_trouvees_count,
-            'non_integres': br_non_trouvees_count,
-            'trouvees': br_trouvees_count,
-            'non_trouvees': br_non_trouvees_count,
-            'taux_integration': taux_integration,
-            'taux_non_integration': taux_non_integration,
+            'total_source': total_asten_pour_stats_global,  # Total global sans les quantite_0
+            'total_target': br_trouvees_count_global,
+            'integres': br_trouvees_count_global,
+            'non_integres': br_non_trouvees_count_global,
+            'trouvees': br_trouvees_count_global,
+            'non_trouvees': br_non_trouvees_count_global,
+            'taux_integration': taux_integration_global,
+            'taux_non_integration': taux_non_integration_global,
         }
 
-        br_trouvees = br_queryset.filter(ic_integre=True).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
-        br_non_trouvees = br_queryset.filter(ic_integre=False).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+        # Pour les tableaux : TOUJOURS afficher tous les BR non intégrés par défaut (SANS filtre de date)
+        # Même si une période est sélectionnée, on affiche tous les BR non intégrés
+        # L'utilisateur peut utiliser le filtre statut_ic pour voir les intégrés
+        filtres_br_tableaux = {}
+        # Ne PAS appliquer le filtre de date aux tableaux - toujours afficher tous les BR non intégrés
+        # Le filtre de date est utilisé uniquement pour les statistiques si nécessaire, mais ici on veut toujours tout afficher
+        if code_magasin:
+            filtres_br_tableaux['code_magasin__code__in'] = code_magasin
+
+        statut_ic = request.GET.get('statut_ic')
+        br_queryset_base = BRAsten.objects.filter(**filtres_br_tableaux)
+        
+        # Créer deux querysets séparés : un pour les trouvées et un pour les non trouvées
+        # Par défaut, afficher TOUS les BR non intégrés dans le tableau non trouvées
+        # Mais toujours afficher les trouvées aussi
+        if statut_ic == 'integre':
+            # Si on filtre sur intégrés, ne montrer que les intégrés
+            br_trouvees = br_queryset_base.filter(ic_integre=True).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_non_trouvees = BRAsten.objects.none()  # Ne rien afficher dans non trouvées
+        elif statut_ic == 'non_integre':
+            # Si on filtre sur non intégrés, ne montrer que les non intégrés
+            br_trouvees = BRAsten.objects.none()  # Ne rien afficher dans trouvées
+            br_non_trouvees = br_queryset_base.filter(ic_integre=False).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+        else:
+            # Par défaut : afficher TOUS les BR non intégrés dans non trouvées, ET tous les intégrés dans trouvées
+            br_trouvees = br_queryset_base.filter(ic_integre=True).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_non_trouvees = br_queryset_base.filter(ic_integre=False).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
         commandes_data = []
         titre_tableau = "BR ASTEN (Statut IC)"
     
@@ -758,11 +796,15 @@ def accueil(request):
     from django.utils import timezone
     
     # Gérer les filtres de période
-    periode = request.GET.get('periode', '')
+    periode = request.GET.get('periode', 'tous')  # Par défaut: 'tous' pour afficher toutes les données
     date_debut = None
     date_fin = None
     
-    if periode == 'aujourdhui':
+    # Si periode est 'tous' ou vide, ne pas appliquer de filtre de date
+    if periode == 'tous' or periode == '':
+        date_debut = None
+        date_fin = None
+    elif periode == 'aujourdhui':
         date_debut = timezone.now().date()
         date_fin = timezone.now().date()
     elif periode == 'hier':
@@ -1064,22 +1106,21 @@ def detail_ecart(request, ecart_id):
             commentaire = request.POST.get('commentaire', '').strip()
             
             if nouveau_statut in ['ouvert', 'resolu', 'ignore', 'quantite_0']:
-                # Si on marque l'écart comme résolu, le supprimer complètement
+                # Ne PAS supprimer l'écart, mais le garder avec le statut modifié
+                # Cela permet de préserver les modifications manuelles lors du recalcul
+                ecart.statut = nouveau_statut
+                if commentaire:
+                    ecart.commentaire = commentaire
+                ecart.save()
+                
                 if nouveau_statut == 'resolu':
-                    ecart.delete()
-                    messages.success(request, "L'écart a été résolu. La commande sera comptée comme intégrée. Les pourcentages seront mis à jour sur le dashboard.")
+                    messages.success(request, "L'écart a été marqué comme résolu. La commande sera comptée comme intégrée. Les pourcentages seront mis à jour sur le dashboard.")
+                elif nouveau_statut == 'ignore':
+                    messages.info(request, "L'écart a été marqué comme ignoré. Les pourcentages seront mis à jour sur le dashboard.")
+                elif nouveau_statut == 'quantite_0':
+                    messages.info(request, "L'écart a été marqué comme 'Quantité 0'. La commande ne sera comptée ni comme intégrée ni comme non intégrée. Les pourcentages seront mis à jour sur le dashboard.")
                 else:
-                    ecart.statut = nouveau_statut
-                    if commentaire:
-                        ecart.commentaire = commentaire
-                    ecart.save()
-                    
-                    if nouveau_statut == 'ignore':
-                        messages.info(request, "L'écart a été marqué comme ignoré. Les pourcentages seront mis à jour sur le dashboard.")
-                    elif nouveau_statut == 'quantite_0':
-                        messages.info(request, "L'écart a été marqué comme 'Quantité 0'. La commande ne sera comptée ni comme intégrée ni comme non intégrée. Les pourcentages seront mis à jour sur le dashboard.")
-                    else:
-                        messages.info(request, "L'écart a été remis à ouvert. Les pourcentages seront mis à jour sur le dashboard.")
+                    messages.info(request, "L'écart a été remis à ouvert. Les pourcentages seront mis à jour sur le dashboard.")
                 
                 # Rediriger vers le dashboard pour que les pourcentages soient recalculés
                 type_donnees = request.GET.get('type_donnees', 'commandes_asten')
@@ -1215,16 +1256,33 @@ def liste_ecarts(request):
             'statut': ecart.statut,
         })
 
+    # Fonction de normalisation pour comparer les numéros
+    def normalize_numero(numero):
+        if not numero:
+            return ''
+        numero_str = str(numero).strip()
+        digits = ''.join(ch for ch in numero_str if ch.isdigit())
+        if digits:
+            return digits.lstrip('0') or '0'
+        return numero_str
+
     for ecart in ecarts_legend:
-        # Vérifier si la commande existe dans Cyrus (fallback par numero)
-        existe_cyrus = CommandeCyrus.objects.filter(
-            date_commande=ecart.commande_legend.date_commande,
-            numero_commande=ecart.commande_legend.numero_commande
-        ).exists()
+        # Normaliser le numéro Legend
+        numero_legend_normalise = normalize_numero(ecart.commande_legend.numero_commande)
+        
+        # Vérifier si la commande existe dans Cyrus avec normalisation
+        existe_cyrus = False
+        for cyrus_cmd in CommandeCyrus.objects.filter(date_commande=ecart.commande_legend.date_commande):
+            if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
+                existe_cyrus = True
+                break
+        
         if not existe_cyrus:
-            existe_cyrus = CommandeCyrus.objects.filter(
-                numero_commande=ecart.commande_legend.numero_commande
-            ).exists()
+            # Fallback: chercher par numéro seulement (sans date)
+            for cyrus_cmd in CommandeCyrus.objects.all():
+                if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
+                    existe_cyrus = True
+                    break
 
         # Ne pas afficher les écarts résolus automatiquement (résolu ET existe dans Cyrus)
         # Afficher seulement : ouverts, ignorés, et résolus manuellement (résolu mais n'existe pas dans Cyrus)
@@ -1669,14 +1727,31 @@ def detail_commande_legend(request, commande_id):
             numero_commande=commande.numero_commande
         ).first()
 
-        commande_cyrus = CommandeCyrus.objects.filter(
-            date_commande=commande.date_commande,
-            numero_commande=commande.numero_commande
-        ).first()
+        # Fonction de normalisation pour comparer les numéros
+        def normalize_numero(numero):
+            if not numero:
+                return ''
+            numero_str = str(numero).strip()
+            digits = ''.join(ch for ch in numero_str if ch.isdigit())
+            if digits:
+                return digits.lstrip('0') or '0'
+            return numero_str
+
+        numero_legend_normalise = normalize_numero(commande.numero_commande)
+        
+        # Chercher dans Cyrus avec normalisation
+        commande_cyrus = None
+        for cyrus_cmd in CommandeCyrus.objects.filter(date_commande=commande.date_commande):
+            if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
+                commande_cyrus = cyrus_cmd
+                break
+        
         if commande_cyrus is None:
-            commande_cyrus = CommandeCyrus.objects.filter(
-                numero_commande=commande.numero_commande
-            ).first()
+            # Fallback: chercher par numéro seulement (sans date)
+            for cyrus_cmd in CommandeCyrus.objects.all():
+                if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
+                    commande_cyrus = cyrus_cmd
+                    break
 
         # Vérifier s'il y a un écart
         try:
@@ -1718,22 +1793,21 @@ def detail_ecart_gpv(request, ecart_id):
             commentaire = request.POST.get('commentaire', '').strip()
             
             if nouveau_statut in ['ouvert', 'resolu', 'ignore', 'quantite_0']:
-                # Si on marque l'écart comme résolu, le supprimer complètement
+                # Ne PAS supprimer l'écart, mais le garder avec le statut modifié
+                # Cela permet de préserver les modifications manuelles lors du recalcul
+                ecart.statut = nouveau_statut
+                if commentaire:
+                    ecart.commentaire = commentaire
+                ecart.save()
+                
                 if nouveau_statut == 'resolu':
-                    ecart.delete()
-                    messages.success(request, "L'écart a été résolu. La commande sera comptée comme intégrée. Les pourcentages seront mis à jour sur le dashboard.")
+                    messages.success(request, "L'écart a été marqué comme résolu. La commande sera comptée comme intégrée. Les pourcentages seront mis à jour sur le dashboard.")
+                elif nouveau_statut == 'ignore':
+                    messages.info(request, "L'écart a été marqué comme ignoré. Les pourcentages seront mis à jour sur le dashboard.")
+                elif nouveau_statut == 'quantite_0':
+                    messages.info(request, "L'écart a été marqué comme 'Quantité 0'. La commande ne sera comptée ni comme intégrée ni comme non intégrée. Les pourcentages seront mis à jour sur le dashboard.")
                 else:
-                    ecart.statut = nouveau_statut
-                    if commentaire:
-                        ecart.commentaire = commentaire
-                    ecart.save()
-                    
-                    if nouveau_statut == 'ignore':
-                        messages.info(request, "L'écart a été marqué comme ignoré. Les pourcentages seront mis à jour sur le dashboard.")
-                    elif nouveau_statut == 'quantite_0':
-                        messages.info(request, "L'écart a été marqué comme 'Quantité 0'. La commande ne sera comptée ni comme intégrée ni comme non intégrée. Les pourcentages seront mis à jour sur le dashboard.")
-                    else:
-                        messages.info(request, "L'écart a été remis à ouvert. Les pourcentages seront mis à jour sur le dashboard.")
+                    messages.info(request, "L'écart a été remis à ouvert. Les pourcentages seront mis à jour sur le dashboard.")
                 
                 # Rediriger vers le dashboard pour que les pourcentages soient recalculés
                 type_donnees = request.GET.get('type_donnees', 'commandes_gpv')
@@ -1773,22 +1847,21 @@ def detail_ecart_legend(request, ecart_id):
             commentaire = request.POST.get('commentaire', '').strip()
 
             if nouveau_statut in ['ouvert', 'resolu', 'ignore', 'quantite_0']:
-                # Si on marque l'écart comme résolu, le supprimer complètement
+                # Ne PAS supprimer l'écart, mais le garder avec le statut modifié
+                # Cela permet de préserver les modifications manuelles lors du recalcul
+                ecart.statut = nouveau_statut
+                if commentaire:
+                    ecart.commentaire = commentaire
+                ecart.save()
+                
                 if nouveau_statut == 'resolu':
-                    ecart.delete()
-                    messages.success(request, "L'écart a été résolu. La commande sera comptée comme intégrée. Les pourcentages seront mis à jour sur le dashboard.")
+                    messages.success(request, "L'écart a été marqué comme résolu. La commande sera comptée comme intégrée. Les pourcentages seront mis à jour sur le dashboard.")
+                elif nouveau_statut == 'ignore':
+                    messages.info(request, "L'écart a été marqué comme ignoré. Les pourcentages seront mis à jour sur le dashboard.")
+                elif nouveau_statut == 'quantite_0':
+                    messages.info(request, "L'écart a été marqué comme 'Quantité 0'. La commande ne sera comptée ni comme intégrée ni comme non intégrée. Les pourcentages seront mis à jour sur le dashboard.")
                 else:
-                    ecart.statut = nouveau_statut
-                    if commentaire:
-                        ecart.commentaire = commentaire
-                    ecart.save()
-                    
-                    if nouveau_statut == 'ignore':
-                        messages.info(request, "L'écart a été marqué comme ignoré. Les pourcentages seront mis à jour sur le dashboard.")
-                    elif nouveau_statut == 'quantite_0':
-                        messages.info(request, "L'écart a été marqué comme 'Quantité 0'. La commande ne sera comptée ni comme intégrée ni comme non intégrée. Les pourcentages seront mis à jour sur le dashboard.")
-                    else:
-                        messages.info(request, "L'écart a été remis à ouvert. Les pourcentages seront mis à jour sur le dashboard.")
+                    messages.info(request, "L'écart a été remis à ouvert. Les pourcentages seront mis à jour sur le dashboard.")
 
                 type_donnees = request.GET.get('type_donnees', 'commandes_legend')
                 return redirect(f"{reverse('dashboard:dashboard')}?type_donnees={type_donnees}")
@@ -1889,29 +1962,39 @@ def liste_commandes_legend(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # Préparer les données de comparaison Cyrus (clé date + numéro, puis fallback numéro)
-    legend_keys = [(cmd.date_commande, cmd.numero_commande) for cmd in page_obj.object_list]
+    # Fonction de normalisation pour comparer les numéros de commande
+    def normalize_numero(numero):
+        """Normalise un numéro de commande pour la comparaison (enlève les zéros en tête)"""
+        if not numero:
+            return ''
+        numero_str = str(numero).strip()
+        digits = ''.join(ch for ch in numero_str if ch.isdigit())
+        if digits:
+            return digits.lstrip('0') or '0'
+        return numero_str
+
+    # Préparer les données de comparaison Cyrus avec normalisation
+    legend_keys = [(cmd.date_commande, normalize_numero(cmd.numero_commande)) for cmd in page_obj.object_list]
     cyrus_lookup = set()
     cyrus_numero_lookup = set()
 
-    if legend_keys:
-        for i in range(0, len(legend_keys), 50):
-            batch_keys = legend_keys[i:i+50]
-            q_objects = Q()
-            for date, numero in batch_keys:
-                q_objects |= Q(date_commande=date, numero_commande=numero)
-            if q_objects:
-                for cyrus_cmd in CommandeCyrus.objects.filter(q_objects):
-                    cyrus_lookup.add((cyrus_cmd.date_commande, cyrus_cmd.numero_commande))
-        numeros = list({numero for _, numero in legend_keys})
-        if numeros:
-            for cyrus_cmd in CommandeCyrus.objects.filter(numero_commande__in=numeros):
-                cyrus_numero_lookup.add(cyrus_cmd.numero_commande)
+    # Récupérer toutes les commandes Cyrus de la période et les normaliser
+    filtres_cyrus_lookup = {}
+    if date_debut_parsed:
+        filtres_cyrus_lookup['date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres_cyrus_lookup['date_commande__lte'] = date_fin_parsed
+    
+    for cyrus_cmd in CommandeCyrus.objects.filter(**filtres_cyrus_lookup):
+        numero_normalise = normalize_numero(cyrus_cmd.numero_commande)
+        cyrus_lookup.add((cyrus_cmd.date_commande, numero_normalise))
+        cyrus_numero_lookup.add(numero_normalise)
 
     # Annoter les objets du page_obj pour l'affichage
     for cmd in page_obj.object_list:
-        key = (cmd.date_commande, cmd.numero_commande)
-        cyrus_present = key in cyrus_lookup or cmd.numero_commande in cyrus_numero_lookup
+        numero_normalise = normalize_numero(cmd.numero_commande)
+        key = (cmd.date_commande, numero_normalise)
+        cyrus_present = key in cyrus_lookup or numero_normalise in cyrus_numero_lookup
         cmd.cyrus_present = cyrus_present
 
     context = {
