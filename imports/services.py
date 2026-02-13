@@ -1,5 +1,6 @@
 import csv
 import os
+import unicodedata
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
@@ -16,7 +17,7 @@ try:
 except Exception:
     CommandeLegend = None
 from br.models import BRAsten
-from imports.models import ImportFichier
+from imports.models import ImportFichier, FactureSage
 
 
 def parse_date_cyrus(date_str):
@@ -149,6 +150,31 @@ def get_valeur_premiere(row_normalized, candidats):
     return ''
 
 
+def normalize_header_key(valeur):
+    if valeur is None:
+        return ''
+    val = str(valeur).strip().lower()
+    # Supprimer accents
+    val = ''.join(c for c in unicodedata.normalize('NFD', val) if unicodedata.category(c) != 'Mn')
+    # Garder lettres/chiffres seulement
+    val = ''.join(ch for ch in val if ch.isalnum())
+    return val
+
+
+def get_valeur_premiere_normalized(row_normalized, candidats):
+    """
+    Recherche par comparaison normalisée (sans accents, sans espaces/ponctuation).
+    """
+    normalized_map = {normalize_header_key(k): v for k, v in row_normalized.items()}
+    for key in candidats:
+        key_norm = normalize_header_key(key)
+        if key_norm in normalized_map:
+            valeur = normalized_map.get(key_norm)
+            if valeur is not None and str(valeur).strip() != '':
+                return str(valeur).strip()
+    return ''
+
+
 def normalize_numero_br(valeur):
     if valeur is None:
         return ''
@@ -164,6 +190,21 @@ def normalize_numero_br(valeur):
     # Extraire uniquement les chiffres
     digits = ''.join(ch for ch in valeur_str if ch.isdigit())
     return digits
+
+
+def normalize_commande_fournisseur(valeur):
+    if valeur is None:
+        return ''
+    # Conserver la référence sans partie décimale si numérique
+    if isinstance(valeur, (int, float)):
+        try:
+            return str(int(valeur))
+        except Exception:
+            pass
+    valeur_str = str(valeur).strip()
+    if valeur_str.endswith('.0'):
+        valeur_str = valeur_str[:-2]
+    return valeur_str.upper()
 
 
 def normalize_code_magasin(valeur):
@@ -183,9 +224,21 @@ def parse_statut_ic(valeur):
     if valeur is None:
         return False
     val = str(valeur).strip().lower()
-    if val in ['intégré', 'integre', 'trouvé', 'trouve', 'oui', 'ok', 'true', '1', 'x']:
+    if val in [
+        'intégré', 'integre', 'intégrée', 'integree', 'intégrées', 'integrees',
+        'trouvé', 'trouve', 'trouvée', 'trouvee', 'trouvées', 'trouvees',
+        'oui', 'ok', 'true', '1', 'x'
+    ]:
         return True
-    if val in ['non intégré', 'non integre', 'non trouvé', 'non trouve', 'non', 'absent', '0', 'false']:
+    if val in [
+        'non intégré', 'non integre', 'non intégrée', 'non integree',
+        'non trouvé', 'non trouve', 'non trouvée', 'non trouvee', 'non trouvées', 'non trouvees',
+        'non', 'absent', '0', 'false'
+    ]:
+        return False
+    if 'trouv' in val and 'non' not in val:
+        return True
+    if 'non' in val and 'trouv' in val:
         return False
     return False
 
@@ -340,13 +393,44 @@ def importer_fichier_br_asten(chemin_fichier):
             nonlocal nombre_lignes, nombre_nouveaux, nombre_dupliques
             nombre_lignes += 1
 
+            # Filtrer les BR non validés (Date validation vide)
+            date_validation = None
+            validation_values = []
+            for k, v in row_normalized.items():
+                key_norm = normalize_header_key(k)
+                if 'validation' in key_norm:
+                    validation_values.append(v)
+            if validation_values:
+                # Si la colonne existe mais est vide/non parsable => non validé, ignorer
+                for v in validation_values:
+                    v_str = str(v).strip() if v is not None else ''
+                    v_norm = v_str.lower()
+                    if v_norm in ('', 'nan', 'nat', 'none', 'null', '0', '0.0'):
+                        continue
+                    date_validation = parse_date_br(v_str)
+                    if date_validation:
+                        break
+                if not date_validation:
+                    return
+
             numero_br = normalize_numero_br(get_valeur_premiere(
                 row_normalized,
-                ['N° de bon de livraison', 'N° de bon livraison', 'N° bon de livraison', 'Numero BL', 'Numéro BL', 'N° DE BR', 'N° BR']
+                [
+                    'N° de bon de livraison', 'N° de bon livraison', 'N° bon de livraison', 'N° bon livraison',
+                    'No bon de livraison', 'No bon livraison', 'Numero bon livraison', 'Numéro bon livraison',
+                    'Numero BL', 'Numéro BL', 'N° BL', 'N° DE BR', 'N° BR'
+                ]
             ))
-            # Prioriser la date de validation, puis date de réception, puis date BR
-            date_br_str = get_valeur_premiere(row_normalized, ['Date validation', 'Date réception', 'Date reception', 'Date', 'Date BR'])
+            # Prioriser la date de création, puis validation, réception, puis date BR
+            date_br_str = get_valeur_premiere(
+                row_normalized,
+                ['Date création', 'Date creation', 'Date validation', 'Date réception', 'Date reception', 'Date', 'Date BR']
+            )
             code_magasin = normalize_code_magasin(get_valeur_premiere(row_normalized, ['Magasin', 'Code magasin', 'Code Magasin']))
+            commande_fournisseur = normalize_commande_fournisseur(get_valeur_premiere(
+                row_normalized,
+                ['Commande fournisseur', 'Commande Fournisseur', 'N° Cde', 'N° Cde.', 'N° Commande']
+            ))
             statut_ic = statut_ic_force if statut_ic_force is not None else get_valeur_premiere(
                 row_normalized, ['Statut IC', 'Statut', 'Intégration IC', 'Integration IC']
             )
@@ -355,9 +439,9 @@ def importer_fichier_br_asten(chemin_fichier):
             if ic_integre_force is not None:
                 ic_integre = ic_integre_force
             elif not statut_ic or statut_ic.strip() == '':
-                # Par défaut, si pas de statut IC, considérer comme intégré
-                ic_integre = True
-                statut_ic = 'Intégré'
+                # Nouvelle logique : si pas de statut IC, considérer comme non intégré
+                ic_integre = False
+                statut_ic = 'Non intégré'
             else:
                 ic_integre = parse_statut_ic(statut_ic)
 
@@ -365,7 +449,7 @@ def importer_fichier_br_asten(chemin_fichier):
             if not numero_br or not date_br or not code_magasin:
                 # Log pour debug : pourquoi la ligne est ignorée
                 if not numero_br:
-                    print(f"Ligne ignorée: numéro BR manquant (valeur: {row_normalized.get('N° de bon de livraison', 'N/A')})")
+                    print(f"Ligne ignorée: numéro BR manquant (valeur: {get_valeur_premiere(row_normalized, ['N° de bon de livraison', 'N° bon livraison', 'N° bon de livraison', 'N° BL', 'N° BR']) or 'N/A'})")
                 elif not date_br:
                     print(f"Ligne ignorée: date BR invalide (valeur: {date_br_str}, type: {type(date_br_str)})")
                 elif not code_magasin:
@@ -385,17 +469,40 @@ def importer_fichier_br_asten(chemin_fichier):
                     'fichier_source': nom_fichier,
                     'statut_ic': statut_ic,
                     'ic_integre': ic_integre,
+                    'commande_fournisseur': commande_fournisseur or None,
+                    'date_validation': date_validation,
                 }
             )
             if created:
                 nombre_nouveaux += 1
             else:
                 nombre_dupliques += 1
-                if br.statut_ic != statut_ic or br.ic_integre != ic_integre or br.fichier_source != nom_fichier:
-                    br.statut_ic = statut_ic
-                    br.ic_integre = ic_integre
-                    br.fichier_source = nom_fichier
-                    br.save(update_fields=['statut_ic', 'ic_integre', 'fichier_source'])
+                if br.override_statut_ic:
+                    # Ne pas écraser un statut modifié manuellement
+                    fields = []
+                    if br.fichier_source != nom_fichier:
+                        br.fichier_source = nom_fichier
+                        fields.append('fichier_source')
+                    if br.commande_fournisseur != (commande_fournisseur or None):
+                        br.commande_fournisseur = commande_fournisseur or None
+                        fields.append('commande_fournisseur')
+                    if br.date_validation != date_validation:
+                        br.date_validation = date_validation
+                        fields.append('date_validation')
+                    if fields:
+                        br.save(update_fields=fields)
+                else:
+                    if (
+                        br.statut_ic != statut_ic or br.ic_integre != ic_integre or
+                        br.fichier_source != nom_fichier or br.commande_fournisseur != (commande_fournisseur or None) or
+                        br.date_validation != date_validation
+                    ):
+                        br.statut_ic = statut_ic
+                        br.ic_integre = ic_integre
+                        br.fichier_source = nom_fichier
+                        br.commande_fournisseur = commande_fournisseur or None
+                        br.date_validation = date_validation
+                        br.save(update_fields=['statut_ic', 'ic_integre', 'fichier_source', 'commande_fournisseur', 'date_validation'])
 
         if chemin_fichier.lower().endswith(('.xlsx', '.xls')):
             xl = pd.ExcelFile(chemin_fichier)
@@ -506,6 +613,189 @@ def importer_fichier_br_asten(chemin_fichier):
         import_obj.message_erreur = str(e)
         import_obj.save()
         raise
+
+
+def _iter_csv_rows(chemin_fichier):
+    """
+    Itère sur les lignes d'un CSV avec détection simple du séparateur.
+    Supporte utf-8/utf-8-sig et latin-1 en fallback.
+    """
+    last_error = None
+    for encoding in ('utf-8-sig', 'utf-8', 'latin-1'):
+        try:
+            with open(chemin_fichier, 'r', encoding=encoding) as f:
+                first_line = f.readline()
+                delimiter = ';' if ';' in first_line else ','
+                f.seek(0)
+                reader = csv.DictReader(f, delimiter=delimiter)
+                for row in reader:
+                    yield {str(k).lstrip('\ufeff').strip(): v for k, v in row.items()}
+            return
+        except UnicodeDecodeError as e:
+            last_error = e
+            continue
+    if last_error:
+        print(f"Erreur encodage CSV {chemin_fichier}: {last_error}")
+
+
+def _iter_excel_rows(chemin_fichier):
+    """
+    Itère sur les lignes d'un Excel en essayant de détecter l'en-tête.
+    """
+    try:
+        xl = pd.ExcelFile(chemin_fichier)
+    except Exception as e:
+        print(f"Erreur lecture Excel {chemin_fichier}: {e}")
+        return
+
+    for sheet_name in xl.sheet_names:
+        try:
+            df = pd.read_excel(chemin_fichier, sheet_name=sheet_name, header=None)
+        except Exception as e:
+            print(f"Erreur feuille {sheet_name} ({chemin_fichier}): {e}")
+            continue
+
+        if df.empty:
+            continue
+
+        # Détecter une ligne d'en-têtes dans les 20 premières lignes
+        header_found = False
+        for idx in range(min(20, len(df))):
+            row = df.iloc[idx]
+            if row.isna().all():
+                continue
+            valeurs = [str(v).strip().lower() if pd.notna(v) else '' for v in row.values]
+            has_rec = any('réc' in v or 'rec' in v for v in valeurs)
+            has_cde = any('cde' in v for v in valeurs)
+            has_date = any('date' in v for v in valeurs)
+            if has_rec and has_cde and has_date:
+                df.columns = [str(v).strip() if pd.notna(v) else f'Col_{i}' for i, v in enumerate(row.values)]
+                df = df.iloc[idx + 1:].reset_index(drop=True)
+                header_found = True
+                break
+
+        if not header_found:
+            # Fallback : utiliser la première ligne non vide comme en-tête
+            for idx in range(min(20, len(df))):
+                row = df.iloc[idx]
+                if row.isna().all():
+                    continue
+                df.columns = [str(v).strip() if pd.notna(v) else f'Col_{i}' for i, v in enumerate(row.values)]
+                df = df.iloc[idx + 1:].reset_index(drop=True)
+                header_found = True
+                break
+
+        if not header_found:
+            continue
+
+        for _, row in df.iterrows():
+            if row.isna().all():
+                continue
+            yield {str(k).lstrip('\ufeff').strip(): v for k, v in row.items()}
+
+
+def comparer_br_asten_ic():
+    """
+    Compare les BR Asten avec les BR IC (CSV) sur :
+    - N° bon livraison = N° Réc./Ret.
+    - Commande fournisseur = N° Cde
+    - Date création = Date Réc./Ret. (date sans heure)
+    Met à jour ic_integre/statut_ic sur BRAsten.
+    """
+    dossier_br_ic = Path(settings.DOSSIER_BR_IC_PATH)
+    if not dossier_br_ic.exists():
+        print(f"Dossier BR IC introuvable: {dossier_br_ic}")
+        return {'updated_integre': 0, 'updated_non_integre': 0, 'error': 'dossier_introuvable'}
+
+    fichiers_ic = (
+        list(dossier_br_ic.glob('*.csv')) + list(dossier_br_ic.glob('*.CSV')) +
+        list(dossier_br_ic.glob('*.xlsx')) + list(dossier_br_ic.glob('*.XLSX')) +
+        list(dossier_br_ic.glob('*.xls')) + list(dossier_br_ic.glob('*.XLS'))
+    )
+    if not fichiers_ic:
+        return {'updated_integre': 0, 'updated_non_integre': 0, 'error': 'aucun_fichier'}
+
+    ic_keys = set()
+    for fichier in fichiers_ic:
+        if fichier.suffix.lower() in ('.xlsx', '.xls'):
+            row_iter = _iter_excel_rows(str(fichier))
+        else:
+            row_iter = _iter_csv_rows(str(fichier))
+        for row in row_iter:
+            try:
+                row_normalized = {str(k).lstrip('\ufeff').strip(): v for k, v in row.items()}
+                numero_br = normalize_numero_br(get_valeur_premiere_normalized(
+                    row_normalized,
+                    [
+                        'N° Réc./Ret.', 'N° Réc./Ret', 'N° Rec./Ret.', 'N° Rec./Ret',
+                        'N° Réception', 'N° Rec/Ret', 'N° Rec/Ret.',
+                        'N° Reception', 'N° Reception/Retours', 'N° Receptions Retours',
+                        'N° Réceptions/Retours', 'N° Réceptions Retours', 'N° Rec. Ret.'
+                    ]
+                ))
+                commande_fournisseur = normalize_commande_fournisseur(get_valeur_premiere_normalized(
+                    row_normalized,
+                    ['N° Cde', 'N° Cde.', 'N° Cde fournisseur', 'Commande fournisseur', 'N° Commande']
+                ))
+                date_rec_str = get_valeur_premiere_normalized(
+                    row_normalized,
+                    [
+                        'Date Réc./Ret.', 'Date Réc./Ret', 'Date Rec./Ret.', 'Date Rec./Ret',
+                        'Date Réception', 'Date Rec/Ret', 'Date creation', 'Date création',
+                        'Date Réceptions/Retours', 'Date Receptions Retours'
+                    ]
+                )
+                date_rec = parse_date_br(date_rec_str)
+                if numero_br and commande_fournisseur and date_rec:
+                    ic_keys.add((numero_br, commande_fournisseur, date_rec))
+            except Exception as e:
+                print(f"Erreur lecture BR IC {fichier.name}: {e}")
+                continue
+
+    if not ic_keys:
+        return {'updated_integre': 0, 'updated_non_integre': 0, 'error': 'aucune_cle'}
+
+    ids_integres = []
+    ids_non_integres = []
+    br_qs = BRAsten.objects.only(
+        'id', 'numero_br', 'date_br', 'commande_fournisseur', 'ic_integre', 'statut_ic', 'override_statut_ic'
+    )
+    for br in br_qs.iterator():
+        if getattr(br, 'override_statut_ic', False):
+            continue
+        if not br.numero_br or not br.date_br or not br.commande_fournisseur:
+            continue
+        key = (
+            normalize_numero_br(br.numero_br),
+            normalize_commande_fournisseur(br.commande_fournisseur),
+            br.date_br
+        )
+        is_integre = key in ic_keys
+        if is_integre:
+            if not br.ic_integre or br.statut_ic != 'Intégré':
+                ids_integres.append(br.id)
+        else:
+            if br.ic_integre or br.statut_ic != 'Non intégré':
+                ids_non_integres.append(br.id)
+
+    updated_integre = 0
+    updated_non_integre = 0
+    if ids_integres:
+        updated_integre = BRAsten.objects.filter(id__in=ids_integres).update(
+            ic_integre=True,
+            statut_ic='Intégré'
+        )
+    if ids_non_integres:
+        updated_non_integre = BRAsten.objects.filter(id__in=ids_non_integres).update(
+            ic_integre=False,
+            statut_ic='Non intégré'
+        )
+
+    return {
+        'updated_integre': updated_integre,
+        'updated_non_integre': updated_non_integre,
+        'error': None
+    }
 
 
 def importer_fichier_asten(chemin_fichier):
@@ -793,6 +1083,7 @@ def scanner_et_importer_fichiers():
     dossier_gpv = Path(settings.DOSSIER_COMMANDES_GPV_PATH)
     dossier_legend = Path(settings.DOSSIER_COMMANDES_LEGEND_PATH)
     dossier_br_asten = Path(settings.DOSSIER_BR_ASTEN_PATH)
+    dossier_br_ic = Path(settings.DOSSIER_BR_IC_PATH)
     
     # Créer les dossiers s'ils n'existent pas
     dossier_asten.mkdir(parents=True, exist_ok=True)
@@ -800,6 +1091,7 @@ def scanner_et_importer_fichiers():
     dossier_gpv.mkdir(parents=True, exist_ok=True)
     dossier_legend.mkdir(parents=True, exist_ok=True)
     dossier_br_asten.mkdir(parents=True, exist_ok=True)
+    dossier_br_ic.mkdir(parents=True, exist_ok=True)
     
     fichiers_importes = []
 
@@ -970,9 +1262,102 @@ def scanner_et_importer_fichiers():
         except Exception as e:
             print(f"Erreur import fichier BR Asten {fichier.name}: {e}")
 
-    # BR IC désactivé : on ne compare plus, seul le fichier BR ASTEN est utilisé
+    # Comparer BR Asten vs BR IC (métadonnées uniquement, pas de suppression)
+    try:
+        comparer_br_asten_ic()
+    except Exception as e:
+        print(f"Erreur comparaison BR Asten/IC: {e}")
+
+    # Scanner les factures Sage (métadonnées uniquement, pas de suppression)
+    try:
+        scanner_factures_sage()
+    except Exception as e:
+        print(f"Erreur scan Facture Sage: {e}")
 
     return fichiers_importes
+
+
+def get_factures_sage_prefixes():
+    """Retourne la liste des préfixes autorisés pour les factures Sage."""
+    prefix_config = str(getattr(settings, 'FACTURES_SAGE_PREFIX', '') or '').strip()
+    prefixes = [p.strip() for p in prefix_config.split(',') if p.strip()]
+    if not prefixes:
+        prefixes = ['']
+    return prefixes
+
+
+def scanner_factures_sage():
+    """
+    Scanne les fichiers Facture Sage (CSV) et stocke uniquement les métadonnées en base.
+    Aucun fichier n'est supprimé.
+    """
+    dossier_factures = Path(settings.DOSSIER_FACTURES_SAGE_PATH)
+    # Si le point de montage contient un sous-dossier ARCHIVES, l'utiliser
+    if dossier_factures.exists() and (dossier_factures / 'ARCHIVES').exists():
+        dossier_factures = dossier_factures / 'ARCHIVES'
+    resultats = {'created': 0, 'updated': 0, 'error': None}
+
+    if not dossier_factures.exists():
+        resultats['error'] = f"Dossier factures Sage introuvable: {dossier_factures}"
+        return resultats
+
+    prefixes = get_factures_sage_prefixes()
+    fichiers = list(dossier_factures.glob('*.csv')) + list(dossier_factures.glob('*.CSV'))
+
+    for fichier in fichiers:
+        nom_fichier = fichier.name
+        if prefixes != [''] and not any(nom_fichier.startswith(p) for p in prefixes):
+            continue
+
+        try:
+            stat = fichier.stat()
+            if settings.USE_TZ:
+                date_modif = datetime.fromtimestamp(stat.st_mtime, tz=timezone.get_current_timezone())
+            else:
+                date_modif = datetime.fromtimestamp(stat.st_mtime)
+
+            date_depot = date_modif.date()
+            chemin_fichier = str(fichier)
+
+            # Compter les lignes (y compris l'en-tête si présent)
+            try:
+                with open(fichier, 'r', encoding='utf-8', errors='ignore') as f:
+                    nombre_lignes = sum(1 for _ in f)
+            except Exception:
+                nombre_lignes = 0
+
+            existing = FactureSage.objects.filter(nom_fichier=nom_fichier).first()
+            if not existing:
+                FactureSage.objects.create(
+                    nom_fichier=nom_fichier,
+                    chemin_fichier=chemin_fichier,
+                    date_depot=date_depot,
+                    date_modif=date_modif,
+                    nombre_lignes=nombre_lignes,
+                )
+                resultats['created'] += 1
+            else:
+                existing_modif = existing.date_modif
+                if settings.USE_TZ and existing_modif and timezone.is_naive(existing_modif):
+                    existing_modif = timezone.make_aware(existing_modif, timezone.get_current_timezone())
+
+                changed = (
+                    existing.chemin_fichier != chemin_fichier or
+                    existing.date_depot != date_depot or
+                    existing_modif != date_modif or
+                    existing.nombre_lignes != nombre_lignes
+                )
+                if changed:
+                    existing.chemin_fichier = chemin_fichier
+                    existing.date_depot = date_depot
+                    existing.date_modif = date_modif
+                    existing.nombre_lignes = nombre_lignes
+                    existing.save(update_fields=['chemin_fichier', 'date_depot', 'date_modif', 'nombre_lignes', 'date_maj'])
+                    resultats['updated'] += 1
+        except Exception as e:
+            resultats['error'] = str(e)
+
+    return resultats
 
 
 def importer_fichier_gpv(chemin_fichier):

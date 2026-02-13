@@ -40,3 +40,22 @@ class ImportFichier(models.Model):
 
     def __str__(self):
         return f"{self.type_fichier.upper()} - {self.nom_fichier} - {self.date_import}"
+
+
+class FactureSage(models.Model):
+    """Fichiers Facture Sage (métadonnées uniquement)"""
+    nom_fichier = models.CharField(max_length=255, unique=True, verbose_name="Nom du fichier")
+    chemin_fichier = models.CharField(max_length=500, verbose_name="Chemin du fichier")
+    date_depot = models.DateField(verbose_name="Date de dépôt")
+    date_modif = models.DateTimeField(verbose_name="Date de modification")
+    nombre_lignes = models.IntegerField(default=0, verbose_name="Nombre de lignes")
+    date_import = models.DateTimeField(auto_now_add=True, verbose_name="Date d'import")
+    date_maj = models.DateTimeField(auto_now=True, verbose_name="Date de mise à jour")
+
+    class Meta:
+        verbose_name = "Facture Sage"
+        verbose_name_plural = "Factures Sage"
+        ordering = ['-date_depot', '-date_modif', 'nom_fichier']
+
+    def __str__(self):
+        return f"Sage - {self.nom_fichier} - {self.date_depot}"

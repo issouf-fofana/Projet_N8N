@@ -119,6 +119,7 @@
                     <option value="ouvert" {% if filtres.statut == 'ouvert' %}selected{% endif %}>Ouvert</option>
                     <option value="resolu" {% if filtres.statut == 'resolu' %}selected{% endif %}>Résolu</option>
                     <option value="ignore" {% if filtres.statut == 'ignore' %}selected{% endif %}>Ignoré</option>
+                    <option value="quantite_0" {% if filtres.statut == 'quantite_0' %}selected{% endif %}>Quantité 0</option>
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
@@ -139,10 +140,47 @@
         </h5>
     </div>
     <div class="card-body p-0">
+        <form method="post" class="p-3 border-bottom">
+            {% csrf_token %}
+            <input type="hidden" name="date_debut" value="{{ filtres.date_debut }}">
+            <input type="hidden" name="date_fin" value="{{ filtres.date_fin }}">
+            <input type="hidden" name="magasin" value="{{ filtres.magasin }}">
+            <input type="hidden" name="statut" value="{{ filtres.statut }}">
+            <input type="hidden" name="type_ecart" value="{{ filtres.type_ecart }}">
+            <input type="hidden" name="page" value="{{ page_obj.number }}">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-check2-square"></i> Sélection
+                    </label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAllEcarts" onclick="toggleAllEcarts(this)">
+                        <label class="form-check-label" for="selectAllEcarts">Tout cocher</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="bulk_status" class="form-label fw-semibold">
+                        <i class="bi bi-pencil-square"></i> Nouveau statut
+                    </label>
+                    <select class="form-select" id="bulk_status" name="bulk_status" required>
+                        <option value="">Choisir un statut...</option>
+                        <option value="ouvert">Ouvert</option>
+                        <option value="resolu">Résolu</option>
+                        <option value="ignore">Ignoré</option>
+                        <option value="quantite_0">Quantité 0</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check2-circle"></i> Appliquer
+                    </button>
+                </div>
+            </div>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th class="border-0" style="width: 40px;"></th>
                         <th class="border-0"><i class="bi bi-calendar"></i> Date Commande</th>
                         <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
@@ -154,6 +192,10 @@
                 <tbody>
             {% for item in ecarts %}
                         <tr class="align-middle">
+                            <td>
+                                <input class="form-check-input ecart-checkbox" type="checkbox" name="selected_ecarts"
+                                       value="{{ item.type }}:{{ item.id }}">
+                            </td>
                             <td class="fw-semibold">{{ item.date_commande|date:"d/m/Y" }}</td>
                             <td>
                                 <strong class="text-primary">{{ item.numero_commande }}</strong>
@@ -185,6 +227,10 @@
                                 {% elif item.statut == 'resolu' %}
                                     <span class="badge bg-success rounded-pill">
                                         <i class="bi bi-check-circle"></i> Résolu
+                                    </span>
+                                {% elif item.statut == 'quantite_0' %}
+                                    <span class="badge bg-warning text-dark rounded-pill">
+                                        <i class="bi bi-exclamation-circle"></i> Quantité 0
                                     </span>
                                 {% else %}
                                     <span class="badge bg-secondary rounded-pill">
@@ -218,7 +264,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center py-5">
+                            <td colspan="8" class="text-center py-5">
                                 <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
                                 <p class="text-muted mt-3 mb-0">Aucun écart trouvé pour les filtres sélectionnés.</p>
                             </td>
@@ -227,6 +273,7 @@
                 </tbody>
             </table>
         </div>
+        </form>
     </div>
     {% if page_obj and page_obj.has_other_pages %}
     <div class="card-footer">
@@ -266,5 +313,11 @@
     </div>
     {% endif %}
 </div>
+<script>
+    function toggleAllEcarts(source) {
+        const checkboxes = document.querySelectorAll('.ecart-checkbox');
+        checkboxes.forEach(cb => { cb.checked = source.checked; });
+    }
+</script>
 {% endblock %}
 

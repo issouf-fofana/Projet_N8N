@@ -27,6 +27,9 @@ Le fichier `config.env` permet de configurer les chemins des dossiers où vous d
 - `DOSSIER_COMMANDES_GPV` : Dossier des commandes GPV
 - `DOSSIER_COMMANDES_LEGEND` : Dossier des commandes Legend
 - `DOSSIER_BR_ASTEN` : Dossier des BR Asten
+- `DOSSIER_BR_IC` : Dossier des BR IC
+- `DOSSIER_FACTURES_SAGE` : Dossier des factures Sage (CSV)
+- `FACTURES_SAGE_PREFIX` : Préfixe des fichiers Sage (par défaut: `SAGE-I-SP_`)
 
 ## Exemples
 
@@ -44,6 +47,9 @@ DOSSIER_COMMANDES_CYRUS=/home/user/depot/commandes_cyrus
 DOSSIER_COMMANDES_GPV=/home/user/depot/commandes_gpv
 DOSSIER_COMMANDES_LEGEND=/home/user/depot/commandes_legend
 DOSSIER_BR_ASTEN=/home/user/depot/br_asten
+DOSSIER_BR_IC=/home/user/depot/br_ic
+DOSSIER_FACTURES_SAGE=/mnt/automate-ic
+FACTURES_SAGE_PREFIX=SAGE-I-SP_
 ```
 
 ### Exemple 3 : Chemins réseau (UNC/Samba)
@@ -53,6 +59,9 @@ DOSSIER_COMMANDES_CYRUS=//10.0.70.169/share/fofana/commande_cyrus
 DOSSIER_COMMANDES_GPV=//10.0.70.169/share/fofana/commande_gpv
 DOSSIER_COMMANDES_LEGEND=//10.0.70.169/share/fofana/commande_legend
 DOSSIER_BR_ASTEN=//10.0.70.169/share/fofana/br_asten
+DOSSIER_BR_IC=//10.0.70.169/share/fofana/br_ic
+DOSSIER_FACTURES_SAGE=smb://10.0.70.150/automate-ic/ARCHIVES
+FACTURES_SAGE_PREFIX=SAGE-I-SP_
 ```
 
 **Note importante pour les chemins réseau SMB :**

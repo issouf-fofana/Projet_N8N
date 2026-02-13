@@ -6,8 +6,23 @@ class BRAsten(models.Model):
     """BR provenant d'Asten"""
     numero_br = models.CharField(max_length=50, verbose_name="Numéro BR")
     date_br = models.DateField(verbose_name="Date BR")
+    date_validation = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Date validation"
+    )
+    commande_fournisseur = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        verbose_name="Commande fournisseur"
+    )
     statut_ic = models.CharField(max_length=50, null=True, blank=True, verbose_name="Statut IC")
     ic_integre = models.BooleanField(default=False, verbose_name="Intégré IC")
+    override_statut_ic = models.BooleanField(
+        default=False,
+        verbose_name="Statut IC modifié manuellement"
+    )
     code_magasin = models.ForeignKey(
         Magasin,
         on_delete=models.PROTECT,

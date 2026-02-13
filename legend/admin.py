@@ -20,3 +20,9 @@ class CommandeLegendAdmin(admin.ModelAdmin):
 
 
 
+
+
+
+
+
+

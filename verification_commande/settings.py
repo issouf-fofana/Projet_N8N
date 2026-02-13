@@ -148,6 +148,10 @@ DOSSIER_COMMANDES_CYRUS = config('DOSSIER_COMMANDES_CYRUS', default='commande_cy
 DOSSIER_COMMANDES_GPV = config('DOSSIER_COMMANDES_GPV', default='commande_gpv')
 DOSSIER_COMMANDES_LEGEND = config('DOSSIER_COMMANDES_LEGEND', default='commande_legend')
 DOSSIER_BR_ASTEN = config('DOSSIER_BR_ASTEN', default='br_asten')
+DOSSIER_BR_IC = config('DOSSIER_BR_IC', default='br_ic')
+# Factures Sage (fichiers CSV)
+DOSSIER_FACTURES_SAGE = config('DOSSIER_FACTURES_SAGE', default='smb://10.0.70.150/automate-ic/ARCHIVES')
+FACTURES_SAGE_PREFIX = config('FACTURES_SAGE_PREFIX', default='SAGE-I-SP_')
 
 def get_dossier_path(dossier_config):
     """
@@ -157,6 +161,10 @@ def get_dossier_path(dossier_config):
     """
     dossier_config_str = str(dossier_config).strip()
     
+    # Détecter les chemins smb:// et convertir en format UNC (//serveur/partage)
+    if dossier_config_str.lower().startswith('smb://'):
+        dossier_config_str = '//' + dossier_config_str[6:]
+
     # Détecter les chemins UNC (réseau Windows/Samba) qui commencent par // ou \\
     if dossier_config_str.startswith('//') or dossier_config_str.startswith('\\\\'):
         # Chemin réseau UNC - utiliser tel quel
@@ -175,3 +183,5 @@ DOSSIER_COMMANDES_CYRUS_PATH = get_dossier_path(DOSSIER_COMMANDES_CYRUS)
 DOSSIER_COMMANDES_GPV_PATH = get_dossier_path(DOSSIER_COMMANDES_GPV)
 DOSSIER_COMMANDES_LEGEND_PATH = get_dossier_path(DOSSIER_COMMANDES_LEGEND)
 DOSSIER_BR_ASTEN_PATH = get_dossier_path(DOSSIER_BR_ASTEN)
+DOSSIER_BR_IC_PATH = get_dossier_path(DOSSIER_BR_IC)
+DOSSIER_FACTURES_SAGE_PATH = get_dossier_path(DOSSIER_FACTURES_SAGE)

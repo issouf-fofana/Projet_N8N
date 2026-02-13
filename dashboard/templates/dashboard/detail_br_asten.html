@@ -117,6 +117,10 @@
                     <div class="info-value">{{ br.date_br|date:"d/m/Y" }}</div>
                 </div>
                 <div class="info-row">
+                    <div class="info-label"><i class="bi bi-calendar-check"></i> Date validation</div>
+                    <div class="info-value">{{ br.date_validation|date:"d/m/Y"|default:"Non renseignée" }}</div>
+                </div>
+                <div class="info-row">
                     <div class="info-label"><i class="bi bi-hash"></i> Numéro BR</div>
                     <div class="info-value"><strong class="text-primary">{{ br.numero_br }}</strong></div>
                 </div>

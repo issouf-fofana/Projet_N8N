@@ -5,13 +5,13 @@ from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
 from django.urls import reverse
 from django.core.paginator import Paginator
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
-from django.db.models import Q, Prefetch, Exists, OuterRef
+from django.db.models import Q, Prefetch, Exists, OuterRef, Count, Sum
 from django.db import IntegrityError
 from django.db.models.deletion import ProtectedError
-from imports.services import scanner_et_importer_fichiers
-from imports.models import ImportFichier
+from imports.services import scanner_et_importer_fichiers, scanner_factures_sage, get_factures_sage_prefixes
+from imports.models import ImportFichier, FactureSage
 from ecarts.services import recalculer_ecarts, get_statistiques
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
@@ -58,6 +58,30 @@ def dashboard(request):
                         break
                 if nouveaux_fichiers:
                     break
+
+            # Vérifier les nouveaux fichiers Facture Sage
+            if not nouveaux_fichiers:
+                dossier_factures = Path(settings.DOSSIER_FACTURES_SAGE_PATH)
+                if dossier_factures.exists():
+                    prefixes = get_factures_sage_prefixes()
+                    fichiers_sage = list(dossier_factures.glob('*.csv')) + list(dossier_factures.glob('*.CSV'))
+                    for fichier in fichiers_sage:
+                        if prefixes != [''] and not any(fichier.name.startswith(p) for p in prefixes):
+                            continue
+                        existing = FactureSage.objects.filter(nom_fichier=fichier.name).first()
+                        if not existing:
+                            nouveaux_fichiers = True
+                            break
+                        if settings.USE_TZ:
+                            date_modif = datetime.fromtimestamp(fichier.stat().st_mtime, tz=timezone.get_current_timezone())
+                        else:
+                            date_modif = datetime.fromtimestamp(fichier.stat().st_mtime)
+                        existing_modif = existing.date_modif
+                        if settings.USE_TZ and existing_modif and timezone.is_naive(existing_modif):
+                            existing_modif = timezone.make_aware(existing_modif, timezone.get_current_timezone())
+                        if existing_modif and date_modif > existing_modif:
+                            nouveaux_fichiers = True
+                            break
             
             # Importer seulement s'il y a de nouveaux fichiers ou si c'est la première visite
             if nouveaux_fichiers or 'donnees_actualisees' not in request.session:
@@ -86,25 +110,14 @@ def dashboard(request):
     date_fin = request.GET.get('date_fin')
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
-    periode = request.GET.get('periode', 'tous')  # Par défaut: 'tous' pour afficher toutes les données
+    periode = request.GET.get('periode', '')
     show = request.GET.get('show', '')  # 'non_integres' pour afficher uniquement les écarts ouverts
     
-    # Si periode est 'tous' ou vide, ne pas appliquer de filtre de date
-    if periode == 'tous' or periode == '':
+    # Nettoyer les valeurs "None" en string
+    if date_debut == 'None' or date_debut == '':
         date_debut = None
+    if date_fin == 'None' or date_fin == '':
         date_fin = None
-        date_debut_parsed = None
-        date_fin_parsed = None
-    else:
-        # Nettoyer les valeurs "None" en string
-        if date_debut == 'None' or date_debut == '':
-            date_debut = None
-        if date_fin == 'None' or date_fin == '':
-            date_fin = None
-        # Convertir les dates seulement si periode n'est pas 'tous'
-        date_debut_parsed = parse_date(date_debut) if date_debut else None
-        date_fin_parsed = parse_date(date_fin) if date_fin else None
-    
     # Nettoyer la liste des magasins
     if code_magasin:
         code_magasin = [m for m in code_magasin if m and m != 'None' and m != '']
@@ -113,6 +126,10 @@ def dashboard(request):
         elif len(code_magasin) == 1:
             # Si un seul magasin est sélectionné, garder comme liste pour cohérence
             pass
+    
+    # Convertir les dates
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
     
     # Liste des magasins pour le filtre
     magasins = Magasin.objects.all().order_by('code')
@@ -129,6 +146,9 @@ def dashboard(request):
     }
     commandes_data = []
     titre_tableau = "Comparaison Asten vs Cyrus"
+    sage_files = None
+    sage_days = None
+    sage_error = None
 
 
     # Traiter selon le type de données sélectionné
@@ -676,26 +696,101 @@ def dashboard(request):
         titre_tableau = "Comparaison Legend vs Cyrus"
         
     elif type_donnees == 'factures':
-        # TODO: À implémenter quand les modèles Factures seront créés
-        stats = {
-            'total_source': 0,
-            'total_target': 0,
-            'integres': 0,
-            'non_integres': 0,
-            'taux_integration': 0,
-            'taux_non_integration': 0,
+        sage_error = None
+        try:
+            if FactureSage.objects.count() == 0:
+                scanner_factures_sage()
+        except Exception as e:
+            sage_error = f"Erreur scan Facture Sage: {e}"
+
+        factures_qs = FactureSage.objects.all()
+        prefixes = get_factures_sage_prefixes()
+        if prefixes != ['']:
+            prefix_filter = Q()
+            for prefix in prefixes:
+                prefix_filter |= Q(nom_fichier__startswith=prefix)
+            factures_qs = factures_qs.filter(prefix_filter)
+        if date_debut_parsed:
+            factures_qs = factures_qs.filter(date_depot__gte=date_debut_parsed)
+        if date_fin_parsed:
+            factures_qs = factures_qs.filter(date_depot__lte=date_fin_parsed)
+
+        sage_files = factures_qs.order_by('-date_depot', '-date_modif', 'nom_fichier')
+        total_files = factures_qs.count()
+        total_lines = factures_qs.aggregate(total=Sum('nombre_lignes'))['total'] or 0
+
+        depots = {
+            item['date_depot']: item['count']
+            for item in factures_qs.values('date_depot').annotate(count=Count('id'))
         }
-        titre_tableau = "Comparaison Factures Asten vs Cyrus"
+
+        if date_debut_parsed and date_fin_parsed:
+            start_date = date_debut_parsed
+            end_date = date_fin_parsed
+        elif date_debut_parsed and not date_fin_parsed:
+            start_date = date_debut_parsed
+            end_date = date_debut_parsed
+        elif date_fin_parsed and not date_debut_parsed:
+            start_date = date_fin_parsed
+            end_date = date_fin_parsed
+        else:
+            if depots:
+                start_date = min(depots.keys())
+                end_date = max(depots.keys())
+            else:
+                start_date = None
+                end_date = None
+
+        sage_days = []
+        expected_days = 0
+        days_with_depot = 0
+        days_without_depot = 0
+        if start_date and end_date:
+            current = start_date
+            while current <= end_date:
+                attendu = current.weekday() in {1, 2, 3, 4, 5}  # Mardi à samedi
+                count = depots.get(current, 0)
+                has_files = count > 0
+                if attendu:
+                    expected_days += 1
+                    if has_files:
+                        days_with_depot += 1
+                    else:
+                        days_without_depot += 1
+                sage_days.append({
+                    'date': current,
+                    'count': count,
+                    'attendu': attendu,
+                    'has_files': has_files,
+                })
+                current += timedelta(days=1)
+
+        taux_integration = round((days_with_depot / expected_days * 100) if expected_days > 0 else 0, 2)
+        taux_non_integration = round((days_without_depot / expected_days * 100) if expected_days > 0 else 0, 2)
+
+        stats = {
+            'total_source': total_files,
+            'total_target': total_lines,
+            'integres': days_with_depot,
+            'non_integres': days_without_depot,
+            'taux_integration': taux_integration,
+            'taux_non_integration': taux_non_integration,
+        }
+        titre_tableau = "Fichiers Facture Sage"
         
     elif type_donnees == 'br':
         # BR ASTEN (statut IC fourni dans le fichier)
         # IMPORTANT: Les statistiques en haut affichent TOUJOURS le total global (sans filtre de date)
         # Par défaut, on affiche tous les BR non intégrés (sans filtre de date)
         
-        # Calculer les statistiques GLOBALES (sans filtre de date) pour l'affichage en haut
+        # Calculer les statistiques selon les filtres sélectionnés (période/magasin)
         filtres_br_global = {}
         if code_magasin:
             filtres_br_global['code_magasin__code__in'] = code_magasin
+        if date_debut_parsed:
+            filtres_br_global['date_br__gte'] = date_debut_parsed
+        if date_fin_parsed:
+            filtres_br_global['date_br__lte'] = date_fin_parsed
         
         br_queryset_global = BRAsten.objects.filter(**filtres_br_global)
         br_quantite_0_global = br_queryset_global.filter(
@@ -719,9 +814,8 @@ def dashboard(request):
         ).count()
 
         # Calculer les taux basés sur le total global
-        # Utiliser plus de décimales pour les petits pourcentages
-        taux_integration_global = round((br_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 3)
-        taux_non_integration_global = round((br_non_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 3)
+        taux_integration_global = round((br_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 2)
+        taux_non_integration_global = round((br_non_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 2)
 
         # Statistiques globales pour l'affichage en haut
         stats = {
@@ -735,33 +829,42 @@ def dashboard(request):
             'taux_non_integration': taux_non_integration_global,
         }
 
-        # Pour les tableaux : TOUJOURS afficher tous les BR non intégrés par défaut (SANS filtre de date)
-        # Même si une période est sélectionnée, on affiche tous les BR non intégrés
-        # L'utilisateur peut utiliser le filtre statut_ic pour voir les intégrés
-        filtres_br_tableaux = {}
-        # Ne PAS appliquer le filtre de date aux tableaux - toujours afficher tous les BR non intégrés
-        # Le filtre de date est utilisé uniquement pour les statistiques si nécessaire, mais ici on veut toujours tout afficher
+        # Pour les tableaux : non intégrés toujours en premier (sans filtre de période),
+        # intégrés selon la période sélectionnée.
+        filtres_br_base = {}
         if code_magasin:
-            filtres_br_tableaux['code_magasin__code__in'] = code_magasin
+            filtres_br_base['code_magasin__code__in'] = code_magasin
+
+        filtres_br_date = dict(filtres_br_base)
+        if date_debut_parsed:
+            filtres_br_date['date_br__gte'] = date_debut_parsed
+        if date_fin_parsed:
+            filtres_br_date['date_br__lte'] = date_fin_parsed
 
         statut_ic = request.GET.get('statut_ic')
-        br_queryset_base = BRAsten.objects.filter(**filtres_br_tableaux)
-        
-        # Créer deux querysets séparés : un pour les trouvées et un pour les non trouvées
-        # Par défaut, afficher TOUS les BR non intégrés dans le tableau non trouvées
-        # Mais toujours afficher les trouvées aussi
+        exclude_quantite_0 = (
+            Q(statut_ic__icontains='Quantité 0') |
+            Q(statut_ic__icontains='quantite_0') |
+            Q(statut_ic__icontains='Quantite 0')
+        )
+
         if statut_ic == 'integre':
-            # Si on filtre sur intégrés, ne montrer que les intégrés
-            br_trouvees = br_queryset_base.filter(ic_integre=True).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
-            br_non_trouvees = BRAsten.objects.none()  # Ne rien afficher dans non trouvées
+            br_non_trouvees = BRAsten.objects.none()
+            br_trouvees = BRAsten.objects.filter(ic_integre=True, **filtres_br_date).exclude(
+                exclude_quantite_0
+            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
         elif statut_ic == 'non_integre':
-            # Si on filtre sur non intégrés, ne montrer que les non intégrés
-            br_trouvees = BRAsten.objects.none()  # Ne rien afficher dans trouvées
-            br_non_trouvees = br_queryset_base.filter(ic_integre=False).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_trouvees = BRAsten.objects.none()
+            br_non_trouvees = BRAsten.objects.filter(ic_integre=False, **filtres_br_date).exclude(
+                exclude_quantite_0
+            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
         else:
-            # Par défaut : afficher TOUS les BR non intégrés dans non trouvées, ET tous les intégrés dans trouvées
-            br_trouvees = br_queryset_base.filter(ic_integre=True).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
-            br_non_trouvees = br_queryset_base.filter(ic_integre=False).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_non_trouvees = BRAsten.objects.filter(ic_integre=False, **filtres_br_base).exclude(
+                exclude_quantite_0
+            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_trouvees = BRAsten.objects.filter(ic_integre=True, **filtres_br_date).exclude(
+                exclude_quantite_0
+            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
         commandes_data = []
         titre_tableau = "BR ASTEN (Statut IC)"
     
@@ -770,6 +873,9 @@ def dashboard(request):
         'commandes': commandes_data,
         'br_trouvees': br_trouvees if type_donnees == 'br' else None,
         'br_non_trouvees': br_non_trouvees if type_donnees == 'br' else None,
+        'sage_files': sage_files if type_donnees == 'factures' else None,
+        'sage_days': sage_days if type_donnees == 'factures' else None,
+        'sage_error': sage_error if type_donnees == 'factures' else None,
         'magasins': magasins,
         'type_donnees': type_donnees,
         'titre_tableau': titre_tableau,
@@ -796,15 +902,11 @@ def accueil(request):
     from django.utils import timezone
     
     # Gérer les filtres de période
-    periode = request.GET.get('periode', 'tous')  # Par défaut: 'tous' pour afficher toutes les données
+    periode = request.GET.get('periode', '')
     date_debut = None
     date_fin = None
     
-    # Si periode est 'tous' ou vide, ne pas appliquer de filtre de date
-    if periode == 'tous' or periode == '':
-        date_debut = None
-        date_fin = None
-    elif periode == 'aujourdhui':
+    if periode == 'aujourdhui':
         date_debut = timezone.now().date()
         date_fin = timezone.now().date()
     elif periode == 'hier':
@@ -979,8 +1081,76 @@ def accueil(request):
     except:
         stats_br = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
     
-    # FACTURES (pour l'instant vide, à implémenter plus tard)
-    stats_factures = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
+    # FACTURES (Facture Sage)
+    try:
+        if FactureSage.objects.count() == 0:
+            scanner_factures_sage()
+    except Exception:
+        pass
+
+    try:
+        factures_qs = FactureSage.objects.all()
+        prefixes = get_factures_sage_prefixes()
+        if prefixes != ['']:
+            prefix_filter = Q()
+            for prefix in prefixes:
+                prefix_filter |= Q(nom_fichier__startswith=prefix)
+            factures_qs = factures_qs.filter(prefix_filter)
+        if date_debut:
+            factures_qs = factures_qs.filter(date_depot__gte=date_debut)
+        if date_fin:
+            factures_qs = factures_qs.filter(date_depot__lte=date_fin)
+
+        depots = {
+            item['date_depot']: item['count']
+            for item in factures_qs.values('date_depot').annotate(count=Count('id'))
+        }
+
+        if date_debut and date_fin:
+            start_date = date_debut
+            end_date = date_fin
+        elif date_debut and not date_fin:
+            start_date = date_debut
+            end_date = date_debut
+        elif date_fin and not date_debut:
+            start_date = date_fin
+            end_date = date_fin
+        else:
+            if depots:
+                start_date = min(depots.keys())
+                end_date = max(depots.keys())
+            else:
+                start_date = None
+                end_date = None
+
+        expected_days = 0
+        days_with_depot = 0
+        days_without_depot = 0
+        if start_date and end_date:
+            current = start_date
+            while current <= end_date:
+                attendu = current.weekday() in {1, 2, 3, 4, 5}  # Mardi à samedi
+                count = depots.get(current, 0)
+                if attendu:
+                    expected_days += 1
+                    if count > 0:
+                        days_with_depot += 1
+                    else:
+                        days_without_depot += 1
+                current += timedelta(days=1)
+
+        taux_integration = round((days_with_depot / expected_days * 100) if expected_days > 0 else 0, 2)
+        taux_non_integration = round((days_without_depot / expected_days * 100) if expected_days > 0 else 0, 2)
+
+        stats_factures = {
+            'total': factures_qs.count(),
+            'integres': days_with_depot,
+            'non_integres': days_without_depot,
+            'taux_integration': taux_integration,
+            'taux_non_integration': taux_non_integration,
+        }
+    except Exception:
+        stats_factures = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
     
     # REMONTÉES (Tickets)
     try:
@@ -1138,6 +1308,43 @@ def detail_ecart(request, ecart_id):
 
 def liste_ecarts(request):
     """Affiche la liste des écarts (Asten, GPV et Legend)"""
+    if request.method == 'POST':
+        selected = request.POST.getlist('selected_ecarts')
+        new_status = request.POST.get('bulk_status', '').strip()
+        allowed_statuses = {'ouvert', 'resolu', 'ignore', 'quantite_0'}
+
+        if not selected:
+            messages.warning(request, "Aucun écart sélectionné.")
+        elif new_status not in allowed_statuses:
+            messages.error(request, "Statut invalide.")
+        else:
+            updated = 0
+            for item in selected:
+                try:
+                    type_ecart, ecart_id = item.split(':', 1)
+                except ValueError:
+                    continue
+                if type_ecart == 'asten':
+                    updated += EcartCommande.objects.filter(id=ecart_id).update(statut=new_status)
+                elif type_ecart == 'gpv':
+                    updated += EcartGPV.objects.filter(id=ecart_id).update(statut=new_status)
+                elif type_ecart == 'legend':
+                    updated += EcartLegend.objects.filter(id=ecart_id).update(statut=new_status)
+
+            if updated > 0:
+                messages.success(request, f"{updated} écart(s) mis à jour.")
+            else:
+                messages.warning(request, "Aucun écart n'a été mis à jour.")
+
+        # Préserver les filtres lors de la redirection
+        params = []
+        for key in ['date_debut', 'date_fin', 'magasin', 'statut', 'type_ecart', 'page']:
+            value = request.POST.get(key, '').strip()
+            if value:
+                params.append(f"{key}={value}")
+        query = ('?' + '&'.join(params)) if params else ''
+        return redirect(f"{reverse('dashboard:liste_ecarts')}{query}")
+
     # Filtres
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
@@ -1579,6 +1786,7 @@ def detail_br_asten(request, br_id):
             if nouveau_statut_ic:
                 br.statut_ic = nouveau_statut_ic
             br.ic_integre = ic_integre
+            br.override_statut_ic = True
             if avis:
                 br.avis = avis
             br.save()

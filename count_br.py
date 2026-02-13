@@ -52,3 +52,9 @@ if total > quantite_0:
 print("=" * 50)
 
 
+
+
+
+
+
+

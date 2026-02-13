@@ -12,3 +12,9 @@ class TicketsConfig(AppConfig):
 
 
 
+
+
+
+
+
+
