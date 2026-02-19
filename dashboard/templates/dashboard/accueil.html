@@ -540,6 +540,102 @@
     .text-warning {
         color: #f59e0b !important;
     }
+
+    /* Compact layout with mini charts */
+    .accueil-card-top {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .accueil-stats {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .accueil-chart {
+        width: 116px;
+        height: 116px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .accueil-chart canvas {
+        width: 104px !important;
+        height: 104px !important;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+    }
+
+    .stat-value {
+        font-size: 1rem !important;
+    }
+
+    .progress {
+        height: 6px !important;
+    }
+
+    /* Simplified layout overrides */
+    .accueil-card,
+    .accueil-card:hover {
+        animation: none !important;
+        transform: none !important;
+    }
+
+    .accueil-card {
+        border-radius: 14px;
+        border: 1px solid #e5e9f2;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        background: #ffffff;
+        overflow: hidden;
+    }
+
+    .accueil-card::before,
+    .accueil-card-header::after {
+        display: none !important;
+    }
+
+    .accueil-card-header {
+        background: #f9fbff !important;
+        color: #0f172a !important;
+        justify-content: flex-start;
+        gap: 8px;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .card-asten,
+    .card-gpv,
+    .card-legend,
+    .card-br,
+    .card-factures,
+    .card-remontees {
+        border-top: none !important;
+    }
+
+    .stat-row {
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
+    }
+
+    .btn-details {
+        background: transparent !important;
+        color: #2d6cdf !important;
+        border: 1px solid #dbe4f6 !important;
+        border-radius: 10px !important;
+        box-shadow: none !important;
+    }
+
+    .btn-details:hover {
+        background: #eff6ff !important;
+        color: #1d4ed8 !important;
+    }
 </style>
 {% endblock %}
 
@@ -616,25 +712,27 @@
     <!-- Statistiques globales -->
     <div class="row g-3">
         <!-- Commandes Asten -->
-        <div class="col-md-6 col-lg-4">
-            <div class="accueil-card card-asten">
+        <div class="col-lg-4 col-md-6">
+            <div class="accueil-card">
                 <div class="accueil-card-header">
                     <i class="bi bi-box-seam me-2"></i> Commandes Asten
                 </div>
                 <div class="accueil-card-body">
-                    <div class="stat-row">
+                    <div class="accueil-card-top">
+                        <div class="accueil-stats">
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
                         <span class="stat-value info">{{ stats_asten.total|default:0|floatformat:0 }}</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-check-circle-fill text-success"></i> Intégrées
                         </span>
                         <span class="stat-value" style="font-size: 1.3rem; color: #10b981;">
                             {{ stats_asten.integres|default:0|floatformat:0 }}
                         </span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
                         </span>
@@ -643,6 +741,11 @@
                            style="font-size: 1.3rem;">
                             {{ stats_asten.non_integres|default:0|floatformat:0 }}
                         </a>
+                            </div>
+                        </div>
+                        <div class="accueil-chart">
+                            <canvas class="mini-donut" data-ok="{{ stats_asten.integres|default:0 }}" data-bad="{{ stats_asten.non_integres|default:0 }}"></canvas>
+                        </div>
                     </div>
                     <div class="progress-container">
                         <div class="progress" style="background-color: #e5e7eb; position: relative; height: 6px;">
@@ -671,23 +774,25 @@
         </div>
 
         <!-- Commandes GPV -->
-        <div class="col-md-6 col-lg-4">
-            <div class="accueil-card card-gpv">
+        <div class="col-lg-4 col-md-6">
+            <div class="accueil-card">
                 <div class="accueil-card-header">
                     <i class="bi bi-box-seam me-2"></i> Commandes GPV
                 </div>
                 <div class="accueil-card-body">
-                    <div class="stat-row">
+                    <div class="accueil-card-top">
+                        <div class="accueil-stats">
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
                         <span class="stat-value info" data-value="{{ stats_gpv.total|default:0 }}">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-check-circle-fill text-success"></i> Intégrées
                         </span>
                         <span class="stat-value" data-value="{{ stats_gpv.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
                         </span>
@@ -697,6 +802,11 @@
                            style="font-size: 1.3rem;">
                             0
                         </a>
+                            </div>
+                        </div>
+                        <div class="accueil-chart">
+                            <canvas class="mini-donut" data-ok="{{ stats_gpv.integres|default:0 }}" data-bad="{{ stats_gpv.non_integres|default:0 }}"></canvas>
+                        </div>
                     </div>
                     <div class="progress-container">
                         <div class="progress" style="background-color: #e5e7eb; position: relative;">
@@ -725,23 +835,25 @@
         </div>
 
         <!-- Commandes Legend -->
-        <div class="col-md-6 col-lg-4">
-            <div class="accueil-card card-legend">
+        <div class="col-lg-4 col-md-6">
+            <div class="accueil-card">
                 <div class="accueil-card-header">
                     <i class="bi bi-box-seam me-2"></i> Commandes Legend
                 </div>
                 <div class="accueil-card-body">
-                    <div class="stat-row">
+                    <div class="accueil-card-top">
+                        <div class="accueil-stats">
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
                         <span class="stat-value info" data-value="{{ stats_legend.total|default:0 }}">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-check-circle-fill text-success"></i> Intégrées
                         </span>
                         <span class="stat-value" data-value="{{ stats_legend.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
                         </span>
@@ -751,6 +863,11 @@
                            style="font-size: 1.3rem;">
                             0
                         </a>
+                            </div>
+                        </div>
+                        <div class="accueil-chart">
+                            <canvas class="mini-donut" data-ok="{{ stats_legend.integres|default:0 }}" data-bad="{{ stats_legend.non_integres|default:0 }}"></canvas>
+                        </div>
                     </div>
                     <div class="progress-container">
                         <div class="progress" style="background-color: #e5e7eb; position: relative;">
@@ -779,23 +896,25 @@
         </div>
 
         <!-- BR Asten -->
-        <div class="col-md-6 col-lg-4">
-            <div class="accueil-card card-br">
+        <div class="col-lg-4 col-md-6">
+            <div class="accueil-card">
                 <div class="accueil-card-header">
                     <i class="bi bi-receipt-cutoff me-2"></i> BR Asten
                 </div>
                 <div class="accueil-card-body">
-                    <div class="stat-row">
+                    <div class="accueil-card-top">
+                        <div class="accueil-stats">
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-list-ul text-success"></i> Total</span>
                         <span class="stat-value info" data-value="{{ stats_br.total|default:0 }}">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-check-circle-fill text-success"></i> Trouvées
                         </span>
                         <span class="stat-value" data-value="{{ stats_br.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non trouvées
                         </span>
@@ -805,6 +924,11 @@
                            style="font-size: 1.3rem;">
                             0
                         </a>
+                            </div>
+                        </div>
+                        <div class="accueil-chart">
+                            <canvas class="mini-donut" data-ok="{{ stats_br.integres|default:0 }}" data-bad="{{ stats_br.non_integres|default:0 }}"></canvas>
+                        </div>
                     </div>
                     <div class="progress-container">
                         <div class="progress" style="background-color: #e5e7eb; position: relative;">
@@ -833,23 +957,25 @@
         </div>
 
         <!-- Factures -->
-        <div class="col-md-6 col-lg-4">
-            <div class="accueil-card card-factures">
+        <div class="col-lg-4 col-md-6">
+            <div class="accueil-card">
                 <div class="accueil-card-header">
                     <i class="bi bi-file-earmark-text me-2"></i> Factures
                 </div>
                 <div class="accueil-card-body">
-                    <div class="stat-row">
+                    <div class="accueil-card-top">
+                        <div class="accueil-stats">
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
                         <span class="stat-value info" data-value="{{ stats_factures.total|default:0 }}">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-check-circle-fill text-success"></i> Intégrées
                         </span>
                         <span class="stat-value" data-value="{{ stats_factures.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label">
                             <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
                         </span>
@@ -859,6 +985,11 @@
                            style="font-size: 1.3rem;">
                             0
                         </a>
+                            </div>
+                        </div>
+                        <div class="accueil-chart">
+                            <canvas class="mini-donut" data-ok="{{ stats_factures.integres|default:0 }}" data-bad="{{ stats_factures.non_integres|default:0 }}"></canvas>
+                        </div>
                     </div>
                     <div class="progress-container">
                         <div class="progress" style="background-color: #e5e7eb; position: relative;">
@@ -887,23 +1018,30 @@
         </div>
 
         <!-- Remontées -->
-        <div class="col-md-6 col-lg-4">
-            <div class="accueil-card card-remontees">
+        <div class="col-lg-4 col-md-6">
+            <div class="accueil-card">
                 <div class="accueil-card-header">
                     <i class="bi bi-ticket-perforated me-2"></i> Remontées
                 </div>
                 <div class="accueil-card-body">
-                    <div class="stat-row">
+                    <div class="accueil-card-top">
+                        <div class="accueil-stats">
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-list-ul text-info"></i> Total</span>
                         <span class="stat-value info" data-value="{{ stats_remontees.total|default:0 }}">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-check-circle-fill text-success"></i> Résolues</span>
                         <span class="stat-value success" data-value="{{ stats_remontees.resolu|default:0 }}">0</span>
-                    </div>
-                    <div class="stat-row">
+                            </div>
+                            <div class="stat-row">
                         <span class="stat-label"><i class="bi bi-clock-history text-warning"></i> En cours</span>
                         <span class="stat-value warning" data-value="{{ stats_remontees.en_cours|default:0 }}">0</span>
+                            </div>
+                        </div>
+                        <div class="accueil-chart">
+                            <canvas class="mini-donut" data-ok="{{ stats_remontees.resolu|default:0 }}" data-bad="{{ stats_remontees.non_resolu|default:0 }}"></canvas>
+                        </div>
                     </div>
                     <div class="progress-container">
                         <div class="progress" style="background-color: #e5e7eb; position: relative; height: 6px;">
@@ -1096,6 +1234,35 @@ document.addEventListener('DOMContentLoaded', function() {
             bar.style.transform = 'scaleX(1)';
             bar.style.width = widthPercent + '%';
         }, 400 + (index * 100));
+    });
+
+    // Mini donut charts
+    document.querySelectorAll('.mini-donut').forEach(function(canvas) {
+        const ok = parseFloat(canvas.dataset.ok) || 0;
+        const bad = parseFloat(canvas.dataset.bad) || 0;
+        const total = ok + bad;
+        const data = total === 0 ? [1] : [ok, bad];
+        const colors = total === 0 ? ['#e2e8f0'] : ['#22c55e', '#ef4444'];
+
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['OK', 'KO'],
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false },
+                }
+            }
+        });
     });
 });
 </script>

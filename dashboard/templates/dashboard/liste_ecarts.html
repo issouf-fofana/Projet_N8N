@@ -74,21 +74,21 @@
                 <label for="date_debut" class="form-label fw-semibold">
                     <i class="bi bi-calendar-event"></i> Date début
                 </label>
-                <input type="date" class="form-control form-control-lg" id="date_debut" name="date_debut" 
+                <input type="date" class="form-control form-control-sm" id="date_debut" name="date_debut" 
                        value="{{ filtres.date_debut }}">
             </div>
             <div class="col-md-3">
                 <label for="date_fin" class="form-label fw-semibold">
                     <i class="bi bi-calendar-check"></i> Date fin
                 </label>
-                <input type="date" class="form-control form-control-lg" id="date_fin" name="date_fin" 
+                <input type="date" class="form-control form-control-sm" id="date_fin" name="date_fin" 
                        value="{{ filtres.date_fin }}">
             </div>
             <div class="col-md-2">
                 <label for="magasin" class="form-label fw-semibold">
                     <i class="bi bi-shop"></i> Magasin
                 </label>
-                <select class="form-select form-select-lg" id="magasin" name="magasin">
+                <select class="form-select form-select-sm" id="magasin" name="magasin">
                     <option value="">Tous</option>
                     {% for magasin in magasins %}
                         <option value="{{ magasin.code }}" {% if filtres.magasin == magasin.code %}selected{% endif %}>
@@ -101,7 +101,7 @@
                 <label for="type_ecart" class="form-label fw-semibold">
                     <i class="bi bi-tags"></i> Type
                 </label>
-                <select class="form-select form-select-lg" id="type_ecart" name="type_ecart">
+                <select class="form-select form-select-sm" id="type_ecart" name="type_ecart">
                     <option value="" {% if not filtres.type_ecart or filtres.type_ecart == '' %}selected{% endif %}>Tous</option>
                     <option value="asten" {% if filtres.type_ecart == 'asten' %}selected{% endif %}>Asten</option>
                     <option value="gpv" {% if filtres.type_ecart == 'gpv' %}selected{% endif %}>GPV</option>
@@ -114,7 +114,7 @@
                 <label for="statut" class="form-label fw-semibold">
                     <i class="bi bi-info-circle"></i> Statut
                 </label>
-                <select class="form-select form-select-lg" id="statut" name="statut">
+                <select class="form-select form-select-sm" id="statut" name="statut">
                     <option value="" {% if not filtres.statut or filtres.statut == '' %}selected{% endif %}>Tous</option>
                     <option value="ouvert" {% if filtres.statut == 'ouvert' %}selected{% endif %}>Ouvert</option>
                     <option value="resolu" {% if filtres.statut == 'resolu' %}selected{% endif %}>Résolu</option>
@@ -123,7 +123,7 @@
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                <button type="submit" class="btn btn-primary w-100 btn-sm">
                     <i class="bi bi-funnel-fill"></i> Filtrer
                 </button>
             </div>
