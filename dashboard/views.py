@@ -10,8 +10,13 @@ from django.utils import timezone
 from django.db.models import Q, Prefetch, Exists, OuterRef, Count, Sum
 from django.db import IntegrityError
 from django.db.models.deletion import ProtectedError
-from imports.services import scanner_et_importer_fichiers, scanner_factures_sage, get_factures_sage_prefixes
-from imports.models import ImportFichier, FactureSage
+from imports.services import (
+    scanner_et_importer_fichiers,
+    scanner_factures_sage,
+    get_factures_sage_prefixes,
+    scanner_factures_backup,
+)
+from imports.models import ImportFichier, FactureSage, FactureBackupCyrus
 from ecarts.services import recalculer_ecarts, get_statistiques
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
@@ -82,6 +87,21 @@ def dashboard(request):
                         if existing_modif and date_modif > existing_modif:
                             nouveaux_fichiers = True
                             break
+
+            # Vérifier les nouveaux fichiers Facture Backup (Cyrus)
+            if not nouveaux_fichiers:
+                dossier_backup = Path(settings.DOSSIER_FACTURE_BACKUP_PATH)
+                if dossier_backup.exists():
+                    fichiers_backup = [f for f in dossier_backup.iterdir() if f.is_file()]
+                    for fichier in fichiers_backup:
+                        existing = FactureBackupCyrus.objects.filter(nom_fichier=fichier.name).first()
+                        already_tracked = ImportFichier.objects.filter(
+                            type_fichier='facture_backup',
+                            nom_fichier=fichier.name
+                        ).exists()
+                        if not existing and not already_tracked:
+                            nouveaux_fichiers = True
+                            break
             
             # Importer seulement s'il y a de nouveaux fichiers ou si c'est la première visite
             if nouveaux_fichiers or 'donnees_actualisees' not in request.session:
@@ -149,6 +169,8 @@ def dashboard(request):
     sage_files = None
     sage_days = None
     sage_error = None
+    backup_files = None
+    backup_error = None
 
 
     # Traiter selon le type de données sélectionné
@@ -778,6 +800,37 @@ def dashboard(request):
         }
         titre_tableau = "Fichiers Facture Sage"
         
+    elif type_donnees == 'factures_backup':
+        backup_error = None
+        try:
+            if FactureBackupCyrus.objects.count() == 0:
+                scanner_factures_backup()
+        except Exception as e:
+            backup_error = f"Erreur scan Facture Backup: {e}"
+
+        factures_qs = FactureBackupCyrus.objects.all()
+        if code_magasin:
+            factures_qs = factures_qs.filter(code_magasin__in=code_magasin)
+        if date_debut_parsed:
+            factures_qs = factures_qs.filter(date_modif__date__gte=date_debut_parsed)
+        if date_fin_parsed:
+            factures_qs = factures_qs.filter(date_modif__date__lte=date_fin_parsed)
+
+        backup_files = factures_qs.order_by('-date_modif', 'nom_fichier')[:1000]
+        total_factures = factures_qs.count()
+        total_promo = factures_qs.filter(type_facture='promo').count()
+        total_general = factures_qs.filter(type_facture='general').count()
+
+        stats = {
+            'total_source': total_factures,
+            'total_target': total_factures,
+            'integres': total_promo,
+            'non_integres': total_general,
+            'taux_integration': 0,
+            'taux_non_integration': 0,
+        }
+        titre_tableau = "Factures Backup (Cyrus)"
+        
     elif type_donnees == 'br':
         # BR ASTEN (statut IC fourni dans le fichier)
         # IMPORTANT: Les statistiques en haut affichent TOUJOURS le total global (sans filtre de date)
@@ -876,6 +929,8 @@ def dashboard(request):
         'sage_files': sage_files if type_donnees == 'factures' else None,
         'sage_days': sage_days if type_donnees == 'factures' else None,
         'sage_error': sage_error if type_donnees == 'factures' else None,
+        'backup_files': backup_files if type_donnees == 'factures_backup' else None,
+        'backup_error': backup_error if type_donnees == 'factures_backup' else None,
         'magasins': magasins,
         'type_donnees': type_donnees,
         'titre_tableau': titre_tableau,
@@ -1722,6 +1777,32 @@ def liste_br_asten(request):
 
 def liste_br_ecart(request):
     """Affiche les BR non trouvés (écarts)"""
+    if request.method == 'POST':
+        selected = request.POST.getlist('selected_brs')
+        if not selected:
+            messages.warning(request, "Aucun BR sélectionné.")
+        else:
+            updated = BRAsten.objects.filter(id__in=selected).update(
+                ic_integre=True,
+                statut_ic='Intégré',
+                override_statut_ic=True
+            )
+            if updated > 0:
+                messages.success(request, f"{updated} BR marqué(s) comme intégré(s).")
+            else:
+                messages.warning(request, "Aucun BR n'a été mis à jour.")
+
+        params = []
+        for key in ['date_debut', 'date_fin', 'numero_br', 'page']:
+            value = request.POST.get(key, '').strip()
+            if value:
+                params.append(f"{key}={value}")
+        for magasin in request.POST.getlist('magasin'):
+            if magasin:
+                params.append(f"magasin={magasin}")
+        query = ('?' + '&'.join(params)) if params else ''
+        return redirect(f"{reverse('dashboard:liste_br_ecart')}{query}")
+
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
     codes_magasins = request.GET.getlist('magasin')

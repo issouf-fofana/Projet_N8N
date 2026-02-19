@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 import unicodedata
 import pandas as pd
 from datetime import datetime
@@ -17,7 +18,7 @@ try:
 except Exception:
     CommandeLegend = None
 from br.models import BRAsten
-from imports.models import ImportFichier, FactureSage
+from imports.models import ImportFichier, FactureSage, FactureBackupCyrus
 
 
 def parse_date_cyrus(date_str):
@@ -139,6 +140,59 @@ def parse_date_br(date_str):
             return datetime.strptime(date_str, fmt).date()
         except (ValueError, AttributeError):
             continue
+    return None
+
+
+def parse_facture_backup_line(line):
+    """
+    Parse une ligne de facture backup.
+    - Code magasin: 3 chiffres juste après 'E'
+    - Statut: 'G' (générale) ou 'P' (promo)
+    - Numéro facture:
+        - promo: chiffres juste avant 'P'
+        - générale FA: 'FA' + chiffres jusqu'à 'G'
+        - générale standard: 10 chiffres juste avant 'G'
+    - Thème promo: 4 caractères après 'P'
+    """
+    if not line:
+        return None
+    raw = str(line).strip()
+    if len(raw) < 4 or not raw.startswith('E'):
+        return None
+    code_magasin = raw[1:4]
+    if not code_magasin.isdigit():
+        return None
+
+    promo_matches = list(re.finditer(r'(\d+)(P)([A-Za-z0-9]{4})', raw))
+    if promo_matches:
+        match = promo_matches[-1]
+        return {
+            'code_magasin': code_magasin,
+            'numero_facture': match.group(1),
+            'type_facture': 'promo',
+            'theme_promo': match.group(3),
+        }
+
+    fa_matches = list(re.finditer(r'(FA\d+)(G)', raw))
+    if fa_matches:
+        match = fa_matches[-1]
+        return {
+            'code_magasin': code_magasin,
+            'numero_facture': match.group(1),
+            'type_facture': 'general',
+            'theme_promo': None,
+        }
+
+    g_matches = list(re.finditer(r'(\d{10})(G)', raw))
+    if g_matches:
+        match = g_matches[-1]
+        return {
+            'code_magasin': code_magasin,
+            'numero_facture': match.group(1),
+            'type_facture': 'general',
+            'theme_promo': None,
+        }
+
     return None
 
 
@@ -1274,6 +1328,12 @@ def scanner_et_importer_fichiers():
     except Exception as e:
         print(f"Erreur scan Facture Sage: {e}")
 
+    # Scanner les factures Backup (Cyrus)
+    try:
+        scanner_factures_backup()
+    except Exception as e:
+        print(f"Erreur scan Facture Backup: {e}")
+
     return fichiers_importes
 
 
@@ -1356,6 +1416,81 @@ def scanner_factures_sage():
                     resultats['updated'] += 1
         except Exception as e:
             resultats['error'] = str(e)
+
+    return resultats
+
+
+def scanner_factures_backup():
+    """
+    Scanne les fichiers Facture Backup (Cyrus) et stocke les données en base.
+    Lecture uniquement de la première ligne, aucun fichier n'est supprimé.
+    """
+    dossier_factures = Path(settings.DOSSIER_FACTURE_BACKUP_PATH)
+    dossier_factures.mkdir(parents=True, exist_ok=True)
+    resultats = {'created': 0, 'skipped': 0, 'invalid': 0, 'errors': 0}
+
+    fichiers = [f for f in dossier_factures.iterdir() if f.is_file()]
+    for fichier in fichiers:
+        nom_fichier = fichier.name
+        if FactureBackupCyrus.objects.filter(nom_fichier=nom_fichier).exists():
+            resultats['skipped'] += 1
+            continue
+        if ImportFichier.objects.filter(type_fichier='facture_backup', nom_fichier=nom_fichier).exists():
+            resultats['skipped'] += 1
+            continue
+
+        import_obj = ImportFichier.objects.create(
+            type_fichier='facture_backup',
+            nom_fichier=nom_fichier,
+            chemin_fichier=str(fichier),
+            statut='en_cours'
+        )
+
+        try:
+            with open(fichier, 'r', encoding='utf-8', errors='ignore') as f:
+                premiere_ligne = f.readline()
+
+            parsed = parse_facture_backup_line(premiere_ligne)
+            if not parsed:
+                import_obj.statut = 'erreur'
+                import_obj.message_erreur = "Ligne invalide ou format inconnu"
+                import_obj.save(update_fields=['statut', 'message_erreur', 'date_import'])
+                resultats['invalid'] += 1
+                print(f"Facture Backup ignorée (ligne invalide): {nom_fichier}")
+                continue
+
+            stat = fichier.stat()
+            if settings.USE_TZ:
+                date_modif = datetime.fromtimestamp(stat.st_mtime, tz=timezone.get_current_timezone())
+            else:
+                date_modif = datetime.fromtimestamp(stat.st_mtime)
+
+            FactureBackupCyrus.objects.create(
+                code_magasin=parsed['code_magasin'],
+                numero_facture=parsed['numero_facture'],
+                type_facture=parsed['type_facture'],
+                theme_promo=parsed['theme_promo'],
+                nom_fichier=nom_fichier,
+                chemin_fichier=str(fichier),
+                date_modif=date_modif,
+            )
+
+            import_obj.nombre_lignes = 1
+            import_obj.nombre_nouveaux = 1
+            import_obj.nombre_dupliques = 0
+            import_obj.statut = 'termine'
+            import_obj.save(update_fields=[
+                'nombre_lignes', 'nombre_nouveaux', 'nombre_dupliques',
+                'statut', 'message_erreur', 'date_import'
+            ])
+            resultats['created'] += 1
+            print(f"Facture Backup importée: {nom_fichier}")
+        except Exception as e:
+            import_obj.statut = 'erreur'
+            import_obj.message_erreur = str(e)
+            import_obj.save(update_fields=['statut', 'message_erreur', 'date_import'])
+            resultats['errors'] += 1
+            print(f"Erreur import Facture Backup {nom_fichier}: {e}")
 
     return resultats
 

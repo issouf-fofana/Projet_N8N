@@ -159,53 +159,74 @@
         </h5>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="border-0"><i class="bi bi-calendar"></i> Date BR</th>
-                        <th class="border-0"><i class="bi bi-hash"></i> N° BR</th>
-                        <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
-                        <th class="border-0"><i class="bi bi-check2-circle"></i> Statut IC</th>
-                        <th class="border-0"><i class="bi bi-clock"></i> Date Import</th>
-                        <th class="border-0"><i class="bi bi-gear"></i> Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for br in brs %}
-                        <tr class="align-middle">
-                            <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
-                            <td><strong class="text-primary">{{ br.numero_br }}</strong></td>
-                            <td>
-                                <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
-                                <small class="text-muted">{{ br.code_magasin.nom }}</small>
-                            </td>
-                            <td>
-                                {% if br.ic_integre %}
-                                    <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
-                                {% else %}
-                                    <span class="badge bg-danger">{{ br.statut_ic|default:"Non intégré" }}</span>
-                                {% endif %}
-                            </td>
-                            <td><small class="text-muted">{{ br.date_import|date:"d/m/Y H:i" }}</small></td>
-                            <td>
-                                <a href="{% url 'dashboard:detail_br_asten' br.id %}?{% if filtres.date_debut %}date_debut={{ filtres.date_debut }}&{% endif %}{% if filtres.date_fin %}date_fin={{ filtres.date_fin }}&{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}magasin={{ m }}&{% endfor %}{% endif %}{% if filtres.numero_br %}numero_br={{ filtres.numero_br }}{% endif %}" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i> Voir détail
-                                </a>
-                            </td>
-                        </tr>
-                    {% empty %}
+        <form method="post">
+            {% csrf_token %}
+            {% if filtres.date_debut %}<input type="hidden" name="date_debut" value="{{ filtres.date_debut }}">{% endif %}
+            {% if filtres.date_fin %}<input type="hidden" name="date_fin" value="{{ filtres.date_fin }}">{% endif %}
+            {% if filtres.numero_br %}<input type="hidden" name="numero_br" value="{{ filtres.numero_br }}">{% endif %}
+            {% if page_obj.number %}<input type="hidden" name="page" value="{{ page_obj.number }}">{% endif %}
+            {% if filtres.magasin %}{% for m in filtres.magasin %}<input type="hidden" name="magasin" value="{{ m }}">{% endfor %}{% endif %}
+
+            <div class="p-3 border-bottom d-flex flex-wrap gap-2 align-items-center">
+                <button type="submit" class="btn btn-success" id="bulkIntegrerBtn" disabled>
+                    <i class="bi bi-check2-circle"></i> Marquer intégrés
+                </button>
+                <span class="text-muted" id="bulkCount">0 sélectionné(s)</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
-                                <p class="text-muted mt-3 mb-0">Aucun BR Asten trouvé pour les filtres sélectionnés.</p>
-                            </td>
+                            <th class="border-0" style="width: 40px;">
+                                <input class="form-check-input" type="checkbox" id="selectAllBrs">
+                            </th>
+                            <th class="border-0"><i class="bi bi-calendar"></i> Date BR</th>
+                            <th class="border-0"><i class="bi bi-hash"></i> N° BR</th>
+                            <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                            <th class="border-0"><i class="bi bi-check2-circle"></i> Statut IC</th>
+                            <th class="border-0"><i class="bi bi-clock"></i> Date Import</th>
+                            <th class="border-0"><i class="bi bi-gear"></i> Action</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        {% for br in brs %}
+                            <tr class="align-middle">
+                                <td>
+                                    <input class="form-check-input br-checkbox" type="checkbox" name="selected_brs" value="{{ br.id }}">
+                                </td>
+                                <td class="fw-semibold">{{ br.date_br|date:"d/m/Y" }}</td>
+                                <td><strong class="text-primary">{{ br.numero_br }}</strong></td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ br.code_magasin.code }}</span><br>
+                                    <small class="text-muted">{{ br.code_magasin.nom }}</small>
+                                </td>
+                                <td>
+                                    {% if br.ic_integre %}
+                                        <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ br.statut_ic|default:"Non intégré" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ br.date_import|date:"d/m/Y H:i" }}</small></td>
+                                <td>
+                                    <a href="{% url 'dashboard:detail_br_asten' br.id %}?{% if filtres.date_debut %}date_debut={{ filtres.date_debut }}&{% endif %}{% if filtres.date_fin %}date_fin={{ filtres.date_fin }}&{% endif %}{% if filtres.magasin %}{% for m in filtres.magasin %}magasin={{ m }}&{% endfor %}{% endif %}{% if filtres.numero_br %}numero_br={{ filtres.numero_br }}{% endif %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Voir détail
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                                    <p class="text-muted mt-3 mb-0">Aucun BR Asten trouvé pour les filtres sélectionnés.</p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
     </div>
     {% if page_obj.has_other_pages %}
     <div class="card-footer">
@@ -299,6 +320,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     updateMagasinText();
+
+    const selectAll = document.getElementById('selectAllBrs');
+    const checkboxes = document.querySelectorAll('.br-checkbox');
+    const bulkBtn = document.getElementById('bulkIntegrerBtn');
+    const bulkCount = document.getElementById('bulkCount');
+
+    function updateBulkState() {
+        const selected = document.querySelectorAll('.br-checkbox:checked').length;
+        if (bulkBtn) {
+            bulkBtn.disabled = selected === 0;
+        }
+        if (bulkCount) {
+            bulkCount.textContent = selected + ' sélectionné(s)';
+        }
+        if (selectAll) {
+            selectAll.checked = selected > 0 && selected === checkboxes.length;
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+            updateBulkState();
+        });
+    }
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateBulkState);
+    });
+    updateBulkState();
 });
 </script>
 {% endblock %}

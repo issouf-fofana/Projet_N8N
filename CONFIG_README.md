@@ -28,6 +28,7 @@ Le fichier `config.env` permet de configurer les chemins des dossiers où vous d
 - `DOSSIER_COMMANDES_LEGEND` : Dossier des commandes Legend
 - `DOSSIER_BR_ASTEN` : Dossier des BR Asten
 - `DOSSIER_BR_IC` : Dossier des BR IC
+- `DOSSIER_FACTURE_BACKUP` : Dossier des factures Backup (Cyrus)
 - `DOSSIER_FACTURES_SAGE` : Dossier des factures Sage (CSV)
 - `FACTURES_SAGE_PREFIX` : Préfixe des fichiers Sage (par défaut: `SAGE-I-SP_`)
 
@@ -48,6 +49,7 @@ DOSSIER_COMMANDES_GPV=/home/user/depot/commandes_gpv
 DOSSIER_COMMANDES_LEGEND=/home/user/depot/commandes_legend
 DOSSIER_BR_ASTEN=/home/user/depot/br_asten
 DOSSIER_BR_IC=/home/user/depot/br_ic
+DOSSIER_FACTURE_BACKUP=/home/user/depot/facture_backup
 DOSSIER_FACTURES_SAGE=/mnt/automate-ic
 FACTURES_SAGE_PREFIX=SAGE-I-SP_
 ```
@@ -60,6 +62,7 @@ DOSSIER_COMMANDES_GPV=//10.0.70.169/share/fofana/commande_gpv
 DOSSIER_COMMANDES_LEGEND=//10.0.70.169/share/fofana/commande_legend
 DOSSIER_BR_ASTEN=//10.0.70.169/share/fofana/br_asten
 DOSSIER_BR_IC=//10.0.70.169/share/fofana/br_ic
+DOSSIER_FACTURE_BACKUP=//10.0.70.169/share/fofana/facture_backup
 DOSSIER_FACTURES_SAGE=smb://10.0.70.150/automate-ic/ARCHIVES
 FACTURES_SAGE_PREFIX=SAGE-I-SP_
 ```
@@ -97,6 +100,7 @@ Sur Linux, pour accéder à un partage SMB, vous devez généralement le monter 
 DOSSIER_COMMANDES_ASTEN=commande_asten
 DOSSIER_COMMANDES_CYRUS=/chemin/absolu/vers/cyrus
 DOSSIER_COMMANDES_GPV=//10.0.70.169/share/fofana/commande_gpv
+DOSSIER_FACTURE_BACKUP=facture_backup
 ```
 
 ## Important
