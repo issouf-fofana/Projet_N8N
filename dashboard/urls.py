@@ -28,4 +28,5 @@ urlpatterns = [
     path('parametres/magasins/', views.gestion_magasins, name='gestion_magasins'),
     path('parametres/utilisateurs/', views.gestion_utilisateurs, name='gestion_utilisateurs'),
     path('parametres/preferences/', views.preferences_utilisateur, name='preferences_utilisateur'),
+    path('rapports/', views.rapport_global, name='rapport_global'),
 ]

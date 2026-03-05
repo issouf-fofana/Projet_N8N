@@ -1,0 +1,30 @@
+<tr>
+    <td>
+        <div class="d-flex align-items-center">
+            <span class="src-icon {{ icon_class }}"><i class="bi {{ icon }}"></i></span>
+            <span class="src-label">{{ label }}</span>
+        </div>
+    </td>
+    <td class="text-center fw-semibold" style="color:#16a34a;">{{ row.previous.integres }}</td>
+    <td class="text-center fw-semibold" style="color:#dc2626;">{{ row.previous.non_integres }}</td>
+    <td class="text-center fw-semibold" style="color:#16a34a;">{{ row.current.integres }}</td>
+    <td class="text-center fw-semibold" style="color:#dc2626;">{{ row.current.non_integres }}</td>
+    <td class="text-center">
+        {% if row.delta_integres > 0 %}
+            <span class="delta-up-good"><i class="bi bi-arrow-up-short"></i>+{{ row.delta_integres }}</span>
+        {% elif row.delta_integres < 0 %}
+            <span class="delta-down-bad"><i class="bi bi-arrow-down-short"></i>{{ row.delta_integres }}</span>
+        {% else %}
+            <span class="delta-neutral">—</span>
+        {% endif %}
+    </td>
+    <td class="text-center">
+        {% if row.delta_non > 0 %}
+            <span class="delta-up-bad"><i class="bi bi-arrow-up-short"></i>+{{ row.delta_non }}</span>
+        {% elif row.delta_non < 0 %}
+            <span class="delta-down-good"><i class="bi bi-arrow-down-short"></i>{{ row.delta_non }}</span>
+        {% else %}
+            <span class="delta-neutral">—</span>
+        {% endif %}
+    </td>
+</tr>

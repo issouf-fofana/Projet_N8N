@@ -4,417 +4,458 @@
 
 {% block extra_css %}
 <style>
-    .glpi-toolbar { 
-        background: rgba(249, 250, 251, 0.9);
-        backdrop-filter: blur(10px);
-        color: #1f2937;
-        border-radius: 15px; 
-        padding: 20px 25px; 
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        margin-bottom: 25px;
-        border: 1px solid #e5e7eb;
-    }
-    .glpi-toolbar .fw-semibold {
-        color: #1f2937 !important;
-        font-size: 1.4rem;
-        font-weight: 700;
-    }
-    .glpi-toolbar .text-muted {
-        color: #6b7280 !important;
-    }
-    .glpi-toolbar,
-    .glpi-toolbar *,
-    .glpi-toolbar div,
-    .glpi-toolbar span,
-    .glpi-toolbar button,
-    .glpi-toolbar a {
-        color: #1f2937 !important;
-    }
-    .glpi-toolbar .btn {
-        color: white !important;
-    }
-    .glpi-toolbar .btn i {
-        color: white !important;
-    }
-    .glpi-table th { background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); font-size: 0.95rem; color: #1e293b; font-weight: 600; padding: 15px !important; }
-    .glpi-table td { font-size: 0.95rem; padding: 12px !important; }
-    .glpi-table .fw-semibold { font-size: 1rem; }
-    .glpi-table .badge { font-size: 0.85rem; padding: 6px 10px; font-weight: 500; }
-    .glpi-table .btn-sm { font-size: 0.85rem; padding: 4px 8px; }
-    .ticket-checkbox { width: 18px; height: 18px; cursor: pointer; }
-    #selectAll { width: 18px; height: 18px; cursor: pointer; }
-    #btnSupprimerSelection:disabled { opacity: 0.5; cursor: not-allowed; }
-    .glpi-pill { border-radius: 12px; padding: 4px 12px; font-size: 0.8rem; font-weight: 500; display: inline-block; }
-    .glpi-card { 
-        border: none; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
-        border-radius: 15px;
-        transition: transform 0.3s, box-shadow 0.3s;
-    }
-    .glpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-    }
-    .glpi-card .card-body { padding: 20px; }
+/* ── PAGE HEADER ── */
+.rem-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.rem-header-title { font-size: 1.35rem; font-weight: 800; color: #1e2a45; display: flex; align-items: center; gap: 10px; }
+.rem-header-title .rem-icon-wrap {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(99,102,241,.35);
+}
+.rem-header-title .rem-icon-wrap i { color: #fff; font-size: 1.1rem; }
+.rem-header-subtitle { font-size: .8rem; color: #8492a6; font-weight: 500; margin-top: 2px; }
+.rem-header-actions { display: flex; gap: 8px; }
+.btn-rem-new {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    color: #fff !important; border: none;
+    padding: 8px 18px; border-radius: 10px;
+    font-weight: 600; font-size: .85rem;
+    box-shadow: 0 4px 12px rgba(99,102,241,.3);
+    transition: all .2s;
+    display: flex; align-items: center; gap: 6px;
+    text-decoration: none;
+}
+.btn-rem-new:hover { box-shadow: 0 6px 18px rgba(99,102,241,.45); transform: translateY(-1px); }
+.btn-rem-del {
+    background: #fff; color: #ef4444 !important; border: 1.5px solid #fca5a5;
+    padding: 8px 18px; border-radius: 10px;
+    font-weight: 600; font-size: .85rem; transition: all .2s;
+    display: flex; align-items: center; gap: 6px;
+}
+.btn-rem-del:hover:not(:disabled) { background: #fff1f2; border-color: #ef4444; }
+.btn-rem-del:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── FILTER CARD ── */
+.rem-filter-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.06);
+    border: 1px solid #eef0f6; overflow: hidden; margin-bottom: 24px;
+}
+.rem-filter-card .rem-filter-head {
+    padding: 12px 20px; background: #fafbff;
+    border-bottom: 1px solid #eef0f6;
+    font-size: .82rem; font-weight: 700; color: #6366f1;
+    display: flex; align-items: center; gap: 6px;
+}
+.rem-filter-card .rem-filter-body { padding: 16px 20px; }
+.rem-quick-btn {
+    padding: 5px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+    border: 1.5px solid #d1d9f0; color: #5a6a85; background: #fff;
+    cursor: pointer; transition: all .18s;
+}
+.rem-quick-btn:hover, .rem-quick-btn.active {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    color: #fff; border-color: transparent;
+}
+.rem-filter-card label { font-size: .75rem; font-weight: 600; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.rem-filter-card .form-select, .rem-filter-card .form-control {
+    border-radius: 8px; border: 1.5px solid #e2e8f0;
+    font-size: .82rem; transition: border .2s;
+}
+.rem-filter-card .form-select:focus, .rem-filter-card .form-control:focus {
+    border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+.btn-filter-apply {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    color: #fff; border: none; padding: 7px 20px;
+    border-radius: 10px; font-weight: 600; font-size: .82rem;
+    display: flex; align-items: center; gap: 6px; transition: all .2s;
+}
+.btn-filter-apply:hover { box-shadow: 0 4px 12px rgba(99,102,241,.3); transform: translateY(-1px); }
+
+/* ── STAT CARDS ── */
+.rem-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+@media(max-width:768px){ .rem-stat-grid { grid-template-columns: repeat(2,1fr); } }
+.rem-stat {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.06);
+    border: 1px solid #eef0f6; padding: 18px 20px;
+    display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden;
+}
+.rem-stat::before { content:''; position:absolute; right:-12px; top:-12px; width:70px; height:70px; border-radius:50%; opacity:.08; }
+.rem-stat.total::before  { background:#6366f1; }
+.rem-stat.resolu::before { background:#16a34a; }
+.rem-stat.cours::before  { background:#3b82f6; }
+.rem-stat.attente::before{ background:#f59e0b; }
+.rem-stat-icon {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+}
+.rem-stat.total  .rem-stat-icon { background:#f0f0ff; color:#6366f1; }
+.rem-stat.resolu .rem-stat-icon { background:#f0fdf4; color:#16a34a; }
+.rem-stat.cours  .rem-stat-icon { background:#eff6ff; color:#3b82f6; }
+.rem-stat.attente .rem-stat-icon{ background:#fffbeb; color:#f59e0b; }
+.rem-stat-info { flex: 1; min-width: 0; }
+.rem-stat-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #8492a6; margin-bottom: 2px; }
+.rem-stat-val { font-size: 1.6rem; font-weight: 800; color: #1e2a45; line-height: 1; }
+.rem-stat-pct { font-size: .75rem; font-weight: 600; margin-top: 4px; }
+.rem-stat.resolu .rem-stat-pct { color: #16a34a; }
+.rem-stat.cours  .rem-stat-pct { color: #3b82f6; }
+.rem-stat.attente .rem-stat-pct { color: #f59e0b; }
+
+/* ── MAGASINS TOUCHÉS ── */
+.rem-mag-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.06);
+    border: 1px solid #eef0f6; overflow: hidden; margin-bottom: 24px;
+}
+.rem-mag-head {
+    padding: 12px 20px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    display: flex; align-items: center; gap: 8px;
+    font-size: .82rem; font-weight: 700; color: #fff;
+}
+.rem-mag-body { padding: 14px 16px; }
+.rem-mag-item {
+    background: #f8faff; border-radius: 12px;
+    padding: 10px 14px; border: 1px solid #e8ecf8;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all .18s; cursor: pointer;
+}
+.rem-mag-item:hover { background: #eef1ff; border-color: #c7d2fe; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.1); }
+.rem-mag-ico { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg,#6366f1,#8b5cf6); display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; }
+.rem-mag-ico i { color: #fff; font-size: .85rem; }
+.rem-mag-code { font-weight: 700; font-size: .82rem; color: #1e2a45; }
+.rem-mag-nom { font-size: .72rem; color: #8492a6; margin-top: 1px; }
+.rem-mag-badge { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; font-weight: 800; font-size: .82rem; padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(99,102,241,.3); }
+.rem-mag-sub { font-size: .65rem; color: #8492a6; text-align: center; margin-top: 2px; }
+
+/* ── TABLE ── */
+.rem-table-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.06);
+    border: 1px solid #eef0f6; overflow: hidden; margin-bottom: 24px;
+}
+.rem-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.rem-table thead tr { background: #f8fafc; border-bottom: 2px solid #eef0f6; }
+.rem-table thead th { padding: 11px 14px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; white-space: nowrap; }
+.rem-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+.rem-table tbody tr:last-child { border-bottom: none; }
+.rem-table tbody tr:hover { background: #f5f7ff; }
+.rem-table tbody td { padding: 10px 14px; vertical-align: middle; color: #374151; }
+.rem-ticket-num { font-weight: 700; font-size: .9rem; color: #6366f1; }
+.rem-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .73rem; font-weight: 600; white-space: nowrap; }
+.rem-badge.incident  { background:#fff1f2; color:#dc2626; }
+.rem-badge.demande   { background:#eff6ff; color:#2563eb; }
+.rem-badge.resolu    { background:#f0fdf4; color:#16a34a; }
+.rem-badge.ferme     { background:#f1f5f9; color:#64748b; }
+.rem-badge.en-cours  { background:#eff6ff; color:#2563eb; }
+.rem-badge.en-attente{ background:#fffbeb; color:#d97706; }
+.rem-badge.nouveau   { background:#faf5ff; color:#7c3aed; }
+.rem-badge.haute     { background:#fff1f2; color:#dc2626; }
+.rem-badge.moyenne   { background:#fffbeb; color:#d97706; }
+.rem-badge.basse     { background:#eff6ff; color:#2563eb; }
+.rem-badge.tres-basse{ background:#f0fdf4; color:#16a34a; }
+.rem-assignee { background: #f0f3ff; color: #4f46e5; font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; display: inline-block; }
+.rem-date { font-size: .75rem; color: #8492a6; }
+.btn-voir {
+    padding: 5px 14px; border-radius: 8px; font-size: .75rem; font-weight: 600;
+    background: #f0f3ff; color: #6366f1; border: 1px solid #c7d2fe;
+    text-decoration: none; transition: all .18s;
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.btn-voir:hover { background: #6366f1; color: #fff; border-color: transparent; }
+.rem-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: #6366f1; }
+
+/* ── PAGINATION ── */
+.rem-pagination { display: flex; justify-content: center; gap: 6px; margin-top: 20px; }
+.rem-page-btn {
+    padding: 6px 14px; border-radius: 8px; font-size: .8rem; font-weight: 600;
+    border: 1.5px solid #e2e8f0; color: #374151; background: #fff;
+    text-decoration: none; transition: all .18s;
+}
+.rem-page-btn:hover { background: #f0f3ff; border-color: #c7d2fe; color: #6366f1; }
+.rem-page-btn.active { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-color:transparent; }
+.rem-page-btn.disabled { opacity:.45; pointer-events:none; }
+.rem-page-info { padding: 6px 14px; font-size: .8rem; color: #8492a6; display: flex; align-items: center; }
 </style>
 {% endblock %}
 
 {% block content %}
 {% csrf_token %}
-<div class="glpi-toolbar d-flex justify-content-between align-items-center mb-3">
+
+<!-- HEADER -->
+<div class="rem-header">
     <div>
-        <div class="fw-semibold">Remontées</div>
-        <div class="text-muted small">Suivi des incidents et demandes</div>
+        <div class="rem-header-title">
+            <div class="rem-icon-wrap"><i class="bi bi-ticket-perforated-fill"></i></div>
+            <div>
+                Remontées
+                <div class="rem-header-subtitle">Suivi des incidents et demandes</div>
+            </div>
+        </div>
     </div>
-    <div class="btn-group">
-        <button type="button" class="btn btn-sm" id="btnSupprimerSelection" 
-                onclick="supprimerSelection()" disabled style="background: rgba(255,255,255,0.25) !important; border: 1px solid rgba(255,255,255,0.4) !important; color: white !important; font-weight: 500;">
-            <i class="bi bi-trash" style="color: white !important;"></i> Supprimer la sélection
+    <div class="rem-header-actions">
+        <button id="btnSupprimerSelection" class="btn-rem-del" onclick="supprimerSelection()" disabled>
+            <i class="bi bi-trash"></i> <span id="btnDelLabel">Supprimer la sélection</span>
         </button>
-        <a href="{% url 'tickets:nouveau' %}" class="btn btn-sm" style="background: rgba(255,255,255,0.25) !important; border: 1px solid rgba(255,255,255,0.4) !important; color: white !important; font-weight: 500;">
-            <i class="bi bi-plus-circle" style="color: white !important;"></i> Nouvelle remontée
+        <a href="{% url 'tickets:nouveau' %}" class="btn-rem-new">
+            <i class="bi bi-plus-circle"></i> Nouvelle remontée
         </a>
     </div>
 </div>
 
-<div class="card mb-4 glpi-card">
-    <div class="card-header bg-white" style="padding: 12px 16px;">
-        <h6 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h6>
-    </div>
-    <div class="card-body" style="padding: 16px;">
-        <form method="get" class="row g-2 align-items-end" id="filterForm">
-            <!-- Filtres rapides -->
-            <div class="col-auto">
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateFilter('aujourdhui')">
-                        <i class="bi bi-calendar-day"></i> Aujourd'hui
-                    </button>
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateFilter('hier')">
-                        <i class="bi bi-calendar-minus"></i> Hier
-                    </button>
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateFilter('semaine')">
-                        <i class="bi bi-calendar-week"></i> Semaine
-                    </button>
+<!-- FILTRES -->
+<div class="rem-filter-card">
+    <div class="rem-filter-head"><i class="bi bi-funnel"></i> Filtres de recherche</div>
+    <div class="rem-filter-body">
+        <form method="get" id="filterForm">
+            <div class="d-flex flex-wrap align-items-end gap-3">
+                <div>
+                    <label style="font-size:.72rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:block;">Période</label>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="rem-quick-btn" onclick="setDateFilter('aujourdhui')"><i class="bi bi-calendar-day me-1"></i>Aujourd'hui</button>
+                        <button type="button" class="rem-quick-btn" onclick="setDateFilter('hier')"><i class="bi bi-calendar-minus me-1"></i>Hier</button>
+                        <button type="button" class="rem-quick-btn" onclick="setDateFilter('semaine')"><i class="bi bi-calendar-week me-1"></i>Semaine</button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Type</label>
-                <select name="type_demande" class="form-select form-select-sm">
-                    <option value="">Tous</option>
-                    {% for value, label in type_choices %}
-                        <option value="{{ value }}" {% if value == type_demande %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Statut</label>
-                <select name="statut" class="form-select form-select-sm">
-                    <option value="">Tous</option>
-                    {% for value, label in statut_choices %}
-                        <option value="{{ value }}" {% if value == statut %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Urgence</label>
-                <select name="urgence" class="form-select form-select-sm">
-                    <option value="">Toutes</option>
-                    {% for value, label in urgence_choices %}
-                        <option value="{{ value }}" {% if value == urgence %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Magasin</label>
-                <input type="text" name="magasin" class="form-control form-control-sm" value="{{ request.GET.magasin|default:magasin|default:'' }}" placeholder="Code">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Date début</label>
-                <input type="date" name="date_debut" id="date_debut" class="form-control form-control-sm" value="{{ date_debut_str|default:'' }}">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-1">Date fin</label>
-                <input type="date" name="date_fin" id="date_fin" class="form-control form-control-sm" value="{{ date_fin_str|default:'' }}">
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel"></i> Filtrer
-                </button>
+                <div>
+                    <label>Type</label>
+                    <select name="type_demande" class="form-select form-select-sm" style="min-width:130px;">
+                        <option value="">Tous</option>
+                        {% for value, label in type_choices %}
+                            <option value="{{ value }}" {% if value == type_demande %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Statut</label>
+                    <select name="statut" class="form-select form-select-sm" style="min-width:130px;">
+                        <option value="">Tous</option>
+                        {% for value, label in statut_choices %}
+                            <option value="{{ value }}" {% if value == statut %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Urgence</label>
+                    <select name="urgence" class="form-select form-select-sm" style="min-width:120px;">
+                        <option value="">Toutes</option>
+                        {% for value, label in urgence_choices %}
+                            <option value="{{ value }}" {% if value == urgence %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Magasin</label>
+                    <input type="text" name="magasin" class="form-control form-control-sm" value="{{ request.GET.magasin|default:magasin|default:'' }}" placeholder="Code" style="width:100px;">
+                </div>
+                <div>
+                    <label>Date début</label>
+                    <input type="date" name="date_debut" id="date_debut" class="form-control form-control-sm" value="{{ date_debut_str|default:'' }}" style="width:145px;">
+                </div>
+                <div>
+                    <label>Date fin</label>
+                    <input type="date" name="date_fin" id="date_fin" class="form-control form-control-sm" value="{{ date_fin_str|default:'' }}" style="width:145px;">
+                </div>
+                <div>
+                    <button type="submit" class="btn-filter-apply"><i class="bi bi-funnel"></i> Filtrer</button>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="stat-card info">
-            <div class="d-flex justify-content-between align-items-center position-relative">
-                <div>
-                    <div class="stat-label">
-                        <i class="bi bi-ticket-perforated"></i> Total remontées
-                    </div>
-                    <div class="stat-value" data-value="{{ stats.total }}">0</div>
-                </div>
-                <i class="bi bi-ticket-perforated stat-icon"></i>
-            </div>
+<!-- STAT CARDS -->
+<div class="rem-stat-grid">
+    <div class="rem-stat total">
+        <div class="rem-stat-icon"><i class="bi bi-ticket-perforated-fill"></i></div>
+        <div class="rem-stat-info">
+            <div class="rem-stat-label">Total remontées</div>
+            <div class="rem-stat-val" data-value="{{ stats.total }}">0</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card success">
-            <div class="d-flex justify-content-between align-items-center position-relative">
-                <div>
-                    <div class="stat-label">
-                        <i class="bi bi-check-circle"></i> Résolus
-                    </div>
-                    <div class="stat-value" data-value="{{ stats.resolu }}">0</div>
-                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
-                        <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_resolu }}">0</span>%
-                    </div>
-                </div>
-                <i class="bi bi-check-circle stat-icon"></i>
-            </div>
+    <div class="rem-stat resolu">
+        <div class="rem-stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="rem-stat-info">
+            <div class="rem-stat-label">Résolus</div>
+            <div class="rem-stat-val" data-value="{{ stats.resolu }}">0</div>
+            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_resolu }}">0</span>%</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card primary">
-            <div class="d-flex justify-content-between align-items-center position-relative">
-                <div>
-                    <div class="stat-label">
-                        <i class="bi bi-arrow-repeat"></i> En cours
-                    </div>
-                    <div class="stat-value" data-value="{{ stats.en_cours }}">0</div>
-                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
-                        <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_en_cours }}">0</span>%
-                    </div>
-                </div>
-                <i class="bi bi-arrow-repeat stat-icon"></i>
-            </div>
+    <div class="rem-stat cours">
+        <div class="rem-stat-icon"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="rem-stat-info">
+            <div class="rem-stat-label">En cours</div>
+            <div class="rem-stat-val" data-value="{{ stats.en_cours }}">0</div>
+            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_en_cours }}">0</span>%</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card warning">
-            <div class="d-flex justify-content-between align-items-center position-relative">
-                <div>
-                    <div class="stat-label">
-                        <i class="bi bi-clock"></i> En attente
-                    </div>
-                    <div class="stat-value" data-value="{{ stats.en_attente }}">0</div>
-                    <div class="stat-label mt-2" style="font-size: 1.1rem; font-weight: 600;">
-                        <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_en_attente }}">0</span>%
-                    </div>
-                </div>
-                <i class="bi bi-clock stat-icon"></i>
-            </div>
+    <div class="rem-stat attente">
+        <div class="rem-stat-icon"><i class="bi bi-clock-fill"></i></div>
+        <div class="rem-stat-info">
+            <div class="rem-stat-label">En attente</div>
+            <div class="rem-stat-val" data-value="{{ stats.en_attente }}">0</div>
+            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_en_attente }}">0</span>%</div>
         </div>
     </div>
 </div>
 
-<!-- Magasins les plus touchés -->
-<div class="row mb-2">
-    <div class="col-md-12">
-        <div class="card shadow-sm" style="border: none; border-left: 4px solid #6366f1; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
-            <div class="card-header" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border: none; padding: 8px 16px;">
-                <h6 class="mb-0 text-white fw-semibold" style="font-size: 0.9rem;">
-                    <i class="bi bi-building"></i> Magasins les plus touchés
-                </h6>
-            </div>
-            <div class="card-body py-2" style="background: #ffffff;">
-                <div class="row g-2">
-                    {% if magasins_touches %}
-                        {% for magasin in magasins_touches %}
-                            <div class="col-md-6 col-lg-3">
-                                <div class="magasin-card p-2 rounded" style="background: linear-gradient(135deg, {{ magasin.bg_start }} 0%, {{ magasin.bg_end }} 100%); border-left: 3px solid {{ magasin.border_color }}; transition: all 0.3s ease; cursor: pointer;" 
-                                     onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px {{ magasin.shadow }}';" 
-                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <div class="magasin-icon me-2" style="width: 32px; height: 32px; background: linear-gradient(135deg, {{ magasin.color_start }} 0%, {{ magasin.color_end }} 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px {{ magasin.shadow }};">
-                                                <i class="bi bi-shop text-white" style="font-size: 1rem;"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold text-dark" style="font-size: 0.85rem; line-height: 1.2;">{{ magasin.magasin__code }}</div>
-                                                <div class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">{{ magasin.magasin__nom|truncatewords:3 }}</div>
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <div class="ticket-count-badge px-2 py-1 rounded-pill" style="background: linear-gradient(135deg, {{ magasin.color_start }} 0%, {{ magasin.color_end }} 100%); color: white; font-weight: 700; font-size: 0.95rem; box-shadow: 0 2px 6px {{ magasin.shadow }}; min-width: 45px;">{{ magasin.count }}</div>
-                                            <small class="text-muted d-block mt-1" style="font-size: 0.65rem;">remontée{{ magasin.count|pluralize }}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="col-12">
-                            <div class="text-center py-4">
-                                <i class="bi bi-inbox" style="font-size: 2rem; color: #cbd5e1;"></i>
-                                <p class="text-muted mt-2 mb-0">Aucun magasin avec des remontées</p>
-                            </div>
+<!-- MAGASINS TOUCHÉS -->
+{% if magasins_touches %}
+<div class="rem-mag-card">
+    <div class="rem-mag-head"><i class="bi bi-building"></i> Magasins les plus touchés</div>
+    <div class="rem-mag-body">
+        <div class="row g-2">
+            {% for magasin in magasins_touches %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="rem-mag-item">
+                    <div class="d-flex align-items-center flex-1 min-width-0">
+                        <div class="rem-mag-ico"><i class="bi bi-shop"></i></div>
+                        <div class="min-width-0">
+                            <div class="rem-mag-code">{{ magasin.magasin__code }}</div>
+                            <div class="rem-mag-nom">{{ magasin.magasin__nom|truncatewords:3 }}</div>
                         </div>
-                    {% endif %}
+                    </div>
+                    <div class="text-end ms-2">
+                        <div class="rem-mag-badge">{{ magasin.count }}</div>
+                        <div class="rem-mag-sub">remontée{{ magasin.count|pluralize }}</div>
+                    </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
 </div>
+{% endif %}
 
-<div class="card glpi-card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle glpi-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">
-                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Tout sélectionner">
-                        </th>
-                        <th>Remontée</th>
-                        <th>Type</th>
-                        <th>Statut</th>
-                        <th>Urgence</th>
-                        <th>Magasin</th>
-                        <th>Assigné à</th>
-                        <th>Mise à jour</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ticket in page_obj %}
-                    <tr>
-                        <td>
-                            <input type="checkbox" class="ticket-checkbox" value="{{ ticket.id }}" 
-                                   data-numero="{{ ticket.numero_ticket }}" onchange="updateSupprimerButton()">
-                        </td>
-                        <td><strong style="font-size: 1rem; color: #1e293b;">#{{ ticket.numero_ticket }}</strong></td>
-                        <td>
-                            {% if ticket.type_demande == 'incident' %}
-                                <span class="badge bg-danger">Incident</span>
-                            {% else %}
-                                <span class="badge bg-info">Demande</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if ticket.statut == 'resolu' %}
-                                <span class="badge bg-success rounded-pill">
-                                    <i class="bi bi-check-circle"></i> {{ ticket.get_statut_display }}
-                                </span>
-                            {% elif ticket.statut == 'ferme' %}
-                                <span class="badge bg-secondary rounded-pill">
-                                    <i class="bi bi-x-circle"></i> {{ ticket.get_statut_display }}
-                                </span>
-                            {% elif ticket.statut == 'en_cours' %}
-                                <span class="badge bg-primary rounded-pill">
-                                    <i class="bi bi-arrow-repeat"></i> {{ ticket.get_statut_display }}
-                                </span>
-                            {% elif ticket.statut == 'en_attente' %}
-                                <span class="badge bg-warning rounded-pill text-dark">
-                                    <i class="bi bi-clock"></i> {{ ticket.get_statut_display }}
-                                </span>
-                            {% else %}
-                                <span class="badge bg-info rounded-pill">
-                                    <i class="bi bi-plus-circle"></i> {{ ticket.get_statut_display }}
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if ticket.urgence == 'haute' %}
-                                <span class="badge bg-danger rounded-pill">
-                                    <i class="bi bi-exclamation-triangle"></i> {{ ticket.get_urgence_display }}
-                                </span>
-                            {% elif ticket.urgence == 'moyenne' %}
-                                <span class="badge bg-warning rounded-pill text-dark">
-                                    <i class="bi bi-exclamation-circle"></i> {{ ticket.get_urgence_display }}
-                                </span>
-                            {% elif ticket.urgence == 'basse' %}
-                                <span class="badge bg-info rounded-pill">
-                                    <i class="bi bi-info-circle"></i> {{ ticket.get_urgence_display }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted">{{ ticket.get_urgence_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ ticket.magasin }}</td>
-                        <td>
-                            {% if ticket.assigne_a.all %}
-                                {% for tech in ticket.assigne_a.all %}
-                                    <span class="badge bg-secondary">{{ tech }}</span>{% if not forloop.last %} {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td><small class="text-muted">{{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</small></td>
-                        <td>
-                            <a href="{% url 'tickets:detail' ticket.id %}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> Voir
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" class="text-center text-muted py-4">
-                            <i class="bi bi-inbox"></i> Aucune remontée trouvée
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<!-- TABLE -->
+<div class="rem-table-card">
+    <div class="table-responsive">
+        <table class="rem-table">
+            <thead>
+                <tr>
+                    <th style="width:44px;text-align:center;"><input type="checkbox" class="rem-checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                    <th>Remontée</th>
+                    <th>Type</th>
+                    <th>Statut</th>
+                    <th>Urgence</th>
+                    <th>Magasin</th>
+                    <th>Assigné à</th>
+                    <th>Mise à jour</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in page_obj %}
+                <tr>
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="rem-checkbox ticket-checkbox" value="{{ ticket.id }}" data-numero="{{ ticket.numero_ticket }}" onchange="updateSupprimerButton()">
+                    </td>
+                    <td><span class="rem-ticket-num">#{{ ticket.numero_ticket }}</span></td>
+                    <td>
+                        {% if ticket.type_demande == 'incident' %}
+                            <span class="rem-badge incident"><i class="bi bi-exclamation-triangle-fill"></i> Incident</span>
+                        {% else %}
+                            <span class="rem-badge demande"><i class="bi bi-chat-dots-fill"></i> Demande</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ticket.statut == 'resolu' %}
+                            <span class="rem-badge resolu"><i class="bi bi-check-circle-fill"></i> {{ ticket.get_statut_display }}</span>
+                        {% elif ticket.statut == 'ferme' %}
+                            <span class="rem-badge ferme"><i class="bi bi-x-circle-fill"></i> {{ ticket.get_statut_display }}</span>
+                        {% elif ticket.statut == 'en_cours' %}
+                            <span class="rem-badge en-cours"><i class="bi bi-arrow-repeat"></i> {{ ticket.get_statut_display }}</span>
+                        {% elif ticket.statut == 'en_attente' %}
+                            <span class="rem-badge en-attente"><i class="bi bi-clock-fill"></i> {{ ticket.get_statut_display }}</span>
+                        {% else %}
+                            <span class="rem-badge nouveau"><i class="bi bi-plus-circle-fill"></i> {{ ticket.get_statut_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ticket.urgence == 'haute' %}
+                            <span class="rem-badge haute"><i class="bi bi-exclamation-triangle-fill"></i> {{ ticket.get_urgence_display }}</span>
+                        {% elif ticket.urgence == 'moyenne' %}
+                            <span class="rem-badge moyenne"><i class="bi bi-exclamation-circle-fill"></i> {{ ticket.get_urgence_display }}</span>
+                        {% elif ticket.urgence == 'basse' %}
+                            <span class="rem-badge basse"><i class="bi bi-info-circle-fill"></i> {{ ticket.get_urgence_display }}</span>
+                        {% else %}
+                            <span class="rem-badge tres-basse">{{ ticket.get_urgence_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;color:#374151;">{{ ticket.magasin }}</td>
+                    <td>
+                        {% if ticket.assigne_a.all %}
+                            {% for tech in ticket.assigne_a.all %}
+                                <span class="rem-assignee">{{ tech }}</span>{% if not forloop.last %} {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <span style="color:#cbd5e1;">—</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="rem-date">{{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</span></td>
+                    <td>
+                        <a href="{% url 'tickets:detail' ticket.id %}" class="btn-voir">
+                            <i class="bi bi-eye"></i> Voir
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+                        <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                        Aucune remontée trouvée
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
-<nav class="mt-4">
-    <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?{% if request.GET.type_demande %}type_demande={{ request.GET.type_demande }}&{% endif %}{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.urgence %}urgence={{ request.GET.urgence }}&{% endif %}{% if request.GET.magasin %}magasin={{ request.GET.magasin }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>
-            </li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">Précédent</span></li>
-        {% endif %}
+<!-- PAGINATION -->
+<div class="rem-pagination">
+    {% if page_obj.has_previous %}
+        <a class="rem-page-btn" href="?{% if request.GET.type_demande %}type_demande={{ request.GET.type_demande }}&{% endif %}{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.urgence %}urgence={{ request.GET.urgence }}&{% endif %}{% if request.GET.magasin %}magasin={{ request.GET.magasin }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}&{% endif %}page={{ page_obj.previous_page_number }}">
+            <i class="bi bi-chevron-left"></i> Précédent
+        </a>
+    {% else %}
+        <span class="rem-page-btn disabled"><i class="bi bi-chevron-left"></i> Précédent</span>
+    {% endif %}
+    <span class="rem-page-info">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a class="rem-page-btn" href="?{% if request.GET.type_demande %}type_demande={{ request.GET.type_demande }}&{% endif %}{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.urgence %}urgence={{ request.GET.urgence }}&{% endif %}{% if request.GET.magasin %}magasin={{ request.GET.magasin }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}&{% endif %}page={{ page_obj.next_page_number }}">
+            Suivant <i class="bi bi-chevron-right"></i>
+        </a>
+    {% else %}
+        <span class="rem-page-btn disabled">Suivant <i class="bi bi-chevron-right"></i></span>
+    {% endif %}
+</div>
 
-        <li class="page-item disabled">
-            <span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-        </li>
-
-        {% if page_obj.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?{% if request.GET.type_demande %}type_demande={{ request.GET.type_demande }}&{% endif %}{% if request.GET.statut %}statut={{ request.GET.statut }}&{% endif %}{% if request.GET.urgence %}urgence={{ request.GET.urgence }}&{% endif %}{% if request.GET.magasin %}magasin={{ request.GET.magasin }}&{% endif %}{% if request.GET.date_debut %}date_debut={{ request.GET.date_debut }}&{% endif %}{% if request.GET.date_fin %}date_fin={{ request.GET.date_fin }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>
-            </li>
-        {% else %}
-            <li class="page-item disabled"><span class="page-link">Suivant</span></li>
-        {% endif %}
-    </ul>
-</nav>
-
-<!-- Modal de confirmation de suppression -->
-<div class="modal fade" id="modalSuppression" tabindex="-1" aria-labelledby="modalSuppressionLabel" aria-hidden="true">
+<!-- MODAL SUPPRESSION -->
+<div class="modal fade" id="modalSuppression" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="modalSuppressionLabel">
-                    <i class="bi bi-exclamation-triangle"></i> Confirmation de suppression
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#ef4444,#dc2626);border:none;">
+                <h5 class="modal-title text-white fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Confirmation de suppression</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-3">
-                    <strong>Êtes-vous sûr de vouloir supprimer le(s) ticket(s) sélectionné(s) ?</strong>
-                </p>
-                <div id="listeTicketsSuppression" class="alert alert-warning mb-0">
-                    <!-- Liste des tickets à supprimer -->
-                </div>
-                <p class="text-danger mt-3 mb-0">
-                    <i class="bi bi-exclamation-circle"></i> <strong>Cette action est irréversible.</strong>
-                </p>
+                <p class="mb-3 fw-semibold">Êtes-vous sûr de vouloir supprimer le(s) ticket(s) sélectionné(s) ?</p>
+                <div id="listeTicketsSuppression" class="alert alert-warning mb-0"></div>
+                <p class="text-danger mt-3 mb-0"><i class="bi bi-exclamation-circle me-1"></i><strong>Cette action est irréversible.</strong></p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Annuler
-                </button>
-                <button type="button" class="btn btn-danger" onclick="confirmerSuppression()">
-                    <i class="bi bi-trash"></i> Supprimer
-                </button>
+            <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle me-1"></i>Annuler</button>
+                <button type="button" class="btn btn-danger" onclick="confirmerSuppression()"><i class="bi bi-trash me-1"></i>Supprimer</button>
             </div>
         </div>
     </div>
@@ -427,267 +468,113 @@ function setDateFilter(periode) {
     const aujourdhui = new Date();
     const hier = new Date(aujourdhui);
     hier.setDate(hier.getDate() - 1);
-    
-    // Calculer la semaine dernière (7 jours en arrière)
     const semaineDerniere = new Date(aujourdhui);
     semaineDerniere.setDate(semaineDerniere.getDate() - 7);
-    
     const dateDebutInput = document.getElementById('date_debut');
     const dateFinInput = document.getElementById('date_fin');
     const filterForm = document.getElementById('filterForm');
-    
     if (periode === 'aujourdhui') {
-        const dateStr = aujourdhui.toISOString().split('T')[0];
-        dateDebutInput.value = dateStr;
-        dateFinInput.value = dateStr;
+        const d = aujourdhui.toISOString().split('T')[0];
+        dateDebutInput.value = d; dateFinInput.value = d;
     } else if (periode === 'hier') {
-        const dateStr = hier.toISOString().split('T')[0];
-        dateDebutInput.value = dateStr;
-        dateFinInput.value = dateStr;
+        const d = hier.toISOString().split('T')[0];
+        dateDebutInput.value = d; dateFinInput.value = d;
     } else if (periode === 'semaine') {
-        // Semaine dernière : de 7 jours en arrière jusqu'à aujourd'hui
-        const dateDebutStr = semaineDerniere.toISOString().split('T')[0];
-        const dateFinStr = aujourdhui.toISOString().split('T')[0];
-        dateDebutInput.value = dateDebutStr;
-        dateFinInput.value = dateFinStr;
+        dateDebutInput.value = semaineDerniere.toISOString().split('T')[0];
+        dateFinInput.value = aujourdhui.toISOString().split('T')[0];
     }
-    
-    // Soumettre automatiquement le formulaire
-    if (filterForm) {
-        filterForm.submit();
-    }
+    if (filterForm) filterForm.submit();
 }
-
-// Gestion de la sélection des tickets
 function toggleSelectAll() {
     const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.ticket-checkbox');
-    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    document.querySelectorAll('.ticket-checkbox').forEach(cb => cb.checked = selectAll.checked);
     updateSupprimerButton();
 }
-
 function updateSupprimerButton() {
-    const checkboxes = document.querySelectorAll('.ticket-checkbox:checked');
-    const btnSupprimer = document.getElementById('btnSupprimerSelection');
-    if (checkboxes.length > 0) {
-        btnSupprimer.disabled = false;
-        btnSupprimer.textContent = `Supprimer (${checkboxes.length})`;
+    const checked = document.querySelectorAll('.ticket-checkbox:checked');
+    const btn = document.getElementById('btnSupprimerSelection');
+    const label = document.getElementById('btnDelLabel');
+    if (checked.length > 0) {
+        btn.disabled = false;
+        label.textContent = `Supprimer (${checked.length})`;
     } else {
-        btnSupprimer.disabled = true;
-        btnSupprimer.textContent = 'Supprimer la sélection';
+        btn.disabled = true;
+        label.textContent = 'Supprimer la sélection';
     }
-    
-    // Mettre à jour la checkbox "Tout sélectionner"
-    const allCheckboxes = document.querySelectorAll('.ticket-checkbox');
+    const all = document.querySelectorAll('.ticket-checkbox');
     const selectAll = document.getElementById('selectAll');
-    if (allCheckboxes.length > 0) {
-        selectAll.checked = checkboxes.length === allCheckboxes.length;
-    }
+    if (all.length > 0) selectAll.checked = checked.length === all.length;
 }
-
 function supprimerSelection() {
     const checkboxes = document.querySelectorAll('.ticket-checkbox:checked');
-    if (checkboxes.length === 0) {
-        return;
-    }
-    
-    // Construire la liste des tickets à supprimer
-    const tickets = Array.from(checkboxes).map(cb => ({
-        id: cb.value,
-        numero: cb.getAttribute('data-numero')
-    }));
-    
-    // Afficher la liste dans le modal
+    if (!checkboxes.length) return;
+    const tickets = Array.from(checkboxes).map(cb => ({ id: cb.value, numero: cb.getAttribute('data-numero') }));
     const listeDiv = document.getElementById('listeTicketsSuppression');
     if (tickets.length === 1) {
         listeDiv.innerHTML = `<strong>Ticket #${tickets[0].numero}</strong>`;
     } else {
-        listeDiv.innerHTML = '<strong>Tickets à supprimer :</strong><ul class="mb-0 mt-2">' +
-            tickets.map(t => `<li>Ticket #${t.numero}</li>`).join('') +
-            '</ul>';
+        listeDiv.innerHTML = '<strong>Tickets à supprimer :</strong><ul class="mb-0 mt-2">' + tickets.map(t => `<li>Ticket #${t.numero}</li>`).join('') + '</ul>';
     }
-    
-    // Stocker les IDs pour la suppression
     window.ticketsASupprimer = tickets.map(t => t.id);
-    
-    // Afficher le modal
-    const modal = new bootstrap.Modal(document.getElementById('modalSuppression'));
-    modal.show();
+    new bootstrap.Modal(document.getElementById('modalSuppression')).show();
 }
-
 function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
+    let val = null;
+    if (document.cookie) {
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) val = decodeURIComponent(c.substring(name.length + 1));
+        });
     }
-    return cookieValue;
+    return val;
 }
-
 function confirmerSuppression() {
-    const ticketsIds = window.ticketsASupprimer;
-    if (!ticketsIds || ticketsIds.length === 0) {
-        alert('Aucune remontée sélectionnée.');
-        return;
-    }
-    
-    // Récupérer le token CSRF
-    let csrfTokenValue = null;
-    
-    // Essayer de récupérer depuis le formulaire existant (input généré par {% csrf_token %})
-    const csrfTokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-    if (csrfTokenInput) {
-        csrfTokenValue = csrfTokenInput.value;
-    } else {
-        // Récupérer depuis les cookies
-        csrfTokenValue = getCookie('csrftoken');
-    }
-    
-    if (!csrfTokenValue) {
-        alert('Erreur: Token CSRF introuvable. Veuillez recharger la page.');
-        return;
-    }
-    
-    // Créer un seul formulaire pour supprimer tous les tickets
+    const ids = window.ticketsASupprimer;
+    if (!ids || !ids.length) return;
+    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || getCookie('csrftoken');
+    if (!csrf) { alert('Erreur CSRF. Rechargez la page.'); return; }
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '{% url "tickets:supprimer_multiple" %}';
     form.style.display = 'none';
-    
-    // Ajouter le token CSRF
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = csrfTokenValue;
-    form.appendChild(csrfInput);
-    
-    // Ajouter tous les IDs des tickets à supprimer
-    ticketsIds.forEach(ticketId => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'ticket_ids';
-        input.value = ticketId;
-        form.appendChild(input);
+    const ci = document.createElement('input');
+    ci.type = 'hidden'; ci.name = 'csrfmiddlewaretoken'; ci.value = csrf;
+    form.appendChild(ci);
+    ids.forEach(id => {
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'ticket_ids'; inp.value = id;
+        form.appendChild(inp);
     });
-    
     document.body.appendChild(form);
     form.submit();
 }
+document.addEventListener('DOMContentLoaded', updateSupprimerButton);
 
-// Initialiser le bouton au chargement
-document.addEventListener('DOMContentLoaded', function() {
-    updateSupprimerButton();
-});
-
-// Animation d'incrémentation des valeurs (max 2 secondes)
-function animateValue(element, start, end, maxDuration, suffix = '') {
-    if (start === end) {
-        const formatted = end.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        element.textContent = formatted + suffix;
-        return;
-    }
-    
-    const range = Math.abs(end - start);
-    const maxSteps = 60; // Nombre maximum de pas pour une animation fluide
-    const stepValue = Math.max(1, Math.ceil(range / maxSteps)); // Pas d'incrémentation adaptatif
-    const stepTime = Math.floor(maxDuration / maxSteps); // Temps entre chaque pas
-    const increment = end > start ? stepValue : -stepValue;
-    let current = start;
-    
-    const timer = setInterval(function() {
-        current += increment;
-        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-        }
-        
-        // Formater le nombre avec des espaces pour les milliers
-        const formatted = current.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        element.textContent = formatted + suffix;
-    }, stepTime);
+function animateValue(el, start, end, dur, suffix='') {
+    if (start === end) { el.textContent = end.toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + suffix; return; }
+    const steps = 60, step = Math.max(1, Math.ceil(Math.abs(end-start)/steps));
+    const inc = end > start ? step : -step;
+    let cur = start;
+    const t = setInterval(() => {
+        cur += inc;
+        if ((inc>0&&cur>=end)||(inc<0&&cur<=end)) { cur=end; clearInterval(t); }
+        el.textContent = cur.toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ') + suffix;
+    }, Math.floor(dur/steps));
 }
-
-// Animation pour les pourcentages (avec décimales, max 2 secondes)
-function animatePercentage(element, start, end, maxDuration) {
-    if (start === end) {
-        element.textContent = end.toFixed(2).replace('.', ',');
-        return;
-    }
-    
-    const range = Math.abs(end - start);
-    const maxSteps = 60; // Nombre maximum de pas
-    const stepValue = Math.max(0.01, range / maxSteps); // Pas adaptatif
-    const stepTime = Math.floor(maxDuration / maxSteps);
-    const increment = end > start ? stepValue : -stepValue;
-    let current = start;
-    
-    const timer = setInterval(function() {
-        current += increment;
-        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-        }
-        
-        element.textContent = current.toFixed(2).replace('.', ',');
-    }, stepTime);
+function animatePercentage(el, start, end, dur) {
+    if (start === end) { el.textContent = end.toFixed(2).replace('.',','); return; }
+    const steps = 60, step = Math.max(0.01, Math.abs(end-start)/steps);
+    const inc = end > start ? step : -step;
+    let cur = start;
+    const t = setInterval(() => {
+        cur += inc;
+        if ((inc>0&&cur>=end)||(inc<0&&cur<=end)) { cur=end; clearInterval(t); }
+        el.textContent = cur.toFixed(2).replace('.',',');
+    }, Math.floor(dur/steps));
 }
-
-// Animer toutes les valeurs au chargement de la page (max 0.5 secondes)
-setTimeout(function() {
-    // Animer les valeurs principales
-    const statValues = document.querySelectorAll('.stat-value[data-value]');
-    statValues.forEach(function(element) {
-        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
-        const suffix = element.getAttribute('data-suffix') || '';
-        animateValue(element, 0, targetValue, 500, suffix);
-    });
-    
-    // Animer les pourcentages
-    const statPercentages = document.querySelectorAll('.stat-percentage[data-value]');
-    statPercentages.forEach(function(element) {
-        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
-        animatePercentage(element, 0, targetValue, 500);
-    });
+setTimeout(() => {
+    document.querySelectorAll('.rem-stat-val[data-value]').forEach(el => animateValue(el, 0, parseFloat(el.dataset.value)||0, 500));
+    document.querySelectorAll('.stat-percentage[data-value]').forEach(el => animatePercentage(el, 0, parseFloat(el.dataset.value)||0, 500));
 }, 300);
-
-// Réanimer les valeurs après un changement de filtre
-const filterForm = document.getElementById('filterForm');
-
-if (filterForm) {
-    filterForm.addEventListener('submit', function(e) {
-        sessionStorage.setItem('animateStats', 'true');
-    });
-}
-
-// Si on vient d'un changement de filtre, réanimer
-if (sessionStorage.getItem('animateStats') === 'true') {
-    sessionStorage.removeItem('animateStats');
-    
-    setTimeout(function() {
-        const statValues = document.querySelectorAll('.stat-value[data-value]');
-        statValues.forEach(function(element) {
-            const currentText = element.textContent.replace(/\s/g, '').replace(/[^0-9.]/g, '');
-            const currentValue = parseFloat(currentText) || 0;
-            const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
-            const suffix = element.getAttribute('data-suffix') || '';
-            animateValue(element, currentValue, targetValue, 500, suffix);
-        });
-        
-        const statPercentages = document.querySelectorAll('.stat-percentage[data-value]');
-        statPercentages.forEach(function(element) {
-            const currentText = element.textContent.replace(',', '.');
-            const currentValue = parseFloat(currentText) || 0;
-            const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
-            animatePercentage(element, currentValue, targetValue, 500);
-        });
-    }, 200);
-}
 </script>
 {% endblock %}
-

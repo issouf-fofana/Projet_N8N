@@ -1,0 +1,96 @@
+{% if semaine_comparison %}
+{% with cmp=semaine_comparison %}
+<div id="cmp-periode" style="margin-top:1.5rem;margin-bottom:.5rem;">
+<style>
+.cmp-widget { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); border:1px solid #eef0f6; overflow:hidden; }
+.cmp-widget .cmp-header { padding:14px 20px; background:#fafbff; border-bottom:1px solid #eef0f6; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.cmp-widget .cmp-title { font-size:.95rem; font-weight:700; color:#1e2a45; display:flex; align-items:center; gap:8px; }
+.cmp-widget .cmp-dates { font-size:.75rem; color:#8492a6; background:#f0f3ff; padding:3px 10px; border-radius:20px; font-weight:500; }
+.cmp-widget .cmp-period-btns .btn { font-size:.75rem; padding:3px 10px; border-radius:20px !important; font-weight:600; border:1.5px solid #d1d9f0; color:#5a6a85; background:#fff; transition:all .18s; }
+.cmp-widget .cmp-period-btns .btn-primary,
+.cmp-widget .cmp-period-btns .btn:hover { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-color:transparent; }
+.cmp-widget table { font-size:.85rem; margin:0; }
+.cmp-widget thead tr:first-child th { font-size:.78rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.04em; padding:10px 14px; border-bottom:1px solid #eef0f6; }
+/* Période précédente : fond grisé */
+.cmp-widget thead tr:first-child th.col-prev { background:#f4f5f7; color:#9ca3af; }
+/* Période actuelle : fond légèrement teinté */
+.cmp-widget thead tr:first-child th.col-curr { background:#f0f4ff; color:#4f46e5; }
+/* Évolution */
+.cmp-widget thead tr:first-child th.col-evo  { background:#fafbff; color:#6b7280; }
+.cmp-widget thead tr:last-child th { font-size:.72rem; padding:6px 14px; background:#fafbff; border-bottom:2px solid #eef0f6; }
+.cmp-widget thead tr:last-child th.sub-prev { background:#f4f5f7; color:#b0b8c8; font-style:italic; }
+.cmp-widget thead tr:last-child th.sub-curr-ok  { background:#f0f4ff; color:#16a34a; }
+.cmp-widget thead tr:last-child th.sub-curr-ko  { background:#f0f4ff; color:#dc2626; }
+.cmp-widget thead tr:last-child th.sub-evo   { background:#fafbff; color:#94a3b8; }
+.cmp-widget tbody tr { transition:background .15s; }
+.cmp-widget tbody tr:hover { background:#f5f7ff; }
+.cmp-widget tbody td { padding:9px 14px; vertical-align:middle; border-bottom:1px solid #f1f5f9; }
+.cmp-widget tbody tr:last-child td { border-bottom:none; }
+/* Cellules période précédente : couleur atténuée */
+.cmp-widget tbody td.td-prev { background:#fafbfc; color:#9ca3af !important; font-weight:500 !important; }
+/* Cellules période actuelle : normale + légère mise en avant */
+.cmp-widget tbody td.td-curr { background:#f8f9ff; font-weight:700 !important; }
+.cmp-widget .src-icon { width:28px; height:28px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:.75rem; margin-right:6px; }
+.cmp-widget .src-icon.asten  { background:#eff6ff; color:#3b82f6; }
+.cmp-widget .src-icon.gpv    { background:#f0fdf4; color:#22c55e; }
+.cmp-widget .src-icon.legend { background:#fffbeb; color:#f59e0b; }
+.cmp-widget .src-icon.br     { background:#fff1f2; color:#ef4444; }
+.cmp-widget .src-icon.rem    { background:#faf5ff; color:#8b5cf6; }
+.cmp-widget .src-label { font-weight:600; font-size:.83rem; color:#374151; }
+.cmp-widget .delta-up-good   { color:#16a34a; font-weight:700; }
+.cmp-widget .delta-down-bad  { color:#dc2626; font-weight:700; }
+.cmp-widget .delta-up-bad    { color:#dc2626; font-weight:700; }
+.cmp-widget .delta-down-good { color:#16a34a; font-weight:700; }
+.cmp-widget .delta-neutral   { color:#9ca3af; }
+</style>
+<div class="cmp-widget">
+    <div class="cmp-header">
+        <div class="cmp-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 16l-4-4 4-4M17 8l4 4-4 4" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Évolution sur la période
+            <span class="cmp-dates">
+                {{ cmp.debut_sp|date:"d/m" }} → {{ cmp.fin_sp|date:"d/m" }}
+                &nbsp;·&nbsp;
+                {{ cmp.debut_s|date:"d/m" }} → {{ cmp.fin_s|date:"d/m" }}
+            </span>
+        </div>
+        <div class="cmp-period-btns d-flex gap-1">
+            <a href="?periode_cmp=semaine#cmp-periode" class="btn {% if periode_cmp == 'semaine' or not periode_cmp %}btn-primary{% endif %}">7j</a>
+            <a href="?periode_cmp=mois#cmp-periode"    class="btn {% if periode_cmp == 'mois'    %}btn-primary{% endif %}">30j</a>
+            <a href="?periode_cmp=3mois#cmp-periode"   class="btn {% if periode_cmp == '3mois'   %}btn-primary{% endif %}">3M</a>
+            <a href="?periode_cmp=6mois#cmp-periode"   class="btn {% if periode_cmp == '6mois'   %}btn-primary{% endif %}">6M</a>
+            <a href="?periode_cmp=annee#cmp-periode"   class="btn {% if periode_cmp == 'annee'   %}btn-primary{% endif %}">1an</a>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th style="width:160px;background:#fafbff;"></th>
+                    <th class="text-center col-prev" colspan="2">Période précédente</th>
+                    <th class="text-center col-curr" colspan="2">Période actuelle</th>
+                    <th class="text-center col-evo"  colspan="2">Évolution</th>
+                </tr>
+                <tr>
+                    <th style="background:#fafbff;"></th>
+                    <th class="text-center sub-prev">Intégrées</th>
+                    <th class="text-center sub-prev">Non intégrées</th>
+                    <th class="text-center sub-curr-ok">Intégrées</th>
+                    <th class="text-center sub-curr-ko">Non intégrées</th>
+                    <th class="text-center sub-evo">↑↓ Intégrées</th>
+                    <th class="text-center sub-evo">↑↓ Non intégrées</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% include "dashboard/_cmp_row.html" with label="Asten"    icon="bi-box-seam"          icon_class="asten"  row=cmp.asten %}
+                {% include "dashboard/_cmp_row.html" with label="GPV"      icon="bi-truck"             icon_class="gpv"    row=cmp.gpv %}
+                {% include "dashboard/_cmp_row.html" with label="Legend"   icon="bi-archive"           icon_class="legend" row=cmp.legend %}
+                {% include "dashboard/_cmp_row.html" with label="BR Asten" icon="bi-receipt"           icon_class="br"     row=cmp.br %}
+                {% include "dashboard/_cmp_row.html" with label="Remontées" icon="bi-ticket-perforated" icon_class="rem"   row=cmp.remontees %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+{% endwith %}
+{% endif %}

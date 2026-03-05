@@ -4,1263 +4,550 @@
 
 {% block extra_css %}
 <style>
-    /* Style exact comme dans la capture */
-    body {
-        background-color: #e5e7eb !important;
-    }
-    
-    .main-content {
-        background: #e5e7eb !important;
-        padding: 20px;
-    }
-    
-    /* Animation d'apparition des cartes */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-        }
-        50% {
-            transform: scale(1.05);
-        }
-    }
-    
-    @keyframes shimmer {
-        0% {
-            background-position: -1000px 0;
-        }
-        100% {
-            background-position: 1000px 0;
-        }
-    }
-    
-    .accueil-card {
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-        background: #ffffff;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 20px;
-        animation: fadeInUp 0.6s ease-out;
-        position: relative;
-    }
-    
-    .accueil-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-        transition: left 0.5s;
-    }
-    
-    .accueil-card:hover::before {
-        left: 100%;
-    }
-    
-    .accueil-card:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    }
-    
-    .accueil-card-header {
-        padding: 14px 16px;
-        font-weight: 600;
-        font-size: 0.95rem;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: none;
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .accueil-card-header::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s;
-    }
-    
-    .accueil-card:hover .accueil-card-header::after {
-        left: 100%;
-    }
-    
-    .accueil-card-header i {
-        font-size: 1rem;
-        margin-right: 8px;
-        transition: transform 0.3s ease;
-    }
-    
-    .accueil-card:hover .accueil-card-header i {
-        transform: scale(1.2) rotate(5deg);
-    }
-    
-    /* Couleurs uniques pour chaque carte */
-    .card-asten {
-        border-top: 4px solid #3b82f6;
-    }
-    .card-asten .accueil-card-header {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    }
-    .card-asten .btn-details {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    }
-    .card-asten .btn-details:hover {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-    }
-    
-    .card-gpv {
-        border-top: 4px solid #6366f1;
-    }
-    .card-gpv .accueil-card-header {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    }
-    .card-gpv .btn-details {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    }
-    .card-gpv .btn-details:hover {
-        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-    }
-    
-    .card-legend {
-        border-top: 4px solid #8b5cf6;
-    }
-    .card-legend .accueil-card-header {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-    }
-    .card-legend .btn-details {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-    }
-    .card-legend .btn-details:hover {
-        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-    }
-    
-    .card-br {
-        border-top: 4px solid #06b6d4;
-    }
-    .card-br .accueil-card-header {
-        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-    }
-    .card-br .btn-details {
-        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-    }
-    .card-br .btn-details:hover {
-        background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-    }
-    
-    .card-factures {
-        border-top: 4px solid #ec4899;
-    }
-    .card-factures .accueil-card-header {
-        background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-    }
-    .card-factures .btn-details {
-        background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-    }
-    .card-factures .btn-details:hover {
-        background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
-        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
-    }
-    
-    .card-remontees {
-        border-top: 4px solid #f59e0b;
-    }
-    .card-remontees .accueil-card-header {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    }
-    .card-remontees .btn-details {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    }
-    .card-remontees .btn-details:hover {
-        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-    }
-    
-    .accueil-card-body {
-        padding: 14px 16px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .stat-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #f1f5f9;
-        transition: all 0.2s ease;
-        animation: fadeInUp 0.4s ease-out;
-    }
-    
-    .stat-row:hover {
-        background: rgba(0, 0, 0, 0.02);
-        padding-left: 4px;
-        padding-right: 4px;
-        border-radius: 6px;
-    }
-    
-    .stat-row:last-child {
-        border-bottom: none;
-    }
-    
-    .stat-label {
-        font-size: 0.85rem;
-        color: #64748b;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.2s ease;
-    }
-    
-    .stat-row:hover .stat-label {
-        color: #475569;
-        font-weight: 600;
-    }
-    
-    .stat-label i {
-        font-size: 0.9rem;
-        transition: transform 0.2s ease;
-    }
-    
-    .stat-row:hover .stat-label i {
-        transform: scale(1.2);
-    }
-    
-    .stat-value {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #1f2937;
-        transition: all 0.3s ease;
-    }
-    
-    .stat-row:hover .stat-value {
-        transform: scale(1.1);
-    }
-    
-    .stat-value.success {
-        color: #10b981; /* Vert pour intégrées/résolues */
-    }
-    
-    .stat-value.warning {
-        color: #f59e0b; /* Orange pour en cours */
-    }
-    
-    .stat-value.info {
-        color: #1f2937; /* Noir pour total */
-    }
-    
-    .progress-container {
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px solid #f1f5f9;
-        animation: fadeInUp 0.5s ease-out;
-    }
-    
-    .progress {
-        height: 8px;
-        border-radius: 8px;
-        background-color: #e5e7eb;
-        overflow: hidden;
-        position: relative;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-    
-    .progress-bar {
-        border-radius: 8px;
-        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .progress-bar::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-        animation: shimmer 2s infinite;
-    }
-    
-    .progress-bar.bg-success {
-        background-color: #10b981 !important;
-        background: #10b981 !important;
-    }
-    
-    .progress-bar.bg-warning {
-        background-color: #f59e0b !important;
-        background: #f59e0b !important;
-    }
-    
-    .progress-bar.bg-danger {
-        background-color: #ef4444 !important;
-        background: #ef4444 !important;
-    }
-    
-    .btn-details {
-        margin-top: 12px;
-        padding: 10px 16px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        border-radius: 8px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: none;
-        width: 100%;
-        color: #ffffff;
-        position: relative;
-        overflow: hidden;
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    .btn-details::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
-    }
-    
-    .btn-details:hover::before {
-        width: 300px;
-        height: 300px;
-    }
-    
-    .btn-details:hover {
-        color: #ffffff;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-    
-    .btn-details:active {
-        transform: translateY(0);
-    }
-    
-    .btn-details i {
-        transition: transform 0.3s ease;
-    }
-    
-    .btn-details:hover i {
-        transform: translateX(4px);
-    }
-    
-    .filtres-section {
-        background: white;
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e5e7eb;
-        animation: fadeInUp 0.4s ease-out;
-        transition: all 0.3s ease;
-    }
-    
-    .filtres-section:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-filtre {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-        border-radius: 8px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid #e5e7eb;
-        color: #374151;
-        background: white;
-        font-weight: 500;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .btn-filtre::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(59, 130, 246, 0.1);
-        transform: translate(-50%, -50%);
-        transition: width 0.4s, height 0.4s;
-    }
-    
-    .btn-filtre:hover::before {
-        width: 200px;
-        height: 200px;
-    }
-    
-    .btn-filtre:hover {
-        background: #f9fafb;
-        border-color: #3b82f6;
-        color: #3b82f6;
-        transform: translateY(-1px);
-    }
-    
-    .btn-filtre.active {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-        border: none;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        font-weight: 600;
-        transform: translateY(-1px);
-    }
-    
-    .btn-filtre.active::before {
-        background: rgba(255, 255, 255, 0.2);
-    }
-    
-    .btn-filtre i {
-        transition: transform 0.2s ease;
-    }
-    
-    .btn-filtre:hover i {
-        transform: scale(1.1);
-    }
-    
-    .date-picker-group {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-    
-    .date-picker-group input {
-        padding: 8px 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-    }
-    
-    .date-picker-group input:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    /* Titre du tableau de bord */
-    h1 {
-        color: #1f2937;
-        font-weight: 600;
-        font-size: 1.5rem;
-        animation: fadeInUp 0.5s ease-out;
-        transition: all 0.3s ease;
-    }
-    
-    h1:hover {
-        transform: translateX(4px);
-    }
-    
-    h1 i {
-        transition: transform 0.3s ease;
-    }
-    
-    h1:hover i {
-        transform: rotate(15deg) scale(1.1);
-    }
-    
-    /* Animation pour les valeurs numériques */
-    .stat-value[data-value] {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    /* Délai d'animation pour chaque carte */
-    .col-md-6:nth-child(1) .accueil-card,
-    .col-lg-4:nth-child(1) .accueil-card {
-        animation-delay: 0.1s;
-    }
-    .col-md-6:nth-child(2) .accueil-card,
-    .col-lg-4:nth-child(2) .accueil-card {
-        animation-delay: 0.2s;
-    }
-    .col-md-6:nth-child(3) .accueil-card,
-    .col-lg-4:nth-child(3) .accueil-card {
-        animation-delay: 0.3s;
-    }
-    .col-md-6:nth-child(4) .accueil-card,
-    .col-lg-4:nth-child(4) .accueil-card {
-        animation-delay: 0.4s;
-    }
-    .col-md-6:nth-child(5) .accueil-card,
-    .col-lg-4:nth-child(5) .accueil-card {
-        animation-delay: 0.5s;
-    }
-    .col-md-6:nth-child(6) .accueil-card,
-    .col-lg-4:nth-child(6) .accueil-card {
-        animation-delay: 0.6s;
-    }
-    
-    /* Couleurs des valeurs dans les statistiques */
-    .stat-value[style*="color: #15803d"] {
-        color: #10b981 !important; /* Vert plus vif */
-    }
-    
-    .text-success {
-        color: #10b981 !important;
-    }
-    
-    .text-danger {
-        color: #ef4444 !important;
-    }
-    
-    .text-warning {
-        color: #f59e0b !important;
-    }
+body { background: #f0f2f8 !important; }
+.main-content { background: #f0f2f8 !important; padding: 16px 20px; }
 
-    /* Compact layout with mini charts */
-    .accueil-card-top {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-    }
+/* ── ALERTS ── */
+.acc-alerts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.acc-alert {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; border-radius: 10px; font-size: .85rem; font-weight: 600;
+    border-left: 4px solid transparent; animation: slideIn .35s ease-out;
+    text-decoration: none; color: inherit; transition: filter .15s;
+}
+.acc-alert:hover { filter: brightness(.96); color: inherit; text-decoration: none; }
+.acc-alert.danger  { background: #fff1f2; border-color: #ef4444; color: #991b1b; }
+.acc-alert.warning { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+.acc-alert i { font-size: 1rem; flex-shrink: 0; }
+.acc-alert .acc-alert-count {
+    margin-left: auto; background: #fff; padding: 2px 10px;
+    border-radius: 20px; font-size: .8rem; font-weight: 700;
+}
+.acc-alert.danger  .acc-alert-count { color: #dc2626; border: 1px solid #fecaca; }
+.acc-alert.warning .acc-alert-count { color: #d97706; border: 1px solid #fde68a; }
 
-    .accueil-stats {
-        flex: 1;
-        min-width: 0;
-    }
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 
-    .accueil-chart {
-        width: 116px;
-        height: 116px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+/* ── FILTRES ── */
+.acc-filters {
+    background: #fff; border-radius: 12px; padding: 10px 16px;
+    margin-bottom: 14px; box-shadow: 0 1px 8px rgba(15,23,42,.06);
+    border: 1px solid #e8ecf5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.acc-filters .filter-label {
+    font-size: .78rem; font-weight: 700; color: #6b7280; text-transform: uppercase;
+    letter-spacing: .05em; white-space: nowrap;
+}
+.acc-filters .period-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.acc-filters .period-pills .pp {
+    padding: 4px 12px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+    border: 1.5px solid #d1d9f0; color: #5a6a85; background: #fff;
+    cursor: pointer; transition: all .15s; text-decoration: none; white-space: nowrap;
+}
+.acc-filters .period-pills .pp.active,
+.acc-filters .period-pills .pp:hover {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; border-color: transparent;
+}
+.acc-filters .date-inputs { display: flex; gap: 8px; align-items: center; }
+.acc-filters .date-inputs input {
+    padding: 4px 10px; border: 1.5px solid #d1d9f0; border-radius: 8px;
+    font-size: .82rem; color: #374151; background: #f9fafb; transition: border-color .15s;
+}
+.acc-filters .date-inputs input:focus { outline: none; border-color: #6366f1; background: #fff; }
 
-    .accueil-chart canvas {
-        width: 104px !important;
-        height: 104px !important;
-    }
+/* ── STAT CARDS ── */
+.acc-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+@media (max-width: 992px) { .acc-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 576px)  { .acc-cards { grid-template-columns: 1fr; } }
 
-    .stat-label {
-        font-size: 0.8rem;
-    }
+.acc-card {
+    background: #fff; border-radius: 14px; border: 1px solid #e8ecf5;
+    box-shadow: 0 2px 12px rgba(15,23,42,.06); overflow: hidden;
+    transition: box-shadow .2s, transform .2s;
+}
+.acc-card:hover { box-shadow: 0 6px 20px rgba(15,23,42,.1); transform: translateY(-2px); }
 
-    .stat-value {
-        font-size: 1rem !important;
-    }
+.acc-card-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px; border-bottom: 1px solid #f1f5f9; font-size: .9rem; font-weight: 700;
+}
+.acc-card-head .head-icon {
+    width: 36px; height: 36px; border-radius: 10px; display: flex;
+    align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+}
+.acc-card-head .head-title { color: #1e2a45; flex: 1; }
+.acc-card-head .head-badge {
+    font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; white-space: nowrap;
+}
 
-    .progress {
-        height: 6px !important;
-    }
+.asten-theme  .head-icon { background: #eff6ff; color: #3b82f6; }
+.gpv-theme    .head-icon { background: #f0fdf4; color: #22c55e; }
+.legend-theme .head-icon { background: #fffbeb; color: #f59e0b; }
+.br-theme     .head-icon { background: #fff1f2; color: #ef4444; }
+.fact-theme   .head-icon { background: #fdf4ff; color: #a855f7; }
+.rem-theme    .head-icon { background: #f0f9ff; color: #0ea5e9; }
 
-    /* Simplified layout overrides */
-    .accueil-card,
-    .accueil-card:hover {
-        animation: none !important;
-        transform: none !important;
-    }
+.asten-theme  { border-top: 3px solid #3b82f6; }
+.gpv-theme    { border-top: 3px solid #22c55e; }
+.legend-theme { border-top: 3px solid #f59e0b; }
+.br-theme     { border-top: 3px solid #ef4444; }
+.fact-theme   { border-top: 3px solid #a855f7; }
+.rem-theme    { border-top: 3px solid #0ea5e9; }
 
-    .accueil-card {
-        border-radius: 14px;
-        border: 1px solid #e5e9f2;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-        background: #ffffff;
-        overflow: hidden;
-    }
+.acc-card-body { padding: 16px 18px; }
 
-    .accueil-card::before,
-    .accueil-card-header::after {
-        display: none !important;
-    }
+.acc-stats-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 0; border-bottom: 1px solid #f1f5f9;
+}
+.acc-stats-row:last-of-type { border-bottom: none; }
+.acc-stats-row .sr-icon { font-size: .85rem; width: 18px; text-align: center; flex-shrink: 0; }
+.acc-stats-row .sr-label { font-size: .83rem; color: #6b7280; flex: 1; }
+.acc-stats-row .sr-val { font-size: 1.15rem; font-weight: 700; color: #1f2937; }
+.acc-stats-row .sr-val.green { color: #16a34a; }
+.acc-stats-row .sr-val.red   { color: #dc2626; }
+.acc-stats-row .sr-val.blue  { color: #2563eb; }
+.acc-stats-row .sr-val.amber { color: #d97706; }
 
-    .accueil-card-header {
-        background: #f9fbff !important;
-        color: #0f172a !important;
-        justify-content: flex-start;
-        gap: 8px;
-        border-bottom: 1px solid #eef2f7;
-    }
+.acc-card-inner { display: flex; gap: 14px; align-items: center; }
+.acc-card-chart { width: 110px; height: 110px; flex-shrink: 0; }
+.acc-card-chart canvas { width: 110px !important; height: 110px !important; }
 
-    .card-asten,
-    .card-gpv,
-    .card-legend,
-    .card-br,
-    .card-factures,
-    .card-remontees {
-        border-top: none !important;
-    }
+.acc-progress-wrap { margin-top: 12px; }
+.acc-progress {
+    height: 7px; border-radius: 4px; background: #e9ecef;
+    position: relative; overflow: hidden;
+}
+.acc-progress-bar {
+    position: absolute; left: 0; top: 0; height: 100%; border-radius: 4px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+}
+.acc-progress-bar.green { background: linear-gradient(90deg,#16a34a,#22c55e); }
+.acc-progress-bar.red   { background: linear-gradient(90deg,#ef4444,#f87171); left: var(--left,0); }
+.acc-pct { font-size: .75rem; color: #94a3b8; font-weight: 600; margin-top: 4px; text-align: right; }
 
-    .stat-row {
-        padding: 8px 0;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .stat-value {
-        font-size: 1.1rem;
-    }
-
-    .btn-details {
-        background: transparent !important;
-        color: #2d6cdf !important;
-        border: 1px solid #dbe4f6 !important;
-        border-radius: 10px !important;
-        box-shadow: none !important;
-    }
-
-    .btn-details:hover {
-        background: #eff6ff !important;
-        color: #1d4ed8 !important;
-    }
+.acc-card-btn {
+    display: block; margin-top: 14px; padding: 9px 14px; border-radius: 10px;
+    font-size: .82rem; font-weight: 600; text-align: center; text-decoration: none;
+    color: #6366f1; border: 1.5px solid #e0e4f6; background: transparent;
+    transition: all .15s;
+}
+.acc-card-btn:hover { background: #eff0ff; color: #4f46e5; border-color: #c7d2fe; text-decoration: none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0" style="color: #1e293b; font-weight: 600;">
-            <i class="bi bi-speedometer2"></i> Tableau de bord
-        </h1>
+<div class="container-fluid px-3 py-3">
+
+    <!-- Page title -->
+    <div class="d-flex align-items-center mb-3 gap-2">
+        <div style="width:34px;height:34px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-speedometer2" style="color:#fff;font-size:1rem;"></i>
+        </div>
+        <h1 class="h5 mb-0 fw-bold" style="color:#1e2a45;">Tableau de bord</h1>
+        {% if date_debut and date_fin %}
+        <span style="font-size:.75rem;color:#8492a6;background:#f0f3ff;padding:3px 10px;border-radius:20px;font-weight:500;">
+            {{ date_debut }} → {{ date_fin }}
+        </span>
+        {% endif %}
     </div>
 
-    <!-- Filtres de période -->
-    <div class="filtres-section">
-        <form method="get" id="filtreForm">
-            <div class="row align-items-end g-2">
-                <div class="col-auto">
-                    <label class="form-label small mb-1 fw-semibold" style="color: #475569;">
-                        <i class="bi bi-funnel-fill me-1"></i> Période
-                    </label>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-filtre {% if periode == 'aujourdhui' or not periode %}active{% endif %}" 
-                                onclick="setPeriode('aujourdhui')">
-                            <i class="bi bi-calendar-day me-1"></i> Aujourd'hui
-                        </button>
-                        <button type="button" class="btn btn-filtre {% if periode == 'hier' %}active{% endif %}" 
-                                onclick="setPeriode('hier')">
-                            <i class="bi bi-calendar-minus me-1"></i> Hier
-                        </button>
-                        <button type="button" class="btn btn-filtre {% if periode == 'semaine' %}active{% endif %}" 
-                                onclick="setPeriode('semaine')">
-                            <i class="bi bi-calendar-week me-1"></i> Semaine
-                        </button>
-                        <button type="button" class="btn btn-filtre {% if periode == 'mois' %}active{% endif %}" 
-                                onclick="setPeriode('mois')">
-                            <i class="bi bi-calendar-month me-1"></i> Mois
-                        </button>
-                        <button type="button" class="btn btn-filtre {% if periode == '3mois' %}active{% endif %}" 
-                                onclick="setPeriode('3mois')">
-                            <i class="bi bi-calendar3 me-1"></i> 3 mois
-                        </button>
-                        <button type="button" class="btn btn-filtre {% if periode == 'annee' %}active{% endif %}" 
-                                onclick="setPeriode('annee')">
-                            <i class="bi bi-calendar-year me-1"></i> Année
-                        </button>
-                        <button type="button" class="btn btn-filtre {% if periode == 'personnalise' %}active{% endif %}" 
-                                onclick="setPeriode('personnalise')">
-                            <i class="bi bi-calendar-range me-1"></i> Personnalisé
-                        </button>
-                    </div>
-                </div>
-                <div class="col-auto" id="datePickerGroup" style="display: {% if periode == 'personnalise' %}flex{% else %}none{% endif %};">
-                    <div class="date-picker-group">
-                        <div>
-                            <label class="form-label small mb-1 fw-semibold" style="color: #475569;">
-                                <i class="bi bi-calendar-event me-1"></i> Date début
-                            </label>
-                            <input type="date" name="date_debut" class="form-control form-control-sm" 
-                                   value="{{ date_debut }}" id="date_debut">
-                        </div>
-                        <div>
-                            <label class="form-label small mb-1 fw-semibold" style="color: #475569;">
-                                <i class="bi bi-calendar-event-fill me-1"></i> Date fin
-                            </label>
-                            <input type="date" name="date_fin" class="form-control form-control-sm" 
-                                   value="{{ date_fin }}" id="date_fin">
-                        </div>
-                    </div>
-                </div>
+    <!-- ── ALERT BANNERS ── -->
+    {% with non_asten=stats_asten.non_integres|default:0 non_gpv=stats_gpv.non_integres|default:0 non_legend=stats_legend.non_integres|default:0 non_br=stats_br.non_integres|default:0 non_fact=stats_factures.non_integres|default:0 non_rem=stats_remontees.non_resolu|default:0 %}
+    {% if non_asten or non_gpv or non_legend or non_br or non_fact or non_rem %}
+    <div class="acc-alerts">
+        {% if non_asten %}
+        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-alert danger">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>Commandes Asten non intégrées — cliquer pour voir la liste</span>
+            <span class="acc-alert-count">{{ non_asten }} non intégrée{{ non_asten|pluralize }}</span>
+        </a>
+        {% endif %}
+        {% if non_gpv %}
+        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-alert danger">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>Commandes GPV non intégrées</span>
+            <span class="acc-alert-count">{{ non_gpv }} non intégrée{{ non_gpv|pluralize }}</span>
+        </a>
+        {% endif %}
+        {% if non_legend %}
+        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-alert danger">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>Commandes Legend non intégrées</span>
+            <span class="acc-alert-count">{{ non_legend }} non intégrée{{ non_legend|pluralize }}</span>
+        </a>
+        {% endif %}
+        {% if non_br %}
+        <a href="{% url 'dashboard:dashboard' %}?type_donnees=br&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-alert danger">
+            <i class="bi bi-receipt-cutoff"></i>
+            <span>BR Asten non trouvées</span>
+            <span class="acc-alert-count">{{ non_br }} non trouvée{{ non_br|pluralize }}</span>
+        </a>
+        {% endif %}
+        {% if non_fact %}
+        <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-alert warning">
+            <i class="bi bi-file-earmark-x-fill"></i>
+            <span>Factures non intégrées</span>
+            <span class="acc-alert-count">{{ non_fact }} non intégrée{{ non_fact|pluralize }}</span>
+        </a>
+        {% endif %}
+        {% if non_rem %}
+        <a href="{% url 'tickets:liste' %}{% if date_debut %}?date_debut={{ date_debut }}{% endif %}{% if date_fin %}{% if date_debut %}&{% else %}?{% endif %}date_fin={{ date_fin }}{% endif %}" class="acc-alert warning">
+            <i class="bi bi-ticket-perforated-fill"></i>
+            <span>Remontées non résolues</span>
+            <span class="acc-alert-count">{{ non_rem }} en attente</span>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- ── FILTRES ── -->
+    <div class="acc-filters">
+        <form method="get" id="filtreForm" style="display:contents;">
+            <span class="filter-label"><i class="bi bi-funnel-fill me-1"></i>Période</span>
+            <div class="period-pills">
+                <button type="button" class="pp {% if periode == 'aujourdhui' or not periode %}active{% endif %}" onclick="setPeriode('aujourdhui')">Aujourd'hui</button>
+                <button type="button" class="pp {% if periode == 'hier' %}active{% endif %}"       onclick="setPeriode('hier')">Hier</button>
+                <button type="button" class="pp {% if periode == 'semaine' %}active{% endif %}"    onclick="setPeriode('semaine')">7j</button>
+                <button type="button" class="pp {% if periode == 'mois' %}active{% endif %}"       onclick="setPeriode('mois')">30j</button>
+                <button type="button" class="pp {% if periode == '3mois' %}active{% endif %}"      onclick="setPeriode('3mois')">3M</button>
+                <button type="button" class="pp {% if periode == 'annee' %}active{% endif %}"      onclick="setPeriode('annee')">1an</button>
+                <button type="button" class="pp {% if periode == 'personnalise' %}active{% endif %}" onclick="setPeriode('personnalise')">Personnalisé</button>
+            </div>
+            <div class="date-inputs" id="datePickerGroup" style="display:{% if periode == 'personnalise' %}flex{% else %}none{% endif %};">
+                <input type="date" name="date_debut" value="{{ date_debut }}" id="date_debut">
+                <span style="color:#94a3b8;font-size:.8rem;">→</span>
+                <input type="date" name="date_fin"   value="{{ date_fin }}" id="date_fin">
             </div>
             <input type="hidden" name="periode" id="periodeInput" value="{{ periode|default:'aujourdhui' }}">
         </form>
     </div>
 
-    <!-- Statistiques globales -->
-    <div class="row g-3">
+    <!-- ── STAT CARDS ── -->
+    <div class="acc-cards">
+
         <!-- Commandes Asten -->
-        <div class="col-lg-4 col-md-6">
-            <div class="accueil-card">
-                <div class="accueil-card-header">
-                    <i class="bi bi-box-seam me-2"></i> Commandes Asten
-                </div>
-                <div class="accueil-card-body">
-                    <div class="accueil-card-top">
-                        <div class="accueil-stats">
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
-                        <span class="stat-value info">{{ stats_asten.total|default:0|floatformat:0 }}</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
-                        </span>
-                        <span class="stat-value" style="font-size: 1.3rem; color: #10b981;">
-                            {{ stats_asten.integres|default:0|floatformat:0 }}
-                        </span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
-                        </span>
-                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
-                           class="stat-value text-danger fw-bold text-decoration-none"
-                           style="font-size: 1.3rem;">
-                            {{ stats_asten.non_integres|default:0|floatformat:0 }}
-                        </a>
-                            </div>
+        <div class="acc-card asten-theme">
+            <div class="acc-card-head">
+                <span class="head-icon"><i class="bi bi-box-seam"></i></span>
+                <span class="head-title">Commandes Asten</span>
+                {% if stats_asten.non_integres %}<span class="head-badge" style="background:#fff1f2;color:#dc2626;">{{ stats_asten.non_integres }} KO</span>{% endif %}
+            </div>
+            <div class="acc-card-body">
+                <div class="acc-card-inner">
+                    <div style="flex:1;min-width:0;">
+                        <div class="acc-stats-row">
+                            <i class="bi bi-list-ul sr-icon text-primary"></i>
+                            <span class="sr-label">Total</span>
+                            <span class="sr-val">{{ stats_asten.total|default:0 }}</span>
                         </div>
-                        <div class="accueil-chart">
-                            <canvas class="mini-donut" data-ok="{{ stats_asten.integres|default:0 }}" data-bad="{{ stats_asten.non_integres|default:0 }}"></canvas>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-check-circle-fill sr-icon" style="color:#16a34a;"></i>
+                            <span class="sr-label">Intégrées</span>
+                            <span class="sr-val green">{{ stats_asten.integres|default:0 }}</span>
+                        </div>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-exclamation-triangle-fill sr-icon" style="color:#dc2626;"></i>
+                            <span class="sr-label">Non intégrées</span>
+                            <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="sr-val red" style="text-decoration:none;">{{ stats_asten.non_integres|default:0 }}</a>
                         </div>
                     </div>
-                    <div class="progress-container">
-                        <div class="progress" style="background-color: #e5e7eb; position: relative; height: 6px;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ stats_asten.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0; height: 100%; z-index: 1;"
-                                 aria-valuenow="{{ stats_asten.taux_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                            <div class="progress-bar bg-danger" role="progressbar" 
-                                 style="width: {{ stats_asten.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_asten.taux_integration|default:0 }}%; height: 100%; z-index: 1;"
-                                 aria-valuenow="{{ stats_asten.taux_non_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <div class="text-center mt-1">
-                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_asten.taux_integration|default:0 }}">0</span>% intégrées
-                            </small>
-                        </div>
+                    <div class="acc-card-chart">
+                        <canvas class="mini-donut" data-ok="{{ stats_asten.integres|default:0 }}" data-bad="{{ stats_asten.non_integres|default:0 }}"></canvas>
                     </div>
-                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
-                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
-                    </a>
                 </div>
+                <div class="acc-progress-wrap">
+                    <div class="acc-progress">
+                        <div class="acc-progress-bar green" style="width:{{ stats_asten.taux_integration|default:0 }}%;" data-w="{{ stats_asten.taux_integration|default:0 }}"></div>
+                        <div class="acc-progress-bar red"   style="width:{{ stats_asten.taux_non_integration|default:0 }}%;--left:{{ stats_asten.taux_integration|default:0 }}%;" data-w="{{ stats_asten.taux_non_integration|default:0 }}" data-left="{{ stats_asten.taux_integration|default:0 }}"></div>
+                    </div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_asten.taux_integration|default:0 }}">0</span>% intégrées</div>
+                </div>
+                <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les commandes <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
 
         <!-- Commandes GPV -->
-        <div class="col-lg-4 col-md-6">
-            <div class="accueil-card">
-                <div class="accueil-card-header">
-                    <i class="bi bi-box-seam me-2"></i> Commandes GPV
-                </div>
-                <div class="accueil-card-body">
-                    <div class="accueil-card-top">
-                        <div class="accueil-stats">
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
-                        <span class="stat-value info" data-value="{{ stats_gpv.total|default:0 }}">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
-                        </span>
-                        <span class="stat-value" data-value="{{ stats_gpv.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
-                        </span>
-                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
-                           class="stat-value text-danger fw-bold text-decoration-none"
-                           data-value="{{ stats_gpv.non_integres|default:0 }}"
-                           style="font-size: 1.3rem;">
-                            0
-                        </a>
-                            </div>
+        <div class="acc-card gpv-theme">
+            <div class="acc-card-head">
+                <span class="head-icon"><i class="bi bi-truck"></i></span>
+                <span class="head-title">Commandes GPV</span>
+                {% if stats_gpv.non_integres %}<span class="head-badge" style="background:#fff1f2;color:#dc2626;">{{ stats_gpv.non_integres }} KO</span>{% endif %}
+            </div>
+            <div class="acc-card-body">
+                <div class="acc-card-inner">
+                    <div style="flex:1;min-width:0;">
+                        <div class="acc-stats-row">
+                            <i class="bi bi-list-ul sr-icon text-primary"></i>
+                            <span class="sr-label">Total</span>
+                            <span class="sr-val" data-value="{{ stats_gpv.total|default:0 }}">{{ stats_gpv.total|default:0 }}</span>
                         </div>
-                        <div class="accueil-chart">
-                            <canvas class="mini-donut" data-ok="{{ stats_gpv.integres|default:0 }}" data-bad="{{ stats_gpv.non_integres|default:0 }}"></canvas>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-check-circle-fill sr-icon" style="color:#16a34a;"></i>
+                            <span class="sr-label">Intégrées</span>
+                            <span class="sr-val green">{{ stats_gpv.integres|default:0 }}</span>
+                        </div>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-exclamation-triangle-fill sr-icon" style="color:#dc2626;"></i>
+                            <span class="sr-label">Non intégrées</span>
+                            <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="sr-val red" style="text-decoration:none;">{{ stats_gpv.non_integres|default:0 }}</a>
                         </div>
                     </div>
-                    <div class="progress-container">
-                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ stats_gpv.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
-                                 aria-valuenow="{{ stats_gpv.taux_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                            <div class="progress-bar bg-danger" role="progressbar" 
-                                 style="width: {{ stats_gpv.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_gpv.taux_integration|default:0 }}%;"
-                                 aria-valuenow="{{ stats_gpv.taux_non_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <div class="text-center mt-1">
-                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_gpv.taux_integration|default:0 }}">0</span>% intégrées
-                            </small>
-                        </div>
+                    <div class="acc-card-chart">
+                        <canvas class="mini-donut" data-ok="{{ stats_gpv.integres|default:0 }}" data-bad="{{ stats_gpv.non_integres|default:0 }}"></canvas>
                     </div>
-                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
-                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
-                    </a>
                 </div>
+                <div class="acc-progress-wrap">
+                    <div class="acc-progress">
+                        <div class="acc-progress-bar green" data-w="{{ stats_gpv.taux_integration|default:0 }}" style="width:0%"></div>
+                        <div class="acc-progress-bar red"   data-w="{{ stats_gpv.taux_non_integration|default:0 }}" data-left="{{ stats_gpv.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
+                    </div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_gpv.taux_integration|default:0 }}">0</span>% intégrées</div>
+                </div>
+                <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les commandes <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
 
         <!-- Commandes Legend -->
-        <div class="col-lg-4 col-md-6">
-            <div class="accueil-card">
-                <div class="accueil-card-header">
-                    <i class="bi bi-box-seam me-2"></i> Commandes Legend
-                </div>
-                <div class="accueil-card-body">
-                    <div class="accueil-card-top">
-                        <div class="accueil-stats">
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
-                        <span class="stat-value info" data-value="{{ stats_legend.total|default:0 }}">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
-                        </span>
-                        <span class="stat-value" data-value="{{ stats_legend.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
-                        </span>
-                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
-                           class="stat-value text-danger fw-bold text-decoration-none"
-                           data-value="{{ stats_legend.non_integres|default:0 }}"
-                           style="font-size: 1.3rem;">
-                            0
-                        </a>
-                            </div>
+        <div class="acc-card legend-theme">
+            <div class="acc-card-head">
+                <span class="head-icon"><i class="bi bi-archive"></i></span>
+                <span class="head-title">Commandes Legend</span>
+                {% if stats_legend.non_integres %}<span class="head-badge" style="background:#fff1f2;color:#dc2626;">{{ stats_legend.non_integres }} KO</span>{% endif %}
+            </div>
+            <div class="acc-card-body">
+                <div class="acc-card-inner">
+                    <div style="flex:1;min-width:0;">
+                        <div class="acc-stats-row">
+                            <i class="bi bi-list-ul sr-icon text-primary"></i>
+                            <span class="sr-label">Total</span>
+                            <span class="sr-val">{{ stats_legend.total|default:0 }}</span>
                         </div>
-                        <div class="accueil-chart">
-                            <canvas class="mini-donut" data-ok="{{ stats_legend.integres|default:0 }}" data-bad="{{ stats_legend.non_integres|default:0 }}"></canvas>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-check-circle-fill sr-icon" style="color:#16a34a;"></i>
+                            <span class="sr-label">Intégrées</span>
+                            <span class="sr-val green">{{ stats_legend.integres|default:0 }}</span>
+                        </div>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-exclamation-triangle-fill sr-icon" style="color:#dc2626;"></i>
+                            <span class="sr-label">Non intégrées</span>
+                            <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="sr-val red" style="text-decoration:none;">{{ stats_legend.non_integres|default:0 }}</a>
                         </div>
                     </div>
-                    <div class="progress-container">
-                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ stats_legend.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
-                                 aria-valuenow="{{ stats_legend.taux_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                            <div class="progress-bar bg-danger" role="progressbar" 
-                                 style="width: {{ stats_legend.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_legend.taux_integration|default:0 }}%;"
-                                 aria-valuenow="{{ stats_legend.taux_non_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <div class="text-center mt-1">
-                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_legend.taux_integration|default:0 }}">0</span>% intégrées
-                            </small>
-                        </div>
+                    <div class="acc-card-chart">
+                        <canvas class="mini-donut" data-ok="{{ stats_legend.integres|default:0 }}" data-bad="{{ stats_legend.non_integres|default:0 }}"></canvas>
                     </div>
-                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
-                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
-                    </a>
                 </div>
+                <div class="acc-progress-wrap">
+                    <div class="acc-progress">
+                        <div class="acc-progress-bar green" data-w="{{ stats_legend.taux_integration|default:0 }}" style="width:0%"></div>
+                        <div class="acc-progress-bar red"   data-w="{{ stats_legend.taux_non_integration|default:0 }}" data-left="{{ stats_legend.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
+                    </div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_legend.taux_integration|default:0 }}">0</span>% intégrées</div>
+                </div>
+                <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les commandes <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
 
         <!-- BR Asten -->
-        <div class="col-lg-4 col-md-6">
-            <div class="accueil-card">
-                <div class="accueil-card-header">
-                    <i class="bi bi-receipt-cutoff me-2"></i> BR Asten
-                </div>
-                <div class="accueil-card-body">
-                    <div class="accueil-card-top">
-                        <div class="accueil-stats">
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-list-ul text-success"></i> Total</span>
-                        <span class="stat-value info" data-value="{{ stats_br.total|default:0 }}">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-check-circle-fill text-success"></i> Trouvées
-                        </span>
-                        <span class="stat-value" data-value="{{ stats_br.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non trouvées
-                        </span>
-                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=br&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
-                           class="stat-value text-danger fw-bold text-decoration-none"
-                           data-value="{{ stats_br.non_integres|default:0 }}"
-                           style="font-size: 1.3rem;">
-                            0
-                        </a>
-                            </div>
+        <div class="acc-card br-theme">
+            <div class="acc-card-head">
+                <span class="head-icon"><i class="bi bi-receipt-cutoff"></i></span>
+                <span class="head-title">BR Asten</span>
+                {% if stats_br.non_integres %}<span class="head-badge" style="background:#fff1f2;color:#dc2626;">{{ stats_br.non_integres }} KO</span>{% endif %}
+            </div>
+            <div class="acc-card-body">
+                <div class="acc-card-inner">
+                    <div style="flex:1;min-width:0;">
+                        <div class="acc-stats-row">
+                            <i class="bi bi-list-ul sr-icon text-success"></i>
+                            <span class="sr-label">Total</span>
+                            <span class="sr-val">{{ stats_br.total|default:0 }}</span>
                         </div>
-                        <div class="accueil-chart">
-                            <canvas class="mini-donut" data-ok="{{ stats_br.integres|default:0 }}" data-bad="{{ stats_br.non_integres|default:0 }}"></canvas>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-check-circle-fill sr-icon" style="color:#16a34a;"></i>
+                            <span class="sr-label">Trouvées</span>
+                            <span class="sr-val green">{{ stats_br.integres|default:0 }}</span>
+                        </div>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-exclamation-triangle-fill sr-icon" style="color:#dc2626;"></i>
+                            <span class="sr-label">Non trouvées</span>
+                            <a href="{% url 'dashboard:dashboard' %}?type_donnees=br&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="sr-val red" style="text-decoration:none;">{{ stats_br.non_integres|default:0 }}</a>
                         </div>
                     </div>
-                    <div class="progress-container">
-                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ stats_br.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
-                                 aria-valuenow="{{ stats_br.taux_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                            <div class="progress-bar bg-danger" role="progressbar" 
-                                 style="width: {{ stats_br.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_br.taux_integration|default:0 }}%;"
-                                 aria-valuenow="{{ stats_br.taux_non_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <div class="text-center mt-1">
-                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_br.taux_integration|default:0 }}">0</span>% trouvées
-                            </small>
-                        </div>
+                    <div class="acc-card-chart">
+                        <canvas class="mini-donut" data-ok="{{ stats_br.integres|default:0 }}" data-bad="{{ stats_br.non_integres|default:0 }}"></canvas>
                     </div>
-                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=br{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
-                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
-                    </a>
                 </div>
+                <div class="acc-progress-wrap">
+                    <div class="acc-progress">
+                        <div class="acc-progress-bar green" data-w="{{ stats_br.taux_integration|default:0 }}" style="width:0%"></div>
+                        <div class="acc-progress-bar red"   data-w="{{ stats_br.taux_non_integration|default:0 }}" data-left="{{ stats_br.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
+                    </div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_br.taux_integration|default:0 }}">0</span>% trouvées</div>
+                </div>
+                <a href="{% url 'dashboard:dashboard' %}?type_donnees=br{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les BR <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
 
         <!-- Factures -->
-        <div class="col-lg-4 col-md-6">
-            <div class="accueil-card">
-                <div class="accueil-card-header">
-                    <i class="bi bi-file-earmark-text me-2"></i> Factures
-                </div>
-                <div class="accueil-card-body">
-                    <div class="accueil-card-top">
-                        <div class="accueil-stats">
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-list-ul text-primary"></i> Total</span>
-                        <span class="stat-value info" data-value="{{ stats_factures.total|default:0 }}">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-check-circle-fill text-success"></i> Intégrées
-                        </span>
-                        <span class="stat-value" data-value="{{ stats_factures.integres|default:0 }}" style="font-size: 1.3rem; color: #10b981;">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label">
-                            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Non intégrées
-                        </span>
-                        <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}"
-                           class="stat-value text-danger fw-bold text-decoration-none"
-                           data-value="{{ stats_factures.non_integres|default:0 }}"
-                           style="font-size: 1.3rem;">
-                            0
-                        </a>
-                            </div>
+        <div class="acc-card fact-theme">
+            <div class="acc-card-head">
+                <span class="head-icon"><i class="bi bi-file-earmark-text"></i></span>
+                <span class="head-title">Factures</span>
+                {% if stats_factures.non_integres %}<span class="head-badge" style="background:#fffbeb;color:#d97706;">{{ stats_factures.non_integres }} KO</span>{% endif %}
+            </div>
+            <div class="acc-card-body">
+                <div class="acc-card-inner">
+                    <div style="flex:1;min-width:0;">
+                        <div class="acc-stats-row">
+                            <i class="bi bi-list-ul sr-icon text-primary"></i>
+                            <span class="sr-label">Total</span>
+                            <span class="sr-val">{{ stats_factures.total|default:0 }}</span>
                         </div>
-                        <div class="accueil-chart">
-                            <canvas class="mini-donut" data-ok="{{ stats_factures.integres|default:0 }}" data-bad="{{ stats_factures.non_integres|default:0 }}"></canvas>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-check-circle-fill sr-icon" style="color:#16a34a;"></i>
+                            <span class="sr-label">Intégrées</span>
+                            <span class="sr-val green">{{ stats_factures.integres|default:0 }}</span>
+                        </div>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-exclamation-triangle-fill sr-icon" style="color:#dc2626;"></i>
+                            <span class="sr-label">Non intégrées</span>
+                            <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="sr-val red" style="text-decoration:none;">{{ stats_factures.non_integres|default:0 }}</a>
                         </div>
                     </div>
-                    <div class="progress-container">
-                        <div class="progress" style="background-color: #e5e7eb; position: relative;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ stats_factures.taux_integration|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0;"
-                                 aria-valuenow="{{ stats_factures.taux_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                            <div class="progress-bar bg-danger" role="progressbar" 
-                                 style="width: {{ stats_factures.taux_non_integration|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_factures.taux_integration|default:0 }}%;"
-                                 aria-valuenow="{{ stats_factures.taux_non_integration|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <div class="text-center mt-1">
-                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_factures.taux_integration|default:0 }}">0</span>% intégrées
-                            </small>
-                        </div>
+                    <div class="acc-card-chart">
+                        <canvas class="mini-donut" data-ok="{{ stats_factures.integres|default:0 }}" data-bad="{{ stats_factures.non_integres|default:0 }}"></canvas>
                     </div>
-                    <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
-                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
-                    </a>
                 </div>
+                <div class="acc-progress-wrap">
+                    <div class="acc-progress">
+                        <div class="acc-progress-bar green" data-w="{{ stats_factures.taux_integration|default:0 }}" style="width:0%"></div>
+                        <div class="acc-progress-bar red"   data-w="{{ stats_factures.taux_non_integration|default:0 }}" data-left="{{ stats_factures.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
+                    </div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_factures.taux_integration|default:0 }}">0</span>% intégrées</div>
+                </div>
+                <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les factures <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
 
         <!-- Remontées -->
-        <div class="col-lg-4 col-md-6">
-            <div class="accueil-card">
-                <div class="accueil-card-header">
-                    <i class="bi bi-ticket-perforated me-2"></i> Remontées
-                </div>
-                <div class="accueil-card-body">
-                    <div class="accueil-card-top">
-                        <div class="accueil-stats">
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-list-ul text-info"></i> Total</span>
-                        <span class="stat-value info" data-value="{{ stats_remontees.total|default:0 }}">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-check-circle-fill text-success"></i> Résolues</span>
-                        <span class="stat-value success" data-value="{{ stats_remontees.resolu|default:0 }}">0</span>
-                            </div>
-                            <div class="stat-row">
-                        <span class="stat-label"><i class="bi bi-clock-history text-warning"></i> En cours</span>
-                        <span class="stat-value warning" data-value="{{ stats_remontees.en_cours|default:0 }}">0</span>
-                            </div>
+        <div class="acc-card rem-theme">
+            <div class="acc-card-head">
+                <span class="head-icon"><i class="bi bi-ticket-perforated"></i></span>
+                <span class="head-title">Remontées</span>
+                {% if stats_remontees.non_resolu %}<span class="head-badge" style="background:#fffbeb;color:#d97706;">{{ stats_remontees.non_resolu }} en attente</span>{% endif %}
+            </div>
+            <div class="acc-card-body">
+                <div class="acc-card-inner">
+                    <div style="flex:1;min-width:0;">
+                        <div class="acc-stats-row">
+                            <i class="bi bi-list-ul sr-icon text-info"></i>
+                            <span class="sr-label">Total</span>
+                            <span class="sr-val">{{ stats_remontees.total|default:0 }}</span>
                         </div>
-                        <div class="accueil-chart">
-                            <canvas class="mini-donut" data-ok="{{ stats_remontees.resolu|default:0 }}" data-bad="{{ stats_remontees.non_resolu|default:0 }}"></canvas>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-check-circle-fill sr-icon" style="color:#16a34a;"></i>
+                            <span class="sr-label">Résolues</span>
+                            <span class="sr-val green">{{ stats_remontees.resolu|default:0 }}</span>
                         </div>
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress" style="background-color: #e5e7eb; position: relative; height: 6px;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ stats_remontees.taux_resolu|default:0 }}%; background-color: #10b981 !important; position: absolute; left: 0; height: 100%; z-index: 1;"
-                                 aria-valuenow="{{ stats_remontees.taux_resolu|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                            <div class="progress-bar bg-danger" role="progressbar" 
-                                 style="width: {{ stats_remontees.taux_non_resolu|default:0 }}%; background-color: #ef4444 !important; position: absolute; left: {{ stats_remontees.taux_resolu|default:0 }}%; height: 100%; z-index: 1;"
-                                 aria-valuenow="{{ stats_remontees.taux_non_resolu|default:0 }}" 
-                                 aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <div class="text-center mt-1">
-                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats_remontees.taux_resolu|default:0 }}">0</span>% résolues
-                            </small>
+                        <div class="acc-stats-row">
+                            <i class="bi bi-clock-history sr-icon" style="color:#d97706;"></i>
+                            <span class="sr-label">En cours</span>
+                            <span class="sr-val amber">{{ stats_remontees.en_cours|default:0 }}</span>
                         </div>
                     </div>
-                    <a href="{% url 'tickets:liste' %}{% if date_debut %}?date_debut={{ date_debut }}{% endif %}{% if date_fin %}{% if date_debut %}&{% else %}?{% endif %}date_fin={{ date_fin }}{% endif %}" class="btn btn-details">
-                        <i class="bi bi-arrow-right-circle me-1"></i> Voir détails
-                    </a>
+                    <div class="acc-card-chart">
+                        <canvas class="mini-donut" data-ok="{{ stats_remontees.resolu|default:0 }}" data-bad="{{ stats_remontees.non_resolu|default:0 }}"></canvas>
+                    </div>
                 </div>
+                <div class="acc-progress-wrap">
+                    <div class="acc-progress">
+                        <div class="acc-progress-bar green" data-w="{{ stats_remontees.taux_resolu|default:0 }}" style="width:0%"></div>
+                        <div class="acc-progress-bar red"   data-w="{{ stats_remontees.taux_non_resolu|default:0 }}" data-left="{{ stats_remontees.taux_resolu|default:0 }}" style="width:0%;left:0%"></div>
+                    </div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_remontees.taux_resolu|default:0 }}">0</span>% résolues</div>
+                </div>
+                <a href="{% url 'tickets:liste' %}{% if date_debut %}?date_debut={{ date_debut }}{% endif %}{% if date_fin %}{% if date_debut %}&{% else %}?{% endif %}date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les remontées <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
-    </div>
-</div>
+
+    </div><!-- /.acc-cards -->
+
+</div><!-- /.container-fluid -->
+
+{% include "dashboard/_semaine_comparison.html" %}
+
+{% include "dashboard/_top_magasins.html" %}
 
 <script>
 function setPeriode(periode) {
     document.getElementById('periodeInput').value = periode;
-    
-    // Afficher/masquer les sélecteurs de date
-    const datePickerGroup = document.getElementById('datePickerGroup');
-    if (periode === 'personnalise') {
-        datePickerGroup.style.display = 'flex';
-    } else {
-        datePickerGroup.style.display = 'none';
-    }
-    
-    // Mettre à jour les boutons actifs
-    document.querySelectorAll('.btn-filtre').forEach(btn => {
-        btn.classList.remove('active');
-    });
+    const dg = document.getElementById('datePickerGroup');
+    dg.style.display = periode === 'personnalise' ? 'flex' : 'none';
+    document.querySelectorAll('.period-pills .pp').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
-    
-    // Soumettre le formulaire
     document.getElementById('filtreForm').submit();
 }
 
-function animateValue(element, start, end, duration, suffix = '') {
-    if (start === end) {
-        const formatted = end.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        element.textContent = formatted + suffix;
-        element.style.opacity = '1';
-        return;
-    }
-    
-    element.style.opacity = '0';
-    element.style.transform = 'translateY(10px)';
-    
-    const maxSteps = 60;
-    const stepTime = duration / maxSteps;
-    const stepValue = (end - start) / maxSteps;
-    
-    let current = start;
-    let stepCount = 0;
-    
-    // Animation d'opacité et de position
-    const fadeIn = setInterval(function() {
-        const progress = stepCount / maxSteps;
-        element.style.opacity = Math.min(progress * 2, 1);
-        element.style.transform = `translateY(${10 * (1 - progress)}px)`;
-    }, stepTime);
-    
-    const timer = setInterval(function() {
-        current += stepValue;
-        stepCount++;
-        
-        if (stepCount >= maxSteps || (stepValue > 0 && current >= end) || (stepValue < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-            clearInterval(fadeIn);
-            element.style.opacity = '1';
-            element.style.transform = 'translateY(0)';
+function animatePercentage(el, start, end, dur) {
+    const steps = 60, st = dur / steps, sv = (end - start) / steps;
+    let cur = start, sc = 0;
+    el.style.opacity = '0';
+    const ti = setInterval(() => {
+        cur += sv; sc++;
+        el.style.opacity = Math.min((sc / steps) * 2, 1);
+        if (sc >= steps || (sv > 0 && cur >= end) || (sv < 0 && cur <= end)) {
+            cur = end; clearInterval(ti); el.style.opacity = '1';
         }
-        
-        const formatted = Math.round(current).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        element.textContent = formatted + suffix;
-    }, stepTime);
+        el.textContent = cur.toFixed(2).replace('.', ',');
+    }, st);
 }
 
-function animatePercentage(element, start, end, duration) {
-    if (start === end) {
-        element.textContent = end.toFixed(2).replace('.', ',');
-        element.style.opacity = '1';
-        return;
-    }
-    
-    element.style.opacity = '0';
-    element.style.transform = 'scale(0.8)';
-    
-    const maxSteps = 60;
-    const stepTime = duration / maxSteps;
-    const stepValue = (end - start) / maxSteps;
-    
-    let current = start;
-    let stepCount = 0;
-    
-    // Animation d'opacité et de scale
-    const fadeIn = setInterval(function() {
-        const progress = stepCount / maxSteps;
-        element.style.opacity = Math.min(progress * 2, 1);
-        element.style.transform = `scale(${0.8 + 0.2 * progress})`;
-    }, stepTime);
-    
-    const timer = setInterval(function() {
-        current += stepValue;
-        stepCount++;
-        
-        if (stepCount >= maxSteps || (stepValue > 0 && current >= end) || (stepValue < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-            clearInterval(fadeIn);
-            element.style.opacity = '1';
-            element.style.transform = 'scale(1)';
-        }
-        
-        element.textContent = current.toFixed(2).replace('.', ',');
-    }, stepTime);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const duration = 800; // 800ms pour une animation plus fluide
-    
-    // Animer les valeurs numériques avec délai progressif
-    document.querySelectorAll('.stat-value[data-value]').forEach(function(element, index) {
-        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
-        element.textContent = '0';
-        element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        
-        setTimeout(function() {
-            animateValue(element, 0, targetValue, duration);
-        }, 150 + (index * 50));
-    });
-    
-    // Animer les pourcentages avec délai progressif
-    document.querySelectorAll('.stat-percentage[data-value]').forEach(function(element, index) {
-        const targetValue = parseFloat(element.getAttribute('data-value')) || 0;
-        element.textContent = '0';
-        element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        
-        setTimeout(function() {
-            animatePercentage(element, 0, targetValue, duration);
-        }, 300 + (index * 50));
-    });
-    
-    // Animer les barres de progression avec effet de rebond
-    document.querySelectorAll('.progress-bar').forEach(function(bar, index) {
-        const widthAttr = bar.getAttribute('aria-valuenow') || bar.style.width;
-        const widthPercent = parseFloat(widthAttr) || 0;
-        const leftPercent = parseFloat(bar.style.left) || 0;
-        
-        // S'assurer que la couleur est visible
-        if (bar.classList.contains('bg-success')) {
-            if (!bar.style.backgroundColor || bar.style.backgroundColor === '') {
-                bar.style.backgroundColor = '#10b981';
-            }
-        } else if (bar.classList.contains('bg-danger')) {
-            if (!bar.style.backgroundColor || bar.style.backgroundColor === '') {
-                bar.style.backgroundColor = '#ef4444';
-            }
-        }
-        
+document.addEventListener('DOMContentLoaded', function () {
+    // Animate progress bars
+    document.querySelectorAll('.acc-progress-bar').forEach(bar => {
+        const w    = parseFloat(bar.dataset.w)    || 0;
+        const left = parseFloat(bar.dataset.left) || 0;
         bar.style.width = '0%';
-        bar.style.display = 'block';
-        bar.style.opacity = '0';
-        bar.style.height = '100%';
-        bar.style.position = 'absolute';
-        bar.style.left = leftPercent + '%';
-        bar.style.zIndex = '1';
-        bar.style.transform = 'scaleX(0)';
-        bar.style.transformOrigin = 'left';
-        
-        // Animation avec délai pour chaque barre
-        setTimeout(function() {
-            bar.style.transition = 'width 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease, transform 0.5s ease';
-            bar.style.opacity = '1';
-            bar.style.transform = 'scaleX(1)';
-            bar.style.width = widthPercent + '%';
-        }, 400 + (index * 100));
+        bar.style.left  = left + '%';
+        setTimeout(() => {
+            bar.style.transition = 'width 1s cubic-bezier(.4,0,.2,1)';
+            bar.style.width = w + '%';
+        }, 300);
+    });
+
+    // Animate percentages
+    document.querySelectorAll('.stat-percentage[data-value]').forEach((el, i) => {
+        const v = parseFloat(el.getAttribute('data-value')) || 0;
+        el.textContent = '0';
+        setTimeout(() => animatePercentage(el, 0, v, 700), 300 + i * 50);
     });
 
     // Mini donut charts
-    document.querySelectorAll('.mini-donut').forEach(function(canvas) {
-        const ok = parseFloat(canvas.dataset.ok) || 0;
+    document.querySelectorAll('.mini-donut').forEach(canvas => {
+        canvas.width  = 110;
+        canvas.height = 110;
+        const ok = parseFloat(canvas.dataset.ok)  || 0;
         const bad = parseFloat(canvas.dataset.bad) || 0;
         const total = ok + bad;
-        const data = total === 0 ? [1] : [ok, bad];
-        const colors = total === 0 ? ['#e2e8f0'] : ['#22c55e', '#ef4444'];
-
         new Chart(canvas, {
             type: 'doughnut',
             data: {
-                labels: ['OK', 'KO'],
                 datasets: [{
-                    data: data,
-                    backgroundColor: colors,
+                    data: total === 0 ? [1] : [ok, bad],
+                    backgroundColor: total === 0 ? ['#e2e8f0'] : ['#22c55e', '#ef4444'],
                     borderWidth: 0,
+                    borderRadius: 4,
                 }]
             },
             options: {
-                responsive: false,
-                cutout: '70%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false },
-                }
+                responsive: false, cutout: '68%',
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
             }
         });
     });

@@ -974,16 +974,21 @@
             <!-- Rapports -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRapports">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'rapport_global' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRapports">
                         <i class="bi bi-graph-up"></i> Rapports
                     </button>
                 </h2>
-                <div id="collapseRapports" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div id="collapseRapports" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'rapport_global' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
-                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Rapport journalier</a>
-                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Rapport mensuel</a>
-                        <a href="#"><i class="bi bi-arrow-right-circle"></i> Rapport par magasin</a>
-                        <a href="#"><i class="bi bi-download"></i> Exporter les données</a>
+                        <a href="{% url 'dashboard:rapport_global' %}?section=commandes&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' %}active{% endif %}">
+                            <i class="bi bi-box-seam"></i> Commandes
+                        </a>
+                        <a href="{% url 'dashboard:rapport_global' %}?section=br&periode=mois">
+                            <i class="bi bi-receipt"></i> BR
+                        </a>
+                        <a href="{% url 'dashboard:rapport_global' %}?section=remontees&periode=mois">
+                            <i class="bi bi-ticket-perforated"></i> Remontées
+                        </a>
                     </div>
                 </div>
             </div>

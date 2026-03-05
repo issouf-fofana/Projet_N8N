@@ -742,7 +742,7 @@
 <!-- Statistiques -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="stat-card info">
+        <div class="stat-card {% if filtres.type_donnees == 'factures_backup' %}success{% else %}info{% endif %}">
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
                     <div class="stat-label">
@@ -750,39 +750,49 @@
                         {% elif filtres.type_donnees == 'commandes_gpv' %}Total Commandes GPV
                         {% elif filtres.type_donnees == 'commandes_legend' %}Total Commandes Legend
                         {% elif filtres.type_donnees == 'factures' %}Fichiers Facture Sage
-                        {% elif filtres.type_donnees == 'factures_backup' %}Total Factures Backup
+                        {% elif filtres.type_donnees == 'factures_backup' %}Factures intégrées
                         {% elif filtres.type_donnees == 'br' %}Total BR Asten
                         {% else %}Total Commandes Asten{% endif %}
                     </div>
-                    <div class="stat-value" data-value="{{ stats.total_source|default:0 }}">0</div>
-                    {% if filtres.type_donnees == 'factures' %}
-                        <div class="stat-label mt-1" style="font-size: 0.95rem; font-weight: 600;">
-                            <i class="bi bi-list-ul"></i> Lignes: <span class="stat-value" data-value="{{ stats.total_target|default:0 }}">0</span>
-                        </div>
+                    {% if filtres.type_donnees == 'factures_backup' %}
+                        <div class="stat-value" id="val_integrees">—</div>
+                        <div class="stat-label mt-1" id="pct_integrees" style="font-size:0.9rem;font-weight:600;"></div>
+                    {% else %}
+                        <div class="stat-value" data-value="{{ stats.total_source|default:0 }}">0</div>
+                        {% if filtres.type_donnees == 'factures' %}
+                            <div class="stat-label mt-1" style="font-size: 0.95rem; font-weight: 600;">
+                                <i class="bi bi-list-ul"></i> Lignes: <span class="stat-value" data-value="{{ stats.total_target|default:0 }}">0</span>
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
-                <i class="bi bi-box-seam stat-icon"></i>
+                <i class="bi bi-{% if filtres.type_donnees == 'factures_backup' %}check-circle{% else %}box-seam{% endif %} stat-icon"></i>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card success">
+        <div class="stat-card {% if filtres.type_donnees == 'factures_backup' %}danger{% else %}success{% endif %}">
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
                     <div class="stat-label">
                         {% if filtres.type_donnees == 'factures' %}Jours avec dépôt
-                        {% elif filtres.type_donnees == 'factures_backup' %}Factures promo
+                        {% elif filtres.type_donnees == 'factures_backup' %}Factures non intégrées
                         {% elif filtres.type_donnees == 'br' %}BR Trouvées
                         {% else %}Commandes Intégrées{% endif %}
                     </div>
-                    <div class="stat-value" data-value="{{ stats.integres|default:0 }}">0</div>
-                    {% if filtres.type_donnees != 'factures' and filtres.type_donnees != 'factures_backup' %}
-                        <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
-                            <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_integration|default:0|unlocalize }}">0</span>%
-                        </div>
+                    {% if filtres.type_donnees == 'factures_backup' %}
+                        <div class="stat-value" id="val_non_integrees">—</div>
+                        <div class="stat-label mt-1" id="pct_non_integrees" style="font-size:0.9rem;font-weight:600;"></div>
+                    {% else %}
+                        <div class="stat-value" data-value="{{ stats.integres|default:0 }}">0</div>
+                        {% if filtres.type_donnees != 'factures' %}
+                            <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_integration|default:0|unlocalize }}">0</span>%
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
-                <i class="bi bi-check-circle stat-icon"></i>
+                <i class="bi bi-{% if filtres.type_donnees == 'factures_backup' %}x-circle{% else %}check-circle{% endif %} stat-icon"></i>
             </div>
         </div>
     </div>
@@ -792,18 +802,23 @@
                 <div>
                     <div class="stat-label">
                         {% if filtres.type_donnees == 'factures' %}Jours sans dépôt
-                        {% elif filtres.type_donnees == 'factures_backup' %}Factures générales
+                        {% elif filtres.type_donnees == 'factures_backup' %}Intégrées à vide
                         {% elif filtres.type_donnees == 'br' %}BR Non Trouvées
                         {% else %}Commandes Non Intégrées{% endif %}
                     </div>
-                    <div class="stat-value" data-value="{{ stats.non_integres|default:0 }}">0</div>
-                    {% if filtres.type_donnees != 'factures' and filtres.type_donnees != 'factures_backup' %}
-                        <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
-                            <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_non_integration|default:0|unlocalize }}">0</span>%
-                        </div>
+                    {% if filtres.type_donnees == 'factures_backup' %}
+                        <div class="stat-value" id="val_integrees_vide">—</div>
+                        <div class="stat-label mt-1" id="pct_integrees_vide" style="font-size:0.9rem;font-weight:600;"></div>
+                    {% else %}
+                        <div class="stat-value" data-value="{{ stats.non_integres|default:0 }}">0</div>
+                        {% if filtres.type_donnees != 'factures' %}
+                            <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_non_integration|default:0|unlocalize }}">0</span>%
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
-                <i class="bi bi-exclamation-triangle stat-icon"></i>
+                <i class="bi bi-{% if filtres.type_donnees == 'factures_backup' %}dash-circle{% else %}exclamation-triangle{% endif %} stat-icon"></i>
             </div>
         </div>
     </div>
@@ -818,6 +833,115 @@
         </div>
     </div>
 </div>
+
+{% if filtres.type_donnees == 'factures_backup' %}
+<!-- Panneau intégration Factures Backup -->
+<div class="card mb-3" id="backupIntegrationPanel">
+    <div class="card-header d-flex align-items-center justify-content-between" style="cursor:pointer;" onclick="toggleBackupPanel()">
+        <span style="font-weight:600;"><i class="bi bi-sliders"></i> Saisie manuelle — Factures Backup</span>
+        <span id="backupPanelChevron"><i class="bi bi-chevron-down"></i></span>
+    </div>
+    <div class="card-body" id="backupPanelBody" style="display:none;">
+        <!-- Saisie valeurs en dur -->
+        <div class="alert alert-info py-2 px-3 mb-3" style="font-size:0.85rem;">
+            <i class="bi bi-info-circle"></i> Saisissez les valeurs manuellement ci-dessous. La logique automatique sera ajoutée ultérieurement.
+        </div>
+        <div class="row g-3 mb-4 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold" for="inp_integrees"><i class="bi bi-check-circle text-success"></i> Factures intégrées</label>
+                <input type="number" class="form-control" id="inp_integrees" min="0" placeholder="0" value="">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold" for="inp_non_integrees"><i class="bi bi-x-circle text-danger"></i> Factures non intégrées</label>
+                <input type="number" class="form-control" id="inp_non_integrees" min="0" placeholder="0" value="">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold" for="inp_integrees_vide"><i class="bi bi-dash-circle text-warning"></i> Intégrées à vide</label>
+                <input type="number" class="form-control" id="inp_integrees_vide" min="0" placeholder="0" value="">
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" onclick="applyBackupValues()">
+                    <i class="bi bi-check2-all"></i> Appliquer
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function() {
+    const LS_KEY = 'backup_integration_vals';
+
+    function loadSaved() {
+        try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+    }
+
+    function saveCurrent(v) {
+        localStorage.setItem(LS_KEY, JSON.stringify(v));
+    }
+
+    function fmt(n) {
+        return n !== null && n !== undefined && n !== '' ? Number(n).toLocaleString('fr-FR') : '—';
+    }
+
+    function updateCards() {
+        const integrees    = parseInt(document.getElementById('inp_integrees').value) || 0;
+        const non_int      = parseInt(document.getElementById('inp_non_integrees').value) || 0;
+        const vide         = parseInt(document.getElementById('inp_integrees_vide').value) || 0;
+        const total        = integrees + non_int + vide;
+
+        document.getElementById('val_integrees').textContent       = fmt(integrees);
+        document.getElementById('val_non_integrees').textContent   = fmt(non_int);
+        document.getElementById('val_integrees_vide').textContent  = fmt(vide);
+
+        if (total > 0) {
+            document.getElementById('pct_integrees').innerHTML      = `<i class="bi bi-percent"></i> ${Math.round(integrees / total * 100)}% du total`;
+            document.getElementById('pct_non_integrees').innerHTML  = `<i class="bi bi-percent"></i> ${Math.round(non_int / total * 100)}% du total`;
+            document.getElementById('pct_integrees_vide').innerHTML = `<i class="bi bi-percent"></i> ${Math.round(vide / total * 100)}% du total`;
+        } else {
+            ['pct_integrees','pct_non_integrees','pct_integrees_vide'].forEach(id => {
+                document.getElementById(id).textContent = '';
+            });
+        }
+    }
+
+    window.applyBackupValues = function() {
+        const vals = {
+            integrees:     document.getElementById('inp_integrees').value,
+            non_integrees: document.getElementById('inp_non_integrees').value,
+            integrees_vide:document.getElementById('inp_integrees_vide').value,
+        };
+        saveCurrent(vals);
+        updateCards();
+        if (typeof updatePieChart === 'function') updatePieChart();
+    };
+
+    window.toggleBackupPanel = function() {
+        const body = document.getElementById('backupPanelBody');
+        const chevron = document.getElementById('backupPanelChevron');
+        const hidden = body.style.display === 'none';
+        body.style.display = hidden ? '' : 'none';
+        chevron.innerHTML = hidden ? '<i class="bi bi-chevron-up"></i>' : '<i class="bi bi-chevron-down"></i>';
+    };
+
+    // Restaurer valeurs sauvegardées
+    document.addEventListener('DOMContentLoaded', function() {
+        const saved = loadSaved();
+        if (saved.integrees !== undefined)      document.getElementById('inp_integrees').value      = saved.integrees;
+        if (saved.non_integrees !== undefined)  document.getElementById('inp_non_integrees').value  = saved.non_integrees;
+        if (saved.integrees_vide !== undefined) document.getElementById('inp_integrees_vide').value = saved.integrees_vide;
+        if (Object.keys(saved).length) {
+            updateCards();
+            if (typeof updatePieChart === 'function') setTimeout(updatePieChart, 100);
+        }
+    });
+})();
+</script>
+{% endif %}
+
+<!-- TOP N MAGASINS -->
+{% include "dashboard/_top_magasins.html" %}
 
 <!-- Tableau comparatif -->
 <div class="card">
@@ -1693,40 +1817,38 @@ let pieChartInstance = null;
 function updatePieChart() {
     const ctx = document.getElementById('pieChart');
     if (!ctx) return;
-    
-    // Récupérer les données depuis les éléments avec data-value
-    const integresElement = document.querySelector('.stat-card.success .stat-value[data-value]');
-    const nonIntegresElement = document.querySelector('.stat-card.warning .stat-value[data-value]');
-    
-    const integres = parseFloat(integresElement ? integresElement.getAttribute('data-value') : 0) || 0;
-    const nonIntegres = parseFloat(nonIntegresElement ? nonIntegresElement.getAttribute('data-value') : 0) || 0;
-    
-    // Déterminer les labels selon le type de données
+
     const typeDonnees = '{{ filtres.type_donnees|default:"" }}';
-    const labelIntegres = typeDonnees === 'factures'
-        ? 'Jours avec dépôt'
-        : (typeDonnees === 'factures_backup'
-            ? 'Factures promo'
-            : (typeDonnees === 'br' ? 'BR Trouvées' : 'Commandes Intégrées'));
-    const labelNonIntegres = typeDonnees === 'factures'
-        ? 'Jours sans dépôt'
-        : (typeDonnees === 'factures_backup'
-            ? 'Factures générales'
-            : (typeDonnees === 'br' ? 'BR Non Trouvées' : 'Commandes Non Intégrées'));
-    
+
+    let labels, values, bgColors, borderColors;
+
+    if (typeDonnees === 'factures_backup') {
+        const parseVal = id => parseInt((document.getElementById(id) || {}).textContent) || 0;
+        labels      = ['Intégrées', 'Non intégrées', 'À vide'];
+        values      = [parseVal('val_integrees'), parseVal('val_non_integrees'), parseVal('val_integrees_vide')];
+        bgColors    = ['rgba(34,197,94,0.8)', 'rgba(239,68,68,0.8)', 'rgba(245,158,11,0.8)'];
+        borderColors= ['rgba(34,197,94,1)',   'rgba(239,68,68,1)',   'rgba(245,158,11,1)'];
+    } else {
+        const integresElement    = document.querySelector('.stat-card.success .stat-value[data-value]');
+        const nonIntegresElement = document.querySelector('.stat-card.warning .stat-value[data-value]');
+        const integres    = parseFloat(integresElement    ? integresElement.getAttribute('data-value')    : 0) || 0;
+        const nonIntegres = parseFloat(nonIntegresElement ? nonIntegresElement.getAttribute('data-value') : 0) || 0;
+        labels      = [
+            typeDonnees === 'factures' ? 'Jours avec dépôt' : typeDonnees === 'br' ? 'BR Trouvées'     : 'Commandes Intégrées',
+            typeDonnees === 'factures' ? 'Jours sans dépôt' : typeDonnees === 'br' ? 'BR Non Trouvées' : 'Commandes Non Intégrées'
+        ];
+        values      = [integres, nonIntegres];
+        bgColors    = ['rgba(16,185,129,0.8)', 'rgba(245,158,11,0.8)'];
+        borderColors= ['rgba(16,185,129,1)',   'rgba(245,158,11,1)'];
+    }
+
     // Données pour le graphique
     const data = {
-        labels: [labelIntegres, labelNonIntegres],
+        labels: labels,
         datasets: [{
-            data: [integres, nonIntegres],
-            backgroundColor: [
-                'rgba(16, 185, 129, 0.8)',  // Vert pour intégrées
-                'rgba(245, 158, 11, 0.8)'   // Orange pour non intégrées
-            ],
-            borderColor: [
-                'rgba(16, 185, 129, 1)',
-                'rgba(245, 158, 11, 1)'
-            ],
+            data: values,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
             borderWidth: 2
         }]
     };

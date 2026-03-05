@@ -30,6 +30,145 @@ from pathlib import Path
 from tickets.models import Ticket
 
 
+def _get_semaine_comparison(periode='semaine'):
+    """Retourne les stats comparées période courante vs période précédente pour tous les types."""
+    from datetime import date, timedelta
+    from django.db.models import Q
+
+    today = date.today()
+
+    nb = {'semaine': 7, 'mois': 30, '3mois': 90, '6mois': 180, 'annee': 365}.get(periode, 7)
+
+    fin_s  = today
+    debut_s  = today - timedelta(days=nb - 1)
+    fin_sp   = debut_s - timedelta(days=1)
+    debut_sp = fin_sp - timedelta(days=nb - 1)
+
+    q0_br = Q(statut_ic__icontains='Quantité 0') | Q(statut_ic__icontains='quantite_0') | Q(statut_ic__icontains='Quantite 0')
+
+    def _asten(d1, d2):
+        try:
+            total = CommandeAsten.objects.filter(date_commande__gte=d1, date_commande__lte=d2).count()
+            q0 = EcartCommande.objects.filter(commande_asten__date_commande__gte=d1, commande_asten__date_commande__lte=d2, statut='quantite_0').count()
+            ni = EcartCommande.objects.filter(commande_asten__date_commande__gte=d1, commande_asten__date_commande__lte=d2, statut='ouvert').count()
+            t = max(0, total - q0)
+            i = max(0, t - ni)
+            return {'total': t, 'integres': i, 'non_integres': ni}
+        except Exception:
+            return {'total': 0, 'integres': 0, 'non_integres': 0}
+
+    def _br(d1, d2):
+        try:
+            total = BRAsten.objects.filter(date_br__gte=d1, date_br__lte=d2).count()
+            q0 = BRAsten.objects.filter(date_br__gte=d1, date_br__lte=d2).filter(q0_br).count()
+            t = max(0, total - q0)
+            i = BRAsten.objects.filter(date_br__gte=d1, date_br__lte=d2, ic_integre=True).exclude(q0_br).count()
+            ni = BRAsten.objects.filter(date_br__gte=d1, date_br__lte=d2, ic_integre=False).exclude(q0_br).count()
+            return {'total': t, 'integres': i, 'non_integres': ni}
+        except Exception:
+            return {'total': 0, 'integres': 0, 'non_integres': 0}
+
+    def _tickets(d1, d2):
+        try:
+            total = Ticket.objects.filter(date_creation__date__gte=d1, date_creation__date__lte=d2).count()
+            resolus = Ticket.objects.filter(date_creation__date__gte=d1, date_creation__date__lte=d2, statut__in=['resolu', 'ferme']).count()
+            return {'total': total, 'integres': resolus, 'non_integres': total - resolus}
+        except Exception:
+            return {'total': 0, 'integres': 0, 'non_integres': 0}
+
+    def _gpv(d1, d2):
+        try:
+            total = CommandeGPV.objects.filter(date_creation__gte=d1, date_creation__lte=d2, statut__iexact='Transmise').count()
+            ni = EcartGPV.objects.filter(commande_gpv__date_creation__gte=d1, commande_gpv__date_creation__lte=d2, statut='ouvert').count()
+            q0 = EcartGPV.objects.filter(commande_gpv__date_creation__gte=d1, commande_gpv__date_creation__lte=d2, statut='quantite_0').count()
+            t = max(0, total - q0)
+            i = max(0, t - ni)
+            return {'total': t, 'integres': i, 'non_integres': ni}
+        except Exception:
+            return {'total': 0, 'integres': 0, 'non_integres': 0}
+
+    def _legend(d1, d2):
+        try:
+            total = CommandeLegend.objects.filter(date_commande__gte=d1, date_commande__lte=d2, exportee=True).count()
+            ni = EcartLegend.objects.filter(commande_legend__date_commande__gte=d1, commande_legend__date_commande__lte=d2, statut='ouvert').count()
+            q0 = EcartLegend.objects.filter(commande_legend__date_commande__gte=d1, commande_legend__date_commande__lte=d2, statut='quantite_0').count()
+            t = max(0, total - q0)
+            i = max(0, t - ni)
+            return {'total': t, 'integres': i, 'non_integres': ni}
+        except Exception:
+            return {'total': 0, 'integres': 0, 'non_integres': 0}
+
+    def _row(curr, prev):
+        di = curr['integres'] - prev['integres']
+        dn = curr['non_integres'] - prev['non_integres']
+        dt = curr['total'] - prev['total']
+        return {'current': curr, 'previous': prev, 'delta_total': dt, 'delta_integres': di, 'delta_non': dn}
+
+    return {
+        'debut_s': debut_s, 'fin_s': fin_s,
+        'debut_sp': debut_sp, 'fin_sp': fin_sp,
+        'periode': periode,
+        'asten':    _row(_asten(debut_s, fin_s),    _asten(debut_sp, fin_sp)),
+        'gpv':      _row(_gpv(debut_s, fin_s),      _gpv(debut_sp, fin_sp)),
+        'legend':   _row(_legend(debut_s, fin_s),   _legend(debut_sp, fin_sp)),
+        'br':       _row(_br(debut_s, fin_s),        _br(debut_sp, fin_sp)),
+        'remontees':_row(_tickets(debut_s, fin_s),   _tickets(debut_sp, fin_sp)),
+    }
+
+
+def _get_top5_magasins(debut=None, fin=None, n=5):
+    """Retourne le top N magasins par source sur la période donnée (défaut : 30 derniers jours)."""
+    from datetime import date, timedelta
+    from django.db.models import Count, Q
+    today = date.today()
+    if debut is None:
+        debut = today - timedelta(days=29)
+    if fin is None:
+        fin = today
+    n = max(1, min(int(n), 100))
+
+    try:
+        asten = list(
+            CommandeAsten.objects.filter(date_commande__gte=debut, date_commande__lte=fin)
+            .values('code_magasin__code', 'code_magasin__nom')
+            .annotate(total=Count('id')).order_by('-total')[:n]
+        )
+    except Exception:
+        asten = []
+
+    try:
+        gpv = list(
+            CommandeGPV.objects.filter(date_creation__gte=debut, date_creation__lte=fin, statut__iexact='Transmise')
+            .values('code_magasin__code', 'code_magasin__nom')
+            .annotate(total=Count('id')).order_by('-total')[:n]
+        )
+    except Exception:
+        gpv = []
+
+    try:
+        legend = list(
+            CommandeLegend.objects.filter(date_commande__gte=debut, date_commande__lte=fin)
+            .values('depot_destination')
+            .annotate(total=Count('id')).order_by('-total')[:n]
+        )
+    except Exception:
+        legend = []
+
+    try:
+        br = list(
+            BRAsten.objects.filter(date_br__gte=debut, date_br__lte=fin)
+            .values('code_magasin__code', 'code_magasin__nom')
+            .annotate(
+                total=Count('id'),
+                integrees=Count('id', filter=Q(ic_integre=True)),
+            ).order_by('-total')[:n]
+        )
+    except Exception:
+        br = []
+
+    return {'asten': asten, 'gpv': gpv, 'legend': legend, 'br': br, 'debut': debut, 'fin': fin, 'n': n}
+
+
 def dashboard(request):
     """Vue principale du dashboard"""
     # Les données existantes en base sont TOUJOURS chargées et affichées
@@ -945,8 +1084,12 @@ def dashboard(request):
         },
         'periode': periode,
         'show': show,
+        'semaine_comparison': _get_semaine_comparison(request.GET.get('periode_cmp', 'semaine')),
+        'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
+        'top5': _get_top5_magasins(debut=date_debut_parsed, fin=date_fin_parsed, n=request.GET.get('top_n', 5)),
+        'top_url_base': f"?type_donnees={request.GET.get('type_donnees','commandes_asten')}&periode={periode}&date_debut={date_debut or ''}&date_fin={date_fin or ''}",
     }
-    
+
     return render(request, 'dashboard/dashboard.html', context)
 
 
@@ -1253,8 +1396,12 @@ def accueil(request):
         'periode': periode,
         'date_debut': date_debut.strftime('%Y-%m-%d') if date_debut else '',
         'date_fin': date_fin.strftime('%Y-%m-%d') if date_fin else '',
+        'semaine_comparison': _get_semaine_comparison(request.GET.get('periode_cmp', 'semaine')),
+        'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
+        'top5': _get_top5_magasins(debut=date_debut, fin=date_fin, n=request.GET.get('top_n', 5)),
+        'top_url_base': f"?periode={request.GET.get('periode','')}&date_debut={date_debut or ''}&date_fin={date_fin or ''}&periode_cmp={request.GET.get('periode_cmp','semaine')}",
     }
-    
+
     return render(request, 'dashboard/accueil.html', context)
 
 
@@ -2241,8 +2388,11 @@ def liste_commandes_legend(request):
         filtres['exportee'] = True
     elif exportee == 'non':
         filtres['exportee'] = False
+    depot_dest_recherche = request.GET.get('depot_dest', '').strip()
     if depot_recherche:
         filtres['depot_origine__icontains'] = depot_recherche
+    if depot_dest_recherche:
+        filtres['depot_destination__icontains'] = depot_dest_recherche
 
     commandes = CommandeLegend.objects.filter(**filtres).order_by('-date_commande', 'numero_commande')
 
@@ -2518,3 +2668,202 @@ def preferences_utilisateur(request):
     Pourra accueillir des réglages personnels par utilisateur.
     """
     return render(request, 'dashboard/preferences_utilisateur.html', {})
+
+
+def rapport_global(request):
+    """Page de rapports avec stats, récaps et exports CSV par période."""
+    import json
+    import csv
+    from datetime import date, timedelta
+    from django.http import HttpResponse
+    from django.db.models import Count, Q
+    from tickets.models import Ticket
+
+    today = date.today()
+    periode = request.GET.get('periode', 'mois')
+    section = request.GET.get('section', 'commandes')
+    date_debut_str = request.GET.get('date_debut', '')
+    date_fin_str = request.GET.get('date_fin', '')
+
+    if periode == 'aujourd_hui':
+        date_debut = date_fin = today
+    elif periode == 'semaine':
+        date_debut = today - timedelta(days=today.weekday())
+        date_fin = today
+    elif periode == '3mois':
+        date_debut = today - timedelta(days=90)
+        date_fin = today
+    elif periode == 'annee':
+        date_debut = date(today.year, 1, 1)
+        date_fin = today
+    elif periode == 'custom':
+        date_debut = parse_date(date_debut_str) or today - timedelta(days=30)
+        date_fin = parse_date(date_fin_str) or today
+    else:  # mois (default)
+        date_debut = today - timedelta(days=30)
+        date_fin = today
+
+    # ---- COMMANDES ----
+    asten_qs = CommandeAsten.objects.filter(date_commande__gte=date_debut, date_commande__lte=date_fin)
+    cyrus_qs = CommandeCyrus.objects.filter(date_commande__gte=date_debut, date_commande__lte=date_fin)
+    gpv_qs = CommandeGPV.objects.filter(date_creation__gte=date_debut, date_creation__lte=date_fin)
+    legend_qs = CommandeLegend.objects.filter(date_commande__gte=date_debut, date_commande__lte=date_fin)
+
+    cmd_totaux = {
+        'asten': asten_qs.count(),
+        'cyrus': cyrus_qs.count(),
+        'gpv': gpv_qs.count(),
+        'legend': legend_qs.count(),
+    }
+    cmd_total = sum(cmd_totaux.values())
+
+    cmd_par_magasin = list(
+        asten_qs.values('code_magasin__code', 'code_magasin__nom')
+        .annotate(total=Count('id')).order_by('-total')[:10]
+    )
+    gpv_par_magasin = list(
+        gpv_qs.values('code_magasin__code', 'code_magasin__nom')
+        .annotate(total=Count('id')).order_by('-total')[:10]
+    )
+    legend_par_depot = list(
+        legend_qs.values('depot_destination')
+        .annotate(total=Count('id')).order_by('-total')[:10]
+    )
+
+    cmd_par_jour = list(
+        asten_qs.values('date_commande').annotate(total=Count('id')).order_by('date_commande')
+    )
+
+    # ---- BR ----
+    br_qs = BRAsten.objects.filter(date_br__gte=date_debut, date_br__lte=date_fin)
+    br_total = br_qs.count()
+    br_integrees = br_qs.filter(ic_integre=True).count()
+    br_non_integrees = br_total - br_integrees
+
+    br_par_magasin = list(
+        br_qs.values('code_magasin__code', 'code_magasin__nom')
+        .annotate(
+            total=Count('id'),
+            integrees=Count('id', filter=Q(ic_integre=True)),
+            non_integrees=Count('id', filter=Q(ic_integre=False)),
+        ).order_by('-total')[:10]
+    )
+
+    br_par_jour = list(
+        br_qs.values('date_br').annotate(total=Count('id')).order_by('date_br')
+    )
+
+    # ---- REMONTÉES ----
+    tickets_qs = Ticket.objects.filter(
+        date_creation__date__gte=date_debut, date_creation__date__lte=date_fin
+    )
+    tickets_total = tickets_qs.count()
+    tickets_ouverts = tickets_qs.filter(statut__in=['nouveau', 'en_cours', 'en_attente']).count()
+    tickets_resolus = tickets_qs.filter(statut__in=['resolu', 'ferme']).count()
+
+    tickets_par_statut = list(tickets_qs.values('statut').annotate(total=Count('id')).order_by('statut'))
+    tickets_par_type = list(tickets_qs.values('type_demande').annotate(total=Count('id')))
+    tickets_par_urgence = list(tickets_qs.values('urgence').annotate(total=Count('id')).order_by('urgence'))
+    tickets_par_magasin = list(
+        tickets_qs.values('magasin__code', 'magasin__nom')
+        .annotate(total=Count('id')).order_by('-total')[:10]
+    )
+    tickets_par_jour = list(
+        tickets_qs.values('date_creation__date').annotate(total=Count('id')).order_by('date_creation__date')
+    )
+
+    # ---- EXPORT CSV ----
+    export = request.GET.get('export')
+    if export == 'csv':
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+        filename = f"rapport_{section}_{date_debut}_{date_fin}.csv"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        writer = csv.writer(response, delimiter=';')
+
+        if section == 'commandes':
+            writer.writerow(['Source', 'Total'])
+            for src, total in cmd_totaux.items():
+                writer.writerow([src.capitalize(), total])
+            writer.writerow([])
+            writer.writerow(['Magasin (Code)', 'Nom', 'Total Asten'])
+            for row in cmd_par_magasin:
+                writer.writerow([row['code_magasin__code'], row['code_magasin__nom'] or '', row['total']])
+        elif section == 'br':
+            writer.writerow(['Total BR', 'Intégrées', 'Non intégrées'])
+            writer.writerow([br_total, br_integrees, br_non_integrees])
+            writer.writerow([])
+            writer.writerow(['Magasin (Code)', 'Nom', 'Total', 'Intégrées', 'Non intégrées'])
+            for row in br_par_magasin:
+                writer.writerow([row['code_magasin__code'], row['code_magasin__nom'] or '', row['total'], row['integrees'], row['non_integrees']])
+        elif section == 'remontees':
+            writer.writerow(['Total', 'Ouverts', 'Résolus/Fermés'])
+            writer.writerow([tickets_total, tickets_ouverts, tickets_resolus])
+            writer.writerow([])
+            writer.writerow(['Statut', 'Total'])
+            for row in tickets_par_statut:
+                writer.writerow([row['statut'], row['total']])
+            writer.writerow([])
+            writer.writerow(['Magasin (Code)', 'Nom', 'Total'])
+            for row in tickets_par_magasin:
+                writer.writerow([row['magasin__code'], row['magasin__nom'] or '', row['total']])
+        return response
+
+    # ---- CHART JSON ----
+    chart_cmd = {
+        'labels': [str(r['date_commande']) for r in cmd_par_jour],
+        'values': [r['total'] for r in cmd_par_jour],
+    }
+    chart_br = {
+        'labels': [str(r['date_br']) for r in br_par_jour],
+        'values': [r['total'] for r in br_par_jour],
+    }
+    chart_tickets = {
+        'labels': [str(r['date_creation__date']) for r in tickets_par_jour],
+        'values': [r['total'] for r in tickets_par_jour],
+    }
+
+    _sl = {'nouveau': 'Nouveau', 'en_cours': 'En cours', 'en_attente': 'En attente', 'resolu': 'Résolu', 'ferme': 'Fermé'}
+    _ul = {'tres_basse': 'Très basse', 'basse': 'Basse', 'moyenne': 'Moyenne', 'haute': 'Haute'}
+
+    tickets_par_statut = [
+        {'statut': r['statut'], 'label': _sl.get(r['statut'], r['statut']), 'total': r['total']}
+        for r in tickets_par_statut
+    ]
+    tickets_par_urgence = [
+        {'urgence': r['urgence'], 'label': _ul.get(r['urgence'], r['urgence']), 'total': r['total']}
+        for r in tickets_par_urgence
+    ]
+
+    context = {
+        'section': section,
+        'periode': periode,
+        'date_debut': date_debut,
+        'date_fin': date_fin,
+        # Commandes
+        'cmd_total': cmd_total,
+        'cmd_totaux': cmd_totaux,
+        'cmd_par_magasin': cmd_par_magasin,
+        'gpv_par_magasin': gpv_par_magasin,
+        'legend_par_depot': legend_par_depot,
+        'chart_cmd_json': json.dumps(chart_cmd),
+        # BR
+        'br_total': br_total,
+        'br_integrees': br_integrees,
+        'br_non_integrees': br_non_integrees,
+        'br_par_magasin': br_par_magasin,
+        'chart_br_json': json.dumps(chart_br),
+        # Remontées
+        'tickets_total': tickets_total,
+        'tickets_ouverts': tickets_ouverts,
+        'tickets_resolus': tickets_resolus,
+        'tickets_par_statut': tickets_par_statut,
+        'tickets_par_type': tickets_par_type,
+        'tickets_par_urgence': tickets_par_urgence,
+        'tickets_par_magasin': tickets_par_magasin,
+        'chart_tickets_json': json.dumps(chart_tickets),
+        'semaine_comparison': _get_semaine_comparison(request.GET.get('periode_cmp', 'semaine')),
+        'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
+        'top5': _get_top5_magasins(debut=date_debut, fin=date_fin, n=request.GET.get('top_n', 5)),
+        'top_url_base': f"?section={section}&periode={periode}&date_debut={date_debut}&date_fin={date_fin}",
+    }
+    return render(request, 'dashboard/rapport_global.html', context)

@@ -1,0 +1,571 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Rapports — Vérification{% endblock %}
+
+{% block extra_css %}
+<style>
+    .period-btn { border-radius: 8px; font-size: 0.85rem; padding: 6px 14px; }
+    .period-btn.active { background: var(--primary-gradient); color: #fff; border-color: transparent; }
+    .section-tab { border-radius: 10px; font-size: 0.9rem; padding: 8px 20px; font-weight: 600; cursor: pointer; border: 2px solid #e5e9f2; background: #fff; color: #374151; transition: all .2s; }
+    .section-tab.active { background: var(--primary-gradient); color: #fff; border-color: transparent; }
+    .export-btn { font-size: 0.85rem; }
+    .table-magasin th { font-size: 0.82rem; }
+    .table-magasin td { font-size: 0.88rem; }
+    .bar-wrap { height: 180px; }
+    .source-badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-graph-up-arrow"></i> Rapports</h1>
+</div>
+
+<!-- FILTRES PÉRIODE -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" id="filterForm">
+            <input type="hidden" name="section" id="sectionInput" value="{{ section }}">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <span class="text-muted fw-semibold me-1" style="font-size:.85rem;"><i class="bi bi-calendar3"></i> Période :</span>
+                {% for val, label in periods %}
+                <button type="submit" name="periode" value="{{ val }}"
+                    class="btn period-btn {% if periode == val %}active{% else %}btn-outline-secondary{% endif %}">
+                    {{ label }}
+                </button>
+                {% empty %}
+                <button type="submit" name="periode" value="aujourd_hui" class="btn period-btn {% if periode == 'aujourd_hui' %}active{% else %}btn-outline-secondary{% endif %}">Aujourd'hui</button>
+                <button type="submit" name="periode" value="semaine" class="btn period-btn {% if periode == 'semaine' %}active{% else %}btn-outline-secondary{% endif %}">Cette semaine</button>
+                <button type="submit" name="periode" value="mois" class="btn period-btn {% if periode == 'mois' %}active{% else %}btn-outline-secondary{% endif %}">30 derniers jours</button>
+                <button type="submit" name="periode" value="3mois" class="btn period-btn {% if periode == '3mois' %}active{% else %}btn-outline-secondary{% endif %}">3 mois</button>
+                <button type="submit" name="periode" value="annee" class="btn period-btn {% if periode == 'annee' %}active{% else %}btn-outline-secondary{% endif %}">Cette année</button>
+                {% endfor %}
+            </div>
+            <div class="d-flex align-items-end gap-2 flex-wrap">
+                <div>
+                    <label class="form-label mb-1" style="font-size:.8rem;">Du</label>
+                    <input type="date" name="date_debut" class="form-control form-control-sm" value="{{ date_debut|date:'Y-m-d' }}" style="width:150px;">
+                </div>
+                <div>
+                    <label class="form-label mb-1" style="font-size:.8rem;">Au</label>
+                    <input type="date" name="date_fin" class="form-control form-control-sm" value="{{ date_fin|date:'Y-m-d' }}" style="width:150px;">
+                </div>
+                <button type="submit" name="periode" value="custom" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel"></i> Appliquer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- SECTION TABS -->
+<div class="d-flex gap-2 mb-4 flex-wrap">
+    <button class="section-tab {% if section == 'commandes' %}active{% endif %}" onclick="switchSection('commandes')">
+        <i class="bi bi-box-seam"></i> Commandes
+    </button>
+    <button class="section-tab {% if section == 'br' %}active{% endif %}" onclick="switchSection('br')">
+        <i class="bi bi-receipt"></i> BR
+    </button>
+    <button class="section-tab {% if section == 'remontees' %}active{% endif %}" onclick="switchSection('remontees')">
+        <i class="bi bi-ticket-perforated"></i> Remontées
+    </button>
+</div>
+
+<!-- ======================== SECTION COMMANDES ======================== -->
+<div id="sec-commandes" {% if section != 'commandes' %}style="display:none"{% endif %}>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-semibold"><i class="bi bi-box-seam text-primary"></i> Commandes — {{ date_debut|date:"d/m/Y" }} → {{ date_fin|date:"d/m/Y" }}</h5>
+        <a href="?section=commandes&periode={{ periode }}&date_debut={{ date_debut|date:'Y-m-d' }}&date_fin={{ date_fin|date:'Y-m-d' }}&export=csv"
+           class="btn btn-sm btn-outline-primary export-btn">
+            <i class="bi bi-download"></i> Exporter CSV
+        </a>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card info">
+                <div class="stat-label">Total commandes</div>
+                <div class="stat-value">{{ cmd_total }}</div>
+                <small class="text-muted">toutes sources</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card success">
+                <div class="stat-label">Asten</div>
+                <div class="stat-value">{{ cmd_totaux.asten }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card info">
+                <div class="stat-label">Cyrus</div>
+                <div class="stat-value">{{ cmd_totaux.cyrus }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card warning">
+                <div class="stat-label">GPV + Legend</div>
+                <div class="stat-value">{{ cmd_totaux.gpv|add:cmd_totaux.legend }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Chart -->
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-bar-chart-line text-primary"></i> Évolution journalière (Asten)</div>
+                <div class="card-body">
+                    <div class="bar-wrap"><canvas id="chartCmd"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <!-- Sources -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-pie-chart text-primary"></i> Répartition sources</div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <canvas id="pieCmd" style="max-width:160px;max-height:160px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableaux par source -->
+    <div class="row g-3 mt-1">
+        <!-- Asten -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="bi bi-box-seam text-primary"></i>
+                    <span class="fw-semibold">Asten</span>
+                    <span class="badge bg-primary ms-auto">{{ cmd_totaux.asten }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 table-magasin">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Magasin</th>
+                                    <th>Code</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in cmd_par_magasin %}
+                                <tr style="cursor:pointer;" onclick="window.location='/commandes/asten/?magasin={{ row.code_magasin__code }}&date_debut={{ date_debut|date:'Y-m-d' }}&date_fin={{ date_fin|date:'Y-m-d' }}'">
+                                    <td>{{ row.code_magasin__nom|default:"-" }}</td>
+                                    <td><span class="badge bg-secondary">{{ row.code_magasin__code }}</span></td>
+                                    <td class="text-end fw-bold">
+                                        {{ row.total }}
+                                        {% if cmd_par_magasin.0.total %}
+                                        <div class="progress mt-1" style="height:4px;border-radius:2px;">
+                                            <div class="progress-bar bg-primary" style="width:{% widthratio row.total cmd_par_magasin.0.total 100 %}%"></div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- GPV -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="bi bi-truck text-success"></i>
+                    <span class="fw-semibold">GPV</span>
+                    <span class="badge bg-success ms-auto">{{ cmd_totaux.gpv }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 table-magasin">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Magasin</th>
+                                    <th>Code</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in gpv_par_magasin %}
+                                <tr style="cursor:pointer;" onclick="window.location='/commandes/gpv/?magasin={{ row.code_magasin__code }}&date_debut={{ date_debut|date:'Y-m-d' }}&date_fin={{ date_fin|date:'Y-m-d' }}'">
+                                    <td>{{ row.code_magasin__nom|default:"-" }}</td>
+                                    <td><span class="badge bg-secondary">{{ row.code_magasin__code }}</span></td>
+                                    <td class="text-end fw-bold">
+                                        {{ row.total }}
+                                        {% if gpv_par_magasin.0.total %}
+                                        <div class="progress mt-1" style="height:4px;border-radius:2px;">
+                                            <div class="progress-bar bg-success" style="width:{% widthratio row.total gpv_par_magasin.0.total 100 %}%"></div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Legend -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="bi bi-archive text-warning"></i>
+                    <span class="fw-semibold">Legend</span>
+                    <span class="badge bg-warning text-dark ms-auto">{{ cmd_totaux.legend }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 table-magasin">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Magasin</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in legend_par_depot %}
+                                <tr style="cursor:pointer;" onclick="window.location='/commandes/legend/?depot_dest={{ row.depot_destination|urlencode }}&date_debut={{ date_debut|date:'Y-m-d' }}&date_fin={{ date_fin|date:'Y-m-d' }}'">
+                                    <td>{{ row.depot_destination|default:"-" }}</td>
+                                    <td class="text-end fw-bold">
+                                        {{ row.total }}
+                                        {% if legend_par_depot.0.total %}
+                                        <div class="progress mt-1" style="height:4px;border-radius:2px;">
+                                            <div class="progress-bar bg-warning" style="width:{% widthratio row.total legend_par_depot.0.total 100 %}%"></div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="2" class="text-center text-muted py-3">Aucune donnée.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================== SECTION BR ======================== -->
+<div id="sec-br" {% if section != 'br' %}style="display:none"{% endif %}>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-semibold"><i class="bi bi-receipt text-primary"></i> BR — {{ date_debut|date:"d/m/Y" }} → {{ date_fin|date:"d/m/Y" }}</h5>
+        <a href="?section=br&periode={{ periode }}&date_debut={{ date_debut|date:'Y-m-d' }}&date_fin={{ date_fin|date:'Y-m-d' }}&export=csv"
+           class="btn btn-sm btn-outline-primary export-btn">
+            <i class="bi bi-download"></i> Exporter CSV
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card info">
+                <div class="stat-label">Total BR</div>
+                <div class="stat-value">{{ br_total }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card success">
+                <div class="stat-label">Intégrées IC</div>
+                <div class="stat-value">{{ br_integrees }}</div>
+                {% if br_total %}<small class="text-muted">{% widthratio br_integrees br_total 100 %}%</small>{% endif %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card danger">
+                <div class="stat-label">Non intégrées</div>
+                <div class="stat-value">{{ br_non_integrees }}</div>
+                {% if br_total %}<small class="text-muted">{% widthratio br_non_integrees br_total 100 %}%</small>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-bar-chart-line text-primary"></i> Évolution journalière</div>
+                <div class="card-body">
+                    <div class="bar-wrap"><canvas id="chartBr"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-pie-chart text-primary"></i> Intégrées vs Non</div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <canvas id="pieBr" style="max-width:160px;max-height:160px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header"><i class="bi bi-shop text-primary"></i> Détail par magasin</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 table-magasin">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Magasin</th>
+                            <th>Code</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end text-success">Intégrées</th>
+                            <th class="text-end text-danger">Non intégrées</th>
+                            <th style="width:150px;">Taux intégration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in br_par_magasin %}
+                        <tr>
+                            <td>{{ row.code_magasin__nom|default:"-" }}</td>
+                            <td><span class="badge bg-secondary">{{ row.code_magasin__code }}</span></td>
+                            <td class="text-end fw-bold">{{ row.total }}</td>
+                            <td class="text-end text-success fw-bold">{{ row.integrees }}</td>
+                            <td class="text-end text-danger fw-bold">{{ row.non_integrees }}</td>
+                            <td>
+                                {% if row.total %}
+                                <div class="progress" style="height:8px;border-radius:4px;">
+                                    <div class="progress-bar bg-success" style="width:{% widthratio row.integrees row.total 100 %}%"></div>
+                                </div>
+                                <small class="text-muted" style="font-size:.75rem;">{% widthratio row.integrees row.total 100 %}%</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Aucun BR sur la période.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================== SECTION REMONTÉES ======================== -->
+<div id="sec-remontees" {% if section != 'remontees' %}style="display:none"{% endif %}>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-semibold"><i class="bi bi-ticket-perforated text-primary"></i> Remontées — {{ date_debut|date:"d/m/Y" }} → {{ date_fin|date:"d/m/Y" }}</h5>
+        <a href="?section=remontees&periode={{ periode }}&date_debut={{ date_debut|date:'Y-m-d' }}&date_fin={{ date_fin|date:'Y-m-d' }}&export=csv"
+           class="btn btn-sm btn-outline-primary export-btn">
+            <i class="bi bi-download"></i> Exporter CSV
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card info">
+                <div class="stat-label">Total remontées</div>
+                <div class="stat-value">{{ tickets_total }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card warning">
+                <div class="stat-label">En cours / Ouverts</div>
+                <div class="stat-value">{{ tickets_ouverts }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card success">
+                <div class="stat-label">Résolus / Fermés</div>
+                <div class="stat-value">{{ tickets_resolus }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-bar-chart-line text-primary"></i> Évolution journalière</div>
+                <div class="card-body">
+                    <div class="bar-wrap"><canvas id="chartTickets"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-pie-chart text-primary"></i> Par statut</div>
+                <div class="card-body">
+                    <canvas id="pieTickets" style="max-width:160px;max-height:160px;margin:0 auto;display:block;"></canvas>
+                    <div class="mt-3">
+                        {% for row in tickets_par_statut %}
+                        <div class="d-flex justify-content-between mb-1" style="font-size:.85rem;">
+                            <span>{{ row.label }}</span>
+                            <strong>{{ row.total }}</strong>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-lightning text-warning"></i> Par urgence</div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 table-magasin">
+                        <thead class="table-light"><tr><th>Urgence</th><th class="text-end">Total</th></tr></thead>
+                        <tbody>
+                            {% for row in tickets_par_urgence %}
+                            <tr>
+                                <td>{{ row.label }}</td>
+                                <td class="text-end fw-bold">{{ row.total }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center text-muted py-3">Aucune donnée.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-tag text-primary"></i> Par type</div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 table-magasin">
+                        <thead class="table-light"><tr><th>Type</th><th class="text-end">Total</th></tr></thead>
+                        <tbody>
+                            {% for row in tickets_par_type %}
+                            <tr>
+                                <td>{% if row.type_demande == 'incident' %}Incident{% else %}Demande{% endif %}</td>
+                                <td class="text-end fw-bold">{{ row.total }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center text-muted py-3">Aucune donnée.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header"><i class="bi bi-shop text-primary"></i> Top magasins</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 table-magasin">
+                    <thead class="table-light">
+                        <tr><th>Magasin</th><th>Code</th><th class="text-end">Total</th><th style="width:200px;">Barre</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for row in tickets_par_magasin %}
+                        <tr>
+                            <td>{{ row.magasin__nom|default:"-" }}</td>
+                            <td><span class="badge bg-secondary">{{ row.magasin__code }}</span></td>
+                            <td class="text-end fw-bold">{{ row.total }}</td>
+                            <td>
+                                {% if tickets_par_magasin.0.total %}
+                                <div class="progress" style="height:8px;border-radius:4px;">
+                                    <div class="progress-bar bg-primary" style="width:{% widthratio row.total tickets_par_magasin.0.total 100 %}%"></div>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-4">Aucune remontée sur la période.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "dashboard/_semaine_comparison.html" %}
+
+{% include "dashboard/_top_magasins.html" %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartCmd    = {{ chart_cmd_json|safe }};
+const chartBr     = {{ chart_br_json|safe }};
+const chartTickets= {{ chart_tickets_json|safe }};
+const cmdTotaux   = {
+    labels: ['Asten', 'Cyrus', 'GPV', 'Legend'],
+    values: [{{ cmd_totaux.asten }}, {{ cmd_totaux.cyrus }}, {{ cmd_totaux.gpv }}, {{ cmd_totaux.legend }}]
+};
+const brPie = {
+    labels: ['Intégrées', 'Non intégrées'],
+    values: [{{ br_integrees }}, {{ br_non_integrees }}]
+};
+const ticketsPie = {
+    labels: [{% for r in tickets_par_statut %}'{{ r.statut }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+    values: [{% for r in tickets_par_statut %}{{ r.total }}{% if not forloop.last %},{% endif %}{% endfor %}]
+};
+
+function makeBarChart(id, data, color) {
+    const ctx = document.getElementById(id);
+    if (!ctx || !data.labels.length) return;
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: [{ data: data.values, backgroundColor: color + '99', borderColor: color, borderWidth: 1, borderRadius: 4 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { ticks: { maxTicksLimit: 10 } } }
+        }
+    });
+}
+
+function makePieChart(id, labels, values, colors) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    const nonZero = values.some(v => v > 0);
+    if (!nonZero) return;
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    makeBarChart('chartCmd',     chartCmd,     '#2d6cdf');
+    makeBarChart('chartBr',      chartBr,      '#22c55e');
+    makeBarChart('chartTickets', chartTickets, '#f59e0b');
+
+    makePieChart('pieCmd',
+        cmdTotaux.labels, cmdTotaux.values,
+        ['#2d6cdf', '#22c55e', '#f59e0b', '#8b5cf6']
+    );
+    makePieChart('pieBr',
+        brPie.labels, brPie.values,
+        ['#22c55e', '#ef4444']
+    );
+    makePieChart('pieTickets',
+        ticketsPie.labels, ticketsPie.values,
+        ['#64748b','#2d6cdf','#f59e0b','#22c55e','#374151']
+    );
+});
+
+function switchSection(sec) {
+    ['commandes','br','remontees'].forEach(s => {
+        document.getElementById('sec-' + s).style.display = s === sec ? '' : 'none';
+    });
+    document.querySelectorAll('.section-tab').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById('sectionInput').value = sec;
+}
+</script>
+{% endblock %}

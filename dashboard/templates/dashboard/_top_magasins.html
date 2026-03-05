@@ -1,0 +1,285 @@
+{% if top5 %}
+<div class="top-magasins-widget mt-4 mb-3">
+<style>
+.top-magasins-widget .tmw-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.07);
+    overflow: hidden;
+    border: 1px solid #eef0f6;
+}
+.top-magasins-widget .tmw-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-bottom: 1px solid #eef0f6;
+    background: #fafbff;
+}
+.top-magasins-widget .tmw-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #1e2a45;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.top-magasins-widget .tmw-period {
+    font-size: .78rem;
+    color: #8492a6;
+    font-weight: 500;
+    background: #f0f3ff;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+.top-magasins-widget .tmw-n-btns .btn {
+    font-size: .75rem;
+    padding: 3px 10px;
+    border-radius: 20px !important;
+    font-weight: 600;
+    border: 1.5px solid #d1d9f0;
+    color: #5a6a85;
+    background: #fff;
+    transition: all .18s;
+}
+.top-magasins-widget .tmw-n-btns .btn.active,
+.top-magasins-widget .tmw-n-btns .btn:hover {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    color: #fff;
+    border-color: transparent;
+}
+.top-magasins-widget .tmw-sources {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+}
+@media (max-width: 768px) {
+    .top-magasins-widget .tmw-sources { grid-template-columns: repeat(2, 1fr); }
+}
+.top-magasins-widget .tmw-source-col {
+    border-right: 1px solid #eef0f6;
+    min-width: 0;
+}
+.top-magasins-widget .tmw-source-col:last-child { border-right: none; }
+.top-magasins-widget .tmw-source-header {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid transparent;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+.tmw-source-header.asten  { background: linear-gradient(90deg,#eff6ff,#fff); border-color: #3b82f6; color: #1d4ed8; }
+.tmw-source-header.gpv    { background: linear-gradient(90deg,#f0fdf4,#fff); border-color: #22c55e; color: #15803d; }
+.tmw-source-header.legend { background: linear-gradient(90deg,#fffbeb,#fff); border-color: #f59e0b; color: #b45309; }
+.tmw-source-header.br     { background: linear-gradient(90deg,#fff1f2,#fff); border-color: #ef4444; color: #b91c1c; }
+.top-magasins-widget .tmw-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    gap: 8px;
+    border-bottom: 1px solid #f5f6fa;
+    text-decoration: none;
+    color: #1e2a45;
+    transition: background .15s;
+    cursor: pointer;
+    min-width: 0;
+}
+.top-magasins-widget .tmw-row:hover { background: #f5f7ff; }
+.top-magasins-widget .tmw-row:last-child { border-bottom: none; }
+.top-magasins-widget .tmw-rank {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: .7rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.tmw-rank.r1 { background: #fef3c7; color: #d97706; border: 1.5px solid #fbbf24; }
+.tmw-rank.r2 { background: #f1f5f9; color: #64748b; border: 1.5px solid #cbd5e1; }
+.tmw-rank.r3 { background: #fef2f2; color: #b45309; border: 1.5px solid #fca5a5; }
+.tmw-rank.rn { background: #f8fafc; color: #94a3b8; border: 1.5px solid #e2e8f0; }
+.top-magasins-widget .tmw-name {
+    flex: 1;
+    font-size: .8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #374151;
+    min-width: 0;
+}
+.top-magasins-widget .tmw-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.top-magasins-widget .tmw-count {
+    font-size: .8rem;
+    font-weight: 700;
+}
+.tmw-count.asten  { color: #2563eb; }
+.tmw-count.gpv    { color: #16a34a; }
+.tmw-count.legend { color: #d97706; }
+.tmw-count.br     { color: #dc2626; }
+.top-magasins-widget .tmw-bar-wrap {
+    width: 48px;
+    height: 3px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.top-magasins-widget .tmw-bar { height: 100%; border-radius: 2px; }
+.tmw-bar.asten  { background: #3b82f6; }
+.tmw-bar.gpv    { background: #22c55e; }
+.tmw-bar.legend { background: #f59e0b; }
+.tmw-bar.br     { background: #ef4444; }
+.top-magasins-widget .tmw-empty {
+    padding: 18px 14px;
+    font-size: .8rem;
+    color: #94a3b8;
+    text-align: center;
+}
+.top-magasins-widget .tmw-footer {
+    padding: 10px 20px;
+    border-top: 1px solid #eef0f6;
+    background: #fafbff;
+    display: flex;
+    justify-content: flex-end;
+}
+.top-magasins-widget .tmw-link {
+    font-size: .78rem;
+    font-weight: 600;
+    color: #6366f1;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap .15s;
+}
+.top-magasins-widget .tmw-link:hover { gap: 7px; color: #4f46e5; }
+</style>
+
+<div class="tmw-card">
+    <!-- HEADER -->
+    <div class="tmw-header">
+        <div class="tmw-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="#f59e0b"/></svg>
+            Top {{ top5.n }} magasins
+            {% if top5.debut and top5.fin %}
+            <span class="tmw-period">{{ top5.debut|date:"d/m/Y" }} → {{ top5.fin|date:"d/m/Y" }}</span>
+            {% endif %}
+        </div>
+        <div class="tmw-n-btns d-flex gap-1 flex-wrap">
+            {% with n=top5.n %}
+            <a href="{{ top_url_base }}&top_n=5"   class="btn {% if n == 5   %}active{% endif %}">5</a>
+            <a href="{{ top_url_base }}&top_n=10"  class="btn {% if n == 10  %}active{% endif %}">10</a>
+            <a href="{{ top_url_base }}&top_n=20"  class="btn {% if n == 20  %}active{% endif %}">20</a>
+            <a href="{{ top_url_base }}&top_n=50"  class="btn {% if n == 50  %}active{% endif %}">50</a>
+            <a href="{{ top_url_base }}&top_n=100" class="btn {% if n == 100 %}active{% endif %}">100</a>
+            {% endwith %}
+        </div>
+    </div>
+
+    <!-- SOURCES GRID -->
+    <div class="tmw-sources">
+
+        <!-- ASTEN -->
+        <div class="tmw-source-col">
+            <div class="tmw-source-header asten">
+                <i class="bi bi-box-seam"></i> Asten
+            </div>
+            {% for r in top5.asten %}
+            {% with max_val=top5.asten.0.total pct=r.total|floatformat:0 %}
+            <a href="/commandes/asten/?magasin={{ r.code_magasin__code }}" class="tmw-row">
+                <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+                <span class="tmw-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
+                <div class="tmw-right">
+                    <span class="tmw-count asten">{{ r.total }}</span>
+                    {% if max_val %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar asten" style="width:{% widthratio r.total max_val 100 %}%"></div></div>
+                    {% endif %}
+                </div>
+            </a>
+            {% endwith %}
+            {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+        </div>
+
+        <!-- GPV -->
+        <div class="tmw-source-col">
+            <div class="tmw-source-header gpv">
+                <i class="bi bi-truck"></i> GPV
+            </div>
+            {% for r in top5.gpv %}
+            <a href="/commandes/gpv/?magasin={{ r.code_magasin__code }}" class="tmw-row">
+                <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+                <span class="tmw-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
+                <div class="tmw-right">
+                    <span class="tmw-count gpv">{{ r.total }}</span>
+                    {% if top5.gpv.0.total %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar gpv" style="width:{% widthratio r.total top5.gpv.0.total 100 %}%"></div></div>
+                    {% endif %}
+                </div>
+            </a>
+            {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+        </div>
+
+        <!-- LEGEND -->
+        <div class="tmw-source-col">
+            <div class="tmw-source-header legend">
+                <i class="bi bi-archive"></i> Legend
+            </div>
+            {% for r in top5.legend %}
+            <a href="/commandes/legend/?depot_dest={{ r.depot_destination|urlencode }}" class="tmw-row">
+                <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+                <span class="tmw-name">{{ r.depot_destination|default:"-" }}</span>
+                <div class="tmw-right">
+                    <span class="tmw-count legend">{{ r.total }}</span>
+                    {% if top5.legend.0.total %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar legend" style="width:{% widthratio r.total top5.legend.0.total 100 %}%"></div></div>
+                    {% endif %}
+                </div>
+            </a>
+            {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+        </div>
+
+        <!-- BR ASTEN -->
+        <div class="tmw-source-col">
+            <div class="tmw-source-header br">
+                <i class="bi bi-receipt"></i> BR Asten
+            </div>
+            {% for r in top5.br %}
+            <a href="/br/asten/?magasin={{ r.code_magasin__code }}" class="tmw-row">
+                <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+                <span class="tmw-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
+                <div class="tmw-right">
+                    <span class="tmw-count br">{{ r.total }}</span>
+                    {% if top5.br.0.total %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar br" style="width:{% widthratio r.total top5.br.0.total 100 %}%"></div></div>
+                    {% endif %}
+                </div>
+            </a>
+            {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="tmw-footer">
+        <a href="{% url 'dashboard:rapport_global' %}?section=commandes&periode=mois" class="tmw-link">
+            Voir les rapports complets <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
+</div>
+{% endif %}
