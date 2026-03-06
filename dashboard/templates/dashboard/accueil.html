@@ -66,9 +66,13 @@ body { background: #f0f2f8 !important; }
 .acc-card {
     background: #fff; border-radius: 14px; border: 1px solid #e8ecf5;
     box-shadow: 0 2px 12px rgba(15,23,42,.06); overflow: hidden;
-    transition: box-shadow .2s, transform .2s;
+    transition: box-shadow .2s, transform .2s, border-color .2s;
 }
-.acc-card:hover { box-shadow: 0 6px 20px rgba(15,23,42,.1); transform: translateY(-2px); }
+.acc-card:hover {
+    box-shadow: 0 8px 24px rgba(99,102,241,.13);
+    transform: translateY(-2px);
+    border-color: #c7d2fe;
+}
 
 .acc-card-head {
     display: flex; align-items: center; gap: 10px;
@@ -90,12 +94,8 @@ body { background: #f0f2f8 !important; }
 .fact-theme   .head-icon { background: #fdf4ff; color: #a855f7; }
 .rem-theme    .head-icon { background: #f0f9ff; color: #0ea5e9; }
 
-.asten-theme  { border-top: 3px solid #3b82f6; }
-.gpv-theme    { border-top: 3px solid #22c55e; }
-.legend-theme { border-top: 3px solid #f59e0b; }
-.br-theme     { border-top: 3px solid #ef4444; }
-.fact-theme   { border-top: 3px solid #a855f7; }
-.rem-theme    { border-top: 3px solid #0ea5e9; }
+/* hover accent unifié — plus de border-top colorée au repos */
+.acc-card:hover .acc-card-head { background: #f8f9ff; }
 
 .acc-card-body { padding: 16px 18px; }
 
@@ -540,14 +540,17 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 datasets: [{
                     data: total === 0 ? [1] : [ok, bad],
-                    backgroundColor: total === 0 ? ['#e2e8f0'] : ['#22c55e', '#ef4444'],
-                    borderWidth: 0,
-                    borderRadius: 4,
+                    backgroundColor: total === 0 ? ['#e9ecef'] : ['#22c55e', '#f87171'],
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    borderRadius: 6,
+                    hoverOffset: 2,
                 }]
             },
             options: {
-                responsive: false, cutout: '68%',
-                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                responsive: false, cutout: '80%',
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                animation: { animateRotate: true, duration: 800 }
             }
         });
     });

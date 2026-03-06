@@ -2774,6 +2774,7 @@ def rapport_global(request):
 
     # ---- EXPORT CSV ----
     export = request.GET.get('export')
+    top_n_export = int(request.GET.get('top_n', 10))
     if export == 'csv':
         response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
         filename = f"rapport_{section}_{date_debut}_{date_fin}.csv"
@@ -2785,9 +2786,35 @@ def rapport_global(request):
             for src, total in cmd_totaux.items():
                 writer.writerow([src.capitalize(), total])
             writer.writerow([])
-            writer.writerow(['Magasin (Code)', 'Nom', 'Total Asten'])
-            for row in cmd_par_magasin:
-                writer.writerow([row['code_magasin__code'], row['code_magasin__nom'] or '', row['total']])
+            # Asten
+            writer.writerow([f'Top {top_n_export} Asten', '', ''])
+            writer.writerow(['Magasin', 'Code', 'Total'])
+            asten_export = list(
+                asten_qs.values('code_magasin__code', 'code_magasin__nom')
+                .annotate(total=Count('id')).order_by('-total')[:top_n_export]
+            )
+            for row in asten_export:
+                writer.writerow([row['code_magasin__nom'] or '', row['code_magasin__code'], row['total']])
+            writer.writerow([])
+            # GPV
+            writer.writerow([f'Top {top_n_export} GPV', '', ''])
+            writer.writerow(['Magasin', 'Code', 'Total'])
+            gpv_export = list(
+                gpv_qs.values('code_magasin__code', 'code_magasin__nom')
+                .annotate(total=Count('id')).order_by('-total')[:top_n_export]
+            )
+            for row in gpv_export:
+                writer.writerow([row['code_magasin__nom'] or '', row['code_magasin__code'], row['total']])
+            writer.writerow([])
+            # Legend
+            writer.writerow([f'Top {top_n_export} Legend', ''])
+            writer.writerow(['Magasin (dépôt)', 'Total'])
+            legend_export = list(
+                legend_qs.values('depot_destination')
+                .annotate(total=Count('id')).order_by('-total')[:top_n_export]
+            )
+            for row in legend_export:
+                writer.writerow([row['depot_destination'] or '', row['total']])
         elif section == 'br':
             writer.writerow(['Total BR', 'Intégrées', 'Non intégrées'])
             writer.writerow([br_total, br_integrees, br_non_integrees])

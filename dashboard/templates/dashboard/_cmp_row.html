@@ -5,10 +5,10 @@
             <span class="src-label">{{ label }}</span>
         </div>
     </td>
-    <td class="text-center fw-semibold" style="color:#16a34a;">{{ row.previous.integres }}</td>
-    <td class="text-center fw-semibold" style="color:#dc2626;">{{ row.previous.non_integres }}</td>
-    <td class="text-center fw-semibold" style="color:#16a34a;">{{ row.current.integres }}</td>
-    <td class="text-center fw-semibold" style="color:#dc2626;">{{ row.current.non_integres }}</td>
+    <td class="text-center td-prev">{{ row.previous.integres }}</td>
+    <td class="text-center td-prev">{{ row.previous.non_integres }}</td>
+    <td class="text-center td-curr" style="color:#16a34a;">{{ row.current.integres }}</td>
+    <td class="text-center td-curr" style="color:#dc2626;">{{ row.current.non_integres }}</td>
     <td class="text-center">
         {% if row.delta_integres > 0 %}
             <span class="delta-up-good"><i class="bi bi-arrow-up-short"></i>+{{ row.delta_integres }}</span>

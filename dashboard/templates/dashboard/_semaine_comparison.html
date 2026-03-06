@@ -9,27 +9,36 @@
 .cmp-widget .cmp-period-btns .btn { font-size:.75rem; padding:3px 10px; border-radius:20px !important; font-weight:600; border:1.5px solid #d1d9f0; color:#5a6a85; background:#fff; transition:all .18s; }
 .cmp-widget .cmp-period-btns .btn-primary,
 .cmp-widget .cmp-period-btns .btn:hover { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-color:transparent; }
+
 .cmp-widget table { font-size:.85rem; margin:0; }
-.cmp-widget thead tr:first-child th { font-size:.78rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.04em; padding:10px 14px; border-bottom:1px solid #eef0f6; }
-/* Période précédente : fond grisé */
-.cmp-widget thead tr:first-child th.col-prev { background:#f4f5f7; color:#9ca3af; }
-/* Période actuelle : fond légèrement teinté */
-.cmp-widget thead tr:first-child th.col-curr { background:#f0f4ff; color:#4f46e5; }
+
+/* ── Groupe d'en-têtes ── */
+.cmp-widget thead th { padding:10px 14px; border-bottom:1px solid #eef0f6; }
+
+/* Période précédente — fond grisé, texte pâle */
+.cmp-widget thead .col-prev   { background:#f3f4f6; color:#9ca3af; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.cmp-widget thead .sub-prev   { background:#f3f4f6; color:#c4c9d4; font-size:.7rem; font-style:italic; border-bottom:2px solid #e5e7eb; }
+
+/* Période actuelle — fond clair bleuté, texte lisible */
+.cmp-widget thead .col-curr   { background:#eef3ff; color:#4f46e5; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.cmp-widget thead .sub-curr-ok { background:#eef3ff; color:#16a34a; font-size:.7rem; border-bottom:2px solid #c7d2fe; }
+.cmp-widget thead .sub-curr-ko { background:#eef3ff; color:#dc2626; font-size:.7rem; border-bottom:2px solid #c7d2fe; }
+
 /* Évolution */
-.cmp-widget thead tr:first-child th.col-evo  { background:#fafbff; color:#6b7280; }
-.cmp-widget thead tr:last-child th { font-size:.72rem; padding:6px 14px; background:#fafbff; border-bottom:2px solid #eef0f6; }
-.cmp-widget thead tr:last-child th.sub-prev { background:#f4f5f7; color:#b0b8c8; font-style:italic; }
-.cmp-widget thead tr:last-child th.sub-curr-ok  { background:#f0f4ff; color:#16a34a; }
-.cmp-widget thead tr:last-child th.sub-curr-ko  { background:#f0f4ff; color:#dc2626; }
-.cmp-widget thead tr:last-child th.sub-evo   { background:#fafbff; color:#94a3b8; }
+.cmp-widget thead .col-evo    { background:#fafbff; color:#6b7280; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.cmp-widget thead .sub-evo    { background:#fafbff; color:#94a3b8; font-size:.7rem; border-bottom:2px solid #eef0f6; }
+
+/* ── Lignes corps ── */
 .cmp-widget tbody tr { transition:background .15s; }
 .cmp-widget tbody tr:hover { background:#f5f7ff; }
-.cmp-widget tbody td { padding:9px 14px; vertical-align:middle; border-bottom:1px solid #f1f5f9; }
+.cmp-widget tbody td { padding:10px 14px; vertical-align:middle; border-bottom:1px solid #f1f5f9; }
 .cmp-widget tbody tr:last-child td { border-bottom:none; }
-/* Cellules période précédente : couleur atténuée */
-.cmp-widget tbody td.td-prev { background:#fafbfc; color:#9ca3af !important; font-weight:500 !important; }
-/* Cellules période actuelle : normale + légère mise en avant */
-.cmp-widget tbody td.td-curr { background:#f8f9ff; font-weight:700 !important; }
+
+/* Cellules précédentes : grisées, sans gras */
+.cmp-widget tbody td.td-prev { background:#f9fafb; color:#b0b8c8 !important; font-weight:400 !important; font-size:.82rem; }
+/* Cellules actuelles : fond légèrement teinté, valeurs mises en avant */
+.cmp-widget tbody td.td-curr { background:#f7f9ff; font-weight:700 !important; font-size:.9rem; }
+
 .cmp-widget .src-icon { width:28px; height:28px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:.75rem; margin-right:6px; }
 .cmp-widget .src-icon.asten  { background:#eff6ff; color:#3b82f6; }
 .cmp-widget .src-icon.gpv    { background:#f0fdf4; color:#22c55e; }
@@ -66,13 +75,13 @@
         <table class="table mb-0">
             <thead>
                 <tr>
-                    <th style="width:160px;background:#fafbff;"></th>
+                    <th style="width:160px;background:#fafbff;border-bottom:1px solid #eef0f6;"></th>
                     <th class="text-center col-prev" colspan="2">Période précédente</th>
                     <th class="text-center col-curr" colspan="2">Période actuelle</th>
                     <th class="text-center col-evo"  colspan="2">Évolution</th>
                 </tr>
                 <tr>
-                    <th style="background:#fafbff;"></th>
+                    <th style="background:#fafbff;border-bottom:2px solid #eef0f6;"></th>
                     <th class="text-center sub-prev">Intégrées</th>
                     <th class="text-center sub-prev">Non intégrées</th>
                     <th class="text-center sub-curr-ok">Intégrées</th>

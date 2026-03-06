@@ -184,7 +184,9 @@
             {% with n=top5.n %}
             <a href="{{ top_url_base }}&top_n=5"   class="btn {% if n == 5   %}active{% endif %}">5</a>
             <a href="{{ top_url_base }}&top_n=10"  class="btn {% if n == 10  %}active{% endif %}">10</a>
+            <a href="{{ top_url_base }}&top_n=15"  class="btn {% if n == 15  %}active{% endif %}">15</a>
             <a href="{{ top_url_base }}&top_n=20"  class="btn {% if n == 20  %}active{% endif %}">20</a>
+            <a href="{{ top_url_base }}&top_n=30"  class="btn {% if n == 30  %}active{% endif %}">30</a>
             <a href="{{ top_url_base }}&top_n=50"  class="btn {% if n == 50  %}active{% endif %}">50</a>
             <a href="{{ top_url_base }}&top_n=100" class="btn {% if n == 100 %}active{% endif %}">100</a>
             {% endwith %}
