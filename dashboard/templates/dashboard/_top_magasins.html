@@ -1,226 +1,163 @@
 {% if top5 %}
-<div class="top-magasins-widget mt-4 mb-3">
+<div class="tmw-outer mt-4 mb-3">
 <style>
-.top-magasins-widget .tmw-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0,0,0,.07);
-    overflow: hidden;
-    border: 1px solid #eef0f6;
+/* ═══ TOP N MAGASINS — Premium Card ═══ */
+.tmw-card {
+    background: linear-gradient(160deg,#f8f9ff 0%,#fff 70%);
+    border-radius: 20px; border: 1px solid #e4e8f5;
+    box-shadow: 0 4px 28px rgba(99,102,241,.09); overflow: hidden;
 }
-.top-magasins-widget .tmw-header {
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
-    border-bottom: 1px solid #eef0f6;
-    background: #fafbff;
+.tmw-header {
+    padding: 18px 24px 14px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    border-bottom: 1px solid #eef0f8;
 }
-.top-magasins-widget .tmw-title {
-    font-size: .95rem;
-    font-weight: 700;
-    color: #1e2a45;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.tmw-hicon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg,#f59e0b,#f97316);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(245,158,11,.32); flex-shrink: 0;
 }
-.top-magasins-widget .tmw-period {
-    font-size: .78rem;
-    color: #8492a6;
-    font-weight: 500;
-    background: #f0f3ff;
-    padding: 3px 10px;
-    border-radius: 20px;
+.tmw-htitle { font-weight: 800; color: #1e2a45; font-size: 1rem; letter-spacing: -.01em; }
+.tmw-hperiod {
+    font-size: .71rem; color: #a0aec0; font-weight: 500; margin-top: 3px;
+    display: flex; align-items: center; gap: 4px;
 }
-.top-magasins-widget .tmw-n-btns .btn {
-    font-size: .75rem;
-    padding: 3px 10px;
-    border-radius: 20px !important;
-    font-weight: 600;
-    border: 1.5px solid #d1d9f0;
-    color: #5a6a85;
-    background: #fff;
-    transition: all .18s;
+.tmw-hchip { background: #fffbeb; color: #d97706; padding: 2px 9px; border-radius: 12px; font-size: .69rem; font-weight: 600; }
+.tmw-nbtn {
+    display: inline-block; font-size: .74rem; padding: 4px 12px; border-radius: 20px;
+    font-weight: 600; border: 1.5px solid #d1d9f0; color: #5a6a85; background: #fff;
+    transition: all .15s; text-decoration: none; white-space: nowrap;
 }
-.top-magasins-widget .tmw-n-btns .btn.active,
-.top-magasins-widget .tmw-n-btns .btn:hover {
-    background: linear-gradient(135deg,#6366f1,#8b5cf6);
-    color: #fff;
-    border-color: transparent;
+.tmw-nbtn.active, .tmw-nbtn:hover {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff;
+    border-color: transparent; box-shadow: 0 2px 8px rgba(99,102,241,.28); text-decoration: none;
 }
-.top-magasins-widget .tmw-sources {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
+/* Sources grid */
+.tmw-grid { display: grid; grid-template-columns: repeat(4,1fr); }
+@media (max-width:768px) { .tmw-grid { grid-template-columns: repeat(2,1fr); } }
+.tmw-col { border-right: 1px solid #eef0f8; min-width: 0; }
+.tmw-col:last-child { border-right: none; }
+/* Column headers */
+.tmw-col-head { display: flex; align-items: center; gap: 10px; padding: 13px 18px; border-bottom: 1px solid #eef0f8; }
+.tmw-col-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0;
 }
-@media (max-width: 768px) {
-    .top-magasins-widget .tmw-sources { grid-template-columns: repeat(2, 1fr); }
+.tmw-col-icon.asten  { background: linear-gradient(135deg,#dbeafe,#eff6ff); color: #2563eb; box-shadow: 0 2px 8px rgba(59,130,246,.2); }
+.tmw-col-icon.gpv    { background: linear-gradient(135deg,#dcfce7,#f0fdf4); color: #16a34a; box-shadow: 0 2px 8px rgba(34,197,94,.2); }
+.tmw-col-icon.legend { background: linear-gradient(135deg,#fef9c3,#fffbeb); color: #d97706; box-shadow: 0 2px 8px rgba(245,158,11,.2); }
+.tmw-col-icon.br     { background: linear-gradient(135deg,#fee2e2,#fff1f2); color: #dc2626; box-shadow: 0 2px 8px rgba(239,68,68,.2); }
+.tmw-col-name { font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+.tmw-col-name.asten  { color: #1d4ed8; }
+.tmw-col-name.gpv    { color: #15803d; }
+.tmw-col-name.legend { color: #b45309; }
+.tmw-col-name.br     { color: #b91c1c; }
+/* Rows */
+.tmw-row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+    border-bottom: 1px solid #f5f6fa; text-decoration: none; color: #1e2a45; transition: background .12s;
 }
-.top-magasins-widget .tmw-source-col {
-    border-right: 1px solid #eef0f6;
-    min-width: 0;
+.tmw-row:hover { background: #f0f5ff; text-decoration: none; }
+.tmw-row:last-child { border-bottom: none; }
+/* Rank badges */
+.tmw-rank {
+    width: 24px; height: 24px; border-radius: 50%;
+    font-size: .68rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.top-magasins-widget .tmw-source-col:last-child { border-right: none; }
-.top-magasins-widget .tmw-source-header {
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 2px solid transparent;
-    font-size: .8rem;
-    font-weight: 700;
-    letter-spacing: .03em;
-    text-transform: uppercase;
+.tmw-rank.r1 { background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #fff; box-shadow: 0 2px 6px rgba(245,158,11,.45); }
+.tmw-rank.r2 { background: linear-gradient(135deg,#cbd5e1,#94a3b8); color: #fff; box-shadow: 0 2px 6px rgba(148,163,184,.4); }
+.tmw-rank.r3 { background: linear-gradient(135deg,#fdba74,#fb923c); color: #fff; box-shadow: 0 2px 6px rgba(251,146,60,.35); }
+.tmw-rank.rn { background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; }
+.tmw-name {
+    flex: 1; font-size: .79rem; font-weight: 500; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; color: #374151; min-width: 0;
 }
-.tmw-source-header.asten  { background: linear-gradient(90deg,#eff6ff,#fff); border-color: #3b82f6; color: #1d4ed8; }
-.tmw-source-header.gpv    { background: linear-gradient(90deg,#f0fdf4,#fff); border-color: #22c55e; color: #15803d; }
-.tmw-source-header.legend { background: linear-gradient(90deg,#fffbeb,#fff); border-color: #f59e0b; color: #b45309; }
-.tmw-source-header.br     { background: linear-gradient(90deg,#fff1f2,#fff); border-color: #ef4444; color: #b91c1c; }
-.top-magasins-widget .tmw-row {
-    display: flex;
-    align-items: center;
-    padding: 8px 14px;
-    gap: 8px;
-    border-bottom: 1px solid #f5f6fa;
-    text-decoration: none;
-    color: #1e2a45;
-    transition: background .15s;
-    cursor: pointer;
-    min-width: 0;
-}
-.top-magasins-widget .tmw-row:hover { background: #f5f7ff; }
-.top-magasins-widget .tmw-row:last-child { border-bottom: none; }
-.top-magasins-widget .tmw-rank {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: .7rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.tmw-rank.r1 { background: #fef3c7; color: #d97706; border: 1.5px solid #fbbf24; }
-.tmw-rank.r2 { background: #f1f5f9; color: #64748b; border: 1.5px solid #cbd5e1; }
-.tmw-rank.r3 { background: #fef2f2; color: #b45309; border: 1.5px solid #fca5a5; }
-.tmw-rank.rn { background: #f8fafc; color: #94a3b8; border: 1.5px solid #e2e8f0; }
-.top-magasins-widget .tmw-name {
-    flex: 1;
-    font-size: .8rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: #374151;
-    min-width: 0;
-}
-.top-magasins-widget .tmw-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    flex-shrink: 0;
-}
-.top-magasins-widget .tmw-count {
-    font-size: .8rem;
-    font-weight: 700;
-}
+.tmw-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.tmw-count { font-size: .83rem; font-weight: 800; }
 .tmw-count.asten  { color: #2563eb; }
 .tmw-count.gpv    { color: #16a34a; }
 .tmw-count.legend { color: #d97706; }
 .tmw-count.br     { color: #dc2626; }
-.top-magasins-widget .tmw-bar-wrap {
-    width: 48px;
-    height: 3px;
-    background: #e9ecef;
-    border-radius: 2px;
-    overflow: hidden;
+.tmw-bar-wrap { width: 52px; height: 4px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
+.tmw-bar { height: 100%; border-radius: 3px; }
+.tmw-bar.asten  { background: linear-gradient(90deg,#3b82f6,#60a5fa); }
+.tmw-bar.gpv    { background: linear-gradient(90deg,#22c55e,#4ade80); }
+.tmw-bar.legend { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+.tmw-bar.br     { background: linear-gradient(90deg,#ef4444,#f87171); }
+.tmw-empty { padding: 20px 16px; font-size: .8rem; color: #94a3b8; text-align: center; }
+/* Footer */
+.tmw-footer {
+    padding: 12px 24px; border-top: 1px solid #eef0f8; background: #fafbff; display: flex; justify-content: flex-end;
 }
-.top-magasins-widget .tmw-bar { height: 100%; border-radius: 2px; }
-.tmw-bar.asten  { background: #3b82f6; }
-.tmw-bar.gpv    { background: #22c55e; }
-.tmw-bar.legend { background: #f59e0b; }
-.tmw-bar.br     { background: #ef4444; }
-.top-magasins-widget .tmw-empty {
-    padding: 18px 14px;
-    font-size: .8rem;
-    color: #94a3b8;
-    text-align: center;
+.tmw-link {
+    font-size: .78rem; font-weight: 600; color: #6366f1; text-decoration: none;
+    display: flex; align-items: center; gap: 5px; transition: gap .15s;
 }
-.top-magasins-widget .tmw-footer {
-    padding: 10px 20px;
-    border-top: 1px solid #eef0f6;
-    background: #fafbff;
-    display: flex;
-    justify-content: flex-end;
-}
-.top-magasins-widget .tmw-link {
-    font-size: .78rem;
-    font-weight: 600;
-    color: #6366f1;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: gap .15s;
-}
-.top-magasins-widget .tmw-link:hover { gap: 7px; color: #4f46e5; }
+.tmw-link:hover { gap: 8px; color: #4f46e5; }
 </style>
 
 <div class="tmw-card">
-    <!-- HEADER -->
+    <!-- Header -->
     <div class="tmw-header">
-        <div class="tmw-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="#f59e0b"/></svg>
-            Top {{ top5.n }} magasins
-            {% if top5.debut and top5.fin %}
-            <span class="tmw-period">{{ top5.debut|date:"d/m/Y" }} → {{ top5.fin|date:"d/m/Y" }}</span>
-            {% endif %}
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div class="tmw-hicon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="#fff"/>
+                </svg>
+            </div>
+            <div>
+                <div class="tmw-htitle">Top {{ top5.n }} magasins</div>
+                {% if top5.debut and top5.fin %}
+                <div class="tmw-hperiod">
+                    <i class="bi bi-calendar3" style="font-size:.68rem;"></i>
+                    <span class="tmw-hchip">{{ top5.debut|date:"d/m/Y" }} → {{ top5.fin|date:"d/m/Y" }}</span>
+                </div>
+                {% endif %}
+            </div>
         </div>
-        <div class="tmw-n-btns d-flex gap-1 flex-wrap">
+        <div class="d-flex gap-1 flex-wrap">
             {% with n=top5.n %}
-            <a href="{{ top_url_base }}&top_n=5"   class="btn {% if n == 5   %}active{% endif %}">5</a>
-            <a href="{{ top_url_base }}&top_n=10"  class="btn {% if n == 10  %}active{% endif %}">10</a>
-            <a href="{{ top_url_base }}&top_n=15"  class="btn {% if n == 15  %}active{% endif %}">15</a>
-            <a href="{{ top_url_base }}&top_n=20"  class="btn {% if n == 20  %}active{% endif %}">20</a>
-            <a href="{{ top_url_base }}&top_n=30"  class="btn {% if n == 30  %}active{% endif %}">30</a>
-            <a href="{{ top_url_base }}&top_n=50"  class="btn {% if n == 50  %}active{% endif %}">50</a>
-            <a href="{{ top_url_base }}&top_n=100" class="btn {% if n == 100 %}active{% endif %}">100</a>
+            <a href="{{ top_url_base }}&top_n=5"   class="tmw-nbtn {% if n == 5   %}active{% endif %}">5</a>
+            <a href="{{ top_url_base }}&top_n=10"  class="tmw-nbtn {% if n == 10  %}active{% endif %}">10</a>
+            <a href="{{ top_url_base }}&top_n=15"  class="tmw-nbtn {% if n == 15  %}active{% endif %}">15</a>
+            <a href="{{ top_url_base }}&top_n=20"  class="tmw-nbtn {% if n == 20  %}active{% endif %}">20</a>
+            <a href="{{ top_url_base }}&top_n=30"  class="tmw-nbtn {% if n == 30  %}active{% endif %}">30</a>
+            <a href="{{ top_url_base }}&top_n=50"  class="tmw-nbtn {% if n == 50  %}active{% endif %}">50</a>
+            <a href="{{ top_url_base }}&top_n=100" class="tmw-nbtn {% if n == 100 %}active{% endif %}">100</a>
             {% endwith %}
         </div>
     </div>
 
-    <!-- SOURCES GRID -->
-    <div class="tmw-sources">
+    <!-- Grid -->
+    <div class="tmw-grid">
 
         <!-- ASTEN -->
-        <div class="tmw-source-col">
-            <div class="tmw-source-header asten">
-                <i class="bi bi-box-seam"></i> Asten
+        <div class="tmw-col">
+            <div class="tmw-col-head">
+                <div class="tmw-col-icon asten"><i class="bi bi-box-seam"></i></div>
+                <span class="tmw-col-name asten">Asten</span>
             </div>
             {% for r in top5.asten %}
-            {% with max_val=top5.asten.0.total pct=r.total|floatformat:0 %}
             <a href="/commandes/asten/?magasin={{ r.code_magasin__code }}" class="tmw-row">
                 <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
                 <span class="tmw-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count asten">{{ r.total }}</span>
-                    {% if max_val %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar asten" style="width:{% widthratio r.total max_val 100 %}%"></div></div>
+                    {% if top5.asten.0.total %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar asten" style="width:{% widthratio r.total top5.asten.0.total 100 %}%"></div></div>
                     {% endif %}
                 </div>
             </a>
-            {% endwith %}
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
 
         <!-- GPV -->
-        <div class="tmw-source-col">
-            <div class="tmw-source-header gpv">
-                <i class="bi bi-truck"></i> GPV
+        <div class="tmw-col">
+            <div class="tmw-col-head">
+                <div class="tmw-col-icon gpv"><i class="bi bi-truck"></i></div>
+                <span class="tmw-col-name gpv">GPV</span>
             </div>
             {% for r in top5.gpv %}
             <a href="/commandes/gpv/?magasin={{ r.code_magasin__code }}" class="tmw-row">
@@ -237,9 +174,10 @@
         </div>
 
         <!-- LEGEND -->
-        <div class="tmw-source-col">
-            <div class="tmw-source-header legend">
-                <i class="bi bi-archive"></i> Legend
+        <div class="tmw-col">
+            <div class="tmw-col-head">
+                <div class="tmw-col-icon legend"><i class="bi bi-archive"></i></div>
+                <span class="tmw-col-name legend">Legend</span>
             </div>
             {% for r in top5.legend %}
             <a href="/commandes/legend/?depot_dest={{ r.depot_destination|urlencode }}" class="tmw-row">
@@ -256,9 +194,10 @@
         </div>
 
         <!-- BR ASTEN -->
-        <div class="tmw-source-col">
-            <div class="tmw-source-header br">
-                <i class="bi bi-receipt"></i> BR Asten
+        <div class="tmw-col">
+            <div class="tmw-col-head">
+                <div class="tmw-col-icon br"><i class="bi bi-receipt"></i></div>
+                <span class="tmw-col-name br">BR Asten</span>
             </div>
             {% for r in top5.br %}
             <a href="/br/asten/?magasin={{ r.code_magasin__code }}" class="tmw-row">
@@ -276,7 +215,7 @@
 
     </div>
 
-    <!-- FOOTER -->
+    <!-- Footer -->
     <div class="tmw-footer">
         <a href="{% url 'dashboard:rapport_global' %}?section=commandes&periode=mois" class="tmw-link">
             Voir les rapports complets <i class="bi bi-arrow-right"></i>

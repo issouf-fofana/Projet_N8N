@@ -1,15 +1,15 @@
 <tr>
     <td>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-2">
             <span class="src-icon {{ icon_class }}"><i class="bi {{ icon }}"></i></span>
             <span class="src-label">{{ label }}</span>
         </div>
     </td>
-    <td class="text-center td-prev">{{ row.previous.integres }}</td>
-    <td class="text-center td-prev">{{ row.previous.non_integres }}</td>
-    <td class="text-center td-curr" style="color:#16a34a;">{{ row.current.integres }}</td>
-    <td class="text-center td-curr" style="color:#dc2626;">{{ row.current.non_integres }}</td>
-    <td class="text-center">
+    <td class="td-prev">{{ row.previous.integres }}</td>
+    <td class="td-prev">{{ row.previous.non_integres }}</td>
+    <td class="td-curr ok">{{ row.current.integres }}</td>
+    <td class="td-curr ko">{{ row.current.non_integres }}</td>
+    <td class="td-evo">
         {% if row.delta_integres > 0 %}
             <span class="delta-up-good"><i class="bi bi-arrow-up-short"></i>+{{ row.delta_integres }}</span>
         {% elif row.delta_integres < 0 %}
@@ -18,7 +18,7 @@
             <span class="delta-neutral">—</span>
         {% endif %}
     </td>
-    <td class="text-center">
+    <td class="td-evo">
         {% if row.delta_non > 0 %}
             <span class="delta-up-bad"><i class="bi bi-arrow-up-short"></i>+{{ row.delta_non }}</span>
         {% elif row.delta_non < 0 %}

@@ -1,101 +1,147 @@
 {% if semaine_comparison %}
 {% with cmp=semaine_comparison %}
-<div id="cmp-periode" style="margin-top:1.5rem;margin-bottom:.5rem;">
+<div id="cmp-periode" style="margin-bottom:20px;">
 <style>
-.cmp-widget { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); border:1px solid #eef0f6; overflow:hidden; }
-.cmp-widget .cmp-header { padding:14px 20px; background:#fafbff; border-bottom:1px solid #eef0f6; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
-.cmp-widget .cmp-title { font-size:.95rem; font-weight:700; color:#1e2a45; display:flex; align-items:center; gap:8px; }
-.cmp-widget .cmp-dates { font-size:.75rem; color:#8492a6; background:#f0f3ff; padding:3px 10px; border-radius:20px; font-weight:500; }
-.cmp-widget .cmp-period-btns .btn { font-size:.75rem; padding:3px 10px; border-radius:20px !important; font-weight:600; border:1.5px solid #d1d9f0; color:#5a6a85; background:#fff; transition:all .18s; }
-.cmp-widget .cmp-period-btns .btn-primary,
-.cmp-widget .cmp-period-btns .btn:hover { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-color:transparent; }
-
-.cmp-widget table { font-size:.85rem; margin:0; }
-
-/* ── Groupe d'en-têtes ── */
-.cmp-widget thead th { padding:10px 14px; border-bottom:1px solid #eef0f6; }
-
-/* Période précédente — fond grisé, texte pâle */
-.cmp-widget thead .col-prev   { background:#f3f4f6; color:#9ca3af; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
-.cmp-widget thead .sub-prev   { background:#f3f4f6; color:#c4c9d4; font-size:.7rem; font-style:italic; border-bottom:2px solid #e5e7eb; }
-
-/* Période actuelle — fond clair bleuté, texte lisible */
-.cmp-widget thead .col-curr   { background:#eef3ff; color:#4f46e5; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
-.cmp-widget thead .sub-curr-ok { background:#eef3ff; color:#16a34a; font-size:.7rem; border-bottom:2px solid #c7d2fe; }
-.cmp-widget thead .sub-curr-ko { background:#eef3ff; color:#dc2626; font-size:.7rem; border-bottom:2px solid #c7d2fe; }
-
-/* Évolution */
-.cmp-widget thead .col-evo    { background:#fafbff; color:#6b7280; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
-.cmp-widget thead .sub-evo    { background:#fafbff; color:#94a3b8; font-size:.7rem; border-bottom:2px solid #eef0f6; }
-
-/* ── Lignes corps ── */
-.cmp-widget tbody tr { transition:background .15s; }
-.cmp-widget tbody tr:hover { background:#f5f7ff; }
-.cmp-widget tbody td { padding:10px 14px; vertical-align:middle; border-bottom:1px solid #f1f5f9; }
-.cmp-widget tbody tr:last-child td { border-bottom:none; }
-
-/* Cellules précédentes : grisées, sans gras */
-.cmp-widget tbody td.td-prev { background:#f9fafb; color:#b0b8c8 !important; font-weight:400 !important; font-size:.82rem; }
-/* Cellules actuelles : fond légèrement teinté, valeurs mises en avant */
-.cmp-widget tbody td.td-curr { background:#f7f9ff; font-weight:700 !important; font-size:.9rem; }
-
-.cmp-widget .src-icon { width:28px; height:28px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:.75rem; margin-right:6px; }
-.cmp-widget .src-icon.asten  { background:#eff6ff; color:#3b82f6; }
-.cmp-widget .src-icon.gpv    { background:#f0fdf4; color:#22c55e; }
-.cmp-widget .src-icon.legend { background:#fffbeb; color:#f59e0b; }
-.cmp-widget .src-icon.br     { background:#fff1f2; color:#ef4444; }
-.cmp-widget .src-icon.rem    { background:#faf5ff; color:#8b5cf6; }
-.cmp-widget .src-label { font-weight:600; font-size:.83rem; color:#374151; }
-.cmp-widget .delta-up-good   { color:#16a34a; font-weight:700; }
-.cmp-widget .delta-down-bad  { color:#dc2626; font-weight:700; }
-.cmp-widget .delta-up-bad    { color:#dc2626; font-weight:700; }
-.cmp-widget .delta-down-good { color:#16a34a; font-weight:700; }
-.cmp-widget .delta-neutral   { color:#9ca3af; }
+/* ═══ ÉVOLUTION SUR LA PÉRIODE — Premium Card ═══ */
+.cmp-card {
+    background: linear-gradient(160deg,#f8f9ff 0%,#fff 70%);
+    border-radius: 20px; border: 1px solid #e4e8f5;
+    box-shadow: 0 4px 28px rgba(99,102,241,.09); overflow: hidden;
+}
+.cmp-header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 12px; padding: 18px 24px 14px; border-bottom: 1px solid #eef0f8;
+}
+.cmp-header-left { display: flex; align-items: center; gap: 12px; }
+.cmp-hicon {
+    width: 38px; height: 38px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(99,102,241,.32); flex-shrink: 0;
+}
+.cmp-htitle { font-weight: 800; color: #1e2a45; font-size: 1rem; letter-spacing: -.01em; }
+.cmp-hdate {
+    display: flex; align-items: center; gap: 6px; margin-top: 3px;
+    font-size: .71rem; color: #a0aec0; font-weight: 500;
+}
+.cmp-chip { padding: 2px 9px; border-radius: 12px; font-weight: 600; font-size: .69rem; }
+.cmp-chip.prev { background: #f3f4f6; color: #9ca3af; }
+.cmp-chip.curr { background: #eef3ff; color: #6366f1; }
+.cmp-pbtn {
+    display: inline-block; font-size: .74rem; padding: 4px 12px; border-radius: 20px;
+    font-weight: 600; border: 1.5px solid #d1d9f0; color: #5a6a85; background: #fff;
+    transition: all .15s; text-decoration: none; white-space: nowrap;
+}
+.cmp-pbtn.active, .cmp-pbtn:hover {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff;
+    border-color: transparent; box-shadow: 0 2px 8px rgba(99,102,241,.28);
+    text-decoration: none;
+}
+/* Table */
+.cmp-tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .84rem; }
+.cmp-tbl thead tr:first-child th {
+    padding: 10px 16px; font-size: .71rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em; text-align: center; border-bottom: none;
+}
+.cmp-tbl thead .gh0  { background: #fff; min-width: 160px; border: none; }
+.cmp-tbl thead .gh-p { background: #f4f5f7; color: #9ca3af; }
+.cmp-tbl thead .gh-c { background: linear-gradient(90deg,#eef3ff,#f0f5ff); color: #4f46e5; }
+.cmp-tbl thead .gh-e { background: #fafbff; color: #6b7280; }
+.cmp-tbl thead tr:nth-child(2) th {
+    padding: 6px 16px 10px; font-size: .7rem; font-weight: 600;
+    text-align: center; border-bottom: 2px solid transparent;
+}
+.cmp-tbl thead .sh0   { background: #fff; border-bottom-color: #eef0f6; }
+.cmp-tbl thead .sh-p  { background: #f4f5f7; color: #b0b8c8; border-bottom-color: #e5e7eb; }
+.cmp-tbl thead .sh-co { background: linear-gradient(90deg,#eef3ff,#f0f5ff); color: #16a34a; border-bottom-color: #c7d2fe; font-weight: 700; }
+.cmp-tbl thead .sh-ck { background: linear-gradient(90deg,#eef3ff,#f0f5ff); color: #dc2626; border-bottom-color: #c7d2fe; font-weight: 700; }
+.cmp-tbl thead .sh-e  { background: #fafbff; color: #94a3b8; border-bottom-color: #eef0f6; }
+/* Body */
+.cmp-tbl tbody tr:hover td { background-color: #f0f4ff !important; }
+.cmp-tbl tbody td { padding: 11px 16px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+.cmp-tbl tbody tr:last-child td { border-bottom: none; }
+.cmp-tbl .td-prev { background: #f9fafb; color: #c4c9d4; font-size: .81rem; font-style: italic; text-align: center; }
+.cmp-tbl .td-curr { background: rgba(238,243,255,.4); font-weight: 700; font-size: .9rem; text-align: center; }
+.cmp-tbl .td-curr.ok { color: #16a34a; }
+.cmp-tbl .td-curr.ko { color: #dc2626; }
+.cmp-tbl .td-evo  { background: #fafbff; text-align: center; }
+/* Source label */
+.src-icon {
+    width: 30px; height: 30px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .78rem; flex-shrink: 0;
+}
+.src-icon.asten  { background: #eff6ff; color: #3b82f6; }
+.src-icon.gpv    { background: #f0fdf4; color: #22c55e; }
+.src-icon.legend { background: #fffbeb; color: #f59e0b; }
+.src-icon.br     { background: #fff1f2; color: #ef4444; }
+.src-icon.rem    { background: #faf5ff; color: #8b5cf6; }
+.src-label { font-weight: 700; font-size: .84rem; color: #374151; }
+/* Delta pill badges */
+.delta-up-good, .delta-down-bad, .delta-up-bad, .delta-down-good, .delta-neutral {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 3px 10px; border-radius: 20px; font-size: .76rem; font-weight: 700; white-space: nowrap;
+}
+.delta-up-good   { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.delta-down-bad  { background: #fff1f2; color: #dc2626; border: 1px solid #fecaca; }
+.delta-up-bad    { background: #fff1f2; color: #dc2626; border: 1px solid #fecaca; }
+.delta-down-good { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.delta-neutral   { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
 </style>
-<div class="cmp-widget">
+
+<div class="cmp-card">
+    <!-- Header -->
     <div class="cmp-header">
-        <div class="cmp-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 16l-4-4 4-4M17 8l4 4-4 4" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Évolution sur la période
-            <span class="cmp-dates">
-                {{ cmp.debut_sp|date:"d/m" }} → {{ cmp.fin_sp|date:"d/m" }}
-                &nbsp;·&nbsp;
-                {{ cmp.debut_s|date:"d/m" }} → {{ cmp.fin_s|date:"d/m" }}
-            </span>
+        <div class="cmp-header-left">
+            <div class="cmp-hicon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 16l-4-4 4-4M17 8l4 4-4 4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div>
+                <div class="cmp-htitle">Évolution sur la période</div>
+                <div class="cmp-hdate">
+                    <i class="bi bi-calendar3" style="font-size:.68rem;"></i>
+                    <span class="cmp-chip prev">{{ cmp.debut_sp|date:"d/m" }} → {{ cmp.fin_sp|date:"d/m" }}</span>
+                    <span style="color:#d1d5db;">·</span>
+                    <span class="cmp-chip curr">{{ cmp.debut_s|date:"d/m" }} → {{ cmp.fin_s|date:"d/m" }}</span>
+                </div>
+            </div>
         </div>
-        <div class="cmp-period-btns d-flex gap-1">
-            <a href="?periode_cmp=semaine#cmp-periode" class="btn {% if periode_cmp == 'semaine' or not periode_cmp %}btn-primary{% endif %}">7j</a>
-            <a href="?periode_cmp=mois#cmp-periode"    class="btn {% if periode_cmp == 'mois'    %}btn-primary{% endif %}">30j</a>
-            <a href="?periode_cmp=3mois#cmp-periode"   class="btn {% if periode_cmp == '3mois'   %}btn-primary{% endif %}">3M</a>
-            <a href="?periode_cmp=6mois#cmp-periode"   class="btn {% if periode_cmp == '6mois'   %}btn-primary{% endif %}">6M</a>
-            <a href="?periode_cmp=annee#cmp-periode"   class="btn {% if periode_cmp == 'annee'   %}btn-primary{% endif %}">1an</a>
+        <div class="d-flex gap-1 flex-wrap">
+            <a href="?periode_cmp=semaine#cmp-periode" class="cmp-pbtn {% if periode_cmp == 'semaine' or not periode_cmp %}active{% endif %}">7j</a>
+            <a href="?periode_cmp=mois#cmp-periode"    class="cmp-pbtn {% if periode_cmp == 'mois'    %}active{% endif %}">30j</a>
+            <a href="?periode_cmp=3mois#cmp-periode"   class="cmp-pbtn {% if periode_cmp == '3mois'   %}active{% endif %}">3M</a>
+            <a href="?periode_cmp=6mois#cmp-periode"   class="cmp-pbtn {% if periode_cmp == '6mois'   %}active{% endif %}">6M</a>
+            <a href="?periode_cmp=annee#cmp-periode"   class="cmp-pbtn {% if periode_cmp == 'annee'   %}active{% endif %}">1an</a>
         </div>
     </div>
-    <div class="table-responsive">
-        <table class="table mb-0">
+
+    <!-- Table -->
+    <div style="overflow-x:auto;">
+        <table class="cmp-tbl">
             <thead>
                 <tr>
-                    <th style="width:160px;background:#fafbff;border-bottom:1px solid #eef0f6;"></th>
-                    <th class="text-center col-prev" colspan="2">Période précédente</th>
-                    <th class="text-center col-curr" colspan="2">Période actuelle</th>
-                    <th class="text-center col-evo"  colspan="2">Évolution</th>
+                    <th class="gh0"></th>
+                    <th class="gh-p" colspan="2">Période précédente</th>
+                    <th class="gh-c" colspan="2">Période actuelle</th>
+                    <th class="gh-e" colspan="2">Évolution</th>
                 </tr>
                 <tr>
-                    <th style="background:#fafbff;border-bottom:2px solid #eef0f6;"></th>
-                    <th class="text-center sub-prev">Intégrées</th>
-                    <th class="text-center sub-prev">Non intégrées</th>
-                    <th class="text-center sub-curr-ok">Intégrées</th>
-                    <th class="text-center sub-curr-ko">Non intégrées</th>
-                    <th class="text-center sub-evo">↑↓ Intégrées</th>
-                    <th class="text-center sub-evo">↑↓ Non intégrées</th>
+                    <th class="sh0"></th>
+                    <th class="sh-p">Intégrées</th>
+                    <th class="sh-p">Non intégrées</th>
+                    <th class="sh-co">Intégrées</th>
+                    <th class="sh-ck">Non intégrées</th>
+                    <th class="sh-e">↑↓ Intégrées</th>
+                    <th class="sh-e">↑↓ Non intégrées</th>
                 </tr>
             </thead>
             <tbody>
-                {% include "dashboard/_cmp_row.html" with label="Asten"    icon="bi-box-seam"          icon_class="asten"  row=cmp.asten %}
-                {% include "dashboard/_cmp_row.html" with label="GPV"      icon="bi-truck"             icon_class="gpv"    row=cmp.gpv %}
-                {% include "dashboard/_cmp_row.html" with label="Legend"   icon="bi-archive"           icon_class="legend" row=cmp.legend %}
-                {% include "dashboard/_cmp_row.html" with label="BR Asten" icon="bi-receipt"           icon_class="br"     row=cmp.br %}
-                {% include "dashboard/_cmp_row.html" with label="Remontées" icon="bi-ticket-perforated" icon_class="rem"   row=cmp.remontees %}
+                {% include "dashboard/_cmp_row.html" with label="Asten"     icon="bi-box-seam"          icon_class="asten"  row=cmp.asten %}
+                {% include "dashboard/_cmp_row.html" with label="GPV"       icon="bi-truck"             icon_class="gpv"    row=cmp.gpv %}
+                {% include "dashboard/_cmp_row.html" with label="Legend"    icon="bi-archive"           icon_class="legend" row=cmp.legend %}
+                {% include "dashboard/_cmp_row.html" with label="BR Asten"  icon="bi-receipt"           icon_class="br"     row=cmp.br %}
+                {% include "dashboard/_cmp_row.html" with label="Remontées" icon="bi-ticket-perforated" icon_class="rem"    row=cmp.remontees %}
             </tbody>
         </table>
     </div>

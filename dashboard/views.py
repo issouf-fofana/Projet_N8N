@@ -1060,8 +1060,33 @@ def dashboard(request):
         commandes_data = []
         titre_tableau = "BR ASTEN (Statut IC)"
     
+    # ── Évolution journalière (dashboard) ────────────────────────────────
+    try:
+        evo_fin   = date_fin_parsed   or timezone.now().date()
+        evo_debut = date_debut_parsed or (evo_fin - timedelta(days=13))
+        if (evo_fin - evo_debut).days > 29:
+            evo_debut = evo_fin - timedelta(days=29)
+        dates_evo  = [evo_debut + timedelta(days=i) for i in range((evo_fin - evo_debut).days + 1)]
+        labels_evo = [d.strftime('%d/%m') for d in dates_evo]
+
+        asten_d  = {i['date_commande']: i['count'] for i in CommandeAsten.objects.filter(date_commande__gte=evo_debut, date_commande__lte=evo_fin).values('date_commande').annotate(count=Count('id'))}
+        gpv_d    = {i['date_creation']: i['count'] for i in CommandeGPV.objects.filter(date_creation__gte=evo_debut, date_creation__lte=evo_fin).values('date_creation').annotate(count=Count('id'))}
+        legend_d = {i['date_commande']: i['count'] for i in CommandeLegend.objects.filter(date_commande__gte=evo_debut, date_commande__lte=evo_fin).values('date_commande').annotate(count=Count('id'))}
+        br_d     = {i['date_br']: i['count'] for i in BRAsten.objects.filter(date_br__gte=evo_debut, date_br__lte=evo_fin).values('date_br').annotate(count=Count('id'))}
+
+        evolution_journaliere = {
+            'labels': labels_evo,
+            'asten':  [asten_d.get(d, 0)  for d in dates_evo],
+            'gpv':    [gpv_d.get(d, 0)    for d in dates_evo],
+            'legend': [legend_d.get(d, 0) for d in dates_evo],
+            'br':     [br_d.get(d, 0)     for d in dates_evo],
+        }
+    except Exception:
+        evolution_journaliere = {'labels': [], 'asten': [], 'gpv': [], 'legend': [], 'br': []}
+
     context = {
         'stats': stats,
+        'evolution_journaliere': evolution_journaliere,
         'commandes': commandes_data,
         'br_trouvees': br_trouvees if type_donnees == 'br' else None,
         'br_non_trouvees': br_non_trouvees if type_donnees == 'br' else None,
@@ -1386,6 +1411,49 @@ def accueil(request):
             'taux_non_resolu': 0
         }
     
+    # ── Évolution journalière (tous champs DateField) ──────────────────────
+    try:
+        evo_fin   = date_fin   or timezone.now().date()
+        evo_debut = date_debut or (evo_fin - timedelta(days=13))
+        if (evo_fin - evo_debut).days > 29:
+            evo_debut = evo_fin - timedelta(days=29)
+        dates_evo  = [evo_debut + timedelta(days=i) for i in range((evo_fin - evo_debut).days + 1)]
+        labels_evo = [d.strftime('%d/%m') for d in dates_evo]
+
+        asten_daily = {
+            item['date_commande']: item['count']
+            for item in CommandeAsten.objects
+            .filter(date_commande__gte=evo_debut, date_commande__lte=evo_fin)
+            .values('date_commande').annotate(count=Count('id'))
+        }
+        gpv_daily = {
+            item['date_creation']: item['count']
+            for item in CommandeGPV.objects
+            .filter(date_creation__gte=evo_debut, date_creation__lte=evo_fin)
+            .values('date_creation').annotate(count=Count('id'))
+        }
+        legend_daily = {
+            item['date_commande']: item['count']
+            for item in CommandeLegend.objects
+            .filter(date_commande__gte=evo_debut, date_commande__lte=evo_fin)
+            .values('date_commande').annotate(count=Count('id'))
+        }
+        br_daily = {
+            item['date_br']: item['count']
+            for item in BRAsten.objects
+            .filter(date_br__gte=evo_debut, date_br__lte=evo_fin)
+            .values('date_br').annotate(count=Count('id'))
+        }
+        evolution_journaliere = {
+            'labels': labels_evo,
+            'asten':  [asten_daily.get(d, 0)  for d in dates_evo],
+            'gpv':    [gpv_daily.get(d, 0)    for d in dates_evo],
+            'legend': [legend_daily.get(d, 0) for d in dates_evo],
+            'br':     [br_daily.get(d, 0)     for d in dates_evo],
+        }
+    except Exception:
+        evolution_journaliere = {'labels': [], 'asten': [], 'gpv': [], 'legend': [], 'br': []}
+
     context = {
         'stats_asten': stats_asten,
         'stats_gpv': stats_gpv,
@@ -1393,6 +1461,7 @@ def accueil(request):
         'stats_br': stats_br,
         'stats_factures': stats_factures,
         'stats_remontees': stats_remontees,
+        'evolution_journaliere': evolution_journaliere,
         'periode': periode,
         'date_debut': date_debut.strftime('%Y-%m-%d') if date_debut else '',
         'date_fin': date_fin.strftime('%Y-%m-%d') if date_fin else '',

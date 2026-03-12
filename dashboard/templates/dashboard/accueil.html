@@ -67,6 +67,7 @@ body { background: #f0f2f8 !important; }
     background: #fff; border-radius: 14px; border: 1px solid #e8ecf5;
     box-shadow: 0 2px 12px rgba(15,23,42,.06); overflow: hidden;
     transition: box-shadow .2s, transform .2s, border-color .2s;
+    position: relative;
 }
 .acc-card:hover {
     box-shadow: 0 8px 24px rgba(99,102,241,.13);
@@ -96,6 +97,31 @@ body { background: #f0f2f8 !important; }
 
 /* hover accent unifié — plus de border-top colorée au repos */
 .acc-card:hover .acc-card-head { background: #f8f9ff; }
+
+/* ── Orbes décoratifs animés ── */
+@keyframes orbFloat {
+    0%, 100% { transform: scale(1) translate(0,0); opacity:.07; }
+    50%       { transform: scale(1.12) translate(-5px,7px); opacity:.11; }
+}
+@keyframes orbFloat2 {
+    0%, 100% { transform: scale(1) translate(0,0); opacity:.05; }
+    50%       { transform: scale(1.08) translate(4px,-5px); opacity:.09; }
+}
+.acc-card-orb, .acc-card-orb2 {
+    position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
+}
+.acc-card-orb  { width: 140px; height: 140px; right: -30px; top: -30px;
+                 animation: orbFloat  6s ease-in-out infinite; }
+.acc-card-orb2 { width:  80px; height:  80px; left:  -20px; bottom: -20px;
+                 animation: orbFloat2 9s ease-in-out infinite; }
+.asten-theme  .acc-card-orb, .asten-theme  .acc-card-orb2 { background: #3b82f6; }
+.gpv-theme    .acc-card-orb, .gpv-theme    .acc-card-orb2 { background: #22c55e; }
+.legend-theme .acc-card-orb, .legend-theme .acc-card-orb2 { background: #f59e0b; }
+.br-theme     .acc-card-orb, .br-theme     .acc-card-orb2 { background: #ef4444; }
+.fact-theme   .acc-card-orb, .fact-theme   .acc-card-orb2 { background: #a855f7; }
+.rem-theme    .acc-card-orb, .rem-theme    .acc-card-orb2 { background: #0ea5e9; }
+/* contenu au-dessus des orbes */
+.acc-card-head, .acc-card-body { position: relative; z-index: 1; }
 
 .acc-card-body { padding: 16px 18px; }
 
@@ -232,6 +258,7 @@ body { background: #f0f2f8 !important; }
 
         <!-- Commandes Asten -->
         <div class="acc-card asten-theme">
+            {% if stats_asten.non_integres %}<div class="acc-card-orb"></div><div class="acc-card-orb2"></div>{% endif %}
             <div class="acc-card-head">
                 <span class="head-icon"><i class="bi bi-box-seam"></i></span>
                 <span class="head-title">Commandes Asten</span>
@@ -273,6 +300,7 @@ body { background: #f0f2f8 !important; }
 
         <!-- Commandes GPV -->
         <div class="acc-card gpv-theme">
+            {% if stats_gpv.non_integres %}<div class="acc-card-orb"></div><div class="acc-card-orb2"></div>{% endif %}
             <div class="acc-card-head">
                 <span class="head-icon"><i class="bi bi-truck"></i></span>
                 <span class="head-title">Commandes GPV</span>
@@ -314,6 +342,7 @@ body { background: #f0f2f8 !important; }
 
         <!-- Commandes Legend -->
         <div class="acc-card legend-theme">
+            {% if stats_legend.non_integres %}<div class="acc-card-orb"></div><div class="acc-card-orb2"></div>{% endif %}
             <div class="acc-card-head">
                 <span class="head-icon"><i class="bi bi-archive"></i></span>
                 <span class="head-title">Commandes Legend</span>
@@ -355,6 +384,7 @@ body { background: #f0f2f8 !important; }
 
         <!-- BR Asten -->
         <div class="acc-card br-theme">
+            {% if stats_br.non_integres %}<div class="acc-card-orb"></div><div class="acc-card-orb2"></div>{% endif %}
             <div class="acc-card-head">
                 <span class="head-icon"><i class="bi bi-receipt-cutoff"></i></span>
                 <span class="head-title">BR Asten</span>
@@ -396,6 +426,7 @@ body { background: #f0f2f8 !important; }
 
         <!-- Factures -->
         <div class="acc-card fact-theme">
+            {% if stats_factures.non_integres %}<div class="acc-card-orb"></div><div class="acc-card-orb2"></div>{% endif %}
             <div class="acc-card-head">
                 <span class="head-icon"><i class="bi bi-file-earmark-text"></i></span>
                 <span class="head-title">Factures</span>
@@ -437,6 +468,7 @@ body { background: #f0f2f8 !important; }
 
         <!-- Remontées -->
         <div class="acc-card rem-theme">
+            {% if stats_remontees.non_resolu %}<div class="acc-card-orb"></div><div class="acc-card-orb2"></div>{% endif %}
             <div class="acc-card-head">
                 <span class="head-icon"><i class="bi bi-ticket-perforated"></i></span>
                 <span class="head-title">Remontées</span>
@@ -478,11 +510,61 @@ body { background: #f0f2f8 !important; }
 
     </div><!-- /.acc-cards -->
 
-</div><!-- /.container-fluid -->
+<!-- ══════════════ SECTIONS BASSES ══════════════ -->
+<div style="padding:0 4px;">
+
+<!-- ══════════════ ÉVOLUTION JOURNALIÈRE ══════════════ -->
+{% if evolution_journaliere.labels %}
+<div style="margin-bottom:14px;">
+<div style="background:linear-gradient(160deg,#f8f9ff 0%,#fff 60%);border-radius:20px;border:1px solid #e4e8f5;box-shadow:0 4px 28px rgba(99,102,241,.09);overflow:hidden;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:38px;height:38px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,.32);">
+                <i class="bi bi-graph-up-arrow" style="color:#fff;font-size:1rem;"></i>
+            </div>
+            <div>
+                <div style="font-weight:800;color:#1e2a45;font-size:1rem;letter-spacing:-.01em;">Évolution journalière</div>
+                <div style="font-size:.72rem;color:#a0aec0;font-weight:500;margin-top:1px;">
+                    <i class="bi bi-calendar3" style="font-size:.68rem;"></i>
+                    {{ evolution_journaliere.labels|first }} → {{ evolution_journaliere.labels|last }}
+                </div>
+            </div>
+        </div>
+        <!-- Légende pills -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#2563eb;background:#eff6ff;padding:5px 12px;border-radius:20px;border:1px solid #bfdbfe;">
+                <span style="width:8px;height:8px;background:#3b82f6;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(59,130,246,.6);"></span>Asten
+            </span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#15803d;background:#f0fdf4;padding:5px 12px;border-radius:20px;border:1px solid #bbf7d0;">
+                <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(34,197,94,.6);"></span>GPV
+            </span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#b45309;background:#fffbeb;padding:5px 12px;border-radius:20px;border:1px solid #fde68a;">
+                <span style="width:8px;height:8px;background:#f59e0b;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(245,158,11,.6);"></span>Legend
+            </span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#7e22ce;background:#faf5ff;padding:5px 12px;border-radius:20px;border:1px solid #e9d5ff;">
+                <span style="width:8px;height:8px;background:#a855f7;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(168,85,247,.6);"></span>BR
+            </span>
+        </div>
+    </div>
+
+    <!-- Chart area with subtle inner background -->
+    <div style="margin:0 16px 18px;background:#f9faff;border-radius:14px;padding:16px 12px 10px;border:1px solid #eef0f8;">
+        <canvas id="evoChart" style="width:100%;height:260px;"></canvas>
+    </div>
+
+</div>
+</div>
+
+{% endif %}
 
 {% include "dashboard/_semaine_comparison.html" %}
 
 {% include "dashboard/_top_magasins.html" %}
+
+</div><!-- /.sections basses -->
+</div><!-- /.container-fluid -->
 
 <script>
 function setPeriode(periode) {
@@ -554,6 +636,92 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // ── Évolution journalière ──────────────────────────────────────────
+    const evoCtx = document.getElementById('evoChart');
+    if (evoCtx) {
+        const evoLabels = {{ evolution_journaliere.labels|safe }};
+        const evoAsten  = {{ evolution_journaliere.asten|safe }};
+        const evoGPV    = {{ evolution_journaliere.gpv|safe }};
+        const evoLegend = {{ evolution_journaliere.legend|safe }};
+        const evoBR     = {{ evolution_journaliere.br|safe }};
+
+        function makeGrad(chart, r, g, b) {
+            const g2 = chart.ctx.createLinearGradient(0, 0, 0, chart.height || 260);
+            g2.addColorStop(0,   `rgba(${r},${g},${b},0.22)`);
+            g2.addColorStop(0.5, `rgba(${r},${g},${b},0.08)`);
+            g2.addColorStop(1,   `rgba(${r},${g},${b},0.00)`);
+            return g2;
+        }
+        function ds(label, data, r, g, b, hex) {
+            return {
+                label, data,
+                borderColor: hex,
+                backgroundColor: c => makeGrad(c.chart, r, g, b),
+                borderWidth: 3,
+                pointRadius: 4,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: hex,
+                pointBorderWidth: 2.5,
+                pointHoverBackgroundColor: hex,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2,
+                tension: 0.45,
+                fill: true,
+            };
+        }
+        new Chart(evoCtx, {
+            type: 'line',
+            data: {
+                labels: evoLabels,
+                datasets: [
+                    ds('Asten',  evoAsten,  59,  130, 246, '#3b82f6'),
+                    ds('GPV',    evoGPV,    34,  197, 94,  '#22c55e'),
+                    ds('Legend', evoLegend, 245, 158, 11,  '#f59e0b'),
+                    ds('BR',     evoBR,     168, 85,  247, '#a855f7'),
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode:'index', intersect:false },
+                animation: { duration: 900, easing: 'easeInOutQuart' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.92)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: { top:10, bottom:10, left:14, right:14 },
+                        cornerRadius: 12,
+                        borderColor: 'rgba(99,102,241,.25)',
+                        borderWidth: 1,
+                        titleFont: { weight:'700', size:12 },
+                        callbacks: {
+                            label: c => {
+                                const dot = ['🔵','🟢','🟡','🟣'][c.datasetIndex] || '•';
+                                return `  ${dot} ${c.dataset.label} : ${c.parsed.y.toLocaleString('fr-FR')}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color:'rgba(99,102,241,.06)', drawBorder:false },
+                        border: { display:false },
+                        ticks: { color:'#94a3b8', font:{ size:11, weight:'600' }, maxRotation:0 }
+                    },
+                    y: {
+                        grid: { color:'rgba(99,102,241,.06)', drawBorder:false },
+                        border: { display:false },
+                        ticks: { color:'#94a3b8', font:{ size:11 }, callback: v => v.toLocaleString('fr-FR'), maxTicksLimit:6 },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -446,7 +446,32 @@
     .stat-card {
         position: relative;
         z-index: 1;
+        overflow: hidden;
     }
+
+    /* ── Orbes décoratifs stat-cards ── */
+    @keyframes orbFloat {
+        0%, 100% { transform: scale(1) translate(0,0); opacity:.07; }
+        50%       { transform: scale(1.12) translate(-5px,7px); opacity:.12; }
+    }
+    @keyframes orbFloat2 {
+        0%, 100% { transform: scale(1) translate(0,0); opacity:.04; }
+        50%       { transform: scale(1.08) translate(4px,-5px); opacity:.08; }
+    }
+    .sc-orb, .sc-orb2 {
+        position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
+    }
+    .sc-orb  { width:130px; height:130px; right:-30px; top:-30px;
+               animation: orbFloat  6s ease-in-out infinite; }
+    .sc-orb2 { width: 70px; height: 70px; left:-15px; bottom:-15px;
+               animation: orbFloat2 9s ease-in-out infinite; }
+    .stat-card.info    .sc-orb, .stat-card.info    .sc-orb2 { background:#3b82f6; }
+    .stat-card.success .sc-orb, .stat-card.success .sc-orb2 { background:#22c55e; }
+    .stat-card.warning .sc-orb, .stat-card.warning .sc-orb2 { background:#f59e0b; }
+    .stat-card.danger  .sc-orb, .stat-card.danger  .sc-orb2 { background:#ef4444; }
+    /* contenu au dessus */
+    .stat-card > .d-flex,
+    .stat-card > .d-flex.flex-column { position: relative; z-index: 1; }
 
     /* Extra fluid + professional polish */
     .dashboard-card,
@@ -553,42 +578,42 @@
                 <div class="btn-group w-100" role="group">
                     <input type="radio" class="btn-check" name="type_donnees" id="type_asten" value="commandes_asten" 
                            {% if filtres.type_donnees == 'commandes_asten' or not filtres.type_donnees %}checked{% endif %} 
-                           onchange="document.getElementById('typeForm').submit()">
+                           onchange="switchType(this.value)">
                     <label class="btn btn-outline-primary" for="type_asten">
                         <i class="bi bi-box-seam"></i> Commandes Asten
                     </label>
                     
                     <input type="radio" class="btn-check" name="type_donnees" id="type_gpv" value="commandes_gpv"
                            {% if filtres.type_donnees == 'commandes_gpv' %}checked{% endif %}
-                           onchange="document.getElementById('typeForm').submit()">
+                           onchange="switchType(this.value)">
                     <label class="btn btn-outline-primary" for="type_gpv">
                         <i class="bi bi-box-seam"></i> Commandes GPV
                     </label>
                     
                     <input type="radio" class="btn-check" name="type_donnees" id="type_legend" value="commandes_legend"
                            {% if filtres.type_donnees == 'commandes_legend' %}checked{% endif %}
-                           onchange="document.getElementById('typeForm').submit()">
+                           onchange="switchType(this.value)">
                     <label class="btn btn-outline-primary" for="type_legend">
                         <i class="bi bi-box-seam"></i> Commandes Legend
                     </label>
                     
                     <input type="radio" class="btn-check" name="type_donnees" id="type_factures" value="factures"
                            {% if filtres.type_donnees == 'factures' %}checked{% endif %}
-                           onchange="document.getElementById('typeForm').submit()">
+                           onchange="switchType(this.value)">
                     <label class="btn btn-outline-primary" for="type_factures">
                         <i class="bi bi-file-earmark-text"></i> Facture Sage
                     </label>
                     
                     <input type="radio" class="btn-check" name="type_donnees" id="type_factures_backup" value="factures_backup"
                            {% if filtres.type_donnees == 'factures_backup' %}checked{% endif %}
-                           onchange="document.getElementById('typeForm').submit()">
+                           onchange="switchType(this.value)">
                     <label class="btn btn-outline-primary" for="type_factures_backup">
                         <i class="bi bi-receipt"></i> Facture Backup
                     </label>
                     
                     <input type="radio" class="btn-check" name="type_donnees" id="type_br" value="br"
                            {% if filtres.type_donnees == 'br' %}checked{% endif %}
-                           onchange="document.getElementById('typeForm').submit()">
+                           onchange="switchType(this.value)">
                     <label class="btn btn-outline-primary" for="type_br">
                         <i class="bi bi-receipt"></i> BR
                     </label>
@@ -739,10 +764,14 @@
     </div>
 </div>
 
+<!-- Contenu dynamique (rechargé via AJAX lors du changement d'onglet) -->
+<div id="dashboard-dynamic">
+
 <!-- Statistiques -->
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="stat-card {% if filtres.type_donnees == 'factures_backup' %}success{% else %}info{% endif %}">
+            <div class="sc-orb"></div><div class="sc-orb2"></div>
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
                     <div class="stat-label">
@@ -772,6 +801,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card {% if filtres.type_donnees == 'factures_backup' %}danger{% else %}success{% endif %}">
+            <div class="sc-orb"></div><div class="sc-orb2"></div>
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
                     <div class="stat-label">
@@ -798,6 +828,7 @@
     </div>
     <div class="col-md-3">
         <div class="stat-card warning">
+            <div class="sc-orb"></div><div class="sc-orb2"></div>
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
                     <div class="stat-label">
@@ -925,17 +956,15 @@
         chevron.innerHTML = hidden ? '<i class="bi bi-chevron-up"></i>' : '<i class="bi bi-chevron-down"></i>';
     };
 
-    // Restaurer valeurs sauvegardées
-    document.addEventListener('DOMContentLoaded', function() {
-        const saved = loadSaved();
-        if (saved.integrees !== undefined)      document.getElementById('inp_integrees').value      = saved.integrees;
-        if (saved.non_integrees !== undefined)  document.getElementById('inp_non_integrees').value  = saved.non_integrees;
-        if (saved.integrees_vide !== undefined) document.getElementById('inp_integrees_vide').value = saved.integrees_vide;
-        if (Object.keys(saved).length) {
-            updateCards();
-            if (typeof updatePieChart === 'function') setTimeout(updatePieChart, 100);
-        }
-    });
+    // Restaurer valeurs sauvegardées — immédiat (fonctionne aussi en AJAX)
+    const saved = loadSaved();
+    if (saved.integrees !== undefined)      document.getElementById('inp_integrees').value      = saved.integrees;
+    if (saved.non_integrees !== undefined)  document.getElementById('inp_non_integrees').value  = saved.non_integrees;
+    if (saved.integrees_vide !== undefined) document.getElementById('inp_integrees_vide').value = saved.integrees_vide;
+    if (Object.keys(saved).length) {
+        updateCards();
+        if (typeof updatePieChart === 'function') setTimeout(updatePieChart, 150);
+    }
 })();
 </script>
 {% endif %}
@@ -1500,6 +1529,8 @@
     </div>
 </div>
 
+</div><!-- /dashboard-dynamic -->
+
 <script>
 function filtrerMagasins(recherche) {
     const items = document.querySelectorAll('.magasin-item');
@@ -1668,6 +1699,70 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// ── Changement d'onglet sans rechargement complet ──────────────────────────
+function switchType(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('type_donnees', value);
+
+    // Réutiliser le loader global de base.html
+    const container = document.getElementById('dashboard-dynamic');
+    if (!container) { window.location.href = url; return; }
+
+    container.style.transition = 'opacity .2s';
+    container.style.opacity = '0.35';
+    container.style.pointerEvents = 'none';
+
+    const globalLoader = document.getElementById('page-nav-loader');
+    const loadStart = Date.now();
+    const MIN_MS = 10;
+    if (globalLoader) globalLoader.style.display = 'flex';
+
+    fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.text())
+        .then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newDynamic = doc.getElementById('dashboard-dynamic');
+            if (!newDynamic) return;
+
+            container.innerHTML = newDynamic.innerHTML;
+            container.style.opacity = '0';
+
+            container.querySelectorAll('script').forEach(old => {
+                const s = document.createElement('script');
+                s.textContent = old.textContent;
+                old.parentNode.replaceChild(s, old);
+            });
+
+            const hidden = document.querySelector('#filterForm input[name="type_donnees"]');
+            if (hidden) hidden.value = value;
+
+            history.pushState({ type_donnees: value }, '', url.toString());
+
+            const elapsed = Date.now() - loadStart;
+            const wait = Math.max(0, MIN_MS - elapsed);
+
+            setTimeout(function() {
+                if (globalLoader) globalLoader.style.display = 'none';
+                container.style.transition = 'opacity .3s';
+                container.style.opacity = '1';
+                container.style.pointerEvents = '';
+
+                document.querySelectorAll('.stat-value[data-value]').forEach(function(el) {
+                    animateValue(el, 0, parseFloat(el.getAttribute('data-value')) || 0, 500, el.getAttribute('data-suffix') || '');
+                });
+                document.querySelectorAll('.stat-percentage[data-value]').forEach(function(el) {
+                    animatePercentage(el, 0, parseFloat(el.getAttribute('data-value')) || 0, 500);
+                });
+                if (typeof updatePieChart === 'function') setTimeout(updatePieChart, 200);
+                if (typeof initTopMagasins === 'function') initTopMagasins();
+            }, wait);
+        })
+        .catch(() => {
+            if (globalLoader) globalLoader.style.display = 'none';
+            window.location.href = url;
+        });
+}
+
 // Animation d'incrémentation des valeurs (max 2 secondes)
 function animateValue(element, start, end, maxDuration, suffix = '') {
     if (start === end) {
@@ -1748,6 +1843,22 @@ setTimeout(function() {
         animatePercentage(element, 0, targetValue, 500);
     });
 }, 300);
+
+// Retour navigateur (bouton back/forward)
+window.addEventListener('popstate', function(e) {
+    const url = new URL(window.location.href);
+    const type = url.searchParams.get('type_donnees') || 'commandes_asten';
+    const radio = document.getElementById({
+        'commandes_asten':   'type_asten',
+        'commandes_gpv':     'type_gpv',
+        'commandes_legend':  'type_legend',
+        'factures':          'type_factures',
+        'factures_backup':   'type_factures_backup',
+        'br':                'type_br'
+    }[type] || 'type_asten');
+    if (radio) radio.checked = true;
+    switchType(type);
+});
 
 // Réanimer les valeurs après un changement de filtre
 const filterForm = document.getElementById('filterForm');
