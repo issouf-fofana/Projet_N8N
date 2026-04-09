@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'ecarts',
     'dashboard',
     'tickets',
+    'entree_journal',
 ]
 
 MIDDLEWARE = [
@@ -94,6 +95,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 20,
+        },
     }
 }
 
@@ -188,3 +192,10 @@ DOSSIER_BR_ASTEN_PATH = get_dossier_path(DOSSIER_BR_ASTEN)
 DOSSIER_BR_IC_PATH = get_dossier_path(DOSSIER_BR_IC)
 DOSSIER_FACTURE_BACKUP_PATH = get_dossier_path(DOSSIER_FACTURE_BACKUP)
 DOSSIER_FACTURES_SAGE_PATH = get_dossier_path(DOSSIER_FACTURES_SAGE)
+DOSSIER_VERSIONS_ASTEN = config('DOSSIER_VERSIONS_ASTEN', default='/mnt/asten/Cegid/AstenProd/ReferentielPrecom/Backup')
+DOSSIER_VERSIONS_ASTEN_PATH = get_dossier_path(DOSSIER_VERSIONS_ASTEN)
+# Factures Cyrus / Asten (CSV bruts pour vérification)
+DOSSIER_FACTURES_CYRUS = config('DOSSIER_FACTURES_CYRUS', default='facture_cyrus')
+DOSSIER_FACTURES_ASTEN_CSV = config('DOSSIER_FACTURES_ASTEN', default='facture_asten')
+DOSSIER_FACTURES_CYRUS_PATH = get_dossier_path(DOSSIER_FACTURES_CYRUS)
+DOSSIER_FACTURES_ASTEN_CSV_PATH = get_dossier_path(DOSSIER_FACTURES_ASTEN_CSV)

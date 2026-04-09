@@ -1,0 +1,331 @@
+{% extends 'core/base.html' %}
+{% load dashboard_filters %}
+{% block title %}{{ type_data.label }} — {{ shop.name }}{% endblock %}
+
+{% block content %}
+<style>
+/* ═══ BREADCRUMB ══════════════════════════════════════════════════════ */
+.iad-bc { display:flex;align-items:center;gap:6px;font-size:.75rem;color:#94a3b8;margin-bottom:20px;flex-wrap:wrap; }
+.iad-bc a { color:#1e3a8a;text-decoration:none;font-weight:600; }
+.iad-bc a:hover { text-decoration:underline; }
+.iad-bc .sep { color:#cbd5e1; }
+
+/* ═══ HEADER ══════════════════════════════════════════════════════════ */
+.iad-header { display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap; }
+.iad-header-left { display:flex;align-items:center;gap:14px; }
+.iad-icon { width:52px;height:52px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;
+    box-shadow:0 4px 14px rgba(30,58,138,.22);flex-shrink:0; }
+.iad-icon.ok         { background:linear-gradient(135deg,#15803d,#16a34a); }
+.iad-icon.ok_erreurs { background:linear-gradient(135deg,#b45309,#d97706); }
+.iad-icon.partial    { background:linear-gradient(135deg,#b45309,#d97706); }
+.iad-icon.absent     { background:linear-gradient(135deg,#b91c1c,#dc2626); }
+.iad-title { font-size:1.4rem;font-weight:900;color:#0f172a;margin:0 0 4px; }
+.iad-sub   { font-size:.82rem;color:#64748b;margin:0; }
+.iad-back  { background:#f8fafc;color:#475569;border:1.5px solid #e2e8f0;border-radius:10px;
+    padding:8px 16px;font-size:.82rem;font-weight:700;text-decoration:none;
+    display:inline-flex;align-items:center;gap:6px;white-space:nowrap; }
+.iad-back:hover { background:#f1f5f9;color:#0f172a; }
+
+/* ═══ STAT CARDS ══════════════════════════════════════════════════════ */
+.iad-stats { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px; }
+.iad-stat  { background:#fff;border-radius:14px;border:1px solid #e8edf5;padding:14px 16px;
+    box-shadow:0 2px 8px rgba(15,23,42,.04); }
+.iad-stat-lbl { font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:4px; }
+.iad-stat-val { font-size:1.5rem;font-weight:900;color:#0f172a;line-height:1; }
+.iad-stat-sub { font-size:.7rem;color:#64748b;margin-top:4px; }
+.iad-stat.ok   .iad-stat-val { color:#15803d; }
+.iad-stat.warn .iad-stat-val { color:#b45309; }
+.iad-stat.err  .iad-stat-val { color:#dc2626; }
+.iad-stat.blue .iad-stat-val { color:#1e3a8a; }
+
+/* ═══ ENTRY CARD ══════════════════════════════════════════════════════ */
+.iad-entry-card { background:#fff;border-radius:16px;border:1.5px solid #e8edf5;
+    box-shadow:0 2px 10px rgba(15,23,42,.05);margin-bottom:14px;overflow:hidden; }
+.iad-entry-card.entry-err  { border-color:#fca5a5;
+    box-shadow:0 2px 12px rgba(220,38,38,.1); }
+.iad-entry-card.entry-warn { border-color:#fcd34d;
+    box-shadow:0 2px 12px rgba(245,158,11,.08); }
+.iad-entry-head { display:flex;align-items:center;gap:10px;padding:14px 18px;
+    border-bottom:1px solid #f1f5f9;flex-wrap:wrap; }
+.iad-entry-card.entry-err  .iad-entry-head { background:#fff7f7; }
+.iad-entry-card.entry-warn .iad-entry-head { background:#fffdf0; }
+.iad-entry-num  { width:28px;height:28px;border-radius:8px;background:#eff6ff;color:#1e3a8a;
+    font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.iad-entry-card.entry-err  .iad-entry-num { background:#fee2e2;color:#b91c1c; }
+.iad-entry-card.entry-warn .iad-entry-num { background:#fef3c7;color:#b45309; }
+
+.tb { display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700; }
+.tb.ok, .tb.succès { background:#dcfce7;color:#15803d; }
+.tb.erreur         { background:#fee2e2;color:#b91c1c; }
+.tb.en_cours       { background:#fef3c7;color:#b45309; }
+.tb.indéfini       { background:#f1f5f9;color:#64748b; }
+
+.iad-emeta { font-size:.73rem;color:#64748b;display:inline-flex;align-items:center;gap:3px; }
+.iad-chip  { background:#f1f5f9;color:#475569;font-size:.68rem;font-weight:600;padding:2px 9px;border-radius:20px; }
+
+.iad-entry-body { padding:14px 18px; }
+
+/* ═══ RÉCAP FICHIER ═══════════════════════════════════════════════════ */
+.iad-rcard { background:#f8fafc;border:1px solid #e8edf5;border-radius:10px;padding:12px 16px;margin-bottom:12px; }
+.iad-rfile { font-size:.7rem;color:#475569;font-family:monospace;word-break:break-all;
+    display:flex;align-items:flex-start;gap:6px;margin-bottom:10px;padding-bottom:10px;
+    border-bottom:1px dashed #e8edf5; }
+.iad-rpills { display:flex;gap:6px;flex-wrap:wrap; }
+.rp { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:700; }
+.rp.fmt  { background:#eff6ff;color:#1d4ed8; }
+.rp.err  { background:#fee2e2;color:#b91c1c; }
+.rp.cre  { background:#f0fdf4;color:#15803d; }
+.rp.maj  { background:#fefce8;color:#a16207; }
+.rp.sup  { background:#fdf4ff;color:#7e22ce; }
+
+/* ═══ BANDEAU ERREUR ══════════════════════════════════════════════════ */
+.iad-err-banner { display:flex;align-items:center;gap:10px;padding:10px 14px;
+    background:#fff7f7;border:1px solid #fecaca;border-radius:10px;margin-bottom:10px; }
+.iad-err-banner i { color:#b91c1c;font-size:1rem;flex-shrink:0; }
+.iad-err-msg  { color:#b91c1c;font-weight:700;font-size:.8rem;flex:1; }
+.iad-err-cnt  { background:#fee2e2;color:#b91c1c;font-size:.68rem;font-weight:700;
+    padding:2px 9px;border-radius:20px;white-space:nowrap; }
+
+/* ═══ BANDEAU AVERTISSEMENT ═══════════════════════════════════════════ */
+.iad-warn-banner { display:flex;align-items:center;gap:10px;padding:10px 14px;
+    background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;margin-bottom:10px; }
+.iad-warn-banner i { color:#b45309;font-size:1rem;flex-shrink:0; }
+.iad-warn-msg { color:#b45309;font-weight:700;font-size:.8rem;flex:1; }
+.iad-warn-cnt { background:#fef3c7;color:#b45309;font-size:.68rem;font-weight:700;
+    padding:2px 9px;border-radius:20px;white-space:nowrap; }
+
+/* ═══ TABLE ERREURS ═══════════════════════════════════════════════════ */
+.iad-etbl-wrap { overflow-x:auto;border-radius:10px;border:1px solid #fecaca; }
+.iad-etbl { width:100%;border-collapse:collapse;font-size:.76rem; }
+.iad-etbl thead th { padding:8px 12px;background:#fff7f7;border-bottom:1.5px solid #fecaca;
+    color:#b91c1c;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+    text-align:left;white-space:nowrap; }
+.iad-etbl tbody td { padding:7px 12px;border-bottom:1px solid #fff1f2;vertical-align:top; }
+.iad-etbl tbody tr:last-child td { border-bottom:none; }
+.iad-etbl tbody tr:hover { background:#fff8f8; }
+.iad-etbl .ets { color:#94a3b8;white-space:nowrap;font-family:monospace;font-size:.68rem; }
+.iad-etbl .edt { font-family:monospace;color:#334155;font-size:.73rem;font-weight:600; }
+.iad-etbl .emg { color:#b91c1c;font-size:.7rem; }
+.iad-etbl .erow { font-size:.7rem;color:#475569;font-family:monospace; }
+
+/* ═══ VIDE ════════════════════════════════════════════════════════════ */
+.iad-empty { background:#fff;border:1px dashed #e2e8f0;border-radius:16px;
+    padding:50px;text-align:center;color:#94a3b8; }
+.iad-empty i { font-size:2.5rem;display:block;margin-bottom:10px; }
+
+@media(max-width:700px){ .iad-stats{grid-template-columns:repeat(2,1fr);} }
+</style>
+
+<!-- ══ BREADCRUMB ══════════════════════════════════════════════════════ -->
+<div class="iad-bc">
+    <a href="{% url 'dashboard:integration_asten' %}?date={{ date_str }}">
+        <i class="bi bi-patch-check-fill"></i> Intégration Asten
+    </a>
+    <span class="sep">›</span>
+    <span>{{ pos.name }}</span>
+    <span class="sep">›</span>
+    <span>{{ shop.name }} ({{ shop_ref }})</span>
+    <span class="sep">›</span>
+    <strong style="color:#0f172a;">{{ type_data.detail_text }}</strong>
+</div>
+
+<!-- ══ HEADER ════════════════════════════════════════════════════════ -->
+<div class="iad-header">
+    <div class="iad-header-left">
+        <div class="iad-icon {{ type_data.statut }}">
+            {% if type_data.statut == 'ok' %}<i class="bi bi-check-circle-fill"></i>
+            {% elif type_data.statut == 'ok_erreurs' %}<i class="bi bi-exclamation-circle-fill"></i>
+            {% elif type_data.statut == 'absent' %}<i class="bi bi-x-circle-fill"></i>
+            {% else %}<i class="bi bi-hourglass-split"></i>{% endif %}
+        </div>
+        <div>
+            <h1 class="iad-title">{{ type_data.detail_text }}</h1>
+            <p class="iad-sub">
+                {{ shop.name }} · {{ pos.name }} · Nuit du <strong>{{ data.date_nuit }}</strong>
+                {% if type_data.optionnel %} · <em style="color:#d97706;">(optionnel)</em>{% endif %}
+            </p>
+        </div>
+    </div>
+    <a href="{% url 'dashboard:integration_asten' %}?date={{ date_str }}" class="iad-back">
+        <i class="bi bi-arrow-left"></i> Retour
+    </a>
+</div>
+
+<!-- ══ STAT CARDS ════════════════════════════════════════════════════ -->
+<div class="iad-stats" style="grid-template-columns:repeat(5,1fr);">
+    <div class="iad-stat {% if type_data.nb_total > 0 %}ok{% endif %}">
+        <div class="iad-stat-lbl">Entrées</div>
+        <div class="iad-stat-val">{{ type_data.nb_total }}</div>
+        <div class="iad-stat-sub">dans la fenêtre</div>
+    </div>
+    <div class="iad-stat {% if type_data.nb_succes > 0 %}ok{% endif %}">
+        <div class="iad-stat-lbl">Succès</div>
+        <div class="iad-stat-val">{{ type_data.nb_succes }}</div>
+        <div class="iad-stat-sub">intégrations OK</div>
+    </div>
+    <div class="iad-stat {% if type_data.nb_erreurs > 0 %}err{% endif %}">
+        <div class="iad-stat-lbl">Erreurs</div>
+        <div class="iad-stat-val">{{ type_data.nb_erreurs }}</div>
+        <div class="iad-stat-sub">articles rejetés</div>
+    </div>
+    <div class="iad-stat {% if type_data.nb_avertissements > 0 %}warn{% endif %}">
+        <div class="iad-stat-lbl">Avertissements</div>
+        <div class="iad-stat-val">{{ type_data.nb_avertissements }}</div>
+        <div class="iad-stat-sub">mutex / doublons</div>
+    </div>
+    <div class="iad-stat {% if type_data.integre %}ok{% else %}err{% endif %}">
+        <div class="iad-stat-lbl">Intégration</div>
+        <div class="iad-stat-val" style="font-size:1.1rem;">
+            {% if type_data.integre %}✓ Intégré{% else %}✗ Absent{% endif %}
+        </div>
+        <div class="iad-stat-sub">{{ type_data.statut }}</div>
+    </div>
+</div>
+
+<!-- ══ ENTRÉES ═══════════════════════════════════════════════════════ -->
+{% if type_data.entrees %}
+    {% for e in type_data.entrees %}
+    <div class="iad-entry-card{% if e.report_errors %} entry-err{% elif e.report_warnings and not e.report_errors %} entry-warn{% endif %}">
+        <!-- En-tête de l'entrée -->
+        <div class="iad-entry-head">
+            <div class="iad-entry-num">{{ forloop.counter }}</div>
+            <span class="tb {{ e.status_label|lower }}">
+                {% if e.status_value == 2 %}<i class="bi bi-check-circle-fill"></i>
+                {% elif e.status_value == 0 %}<i class="bi bi-x-circle-fill"></i>
+                {% else %}<i class="bi bi-hourglass-split"></i>{% endif %}
+                {{ e.status_label }}
+            </span>
+            <span class="iad-emeta"><i class="bi bi-clock"></i> {{ e.created_at }}</span>
+            {% if e.username %}<span class="iad-emeta"><i class="bi bi-person"></i> {{ e.username }}</span>{% endif %}
+            {% if e.type_detail %}<span class="iad-chip">{{ e.type_detail }}</span>{% endif %}
+        </div>
+
+        <div class="iad-entry-body">
+            <!-- Récap fichier -->
+            {% if e.report_summary %}
+            <div class="iad-rcard">
+                {% if e.report_summary.fichier %}
+                <div class="iad-rfile">
+                    <i class="bi bi-file-earmark-text" style="flex-shrink:0;margin-top:2px;"></i>
+                    {{ e.report_summary.fichier }}
+                </div>
+                {% endif %}
+                <div class="iad-rpills">
+                    {% with s=e.report_summary %}
+                    {% if s.nb_formatees is not None %}<span class="rp fmt"><i class="bi bi-list-ol"></i> {{ s.nb_formatees }} formatted</span>{% endif %}
+                    {% if s.nb_erreurs is not None %}<span class="rp err"><i class="bi bi-x-circle"></i> {{ s.nb_erreurs }} errors</span>{% endif %}
+                    {% if s.nb_crees is not None %}<span class="rp cre"><i class="bi bi-plus-circle"></i> {{ s.nb_crees }} created</span>{% endif %}
+                    {% if s.nb_maj is not None %}<span class="rp maj"><i class="bi bi-arrow-repeat"></i> {{ s.nb_maj }} updated</span>{% endif %}
+                    {% if s.nb_supprimees is not None %}<span class="rp sup"><i class="bi bi-trash"></i> {{ s.nb_supprimees }} deleted</span>{% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ── Erreurs articles ── -->
+            {% if e.report_errors %}
+            {% with first_msg=e.report_errors.0.message %}
+            <div class="iad-err-banner">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <div style="flex:1;">
+                    <div class="iad-err-msg">{{ first_msg }}</div>
+                    <div style="font-size:.7rem;color:#f87171;margin-top:3px;font-weight:500;display:flex;align-items:center;gap:4px;">
+                        <i class="bi bi-{{ first_msg|error_icon }}"></i> {{ first_msg|error_explain }}
+                    </div>
+                </div>
+                <span class="iad-err-cnt">{{ e.report_errors|length }} article(s)</span>
+            </div>
+            <div class="iad-etbl-wrap">
+            <table class="iad-etbl">
+                <thead><tr>
+                    <th>#</th><th>Horodatage</th><th>Article</th>
+                    <th>Fournisseur</th><th>Prix</th><th>Réf.</th><th>Message d'erreur</th>
+                </tr></thead>
+                <tbody>
+                {% for err in e.report_errors %}
+                <tr>
+                    <td class="ets">{{ forloop.counter }}</td>
+                    <td class="ets">{{ err.timestamp|default:"—" }}</td>
+                    {% if err.data_fields %}
+                        {% for f in err.data_fields|slice:":4" %}
+                        <td class="edt">{{ f.value|default:"—" }}</td>
+                        {% endfor %}
+                    {% else %}
+                        <td colspan="4" class="ets">—</td>
+                    {% endif %}
+                    <td class="emg">
+                        <div>{{ err.message }}</div>
+                        <div style="font-size:.65rem;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:3px;">
+                            <i class="bi bi-{{ err.message|error_icon }}"></i> {{ err.message|error_explain }}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            <!-- ── Avertissements (mutex, doublons) ── -->
+            {% if e.report_warnings %}
+            <div class="iad-warn-banner">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span class="iad-warn-msg">{{ e.report_warnings.0.message }}</span>
+                <span class="iad-warn-cnt">{{ e.report_warnings|length }} avertissement(s) — aucune action requise</span>
+            </div>
+            {% endif %}
+
+            <!-- ── Journal de processus ── -->
+            {% if e.report_logs %}
+            {% if e.status_value == 0 and not e.report_errors %}
+            <div class="iad-err-banner" style="margin-top:10px;">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span class="iad-err-msg">Échec d'intégration — voir journal ci-dessous</span>
+                <span class="iad-err-cnt">{{ e.report_logs|length }} lignes</span>
+            </div>
+            {% endif %}
+            <details style="margin-top:10px;" {% if e.status_value == 0 %}open{% endif %}>
+                <summary style="font-size:.72rem;font-weight:700;cursor:pointer;
+                    padding:6px 10px;border-radius:8px;border:1px solid;
+                    list-style:none;display:flex;align-items:center;gap:6px;
+                    {% if e.status_value == 0 %}background:#fff7f7;border-color:#fecaca;color:#b91c1c;
+                    {% else %}background:#f8fafc;border-color:#e8edf5;color:#64748b;{% endif %}">
+                    <i class="bi bi-journal-text"></i>
+                    Journal de processus
+                    <span style="font-size:.63rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;
+                        {% if e.status_value == 0 %}background:#fee2e2;color:#b91c1c;
+                        {% else %}background:#e8edf5;color:#64748b;{% endif %}">{{ e.report_logs|length }} lignes</span>
+                </summary>
+                <div style="margin-top:6px;border:1px solid #e8edf5;border-radius:8px;overflow:hidden;">
+                {% for lg in e.report_logs %}
+                {% with is_err=lg.message|lower %}
+                <div style="display:flex;gap:10px;padding:5px 10px;border-bottom:1px solid #f1f5f9;
+                    font-size:.68rem;{% if forloop.last %}border-bottom:none;{% endif %}
+                    {% if 'error' in is_err or 'erreur' in is_err or 'failed' in is_err or 'exception' in is_err %}background:#fff7f7;{% endif %}">
+                    <span style="color:#94a3b8;white-space:nowrap;font-family:monospace;">{{ lg.timestamp }}</span>
+                    <span style="{% if 'error' in is_err or 'erreur' in is_err or 'failed' in is_err or 'exception' in is_err %}color:#b91c1c;font-weight:600;{% else %}color:#475569;{% endif %}word-break:break-all;">{{ lg.message }}</span>
+                </div>
+                {% endwith %}
+                {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+
+            {% if not e.report_errors and not e.report_logs and e.report and not e.report_summary %}
+            <div style="font-size:.7rem;color:#64748b;font-family:monospace;background:#f1f5f9;
+                border-radius:8px;padding:10px 14px;word-break:break-all;white-space:pre-wrap;">{{ e.report }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+{% else %}
+<div class="iad-empty">
+    <i class="bi bi-inbox"></i>
+    <p style="margin:0;font-size:.9rem;">Aucune entrée trouvée pour ce type dans la fenêtre horaire.</p>
+</div>
+{% endif %}
+
+{% endblock %}

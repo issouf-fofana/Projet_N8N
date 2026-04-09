@@ -1,0 +1,384 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ data.file_type }} — {{ data.assortiment }}{% endblock %}
+
+{% block content %}
+<style>
+/* ── Header ── */
+.vaf-header { display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+.vaf-icon { width:48px; height:48px; border-radius:13px;
+    background:linear-gradient(135deg,#1e3a8a,#1e40af); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:1.25rem;
+    box-shadow:0 4px 14px rgba(30,58,138,.25); flex-shrink:0; }
+.vaf-header h1 { font-size:1.35rem; font-weight:900; color:#0f172a; margin:0; }
+.vaf-header p  { font-size:.8rem; color:#64748b; margin:3px 0 0; }
+.vaf-breadcrumb { display:flex; align-items:center; gap:6px; font-size:.75rem; color:#94a3b8; margin-bottom:18px; flex-wrap:wrap; }
+.vaf-breadcrumb a { color:#1e3a8a; text-decoration:none; font-weight:600; }
+.vaf-breadcrumb a:hover { text-decoration:underline; }
+.vaf-breadcrumb .sep { color:#cbd5e1; }
+
+/* ── Barre de recherche ── */
+.vaf-search-bar {
+    background:#fff; border-radius:16px; border:1px solid #e8edf5;
+    box-shadow:0 2px 12px rgba(15,23,42,.06);
+    padding:16px 20px; margin-bottom:18px;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.vaf-search-input-wrap { position:relative; flex:1; min-width:220px; }
+.vaf-search-input-wrap i { position:absolute; left:13px; top:50%; transform:translateY(-50%);
+    color:#94a3b8; font-size:1rem; pointer-events:none; }
+.vaf-search-input { width:100%; border:1.5px solid #e2e8f0; border-radius:12px;
+    padding:9px 14px 9px 38px; font-size:.88rem; color:#0f172a;
+    background:#f8fafc; transition:all .15s; outline:none; }
+.vaf-search-input:focus { border-color:#1e3a8a; background:#fff; box-shadow:0 0 0 3px rgba(30,58,138,.1); }
+.vaf-search-btn { background:linear-gradient(135deg,#1e3a8a,#1e40af); color:#fff;
+    border:none; border-radius:12px; padding:9px 22px; font-size:.85rem; font-weight:700;
+    cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:7px; }
+.vaf-search-btn:hover { box-shadow:0 4px 14px rgba(30,58,138,.3); transform:translateY(-1px); }
+.vaf-clear-btn { background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0;
+    border-radius:12px; padding:9px 16px; font-size:.82rem; font-weight:600;
+    cursor:pointer; text-decoration:none; display:flex; align-items:center; gap:6px;
+    transition:all .14s; }
+.vaf-clear-btn:hover { background:#e2e8f0; color:#1e3a8a; }
+
+/* ── Stats & pagination top ── */
+.vaf-meta { display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+.vaf-meta-left { display:flex; align-items:center; gap:10px; }
+.vaf-count { font-size:.82rem; color:#64748b; }
+.vaf-count strong { color:#0f172a; font-weight:700; }
+.vaf-search-badge { background:rgba(30,58,138,.1); color:#1e3a8a; padding:3px 10px;
+    border-radius:10px; font-size:.72rem; font-weight:700; }
+.vaf-per-page { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#94a3b8; }
+.vaf-per-page a { padding:3px 9px; border-radius:8px; text-decoration:none;
+    color:#475569; border:1px solid #e2e8f0; font-weight:600; transition:all .12s; }
+.vaf-per-page a.active, .vaf-per-page a:hover { background:#1e3a8a; color:#fff; border-color:#1e3a8a; }
+
+/* ── Table ── */
+.vaf-table-wrap { background:#fff; border-radius:18px; border:1px solid #e8edf5;
+    box-shadow:0 2px 16px rgba(15,23,42,.07); overflow:hidden; margin-bottom:18px; }
+.vaf-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.vaf-table thead th { padding:11px 14px; background:#f8fafc;
+    border-bottom:1.5px solid #e8edf5; font-size:.68rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.07em; color:#94a3b8;
+    white-space:nowrap; position:sticky; top:0; z-index:1; }
+.vaf-table thead th.hl { color:#1e3a8a; }
+.vaf-table tbody tr { border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background .1s; }
+.vaf-table tbody tr:last-child { border-bottom:none; }
+.vaf-table tbody tr:hover { background:#f0f5ff; }
+.vaf-table tbody tr.selected { background:#dbeafe !important; }
+.vaf-table tbody td { padding:10px 14px; color:#334155; vertical-align:middle; }
+.vaf-table tbody td.hl { font-weight:700; color:#1e3a8a; font-family:monospace; font-size:.85rem; }
+.vaf-table tbody td.price { font-weight:600; color:#15803d; font-family:monospace; }
+
+/* Highlight de recherche dans le texte */
+mark { background:#fde68a; color:#92400e; border-radius:3px; padding:0 2px; font-weight:700; }
+
+/* ── Panneau de sélection ── */
+.vaf-selection-panel {
+    position:fixed; bottom:0; left:var(--sidebar-width,250px); right:0;
+    background:linear-gradient(135deg,#1e3a8a,#1e40af);
+    color:#fff; padding:14px 28px;
+    display:none; align-items:center; gap:16px;
+    box-shadow:0 -4px 24px rgba(30,58,138,.35);
+    z-index:500; flex-wrap:wrap;
+    border-radius:0;
+    animation:slideUpPanel .2s ease;
+}
+@keyframes slideUpPanel { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+.vaf-selection-panel.visible { display:flex; }
+.vaf-sel-info { font-size:.9rem; font-weight:700; }
+.vaf-sel-code { font-family:monospace; font-size:1rem; font-weight:900;
+    background:rgba(255,255,255,.18); padding:4px 14px; border-radius:10px; }
+.vaf-sel-actions { margin-left:auto; display:flex; gap:10px; }
+.vaf-sel-btn { background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.3);
+    color:#fff; padding:7px 16px; border-radius:10px; font-size:.8rem; font-weight:700;
+    cursor:pointer; transition:all .14s; text-decoration:none; }
+.vaf-sel-btn:hover { background:rgba(255,255,255,.3); color:#fff; }
+.vaf-sel-close { background:transparent; border:none; color:rgba(255,255,255,.7);
+    font-size:1.2rem; cursor:pointer; padding:0 4px; line-height:1; }
+
+/* ── Pagination ── */
+.vaf-pagination-wrap {
+    background:#fff; border-radius:14px; border:1px solid #e8edf5;
+    padding:14px 20px; margin-bottom:20px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    box-shadow:0 2px 10px rgba(15,23,42,.05);
+}
+.vaf-pagination { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.vaf-pag-btn { padding:7px 13px; border-radius:10px; font-size:.78rem; font-weight:600;
+    border:1.5px solid #e2e8f0; background:#fff; color:#475569;
+    text-decoration:none; transition:all .12s; display:inline-flex; align-items:center; }
+.vaf-pag-btn:hover { border-color:#1e3a8a; color:#1e3a8a; background:#f0f5ff; }
+.vaf-pag-btn.active { background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
+.vaf-pag-btn.disabled { opacity:.35; pointer-events:none; }
+.vaf-pag-info { font-size:.78rem; color:#94a3b8; white-space:nowrap; }
+.vaf-pag-summary { font-size:.8rem; color:#64748b; }
+.vaf-pag-summary strong { color:#0f172a; }
+
+/* Espace pour le panneau de sélection */
+.vaf-bottom-spacer { height:0; transition:height .2s; }
+.vaf-bottom-spacer.active { height:80px; }
+
+/* ── Vide ── */
+.vaf-empty { text-align:center; padding:60px 20px; }
+.vaf-empty i { font-size:2.5rem; color:#cbd5e1; }
+.vaf-empty p { color:#94a3b8; font-size:.9rem; margin-top:10px; }
+
+/* Num ligne */
+.vaf-num { color:#cbd5e1; font-size:.72rem; font-family:monospace; user-select:none; }
+</style>
+
+<!-- Breadcrumb -->
+<div class="vaf-breadcrumb">
+    <a href="{% url 'dashboard:version_asten' %}"><i class="bi bi-cpu"></i> Versions</a>
+    <span class="sep">›</span>
+    <a href="{% url 'dashboard:version_asten_detail' version_name %}">{{ version_name }}</a>
+    <span class="sep">›</span>
+    <span style="color:#1e3a8a;font-weight:700;">{{ assortiment }} / {{ file_type }}</span>
+</div>
+
+<!-- Header -->
+<div class="vaf-header">
+    <div class="vaf-icon"><i class="bi bi-file-earmark-spreadsheet-fill"></i></div>
+    <div>
+        <h1>{{ data.file_type }} — Assortiment {{ data.assortiment }}</h1>
+        <p>{{ data.fichier_nom }} &nbsp;·&nbsp; {{ data.total }} ligne(s) au total</p>
+    </div>
+    <div style="margin-left:auto;">
+        <a href="{% url 'dashboard:version_asten_detail' version_name %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Barre de recherche -->
+<form method="get" class="vaf-search-bar">
+    <div class="vaf-search-input-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" class="vaf-search-input"
+               placeholder="Rechercher par code article, désignation, code barre…"
+               value="{{ data.search }}" autofocus>
+    </div>
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <button type="submit" class="vaf-search-btn">
+        <i class="bi bi-funnel-fill"></i> Filtrer
+    </button>
+    {% if data.search %}
+    <a href="{% url 'dashboard:version_asten_fichier' version_name assortiment file_type %}?per_page={{ per_page }}"
+       class="vaf-clear-btn">
+        <i class="bi bi-x-circle"></i> Effacer
+    </a>
+    {% endif %}
+</form>
+
+<!-- Meta + per_page -->
+<div class="vaf-meta">
+    <div class="vaf-meta-left">
+        <span class="vaf-count">
+            {% if data.total == 0 %}
+                Aucun résultat
+            {% else %}
+                <strong>{{ data.page_start }}–{{ data.page_end }}</strong> sur <strong>{{ data.total }}</strong> ligne(s)
+            {% endif %}
+        </span>
+        {% if data.search %}
+        <span class="vaf-search-badge"><i class="bi bi-search"></i> "{{ data.search }}"</span>
+        {% endif %}
+    </div>
+    <div class="vaf-per-page">
+        Lignes / page :
+        {% for pp in pp_choices %}
+        <a href="?q={{ data.search }}&per_page={{ pp }}&page=1"
+           class="{% if per_page == pp %}active{% endif %}">{{ pp }}</a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Table -->
+<div class="vaf-table-wrap">
+{% if data.rows %}
+<table class="vaf-table" id="vafTable">
+    <thead>
+        <tr>
+            <th style="width:36px;">#</th>
+            {% for col in data.cols %}
+            <th class="{% if col.highlight %}hl{% endif %}">{{ col.label }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in data.rows %}
+    <tr onclick="selectRow(this, {{ forloop.counter0 }})"
+        data-code="{{ row.0.value }}"
+        data-idx="{{ forloop.counter0 }}">
+        <td class="vaf-num">{{ data.page_start|add:forloop.counter0|add:"-1" }}</td>
+        {% for cell in row %}
+        <td class="{% if cell.highlight %}hl{% elif cell.value|slice:':1' == 'P' and forloop.counter == 1 %}{% else %}{% if forloop.counter > 2 %}{% with v=cell.value %}{% if v and '.' in v %}price{% endif %}{% endwith %}{% endif %}{% endif %}">
+            {% if data.search and cell.value %}
+                {% with highlighted=cell.value %}
+                {{ highlighted }}
+                {% endwith %}
+            {% else %}
+                {{ cell.value }}
+            {% endif %}
+        </td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="vaf-empty">
+    <i class="bi bi-inbox"></i>
+    <p>{% if data.search %}Aucun résultat pour <strong>"{{ data.search }}"</strong>{% else %}Fichier vide{% endif %}</p>
+</div>
+{% endif %}
+</div>
+
+<!-- Pagination -->
+{% if data.nb_pages > 1 %}
+<div class="vaf-pagination-wrap">
+    <span class="vaf-pag-summary">
+        Page <strong>{{ data.page }}</strong> sur <strong>{{ data.nb_pages }}</strong>
+        &nbsp;·&nbsp; <strong>{{ data.total }}</strong> ligne(s)
+    </span>
+    <div class="vaf-pagination">
+        <a href="?q={{ data.search }}&page=1&per_page={{ per_page }}"
+           class="vaf-pag-btn {% if not data.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a href="?q={{ data.search }}&page={{ data.prev_page }}&per_page={{ per_page }}"
+           class="vaf-pag-btn {% if not data.has_prev %}disabled{% endif %}">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+
+        {% for p in data.page_range %}
+            {% if p == -1 %}
+                <span class="vaf-pag-info">…</span>
+            {% else %}
+                <a href="?q={{ data.search }}&page={{ p }}&per_page={{ per_page }}"
+                   class="vaf-pag-btn {% if p == data.page %}active{% endif %}">{{ p }}</a>
+            {% endif %}
+        {% endfor %}
+
+        <a href="?q={{ data.search }}&page={{ data.next_page }}&per_page={{ per_page }}"
+           class="vaf-pag-btn {% if not data.has_next %}disabled{% endif %}">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="?q={{ data.search }}&page={{ data.nb_pages }}&per_page={{ per_page }}"
+           class="vaf-pag-btn {% if not data.has_next %}disabled{% endif %}">
+            <i class="bi bi-chevron-double-right"></i>
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Espaceur dynamique pour le panneau de sélection -->
+<div class="vaf-bottom-spacer" id="bottomSpacer"></div>
+
+<!-- Panneau sélection (apparaît en bas) -->
+<div class="vaf-selection-panel" id="selPanel">
+    <i class="bi bi-check2-square" style="font-size:1.3rem;"></i>
+    <span class="vaf-sel-info">Article sélectionné :</span>
+    <span class="vaf-sel-code" id="selCode">—</span>
+    <div id="selDetails" style="font-size:.8rem;opacity:.85;"></div>
+    <div class="vaf-sel-actions">
+        <button class="vaf-sel-btn" onclick="copyCode()">
+            <i class="bi bi-clipboard"></i> Copier le code
+        </button>
+        <button class="vaf-sel-btn" onclick="searchThisCode()">
+            <i class="bi bi-search"></i> Rechercher dans tous les fichiers
+        </button>
+        <button class="vaf-sel-close" onclick="clearSelection()" title="Fermer">✕</button>
+    </div>
+</div>
+
+<script>
+let selectedRow = null;
+let selectedCode = '';
+let allRows = [];
+
+// Stocker les données de toutes les lignes pour le panneau
+document.querySelectorAll('#vafTable tbody tr').forEach((tr, i) => {
+    const cells = Array.from(tr.querySelectorAll('td')).slice(1).map(td => td.textContent.trim());
+    allRows.push({ tr, cells, code: cells[0] || '' });
+});
+
+function selectRow(tr, idx) {
+    // Désélectionner le précédent
+    if (selectedRow && selectedRow !== tr) {
+        selectedRow.classList.remove('selected');
+    }
+
+    if (selectedRow === tr) {
+        // Double clic → déselectionner
+        tr.classList.remove('selected');
+        selectedRow = null;
+        document.getElementById('selPanel').classList.remove('visible');
+        return;
+    }
+
+    tr.classList.add('selected');
+    selectedRow = tr;
+
+    // Récupérer les cellules
+    const cells = Array.from(tr.querySelectorAll('td')).slice(1);
+    const code = cells.length > 0 ? cells[0].textContent.trim() : '—';
+
+    // Chercher la cellule highlight (code article)
+    const hlCell = tr.querySelector('td.hl');
+    selectedCode = hlCell ? hlCell.textContent.trim() : code;
+
+    document.getElementById('selCode').textContent = selectedCode;
+
+    // Détails supplémentaires (désignation si products)
+    const details = cells.slice(1, 4).map(c => c.textContent.trim()).filter(v => v).join(' · ');
+    document.getElementById('selDetails').textContent = details;
+
+    document.getElementById('selPanel').classList.add('visible');
+    document.getElementById('bottomSpacer').classList.add('active');
+}
+
+function clearSelection() {
+    if (selectedRow) selectedRow.classList.remove('selected');
+    selectedRow = null;
+    document.getElementById('selPanel').classList.remove('visible');
+    document.getElementById('bottomSpacer').classList.remove('active');
+}
+
+function copyCode() {
+    navigator.clipboard.writeText(selectedCode).then(() => {
+        const btn = event.target.closest('button');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Copié !';
+        setTimeout(() => btn.innerHTML = orig, 1500);
+    });
+}
+
+function searchThisCode() {
+    // Rediriger vers la recherche avec le code sélectionné
+    const url = new URL(window.location.href);
+    url.searchParams.set('q', selectedCode);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+}
+
+// Mise en évidence de la recherche dans les cellules
+{% if data.search %}
+(function(){
+    const searchTerm = "{{ data.search|escapejs }}".toLowerCase();
+    document.querySelectorAll('#vafTable tbody td').forEach(td => {
+        if (td.textContent.toLowerCase().includes(searchTerm)) {
+            const regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+            td.innerHTML = td.textContent.replace(regex, '<mark>$1</mark>');
+        }
+    });
+})();
+{% endif %}
+
+// Raccourci clavier : Escape pour effacer la sélection
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') clearSelection();
+});
+</script>
+{% endblock %}

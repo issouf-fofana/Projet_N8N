@@ -1,0 +1,163 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ page_title }} — En cours{% endblock %}
+
+{% block content %}
+<style>
+@keyframes gear1 { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes gear2 { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+@keyframes pulse  { 0%,100% { opacity:.9; transform:scale(1); } 50% { opacity:.6; transform:scale(.97); } }
+@keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+.enc-wrap {
+    min-height: calc(100vh - 140px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 20px;
+}
+.enc-card {
+    background: #fff;
+    border-radius: 28px;
+    border: 1px solid #e4e8f5;
+    box-shadow: 0 8px 48px rgba(30,58,138,.12);
+    padding: 60px 56px 52px;
+    max-width: 560px; width: 100%;
+    text-align: center;
+    animation: slideUp .5s cubic-bezier(.4,0,.2,1) both;
+}
+.enc-icon-wrap {
+    position: relative;
+    width: 130px; height: 130px;
+    margin: 0 auto 32px;
+}
+.enc-icon-bg {
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    background: {{ page_color_light }};
+    display: flex; align-items: center; justify-content: center;
+    animation: pulse 3s ease-in-out infinite;
+}
+.enc-icon-main {
+    font-size: 3.6rem;
+    color: {{ page_color }};
+    line-height: 1;
+}
+/* Gears decoration */
+.enc-gear {
+    position: absolute;
+    color: {{ page_color }};
+    opacity: .25;
+}
+.enc-gear.g1 { font-size: 1.6rem; top: -4px; right: 0; animation: gear1 4s linear infinite; }
+.enc-gear.g2 { font-size: 1.1rem; bottom: 2px; left: 2px; animation: gear2 3s linear infinite; }
+.enc-gear.g3 { font-size: .9rem; top: 10px; left: -4px; animation: gear1 6s linear infinite; }
+
+.enc-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: {{ page_color_light }};
+    color: {{ page_color }};
+    border: 1.5px solid {{ page_color }}33;
+    padding: 5px 16px; border-radius: 20px;
+    font-size: .78rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; margin-bottom: 20px;
+}
+.enc-badge .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: {{ page_color }};
+    animation: blink 1.4s ease-in-out infinite;
+}
+.enc-title {
+    font-size: 1.65rem; font-weight: 900; color: #1e2a45;
+    letter-spacing: -.02em; margin-bottom: 10px; line-height: 1.2;
+}
+.enc-subtitle {
+    font-size: .95rem; color: #64748b; font-weight: 500; line-height: 1.6; margin-bottom: 32px;
+}
+.enc-progress-wrap {
+    background: #f1f5f9; border-radius: 12px; height: 8px;
+    overflow: hidden; margin-bottom: 10px; position: relative;
+}
+.enc-progress-bar {
+    height: 100%; border-radius: 12px;
+    background: linear-gradient(90deg, {{ page_color }}, {{ page_color }}99);
+    width: 40%;
+    animation: progressMove 2.8s ease-in-out infinite alternate;
+}
+@keyframes progressMove {
+    from { width: 20%; margin-left: 0; }
+    to   { width: 55%; margin-left: 30%; }
+}
+.enc-progress-label {
+    font-size: .72rem; color: #94a3b8; font-weight: 600; text-align: right; margin-bottom: 32px;
+}
+.enc-back {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: linear-gradient(135deg,#1e3a8a,#4d7cc7);
+    color: #fff; text-decoration: none;
+    padding: 11px 28px; border-radius: 14px;
+    font-size: .88rem; font-weight: 700;
+    box-shadow: 0 4px 16px rgba(30,58,138,.3);
+    transition: box-shadow .2s, transform .2s;
+}
+.enc-back:hover { box-shadow: 0 6px 24px rgba(30,58,138,.45); transform: translateY(-1px); color: #fff; }
+.enc-features {
+    display: flex; gap: 16px; margin-bottom: 36px; flex-wrap: wrap; justify-content: center;
+}
+.enc-feature {
+    display: flex; align-items: center; gap: 7px;
+    background: #f8faff; border: 1px solid #e4e8f5;
+    padding: 8px 14px; border-radius: 12px;
+    font-size: .78rem; font-weight: 600; color: #475569;
+}
+.enc-feature i { color: {{ page_color }}; font-size: .9rem; }
+</style>
+
+<div class="enc-wrap">
+    <div class="enc-card">
+
+        <!-- Icon -->
+        <div class="enc-icon-wrap">
+            <div class="enc-icon-bg">
+                <i class="bi {{ page_icon }} enc-icon-main"></i>
+            </div>
+            <i class="bi bi-gear-fill enc-gear g1"></i>
+            <i class="bi bi-gear enc-gear g2"></i>
+            <i class="bi bi-gear-wide enc-gear g3"></i>
+        </div>
+
+        <!-- Badge -->
+        <div>
+            <span class="enc-badge">
+                <span class="dot"></span>
+                En développement
+            </span>
+        </div>
+
+        <!-- Title -->
+        <div class="enc-title">{{ page_title }}</div>
+        <div class="enc-subtitle">
+            Cette fonctionnalité est actuellement en cours de développement.<br>
+            Elle sera disponible très prochainement.
+        </div>
+
+        <!-- Features coming -->
+        <div class="enc-features">
+            <span class="enc-feature"><i class="bi bi-check2-circle"></i> Bientôt disponible</span>
+            <span class="enc-feature"><i class="bi bi-tools"></i> En construction</span>
+            <span class="enc-feature"><i class="bi bi-clock"></i> Prochainement</span>
+        </div>
+
+        <!-- Progress -->
+        <div class="enc-progress-wrap">
+            <div class="enc-progress-bar"></div>
+        </div>
+        <div class="enc-progress-label">Développement en cours…</div>
+
+        <!-- Back button -->
+        <a href="{% url 'dashboard:accueil' %}" class="enc-back">
+            <i class="bi bi-arrow-left"></i> Retour à l'accueil
+        </a>
+
+    </div>
+</div>
+{% endblock %}

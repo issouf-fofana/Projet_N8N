@@ -8,11 +8,13 @@ PROJECT_DIR="/home/youssef/Documents/traitement_n8n"
 MOUNT_AUTOMATE_IC="/mnt/automate-ic"
 MOUNT_C_SHARE="/mnt/partage-c"
 MOUNT_SHARE="/mnt/partage-share"
+MOUNT_ASTEN="/mnt/asten"
 
 # SMB shares
 SHARE_AUTOMATE_IC="//10.0.70.150/automate-ic"
 SHARE_C="//10.0.70.204/c"
 SHARE_SHARE="//10.0.70.169/share"
+SHARE_ASTEN="//10.0.70.104/d"
 
 # SMB options
 SMB_DOMAIN="${SMB_DOMAIN:-PROSUMA}"
@@ -51,6 +53,7 @@ prompt_credentials
 mount_share "$SHARE_AUTOMATE_IC" "$MOUNT_AUTOMATE_IC"
 mount_share "$SHARE_C" "$MOUNT_C_SHARE"
 mount_share "$SHARE_SHARE" "$MOUNT_SHARE"
+mount_share "$SHARE_ASTEN" "$MOUNT_ASTEN"
 
 # ---- Optional Django server ----
 read -r -p "Démarrer le serveur Django ? (o/N): " START_SERVER

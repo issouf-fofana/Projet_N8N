@@ -16,20 +16,19 @@
             --sidebar-color: #f1f5f9;
             --main-bg: #e5e7eb;     /* Gris clair comme dans la capture */
             /* Palette principale : bleu moderne comme dans la capture */
-            --color-primary: #3b82f6;      /* Bleu principal */
-            --color-success: #10b981;       /* Vert pour succès */
-            --color-alert: #ef4444;         /* Rouge pour erreurs */
-            --color-warning: #f59e0b;       /* Orange/jaune pour avertissements */
-            --color-info: #3b82f6;         /* Bleu pour infos */
-            --color-neutral: #6b7280;       /* Gris neutre */
-            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --color-primary: #1e3a8a;      /* Bleu sidebar unifié */
+            --color-success: #10b981;
+            --color-alert: #ef4444;
+            --color-warning: #f59e0b;
+            --color-info: #1e3a8a;
+            --color-neutral: #6b7280;
+            --primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
             --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
             --alert-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            --info-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            /* Transparences pour variations */
-            --primary-light: rgba(59, 130, 246, 0.10);
-            --primary-medium: rgba(59, 130, 246, 0.20);
+            --info-gradient: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            --primary-light: rgba(30, 58, 138, 0.10);
+            --primary-medium: rgba(30, 58, 138, 0.20);
             --success-light: rgba(16, 185, 129, 0.10);
             --success-medium: rgba(16, 185, 129, 0.20);
             --alert-light: rgba(239, 68, 68, 0.10);
@@ -87,13 +86,13 @@
         
         .sidebar-menu a:hover {
             background-color: rgba(255, 255, 255, 0.1);
-            border-left-color: #60a5fa;
+            border-left-color: #4d7cc7;
             color: white;
         }
         
         .sidebar-menu a.active {
             background-color: rgba(255, 255, 255, 0.15);
-            border-left-color: #60a5fa;
+            border-left-color: #4d7cc7;
             color: white;
         }
         
@@ -125,7 +124,7 @@
         
         .sidebar-accordion .accordion-button:not(.collapsed) {
             background-color: rgba(255, 255, 255, 0.1);
-            border-left-color: #60a5fa;
+            border-left-color: #4d7cc7;
             color: white;
         }
         
@@ -155,14 +154,14 @@
         
         .sidebar-accordion .accordion-body a:hover {
             background-color: rgba(255, 255, 255, 0.1);
-            border-left-color: #60a5fa;
+            border-left-color: #4d7cc7;
             color: white;
             padding-left: 55px;
         }
         
         .sidebar-accordion .accordion-body a.active {
             background-color: rgba(255, 255, 255, 0.15);
-            border-left-color: #60a5fa;
+            border-left-color: #4d7cc7;
             color: white;
         }
         
@@ -195,7 +194,7 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
             border: none;
             padding: 10px 25px;
             border-radius: 8px;
@@ -203,9 +202,9 @@
             transition: all 0.2s;
             color: white;
         }
-        
+
         .btn-primary:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
             color: white;
         }
         
@@ -243,7 +242,7 @@
         }
         
         .btn-info {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
             border: none;
             color: white;
         }
@@ -257,7 +256,7 @@
         
         .form-control:focus, .form-select:focus {
             border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
             outline: none;
         }
         
@@ -293,7 +292,7 @@
         }
         
         .badge.bg-primary {
-            background: #3b82f6 !important;
+            background: #1e3a8a !important;
         }
         
         .badge.bg-success {
@@ -309,15 +308,15 @@
         }
         
         .badge.bg-info {
-            background: #3b82f6 !important;
+            background: #1e3a8a !important;
         }
         
         /* Boutons radio pour type de données */
         .btn-check:checked + .btn-outline-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            border-color: #3b82f6;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            border-color: #1e3a8a;
             color: white;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+            box-shadow: 0 2px 8px rgba(30, 58, 138, 0.25);
         }
         
         .btn-outline-primary {
@@ -329,8 +328,8 @@
         
         .btn-outline-primary:hover {
             background-color: #f9fafb;
-            border-color: #3b82f6;
-            color: #3b82f6;
+            border-color: #1e3a8a;
+            color: #1e3a8a;
         }
         
         .card {
@@ -376,7 +375,7 @@
         }
         
         .card-header h5 i {
-            color: #3b82f6;
+            color: #1e3a8a;
         }
         
         .card-body {
@@ -386,64 +385,35 @@
         .stat-card {
             background: #ffffff;
             color: #1f2937;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 18px rgba(15,23,42,.07);
+            transition: transform .22s ease, box-shadow .22s ease;
             position: relative;
             overflow: hidden;
-            border-top: 4px solid var(--color-primary);
+            border: 1px solid #e5e9f2;
             min-height: 180px;
             display: flex;
             flex-direction: column;
         }
-        
+
+        .stat-card::before {
+            content: ''; position: absolute; inset: 0;
+            border-radius: inherit; pointer-events: none; z-index: 0;
+        }
+
         /* S'assurer que toutes les cartes dans une row ont la même hauteur */
-        .row .col-md-3 {
-            display: flex;
-        }
-        
-        .row .col-md-3 > .stat-card {
-            width: 100%;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
-        }
-        
-        .stat-card.success {
-            border-top-color: #10b981;
-        }
-        
-        .stat-card.success:hover {
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
-        }
-        
-        .stat-card.warning, .stat-card.danger {
-            border-top-color: #ef4444;
-        }
-        
-        .stat-card.warning:hover, .stat-card.danger:hover {
-            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
-        }
-        
-        .stat-card.info {
-            border-top-color: #3b82f6;
-        }
-        
-        .stat-card.info:hover {
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
-        }
-        
-        .stat-card.primary {
-            border-top-color: #3b82f6;
-        }
-        
-        .stat-card.primary:hover {
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
-        }
+        .row .col-md-3 { display: flex; }
+        .row .col-md-3 > .stat-card { width: 100%; }
+
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(15,23,42,.10); }
+
+        .stat-card.info, .stat-card.primary { border-color: rgba(30,58,138,.28); }
+        .stat-card.success                  { border-color: rgba(16,185,129,.28); }
+        .stat-card.warning                  { border-color: rgba(245,158,11,.28); }
+        .stat-card.danger                   { border-color: rgba(239,68,68,.28);  }
+        .stat-card::before                  { display: none; }
         
         .stat-value {
             font-size: 2.2rem;
@@ -604,7 +574,7 @@
         /* Professional badge colors */
         /* Professional badge colors - light and modern */
         .badge.bg-primary {
-            background-color: #3b82f6 !important;
+            background-color: #1e3a8a !important;
             color: white !important;
         }
         
@@ -663,7 +633,7 @@
             transform: translateY(-3px);
             box-shadow: 0 12px 30px rgba(15, 23, 42, 0.45);
             text-decoration: none;
-            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
             color: #ffffff;
         }
 
@@ -672,12 +642,12 @@
             --sidebar-bg: #0b1220;
             --sidebar-color: #d6dbe6;
             --main-bg: #f6f8fc;
-            --color-primary: #2d6cdf;
+            --color-primary: #1e3a8a;
             --color-success: #22c55e;
             --color-warning: #f59e0b;
             --color-alert: #ef4444;
             --color-neutral: #64748b;
-            --primary-gradient: linear-gradient(135deg, #2d6cdf 0%, #1d4ed8 100%);
+            --primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #1e3a8a 100%);
         }
 
         body {
@@ -728,8 +698,8 @@
         .sidebar-menu a:hover,
         .sidebar-menu a.active,
         .sidebar-accordion .accordion-button:not(.collapsed) {
-            background-color: rgba(45, 108, 223, 0.16);
-            border-left-color: #60a5fa;
+            background-color: rgba(30, 58, 138, 0.16);
+            border-left-color: #4d7cc7;
         }
 
         .card {
@@ -750,27 +720,6 @@
 
         .card-body {
             padding: 22px 24px;
-        }
-
-        .stat-card {
-            border-top: 0;
-            border: 1px solid #e5e9f2;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-            border-radius: 16px;
-        }
-
-        .stat-card.info,
-        .stat-card.primary {
-            border-left: 4px solid #2d6cdf;
-        }
-
-        .stat-card.success {
-            border-left: 4px solid #22c55e;
-        }
-
-        .stat-card.warning,
-        .stat-card.danger {
-            border-left: 4px solid #ef4444;
         }
 
         .stat-value {
@@ -799,8 +748,8 @@
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: #2d6cdf;
-            box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.16);
+            border-color: #1e3a8a;
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.16);
         }
 
         .btn {
@@ -819,10 +768,25 @@
             border: none;
         }
 
+        /* ── Unification globale : un seul bleu = #1e3a8a ── */
+        .text-primary, a.text-primary, strong.text-primary, code.text-primary { color: #1e3a8a !important; }
+        .bg-primary  { background-color: #1e3a8a !important; }
+        .border-primary { border-color: #1e3a8a !important; }
+        .link-primary { color: #1e3a8a !important; }
+        .form-control:focus, .form-select:focus {
+            border-color: #1e3a8a;
+            box-shadow: 0 0 0 3px rgba(30,58,138,.12);
+        }
+
         .btn-outline-primary {
-            border-color: #d1def6;
-            color: #1d4ed8;
+            border-color: #1e3a8a;
+            color: #1e3a8a;
             background: #ffffff;
+        }
+        .btn-outline-primary:hover, .btn-outline-primary:focus {
+            background: #1e3a8a;
+            border-color: #1e3a8a;
+            color: #fff;
         }
 
         .btn-outline-secondary,
@@ -899,15 +863,21 @@
             <!-- Factures -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFactures">
+                    <button class="accordion-button {% if request.resolver_match.url_name in 'vue_factures_asten vue_factures_cyrus vue_factures_backup' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFactures">
                         <i class="bi bi-file-earmark-text"></i> Factures
                     </button>
                 </h2>
-                <div id="collapseFactures" class="accordion-collapse collapse" data-bs-parent="#sidebarAccordion">
+                <div id="collapseFactures" class="accordion-collapse collapse {% if request.resolver_match.url_name in 'vue_factures_asten vue_factures_cyrus vue_factures_backup' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
-                        <a href="#"><i class="bi bi-exclamation-triangle"></i> Écarts de facture</a>
-                        <a href="#"><i class="bi bi-list-ul"></i> Liste factures Asten</a>
-                        <a href="#"><i class="bi bi-list-ul"></i> Liste factures Cyrus</a>
+                        <a href="{% url 'dashboard:vue_factures_backup' %}" class="{% if request.resolver_match.url_name == 'vue_factures_backup' %}active{% endif %}">
+                            <i class="bi bi-search"></i> Facture Backup
+                        </a>
+                        <a href="{% url 'dashboard:vue_factures_asten' %}" class="{% if request.resolver_match.url_name == 'vue_factures_asten' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Vue Asten
+                        </a>
+                        <a href="{% url 'dashboard:vue_factures_cyrus' %}" class="{% if request.resolver_match.url_name == 'vue_factures_cyrus' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Vue Cyrus
+                        </a>
                     </div>
                 </div>
             </div>
@@ -945,6 +915,27 @@
                         </a>
                         <a href="{% url 'tickets:nouveau' %}" class="{% if request.resolver_match.url_name == 'nouveau' and request.resolver_match.app_name == 'tickets' %}active{% endif %}">
                             <i class="bi bi-plus-circle"></i> Nouvelle remontée
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <!-- Version Asten -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if request.resolver_match.url_name in 'version_asten,integration_asten' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVersionAsten">
+                        <i class="bi bi-cpu"></i> Version Asten
+                    </button>
+                </h2>
+                <div id="collapseVersionAsten" class="accordion-collapse collapse {% if request.resolver_match.url_name in 'version_asten,integration_asten' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                    <div class="accordion-body">
+                        <a href="{% url 'dashboard:version_asten' %}" class="{% if request.resolver_match.url_name == 'version_asten' %}active{% endif %}">
+                            <i class="bi bi-archive"></i> Versions backup
+                        </a>
+                        <a href="{% url 'dashboard:integration_asten' %}" class="{% if request.resolver_match.url_name == 'integration_asten' %}active{% endif %}">
+                            <i class="bi bi-patch-check"></i> Intégration POS
                         </a>
                     </div>
                 </div>
@@ -1054,7 +1045,7 @@
     }
     .pnl-label {
         font-size: .82rem; font-weight: 700;
-        color: #6366f1; letter-spacing: .06em;
+        color: #1e3a8a; letter-spacing: .06em;
         font-family: 'Segoe UI', sans-serif;
         animation: pnlFade 1.1s ease-in-out infinite;
     }
@@ -1071,17 +1062,17 @@
                 <span style="transform:rotate(60deg);  background:#00b4e0; opacity:.80;"></span>
                 <span style="transform:rotate(90deg);  background:#2196f3; opacity:.73;"></span>
                 <span style="transform:rotate(120deg); background:#3b6ef5; opacity:.65;"></span>
-                <span style="transform:rotate(150deg); background:#4f46e5; opacity:.58;"></span>
+                <span style="transform:rotate(150deg); background:#1e40af; opacity:.58;"></span>
                 <span style="transform:rotate(180deg); background:#5b3de8; opacity:.50;"></span>
                 <span style="transform:rotate(210deg); background:#6d28d9; opacity:.43;"></span>
                 <span style="transform:rotate(240deg); background:#7c3aed; opacity:.36;"></span>
-                <span style="transform:rotate(270deg); background:#8b5cf6; opacity:.28;"></span>
-                <span style="transform:rotate(300deg); background:#6366f1; opacity:.20;"></span>
+                <span style="transform:rotate(270deg); background:#4d7cc7; opacity:.28;"></span>
+                <span style="transform:rotate(300deg); background:#1e3a8a; opacity:.20;"></span>
                 <span style="transform:rotate(330deg); background:#00caff; opacity:.12;"></span>
             </div>
             <!-- Alien au centre -->
             <svg class="pnl-alien" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110">
-                <ellipse cx="50" cy="58" rx="28" ry="34" fill="#6366f1" opacity=".9"/>
+                <ellipse cx="50" cy="58" rx="28" ry="34" fill="#1e3a8a" opacity=".9"/>
                 <ellipse cx="38" cy="50" rx="10" ry="7" fill="#fff" opacity=".95"/>
                 <ellipse cx="62" cy="50" rx="10" ry="7" fill="#fff" opacity=".95"/>
                 <ellipse cx="39" cy="50" rx="5.5" ry="4" fill="#1e1b4b"/>
@@ -1135,6 +1126,224 @@
 
         window.addEventListener('pageshow', hideLoader);
         window.addEventListener('popstate', hideLoader);
+    })();
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SYSTÈME MODAL GLOBAL — AppModal (disponible partout)
+         ═══════════════════════════════════════════════════════ -->
+    <style>
+    /* Overlay commun */
+    .app-modal-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(3px);
+        z-index: 99990;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+    .app-modal-overlay.open { display: flex; }
+
+    /* Boîte commune */
+    .app-modal-box {
+        background: #fff;
+        border-radius: 18px;
+        padding: 32px 28px 24px;
+        width: 100%;
+        max-width: 440px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+        animation: appModalIn 0.2s cubic-bezier(.34,1.56,.64,1);
+        position: relative;
+    }
+    @keyframes appModalIn {
+        from { transform: scale(0.85) translateY(16px); opacity: 0; }
+        to   { transform: scale(1)    translateY(0);    opacity: 1; }
+    }
+
+    /* Bouton fermer */
+    .app-modal-close {
+        position: absolute; top: 14px; right: 16px;
+        background: none; border: none; cursor: pointer;
+        color: #9ca3af; font-size: 1.1rem; line-height: 1;
+        border-radius: 6px; padding: 4px 6px;
+        transition: background 0.15s, color 0.15s;
+    }
+    .app-modal-close:hover { background: #f3f4f6; color: #374151; }
+
+    /* Icône centrale */
+    .app-modal-icon {
+        width: 56px; height: 56px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; margin: 0 auto 16px;
+    }
+    .app-modal-icon.success { background: #d1fae5; color: #059669; }
+    .app-modal-icon.danger  { background: #fee2e2; color: #dc2626; }
+    .app-modal-icon.warning { background: #fef3c7; color: #d97706; }
+    .app-modal-icon.info    { background: #dbeafe; color: #1d4ed8; }
+    .app-modal-icon.primary { background: #ede9fe; color: #7c3aed; }
+
+    /* Textes */
+    .app-modal-title {
+        font-size: 1.05rem; font-weight: 700; color: #111827;
+        text-align: center; margin-bottom: 8px;
+    }
+    .app-modal-body {
+        font-size: 0.875rem; color: #6b7280; text-align: center;
+        line-height: 1.6; margin-bottom: 22px;
+    }
+
+    /* Actions */
+    .app-modal-actions {
+        display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    }
+    .app-modal-btn {
+        border: none; border-radius: 9px;
+        padding: 9px 24px; font-weight: 600; font-size: 0.875rem;
+        cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+        display: inline-flex; align-items: center; gap: 6px;
+        min-width: 110px; justify-content: center;
+    }
+    .app-modal-btn:hover  { opacity: 0.88; }
+    .app-modal-btn:active { transform: scale(0.97); }
+    .app-modal-btn.cancel {
+        background: #f3f4f6; color: #374151;
+        border: 1px solid #e5e7eb;
+    }
+    .app-modal-btn.cancel:hover { background: #e5e7eb; }
+
+    /* Spinner global */
+    .app-spinner-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(255,255,255,0.75);
+        backdrop-filter: blur(3px);
+        z-index: 99995;
+        align-items: center; justify-content: center;
+        flex-direction: column; gap: 14px;
+    }
+    .app-spinner-overlay.open { display: flex; }
+    .app-spinner {
+        width: 44px; height: 44px;
+        border: 4px solid #e5e7eb;
+        border-top-color: #1e3a8a;
+        border-radius: 50%;
+        animation: appSpin 0.7s linear infinite;
+    }
+    .app-spinner-label { font-size: 0.82rem; font-weight: 600; color: #1e3a8a; letter-spacing: 0.05em; }
+    @keyframes appSpin { to { transform: rotate(360deg); } }
+
+    /* Options de statut dans le modal de changement */
+    .app-statut-option {
+        border: 2px solid #e5e7eb; border-radius: 10px;
+        padding: 11px 14px; margin-bottom: 9px;
+        cursor: pointer; transition: all 0.15s; display: flex; align-items: flex-start; gap: 10px;
+    }
+    .app-statut-option:hover  { border-color: #1e3a8a; background: #f0f7ff; }
+    .app-statut-option.active { border-color: #1e3a8a; background: #eff6ff; }
+    .app-statut-option .aso-icon { font-size: 1rem; margin-top: 1px; flex-shrink: 0; }
+    .app-statut-option .aso-title { font-weight: 700; font-size: 0.88rem; line-height: 1.2; }
+    .app-statut-option .aso-desc  { font-size: 0.75rem; color: #6b7280; margin-top: 2px; }
+    </style>
+
+    <!-- CONFIRM / ALERT MODAL -->
+    <div class="app-modal-overlay" id="appConfirmOverlay">
+        <div class="app-modal-box" id="appConfirmBox">
+            <button class="app-modal-close" onclick="AppModal.closeConfirm()" title="Fermer">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <div class="app-modal-icon" id="appConfirmIcon"><i id="appConfirmIconI" class="bi bi-question-circle-fill"></i></div>
+            <div class="app-modal-title" id="appConfirmTitle"></div>
+            <div class="app-modal-body"  id="appConfirmBody"></div>
+            <div class="app-modal-actions" id="appConfirmActions"></div>
+        </div>
+    </div>
+
+    <!-- SPINNER -->
+    <div class="app-spinner-overlay" id="appSpinnerOverlay">
+        <div class="app-spinner"></div>
+        <span class="app-spinner-label" id="appSpinnerLabel">Chargement…</span>
+    </div>
+
+    <script>
+    /* ════════════════════════════════════════════
+       AppModal — API globale disponible partout
+       ════════════════════════════════════════════
+
+       Usage :
+         // Confirmation simple
+         const ok = await AppModal.confirm({ title, body, type, okLabel });
+
+         // Alerte (1 bouton)
+         await AppModal.alert({ title, body, type });
+
+         // Spinner
+         AppModal.spinner(true, 'Enregistrement…');
+         AppModal.spinner(false);
+    */
+    window.AppModal = (function() {
+
+        const TYPES = {
+            success: { iconClass: 'success', icon: 'bi-check-circle-fill',   okBg: '#059669' },
+            danger:  { iconClass: 'danger',  icon: 'bi-x-circle-fill',        okBg: '#dc2626' },
+            warning: { iconClass: 'warning', icon: 'bi-exclamation-circle-fill', okBg: '#d97706' },
+            info:    { iconClass: 'info',    icon: 'bi-info-circle-fill',      okBg: '#1d4ed8' },
+            primary: { iconClass: 'primary', icon: 'bi-sliders',              okBg: '#1e3a8a' },
+        };
+
+        let _resolve = null;
+
+        function _open(opts) {
+            const t = TYPES[opts.type || 'primary'];
+            document.getElementById('appConfirmIcon').className  = `app-modal-icon ${t.iconClass}`;
+            document.getElementById('appConfirmIconI').className = `bi ${t.icon}`;
+            document.getElementById('appConfirmTitle').textContent = opts.title || '';
+            document.getElementById('appConfirmBody').innerHTML    = opts.body  || '';
+
+            const actions = document.getElementById('appConfirmActions');
+            actions.innerHTML = '';
+
+            if (opts.cancelLabel !== false) {
+                const cb = document.createElement('button');
+                cb.className = 'app-modal-btn cancel';
+                cb.innerHTML = `<i class="bi bi-x-lg"></i> ${opts.cancelLabel || 'Annuler'}`;
+                cb.onclick = () => _close(false);
+                actions.appendChild(cb);
+            }
+
+            const ob = document.createElement('button');
+            ob.className = 'app-modal-btn';
+            ob.style.background = t.okBg;
+            ob.style.color = '#fff';
+            ob.innerHTML = `<i class="bi ${opts.okIcon || 'bi-check-lg'}"></i> ${opts.okLabel || 'Confirmer'}`;
+            ob.onclick = () => _close(true);
+            actions.appendChild(ob);
+
+            document.getElementById('appConfirmOverlay').classList.add('open');
+            return new Promise(r => { _resolve = r; });
+        }
+
+        function _close(val) {
+            document.getElementById('appConfirmOverlay').classList.remove('open');
+            if (_resolve) { _resolve(val); _resolve = null; }
+        }
+
+        // Fermer en cliquant l'overlay
+        document.getElementById('appConfirmOverlay').addEventListener('click', function(e) {
+            if (e.target === this) _close(false);
+        });
+
+        return {
+            confirm: (opts) => _open({ ...opts }),
+            alert:   (opts) => _open({ ...opts, cancelLabel: false, okLabel: opts.okLabel || 'OK', okIcon: 'bi-check-lg' }),
+            closeConfirm: () => _close(false),
+
+            spinner(on, label) {
+                document.getElementById('appSpinnerLabel').textContent = label || 'Chargement…';
+                document.getElementById('appSpinnerOverlay').classList.toggle('open', !!on);
+            },
+        };
     })();
     </script>
 </body>

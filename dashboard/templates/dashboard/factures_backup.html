@@ -1,0 +1,527 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Factures — Écarts Cyrus/Asten{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    background: rgba(249,250,251,0.9);
+    backdrop-filter: blur(10px);
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 25px;
+    border: 1px solid #e5e7eb;
+}
+.stat-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:18px 20px; text-align:center; }
+.stat-card .stat-num { font-size:1.9rem; font-weight:700; line-height:1; }
+.stat-card .stat-label { font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280; margin-top:4px; }
+.stat-ok     { border-top:3px solid #10b981; }
+.stat-ecart  { border-top:3px solid #ef4444; }
+.stat-total  { border-top:3px solid #1e3a8a; }
+.stat-taux   { border-top:3px solid #f59e0b; }
+.stat-ignore { border-top:3px solid #9ca3af; }
+.filter-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
+.table-container { background:#fff; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+.table thead th { background:#f8fafc; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#6b7280; border-bottom:2px solid #e5e7eb; white-space:nowrap; padding:10px 12px; }
+.table tbody td { padding:8px 12px; vertical-align:middle; font-size:0.875rem; }
+.badge-mag  { background:#e0e7ff; color:#3730a3; font-weight:600; border-radius:6px; padding:2px 8px; font-size:0.8rem; }
+.badge-nsee { background:#fef3c7; color:#92400e; font-weight:600; border-radius:6px; padding:2px 8px; font-size:0.8rem; }
+.cle-badge  { font-family:monospace; background:#f3f4f6; border-radius:5px; padding:2px 6px; font-size:0.82rem; }
+.amount     { font-variant-numeric:tabular-nums; }
+
+/* Statut badges */
+.badge-ecart    { background:#fee2e2; color:#dc2626; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
+.badge-integre  { background:#d1fae5; color:#059669; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
+.badge-integre-csv  { background:#dbeafe; color:#1d4ed8; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
+.badge-ignore   { background:#f3f4f6; color:#6b7280; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
+
+/* Bouton modifier statut */
+.btn-edit-statut {
+    background:none; border:none; padding:2px 5px; cursor:pointer; color:#9ca3af; font-size:0.72rem;
+    border-radius:4px; transition:color 0.15s, background 0.15s;
+}
+.btn-edit-statut:hover { color:#1e3a8a; background:#eff6ff; }
+
+/* Row coloring */
+tr.row-ecart td          { background:#fff5f5; }
+tr.row-ecart:hover td    { background:#fee2e2; }
+tr.row-integre-csv td    { background:#eff6ff; }
+tr.row-integre-csv:hover td { background:#dbeafe; }
+tr.row-integre-man td    { background:#f0fdf4; }
+tr.row-integre-man:hover td { background:#dcfce7; }
+tr.row-selected td       { background:#ede9fe !important; outline:2px solid #7c3aed; }
+
+/* Row clickable */
+tr.clickable-row { cursor:pointer; }
+
+/* Bulk action bar */
+#bulkBar {
+    position:sticky; top:0; z-index:100;
+    background:#1e3a8a; color:#fff;
+    border-radius:10px; padding:10px 18px;
+    margin-bottom:12px;
+    display:none;
+    align-items:center; gap:12px; flex-wrap:wrap;
+}
+#bulkBar.visible { display:flex; }
+#bulkBar .bulk-count { font-weight:700; font-size:0.9rem; }
+.btn-bulk {
+    border:none; border-radius:7px; padding:6px 14px; font-size:0.8rem; font-weight:600;
+    cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:opacity 0.15s;
+}
+.btn-bulk:hover { opacity:0.85; }
+.btn-bulk-ecart    { background:#fee2e2; color:#dc2626; }
+.btn-bulk-integre  { background:#d1fae5; color:#059669; }
+.btn-bulk-ignore   { background:#f3f4f6; color:#4b5563; }
+
+/* Checkbox styling */
+.row-check { width:16px; height:16px; cursor:pointer; accent-color:#7c3aed; }
+.th-check  { width:36px; }
+
+/* Modaux génériques */
+.modal-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999;
+    align-items:center; justify-content:center;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+    background:#fff; border-radius:16px; padding:28px 32px; max-width:460px; width:92%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.2);
+    animation: popIn 0.18s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn {
+    from { transform:scale(0.88); opacity:0; }
+    to   { transform:scale(1);    opacity:1; }
+}
+.modal-box h5 { margin-bottom:4px; font-weight:700; }
+.statut-option {
+    border:2px solid #e5e7eb; border-radius:10px; padding:12px 16px; margin-bottom:10px;
+    cursor:pointer; transition:all 0.15s;
+}
+.statut-option:hover { border-color:#1e3a8a; background:#f0f7ff; }
+.statut-option.selected { border-color:#1e3a8a; background:#eff6ff; }
+.so-title { font-weight:700; font-size:0.9rem; }
+.so-desc  { font-size:0.78rem; color:#6b7280; margin-top:2px; }
+
+/* Modal statut (local) */
+.modal-statut-overlay {
+    display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5);
+    backdrop-filter:blur(3px); z-index:99980;
+    align-items:center; justify-content:center; padding:16px;
+}
+.modal-statut-overlay.open { display:flex; }
+.modal-statut-box {
+    background:#fff; border-radius:18px; padding:28px 24px 20px; max-width:460px; width:100%;
+    box-shadow:0 24px 64px rgba(0,0,0,0.22);
+    animation: appModalIn 0.2s cubic-bezier(.34,1.56,.64,1);
+    position:relative;
+}
+.statut-option {
+    border:2px solid #e5e7eb; border-radius:10px; padding:11px 14px; margin-bottom:9px;
+    cursor:pointer; transition:all 0.15s;
+}
+.statut-option:hover  { border-color:#1e3a8a; background:#f0f7ff; }
+.statut-option.selected { border-color:#1e3a8a; background:#eff6ff; }
+.so-title { font-weight:700; font-size:0.88rem; }
+.so-desc  { font-size:0.75rem; color:#6b7280; margin-top:2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="h4 mb-1 fw-bold" style="color:#1f2937">
+                <i class="bi bi-exclamation-triangle me-2" style="color:#dc2626"></i>Factures — Écarts Cyrus / Asten
+            </h1>
+            <small class="text-muted">Jointure Cyrus ↔ Asten · 1 ligne par facture · Les factures Ignorées sont exclues</small>
+        </div>
+        <span class="badge fs-6" style="background:#1e3a8a">{{ total }} facture{{ total|pluralize }}</span>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg">
+            <div class="stat-card stat-total">
+                <div class="stat-num" style="color:#1e3a8a">{{ stats.total }}</div>
+                <div class="stat-label">Total actives</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="stat-card stat-ok">
+                <div class="stat-num" style="color:#059669">{{ stats.integrees }}</div>
+                <div class="stat-label">Intégrées</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="stat-card stat-ecart">
+                <div class="stat-num" style="color:#dc2626">{{ stats.ecarts }}</div>
+                <div class="stat-label">En écart</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="stat-card stat-taux">
+                {% if stats.total %}
+                    {% widthratio stats.integrees stats.total 100 as taux %}
+                    <div class="stat-num" style="color:#d97706">{{ taux }}%</div>
+                {% else %}
+                    <div class="stat-num" style="color:#d97706">—</div>
+                {% endif %}
+                <div class="stat-label">Taux intégration</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="stat-card stat-ignore">
+                <div class="stat-num" style="color:#6b7280">{{ stats.ignores }}</div>
+                <div class="stat-label">Ignorées</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filter-card">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Affichage</label>
+                <select name="statut" class="form-select form-select-sm">
+                    <option value="ecart"          {% if f_statut == 'ecart' %}selected{% endif %}>Écarts seulement</option>
+                    <option value="integree"       {% if f_statut == 'integree' %}selected{% endif %}>Intégrées</option>
+                    <option value="manuel_integre" {% if f_statut == 'manuel_integre' %}selected{% endif %}>Intégrées manuellement</option>
+                    <option value="tous"           {% if f_statut == 'tous' %}selected{% endif %}>Toutes (sauf ignorées)</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Magasin (CIDC)</label>
+                <select name="magasin" class="form-select form-select-sm" style="min-width:100px">
+                    <option value="">Tous</option>
+                    {% for m in magasins_list %}
+                    <option value="{{ m }}" {% if f_magasin == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">NSEE</label>
+                <select name="nsee" class="form-select form-select-sm" style="min-width:80px">
+                    <option value="">Toutes</option>
+                    {% for n in nsee_list %}
+                    <option value="{{ n }}" {% if f_nsee == n %}selected{% endif %}>{{ n }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Date début</label>
+                <input type="date" name="date_debut" class="form-control form-control-sm" value="{{ f_date_debut }}">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Date fin</label>
+                <input type="date" name="date_fin" class="form-control form-control-sm" value="{{ f_date_fin }}">
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary" style="background:#1e3a8a;border-color:#1e3a8a">
+                    <i class="bi bi-funnel me-1"></i>Filtrer
+                </button>
+                <a href="{% url 'dashboard:vue_factures_backup' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-lg me-1"></i>Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Barre d'actions groupées -->
+    <div id="bulkBar">
+        <span class="bulk-count"><span id="bulkCount">0</span> facture(s) sélectionnée(s)</span>
+        <button class="btn-bulk btn-bulk-integre" onclick="bulkAction('integre')">
+            <i class="bi bi-check-circle-fill"></i> Marquer Intégré
+        </button>
+        <button class="btn-bulk btn-bulk-ecart" onclick="bulkAction('non_integre')">
+            <i class="bi bi-x-circle-fill"></i> Marquer En écart
+        </button>
+        <button class="btn-bulk btn-bulk-ignore" onclick="bulkAction('ignore')">
+            <i class="bi bi-eye-slash-fill"></i> Ignorer
+        </button>
+        <button class="btn-bulk" style="background:#e0e7ff;color:#3730a3" onclick="deselAll()">
+            <i class="bi bi-x-lg"></i> Tout désélectionner
+        </button>
+    </div>
+
+    <!-- Tableau -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" id="mainTable">
+                <thead>
+                    <tr>
+                        <th class="th-check">
+                            <input type="checkbox" class="row-check" id="checkAll" onchange="toggleAll(this)" title="Tout sélectionner">
+                        </th>
+                        <th>Statut</th>
+                        <th>Clé facture</th>
+                        <th>NSEE</th>
+                        <th>NFAC</th>
+                        <th>Date Cyrus</th>
+                        <th>Magasin</th>
+                        <th>Articles</th>
+                        <th>Date Asten</th>
+                        <th>Fournisseur Asten</th>
+                        <th class="text-end">Val. TTC Asten</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if rows %}
+                    {% for r in rows %}
+                    <tr class="clickable-row {% if r.integree_csv %}row-integre-csv{% elif r.statut_manuel == 'integre' %}row-integre-man{% else %}row-ecart{% endif %}"
+                        data-cle="{{ r.cle_facture }}"
+                        data-dfac="{{ r.dfac_str }}"
+                        data-cidc="{{ r.cidc }}"
+                        data-statut="{% if r.integree_csv %}integre_csv{% elif r.statut_manuel %}{{ r.statut_manuel }}{% else %}non_integre{% endif %}"
+                        onclick="handleRowClick(event, this)">
+
+                        <!-- Checkbox (stoppe la navigation) -->
+                        <td onclick="event.stopPropagation()">
+                            {% if not r.integree_csv %}
+                            <input type="checkbox" class="row-check row-cb"
+                                data-cle="{{ r.cle_facture }}"
+                                data-dfac="{{ r.dfac_str }}"
+                                data-cidc="{{ r.cidc }}"
+                                onchange="updateBulkBar()">
+                            {% endif %}
+                        </td>
+
+                        <!-- Statut + bouton édition -->
+                        <td onclick="event.stopPropagation()">
+                            {% if r.integree_csv %}
+                                <span class="badge-integre-csv"><i class="bi bi-check-circle-fill me-1"></i>Intégrée</span>
+                            {% elif r.statut_manuel == 'integre' %}
+                                <span class="badge-integre"><i class="bi bi-check-circle-fill me-1"></i>Intégré</span>
+                                <button class="btn-edit-statut ms-1" title="Modifier"
+                                    onclick="ouvrirModal('{{ r.cle_facture }}','{{ r.dfac_str }}','{{ r.cidc }}','integre')">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                            {% else %}
+                                <span class="badge-ecart"><i class="bi bi-x-circle-fill me-1"></i>En écart</span>
+                                <button class="btn-edit-statut ms-1" title="Modifier"
+                                    onclick="ouvrirModal('{{ r.cle_facture }}','{{ r.dfac_str }}','{{ r.cidc }}','non_integre')">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+
+                        <td><span class="cle-badge">{{ r.cle_facture }}</span></td>
+                        <td><span class="badge-nsee">{{ r.nsee }}</span></td>
+                        <td class="font-monospace">{{ r.nfac }}</td>
+                        <td class="text-nowrap">{{ r.dfac_date|default:r.dfac_str }}</td>
+                        <td><span class="badge-mag">{{ r.cidc }}</span></td>
+                        <td>
+                            <small class="text-muted">
+                                {% if r.nb_articles == 1 %}{{ r.articles.0.lart|default:"—" }}
+                                {% else %}<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:700;border-radius:10px;padding:1px 7px">{{ r.nb_articles }}</span> articles{% endif %}
+                            </small>
+                        </td>
+                        {% if r.asten %}
+                        <td class="text-nowrap">{{ r.asten.date_reception_str }}</td>
+                        <td><small>{{ r.asten.fournisseur|default:"—" }}</small></td>
+                        <td class="text-end amount">{{ r.asten.valorisation_ttc|default:"—" }}</td>
+                        {% else %}
+                        <td class="text-muted">—</td>
+                        <td class="text-muted">—</td>
+                        <td class="text-muted text-end">—</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="11" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>Aucune facture trouvée
+                    </td></tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if paginator.num_pages > 1 %}
+    <nav class="mt-3 d-flex align-items-center justify-content-between">
+        <small class="text-muted">Page {{ page_obj.number }} / {{ paginator.num_pages }} — {{ total }} facture{{ total|pluralize }}</small>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">‹</a></li>
+            {% endif %}
+            {% for num in paginator.page_range %}
+                {% if num == page_obj.number %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+                <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">›</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+</div>
+
+<!-- ===== MODAL CHANGEMENT STATUT ===== -->
+<div class="modal-statut-overlay" id="modalStatutOverlay" onclick="if(event.target===this)closeStatutModal()">
+    <div class="modal-statut-box">
+        <button class="app-modal-close" onclick="closeStatutModal()"><i class="bi bi-x-lg"></i></button>
+        <div class="app-modal-icon primary mb-2" style="width:44px;height:44px;font-size:1.1rem;margin:0 0 10px 0">
+            <i class="bi bi-sliders"></i>
+        </div>
+        <div class="fw-bold mb-1" style="font-size:1rem">Changer le statut</div>
+        <p class="text-muted small mb-3" id="statutModalInfo" style="font-size:0.78rem"></p>
+
+        <div class="statut-option" data-val="non_integre" onclick="selectStatut(this)">
+            <div class="so-title" style="color:#dc2626"><i class="bi bi-x-circle-fill me-2"></i>En écart (Non intégré)</div>
+            <div class="so-desc">Pris en compte dans les calculs, non intégré. Statut par défaut.</div>
+        </div>
+        <div class="statut-option" data-val="integre" onclick="selectStatut(this)">
+            <div class="so-title" style="color:#059669"><i class="bi bi-check-circle-fill me-2"></i>Intégré (manuel)</div>
+            <div class="so-desc">Considérée comme intégrée, comptée dans le total des intégrées.</div>
+        </div>
+        <div class="statut-option" data-val="ignore" onclick="selectStatut(this)">
+            <div class="so-title" style="color:#6b7280"><i class="bi bi-eye-slash-fill me-2"></i>Ignoré</div>
+            <div class="so-desc">Exclue de la liste et de tous les calculs.</div>
+        </div>
+
+        <div class="mb-3 mt-1">
+            <label class="form-label small fw-semibold">Note (optionnel)</label>
+            <textarea id="statutNote" class="form-control form-control-sm" rows="2" placeholder="Raison, commentaire…"></textarea>
+        </div>
+        <div class="d-flex gap-2 justify-content-end">
+            <button class="app-modal-btn cancel" onclick="closeStatutModal()">
+                <i class="bi bi-x-lg"></i> Annuler
+            </button>
+            <button class="app-modal-btn" style="background:#1e3a8a;color:#fff" onclick="saveStatut()">
+                <i class="bi bi-check-lg"></i> Enregistrer
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const URL_SET    = "{% url 'dashboard:set_statut_facture_ecart' %}";
+const CSRF       = "{{ csrf_token }}";
+const URL_DETAIL = "{% url 'dashboard:detail_facture_cyrus' %}";
+
+const BULK_LABELS = {
+    integre:     { label:'Intégré (manuel)', type:'success', okLabel:'Marquer Intégré',  okIcon:'bi-check-circle-fill' },
+    non_integre: { label:'En écart',         type:'danger',  okLabel:'Marquer En écart',  okIcon:'bi-x-circle-fill' },
+    ignore:      { label:'Ignoré',           type:'warning', okLabel:'Ignorer',            okIcon:'bi-eye-slash-fill' },
+};
+
+/* ── Navigation vers le détail ── */
+function handleRowClick(e, tr) {
+    if (e.target.closest('input, button')) return;
+    const { cle, dfac, cidc } = tr.dataset;
+    window.location.href = `${URL_DETAIL}?cle=${encodeURIComponent(cle)}&cidc=${encodeURIComponent(cidc)}&dfac=${encodeURIComponent(dfac)}`;
+}
+
+/* ── Checkboxes ── */
+function toggleAll(cb) {
+    document.querySelectorAll('.row-cb').forEach(c => {
+        c.checked = cb.checked;
+        c.closest('tr').classList.toggle('row-selected', cb.checked);
+    });
+    updateBulkBar();
+}
+
+function updateBulkBar() {
+    const checked = document.querySelectorAll('.row-cb:checked');
+    const all     = document.querySelectorAll('.row-cb');
+    document.getElementById('bulkCount').textContent = checked.length;
+    document.getElementById('bulkBar').classList.toggle('visible', checked.length > 0);
+    const ca = document.getElementById('checkAll');
+    ca.indeterminate = checked.length > 0 && checked.length < all.length;
+    ca.checked = all.length > 0 && checked.length === all.length;
+    all.forEach(c => c.closest('tr').classList.toggle('row-selected', c.checked));
+}
+
+function deselAll() {
+    document.querySelectorAll('.row-cb').forEach(c => { c.checked = false; });
+    document.getElementById('checkAll').checked = false;
+    updateBulkBar();
+}
+
+/* ── Actions groupées ── */
+async function bulkAction(statut) {
+    const checked = [...document.querySelectorAll('.row-cb:checked')];
+    if (!checked.length) return;
+    const { label, type, okLabel, okIcon } = BULK_LABELS[statut];
+    const n = checked.length;
+
+    const ok = await AppModal.confirm({
+        type,
+        title:   `Modifier ${n} facture${n > 1 ? 's' : ''}`,
+        body:    `Appliquer le statut <strong>${label}</strong> aux <strong>${n}</strong> facture${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''} ?`,
+        okLabel, okIcon,
+    });
+    if (!ok) return;
+
+    AppModal.spinner(true, 'Enregistrement…');
+    await Promise.all(checked.map(cb =>
+        fetch(URL_SET, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ cle_facture: cb.dataset.cle, dfac_str: cb.dataset.dfac, cidc: cb.dataset.cidc, statut, note: '' }),
+        })
+    ));
+    window.location.reload();
+}
+
+/* ── Modal statut individuel ── */
+let _modal = { cle: '', dfac: '', cidc: '', statut: '' };
+
+function ouvrirModal(cle, dfac, cidc, statut) {
+    _modal = { cle, dfac, cidc, statut };
+    document.getElementById('statutModalInfo').textContent = `Facture : ${cle}  ·  Magasin : ${cidc}`;
+    document.getElementById('statutNote').value = '';
+    document.querySelectorAll('.statut-option').forEach(o =>
+        o.classList.toggle('selected', o.dataset.val === statut)
+    );
+    document.getElementById('modalStatutOverlay').classList.add('open');
+}
+
+function closeStatutModal() {
+    document.getElementById('modalStatutOverlay').classList.remove('open');
+}
+
+function selectStatut(el) {
+    document.querySelectorAll('.statut-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    _modal.statut = el.dataset.val;
+}
+
+async function saveStatut() {
+    const note = document.getElementById('statutNote').value.trim();
+    closeStatutModal();
+    AppModal.spinner(true, 'Enregistrement…');
+    try {
+        const r    = await fetch(URL_SET, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ cle_facture: _modal.cle, dfac_str: _modal.dfac, cidc: _modal.cidc, statut: _modal.statut, note }),
+        });
+        const data = await r.json();
+        if (data.ok) {
+            window.location.reload();
+        } else {
+            AppModal.spinner(false);
+            AppModal.alert({ type: 'danger', title: 'Erreur', body: data.error || 'Erreur inconnue' });
+        }
+    } catch {
+        AppModal.spinner(false);
+        AppModal.alert({ type: 'danger', title: 'Erreur réseau', body: 'Impossible de contacter le serveur.' });
+    }
+}
+</script>
+{% endblock %}

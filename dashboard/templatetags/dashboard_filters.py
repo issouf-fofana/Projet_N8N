@@ -1,4 +1,5 @@
 from django import template
+from entree_journal.services import get_error_explanation
 
 register = template.Library()
 
@@ -9,6 +10,19 @@ def in_list(value, arg):
     if isinstance(arg, list):
         return value in arg
     return False
+
+
+@register.filter(name='error_explain')
+def error_explain(message):
+    """Retourne le texte d'explication pour un message d'erreur."""
+    icon, text = get_error_explanation(str(message))
+    return text
+
+@register.filter(name='error_icon')
+def error_icon(message):
+    """Retourne l'icône Bootstrap Icons pour un message d'erreur."""
+    icon, text = get_error_explanation(str(message))
+    return icon
 
 
 

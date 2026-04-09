@@ -1,0 +1,448 @@
+{% extends 'core/base.html' %}
+{% block title %}Intégration Asten — {{ data.date_nuit }}{% endblock %}
+
+{% block content %}
+<style>
+/* ═══ HEADER ══════════════════════════════════════════════════════════ */
+.ia-header { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px; }
+.ia-header-left { display:flex;align-items:center;gap:14px; }
+.ia-icon { width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,#1e3a8a,#1e40af);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.35rem;
+    box-shadow:0 4px 14px rgba(30,58,138,.28); }
+.ia-header h1 { font-size:1.55rem;font-weight:900;color:#0f172a;margin:0; }
+.ia-header p  { margin:2px 0 0;font-size:.82rem;color:#64748b; }
+.ia-actions   { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
+.ia-date-input { border:1.5px solid #e2e8f0;border-radius:10px;padding:7px 12px;font-size:.82rem;
+    color:#0f172a;background:#f8fafc;outline:none; }
+.ia-date-input:focus { border-color:#1e3a8a;background:#fff; }
+.ia-btn { background:#1e3a8a;color:#fff;border:none;border-radius:10px;padding:8px 18px;
+    font-size:.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none; }
+.ia-btn:hover { background:#1e40af;color:#fff; }
+.ia-btn-imp { background:#f0fdf4;color:#15803d;border:1.5px solid #bbf7d0; }
+.ia-btn-imp:hover { background:#dcfce7;color:#15803d; }
+
+/* ═══ STAT CARDS ══════════════════════════════════════════════════════ */
+.ia-stats { display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px; }
+.ia-stat  { background:#fff;border-radius:16px;border:1px solid #e8edf5;padding:16px 18px;
+    box-shadow:0 2px 10px rgba(15,23,42,.05); }
+.ia-stat-lbl { font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:5px; }
+.ia-stat-val { font-size:1.6rem;font-weight:900;color:#0f172a;line-height:1; }
+.ia-stat-sub { font-size:.72rem;color:#64748b;margin-top:4px; }
+.ia-stat.ok   .ia-stat-val { color:#15803d; }
+.ia-stat.warn .ia-stat-val { color:#b45309; }
+.ia-stat.err  .ia-stat-val { color:#dc2626; }
+.ia-stat.blue .ia-stat-val { color:#1e3a8a; }
+
+/* ═══ STATUS BAR ══════════════════════════════════════════════════════ */
+.ia-bar { border-radius:14px;padding:13px 20px;margin-bottom:28px;border:1.5px solid;
+    display:flex;align-items:center;gap:12px;font-size:.87rem; }
+.ia-bar.ok      { background:#f0fdf4;border-color:#bbf7d0;color:#15803d; }
+.ia-bar.partial { background:#fffbeb;border-color:#fcd34d;color:#b45309; }
+.ia-bar.error   { background:#fff1f2;border-color:#fecaca;color:#b91c1c; }
+.ia-bar i { font-size:1.1rem;flex-shrink:0; }
+.ia-progress { flex:1;height:6px;border-radius:3px;background:rgba(0,0,0,.08);overflow:hidden;max-width:160px; }
+.ia-progress-fill { height:100%;border-radius:3px; }
+
+/* ═══ SECTION POS ══════════════════════════════════════════════════════ */
+.ia-pos-header {
+    display:flex;align-items:center;gap:12px;
+    margin:32px 0 14px;
+    padding:0 0 12px;
+    border-bottom:2px solid #e8edf5;
+}
+.ia-pos-icon {
+    width:36px;height:36px;border-radius:10px;flex-shrink:0;
+    background:linear-gradient(135deg,#1e3a8a,#3b82f6);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:.95rem;
+    box-shadow:0 3px 10px rgba(30,58,138,.2);
+}
+.ia-pos-title { font-size:1rem;font-weight:900;color:#0f172a; }
+.ia-pos-sub   { font-size:.72rem;color:#94a3b8;margin-top:1px; }
+.ia-pos-badges { display:flex;gap:6px;margin-left:auto;flex-wrap:wrap; }
+.ia-pos-badge {
+    font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:20px;
+    display:inline-flex;align-items:center;gap:4px;
+}
+.ia-pos-badge.ok  { background:#dcfce7;color:#15803d; }
+.ia-pos-badge.warn { background:#fef3c7;color:#b45309; }
+.ia-pos-badge.err  { background:#fee2e2;color:#b91c1c; }
+.ia-pos-badge.muted { background:#f1f5f9;color:#64748b; }
+
+/* ═══ GRILLE MAGASINS ═════════════════════════════════════════════════ */
+.ia-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:8px; }
+.ia-grid.single { grid-template-columns:minmax(0,560px);justify-content:start; }
+
+.ia-card {
+    background:#fff;border-radius:14px;border:1px solid #e8edf5;
+    box-shadow:0 1px 6px rgba(15,23,42,.05);overflow:hidden;
+    transition:box-shadow .2s,transform .15s;
+}
+.ia-card:hover { box-shadow:0 4px 18px rgba(15,23,42,.09);transform:translateY(-1px); }
+
+.ia-card-head { display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #f1f5f9; }
+.ia-card-ref {
+    width:44px;height:44px;border-radius:12px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.75rem;font-weight:900;letter-spacing:-.02em;
+    background:#f1f5f9;color:#475569;
+}
+.ia-card-name { font-size:.9rem;font-weight:800;color:#0f172a;line-height:1.2; }
+.ia-card-meta { font-size:.7rem;color:#94a3b8;margin-top:2px; }
+.ia-card-status {
+    margin-left:auto;display:inline-flex;align-items:center;gap:6px;
+    font-size:.72rem;font-weight:600;white-space:nowrap;
+}
+.ia-sdot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+.ia-card-status.ok      { color:#15803d; }
+.ia-card-status.ok      .ia-sdot { background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.18); }
+.ia-card-status.partial { color:#b45309; }
+.ia-card-status.partial .ia-sdot { background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.18); }
+.ia-card-status.absent  { color:#b91c1c; }
+.ia-card-status.absent  .ia-sdot { background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.18); }
+.ia-card-status.no_data { color:#94a3b8; }
+.ia-card-status.no_data .ia-sdot { background:#cbd5e1; }
+
+/* ═══ LIGNES TYPE DANS LA CARTE ═══════════════════════════════════════ */
+.ia-card-body { padding:4px 0; }
+.ia-type-row {
+    display:flex;align-items:center;gap:10px;padding:9px 16px;
+    border-bottom:1px solid #f8fafc;transition:background .12s;
+}
+.ia-type-row:last-child { border-bottom:none; }
+.ia-type-row:hover { background:#f8faff; }
+.ia-type-row.has-err { background:#fffbeb; }
+.ia-type-row.has-err:hover { background:#fef9c3; }
+.ia-type-icon { width:20px;text-align:center;font-size:.85rem;flex-shrink:0; }
+.ia-type-icon.ok      { color:#15803d; }
+.ia-type-icon.absent  { color:#cbd5e1; }
+.ia-type-icon.erreur  { color:#dc2626; }
+.ia-type-icon.en_cours{ color:#d97706; }
+.ia-type-name { font-size:.8rem;font-weight:600;color:#334155;flex:1;line-height:1.3; }
+.ia-type-name small { display:block;font-size:.67rem;color:#94a3b8;font-weight:400; }
+.ia-type-right { display:flex;align-items:center;gap:5px;flex-shrink:0; }
+.ia-nbpill {
+    font-size:.67rem;font-weight:700;padding:2px 8px;border-radius:20px;
+    display:inline-flex;align-items:center;gap:3px;
+}
+.ia-nbpill.ok    { background:#dcfce7;color:#15803d; }
+.ia-nbpill.err   { background:#fee2e2;color:#dc2626; }
+.ia-nbpill.muted { background:#f1f5f9;color:#94a3b8; }
+.ia-det-arrow { font-size:.72rem;color:#c7d2fe; }
+
+
+/* Log entry */
+.ia-log { display:flex;gap:0;border-bottom:1px solid #eef2f7; }
+.ia-log:last-child { border-bottom:none; }
+
+/* Bande gauche colorée selon statut */
+.ia-log-bar { width:4px;flex-shrink:0;border-radius:0; }
+.ia-log-bar.ok     { background:#15803d; }
+.ia-log-bar.succes { background:#15803d; }
+.ia-log-bar.erreur { background:#dc2626; }
+.ia-log-bar.en_cours { background:#d97706; }
+.ia-log-bar.absent { background:#cbd5e1; }
+
+.ia-log-inner { flex:1;padding:11px 14px; }
+
+/* En-tête du log */
+.ia-log-head { display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:0; }
+.ia-log-status { display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+    border-radius:20px;font-size:.66rem;font-weight:700; }
+.ia-log-status.ok, .ia-log-status.succes, .ia-log-status.succès {
+    background:#dcfce7;color:#15803d; }
+.ia-log-status.erreur { background:#fee2e2;color:#b91c1c; }
+.ia-log-status.en_cours { background:#fef3c7;color:#b45309; }
+.ia-log-status.absent, .ia-log-status.indéfini { background:#f1f5f9;color:#64748b; }
+
+.ia-emeta { font-size:.7rem;color:#64748b;display:inline-flex;align-items:center;gap:3px; }
+.ia-chip  { background:#e8edf5;color:#475569;font-size:.65rem;font-weight:600;
+    padding:2px 8px;border-radius:20px;font-family:monospace; }
+
+/* Fichier récap */
+.ia-log-file { display:flex;align-items:center;gap:5px;margin-top:8px;margin-bottom:6px;
+    font-size:.68rem;color:#475569;font-family:monospace;
+    background:#eef2f7;border-radius:6px;padding:4px 8px;width:fit-content;max-width:100%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.ia-log-file i { color:#64748b;flex-shrink:0; }
+
+/* Pills stats */
+.ia-rpills { display:flex;gap:5px;flex-wrap:wrap;margin-top:5px; }
+.rp { display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:8px;font-size:.66rem;font-weight:700; }
+.rp.fmt  { background:#eff6ff;color:#1d4ed8; }
+.rp.err  { background:#fee2e2;color:#b91c1c; }
+.rp.cre  { background:#f0fdf4;color:#15803d; }
+.rp.maj  { background:#fefce8;color:#a16207; }
+.rp.sup  { background:#fdf4ff;color:#7e22ce; }
+
+/* Bandeau erreur article */
+.ia-err-banner { display:flex;align-items:center;gap:8px;margin-top:9px;margin-bottom:5px;
+    padding:6px 10px;background:#fff0f0;border:1px solid #fecaca;border-radius:8px; }
+.ia-err-banner i { color:#b91c1c;font-size:.85rem;flex-shrink:0; }
+.ia-err-msg { color:#b91c1c;font-weight:700;font-size:.74rem;flex:1; }
+.ia-err-cnt { background:#fecaca;color:#b91c1c;font-size:.63rem;font-weight:700;
+    padding:2px 8px;border-radius:20px;white-space:nowrap; }
+
+/* Table erreurs articles */
+.ia-etbl-wrap { overflow-x:auto;border-radius:8px;border:1px solid #fecaca;margin-top:4px; }
+.ia-etbl { width:100%;border-collapse:collapse;font-size:.72rem; }
+.ia-etbl thead th { padding:5px 10px;background:#fff7f7;border-bottom:1.5px solid #fecaca;
+    color:#b91c1c;font-size:.6rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.04em;text-align:left;white-space:nowrap; }
+.ia-etbl tbody td { padding:5px 10px;border-bottom:1px solid #fff1f2;vertical-align:top; }
+.ia-etbl tbody tr:last-child td { border-bottom:none; }
+.ia-etbl tbody tr:hover { background:#fff8f8; }
+.ets { color:#94a3b8;white-space:nowrap;font-family:monospace;font-size:.65rem; }
+.emg { color:#b91c1c;font-size:.68rem; }
+.edt { font-family:monospace;color:#334155;font-size:.7rem;font-weight:600; }
+.emore { text-align:center;padding:7px;color:#94a3b8;font-style:italic;font-size:.67rem; }
+
+/* Compat anciens sélecteurs */
+.tb { display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.67rem;font-weight:700; }
+.tb.ok,.tb.succes,.tb.succès { background:#dcfce7;color:#15803d; }
+.tb.erreur   { background:#fee2e2;color:#b91c1c; }
+.tb.absent   { background:#f1f5f9;color:#64748b; }
+.tb.en_cours { background:#fef3c7;color:#b45309; }
+
+/* ═══ FLASH ═══════════════════════════════════════════════════════════ */
+.ia-flash { display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:12px;
+    margin-bottom:14px;font-size:.84rem;font-weight:600;border:1.5px solid; }
+.ia-flash.success { background:#f0fdf4;border-color:#bbf7d0;color:#15803d; }
+.ia-flash.error   { background:#fff1f2;border-color:#fecaca;color:#b91c1c; }
+.ia-flash.info    { background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8; }
+
+@media(max-width:900px){ .ia-stats{grid-template-columns:repeat(3,1fr);} .ia-grid{grid-template-columns:1fr;} }
+@media(max-width:600px){ .ia-stats{grid-template-columns:repeat(2,1fr);} }
+</style>
+
+{% if messages %}
+{% for message in messages %}
+<div class="ia-flash {{ message.tags }}">
+    <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'error' %}x-circle-fill{% else %}info-circle-fill{% endif %}"></i>
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+<div class="ia-header">
+    <div class="ia-header-left">
+        <div class="ia-icon"><i class="bi bi-patch-check-fill"></i></div>
+        <div>
+            <h1>Intégration Asten</h1>
+            <p>Nuit du <strong>{{ data.date_nuit }}</strong> &nbsp;·&nbsp; Fenêtre {{ data.fenetre }}</p>
+        </div>
+    </div>
+    <div class="ia-actions">
+        <form method="get" style="display:flex;gap:6px;align-items:center;" id="iaDateForm">
+            <input type="date" name="date" value="{{ date_str }}" class="ia-date-input" id="iaDateInput">
+            <button type="submit" class="ia-btn"><i class="bi bi-search"></i> Vérifier</button>
+            <button type="button" class="ia-btn"
+                    style="background:#0f766e;white-space:nowrap;"
+                    onclick="document.getElementById('iaDateInput').value='{{ yesterday }}';document.getElementById('iaDateForm').submit();">
+                <i class="bi bi-moon-stars-fill"></i> Nuit dernière
+            </button>
+        </form>
+        <form method="post" action="{% url 'dashboard:integration_asten_import' %}">
+            {% csrf_token %}
+            <button type="submit" class="ia-btn ia-btn-imp">
+                <i class="bi bi-cloud-download"></i> Importer fichiers
+            </button>
+        </form>
+    </div>
+</div>
+
+{% with s=data.summary %}
+<!-- ══ STAT CARDS ══════════════════════════════════════════════════════ -->
+<div class="ia-stats">
+    <div class="ia-stat {% if s.conformite_pct == 100 %}ok{% elif s.conformite_pct >= 70 %}warn{% else %}err{% endif %}">
+        <div class="ia-stat-lbl">Taux intégration</div>
+        <div class="ia-stat-val">{{ s.conformite_pct }}%</div>
+        <div class="ia-stat-sub">{{ s.ok }} / {{ s.total_shops }} magasins</div>
+    </div>
+    <div class="ia-stat ok">
+        <div class="ia-stat-lbl">Versions intégrées</div>
+        <div class="ia-stat-val">{{ s.ok }}</div>
+        <div class="ia-stat-sub">4/4 types · sans erreur</div>
+    </div>
+    <div class="ia-stat {% if s.partial > 0 %}warn{% endif %}">
+        <div class="ia-stat-lbl">Intégration partielle</div>
+        <div class="ia-stat-val">{{ s.partial }}</div>
+        <div class="ia-stat-sub">Fichiers manquants</div>
+    </div>
+    <div class="ia-stat {% if s.absent > 0 %}err{% endif %}">
+        <div class="ia-stat-lbl">Non intégrées</div>
+        <div class="ia-stat-val">{{ s.absent }}</div>
+        <div class="ia-stat-sub">Aucune entrée</div>
+    </div>
+    <div class="ia-stat {% if total_art_err > 0 %}err{% else %}ok{% endif %}">
+        <div class="ia-stat-lbl">Articles en erreur</div>
+        <div class="ia-stat-val">{{ total_art_err }}</div>
+        <div class="ia-stat-sub">{{ data.nb_entrees_total }} entrées vérifiées</div>
+    </div>
+</div>
+
+<!-- ══ BARRE GLOBALE ══════════════════════════════════════════════════ -->
+<div class="ia-bar {% if s.conformite_pct == 100 and total_art_err == 0 %}ok{% elif s.conformite_pct >= 60 %}partial{% else %}error{% endif %}">
+    {% if s.conformite_pct == 100 and total_art_err == 0 %}
+        <i class="bi bi-check-circle-fill"></i>
+        <strong>Toutes les versions sont intégrées</strong>
+    {% elif s.conformite_pct == 100 %}
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <strong>Versions intégrées &mdash; {{ total_art_err }} article(s) en erreur</strong>
+    {% else %}
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>{{ s.partial }} partielle(s) &nbsp;·&nbsp; {{ s.absent }} non intégrée(s)</strong>
+        {% if total_art_err > 0 %}&nbsp;·&nbsp; <strong>{{ total_art_err }} articles en erreur</strong>{% endif %}
+    {% endif %}
+    <span style="opacity:.7;font-size:.8rem;">— {{ s.total_shops }} magasins · {{ data.nb_entrees_total }} entrées</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+        <div class="ia-progress">
+            <div class="ia-progress-fill" style="width:{{ s.conformite_pct }}%;
+                background:{% if s.conformite_pct == 100 %}#15803d{% elif s.conformite_pct >= 60 %}#d97706{% else %}#dc2626{% endif %};"></div>
+        </div>
+        <strong style="font-size:1.05rem;">{{ s.conformite_pct }}%</strong>
+    </div>
+</div>
+{% endwith %}
+
+<!-- ══ BANDEAU 4 TYPES OBLIGATOIRES ══════════════════════════════════ -->
+{% if ia_types %}
+<div style="background:#fff;border-radius:14px;border:1px solid #e8edf5;
+            box-shadow:0 1px 6px rgba(15,23,42,.06);margin-bottom:28px;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+    {% for tk, t in ia_types.items %}
+    <div style="padding:16px 20px;{% if not forloop.last %}border-right:1px solid #f1f5f9;{% endif %}">
+        <!-- Titre + indicateur statut -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;">{{ t.label }}</span>
+            <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
+                background:{% if t.nb_absent > 0 %}#ef4444{% elif t.nb_ok_erreurs > 0 %}#f59e0b{% else %}#22c55e{% endif %};
+                box-shadow:0 0 0 3px {% if t.nb_absent > 0 %}rgba(239,68,68,.15){% elif t.nb_ok_erreurs > 0 %}rgba(245,158,11,.15){% else %}rgba(34,197,94,.15){% endif %};"></span>
+        </div>
+        <!-- Chiffres -->
+        <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:12px;">
+            <div>
+                <div style="font-size:1.6rem;font-weight:900;color:#0f172a;line-height:1;">{{ t.nb_ok }}</div>
+                <div style="font-size:.65rem;color:#94a3b8;margin-top:2px;">intégrés OK</div>
+            </div>
+            {% if t.nb_ok_erreurs > 0 %}
+            <div style="padding-bottom:2px;">
+                <div style="font-size:1rem;font-weight:800;color:#d97706;line-height:1;">{{ t.nb_ok_erreurs }}</div>
+                <div style="font-size:.63rem;color:#94a3b8;margin-top:2px;">avec erreurs</div>
+            </div>
+            {% endif %}
+            {% if t.nb_absent > 0 %}
+            <div style="padding-bottom:2px;">
+                <div style="font-size:1rem;font-weight:800;color:#ef4444;line-height:1;">{{ t.nb_absent }}</div>
+                <div style="font-size:.63rem;color:#94a3b8;margin-top:2px;">absents</div>
+            </div>
+            {% endif %}
+        </div>
+        <!-- Barre segmentée -->
+        <div style="display:flex;gap:2px;height:3px;border-radius:2px;overflow:hidden;background:#f1f5f9;">
+            {% if t.nb_ok > 0 %}<div style="flex:{{ t.nb_ok }};background:#22c55e;"></div>{% endif %}
+            {% if t.nb_ok_erreurs > 0 %}<div style="flex:{{ t.nb_ok_erreurs }};background:#f59e0b;"></div>{% endif %}
+            {% if t.nb_absent > 0 %}<div style="flex:{{ t.nb_absent }};background:#ef4444;"></div>{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ══ POS SECTIONS ════════════════════════════════════════════════════ -->
+{% for pos_id, pos in data.pos.items %}
+
+<div class="ia-pos-header">
+    <div class="ia-pos-icon"><i class="bi bi-server"></i></div>
+    <div>
+        <div class="ia-pos-title">{{ pos.name }}</div>
+        <div class="ia-pos-sub">{{ pos.shops|length }} magasin{{ pos.shops|length|pluralize }}</div>
+    </div>
+    <div class="ia-pos-badges">
+        {% if pos.statut == 'ok' %}
+            <span class="ia-pos-badge ok"><i class="bi bi-check-circle-fill"></i> Tout intégré</span>
+        {% elif pos.statut == 'no_data' %}
+            <span class="ia-pos-badge muted"><i class="bi bi-dash-circle"></i> Pas de données</span>
+        {% else %}
+            {% if pos.nb_ok > 0 %}<span class="ia-pos-badge ok"><i class="bi bi-check-circle-fill"></i> {{ pos.nb_ok }} intégré{{ pos.nb_ok|pluralize }}</span>{% endif %}
+            {% if pos.nb_partial > 0 %}<span class="ia-pos-badge warn"><i class="bi bi-exclamation-triangle-fill"></i> {{ pos.nb_partial }} partiel{{ pos.nb_partial|pluralize }}</span>{% endif %}
+            {% if pos.nb_absent > 0 %}<span class="ia-pos-badge err"><i class="bi bi-x-circle-fill"></i> {{ pos.nb_absent }} absent{{ pos.nb_absent|pluralize }}</span>{% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="ia-grid {% if pos.shops|length == 1 %}single{% endif %}">
+{% for ref, shop in pos.shops.items %}
+<div class="ia-card">
+    <!-- En-tête carte -->
+    <div class="ia-card-head">
+        <div class="ia-card-ref">{{ shop.reference }}</div>
+        <div>
+            <div class="ia-card-name">{{ shop.name }}</div>
+            <div class="ia-card-meta">{{ shop.nb_ok }}/{{ shop.nb_total }} types intégrés</div>
+        </div>
+        {% if shop.statut == 'ok' %}
+            <span class="ia-card-status ok"><span class="ia-sdot"></span> Intégré</span>
+        {% elif shop.statut == 'ok_erreurs' %}
+            <span class="ia-card-status partial"><span class="ia-sdot"></span> Intégré · {{ shop.nb_erreurs_articles }} art. err.</span>
+        {% elif shop.statut == 'partial' %}
+            <span class="ia-card-status partial"><span class="ia-sdot"></span> Partiel</span>
+        {% else %}
+            <span class="ia-card-status absent"><span class="ia-sdot"></span> Absent</span>
+        {% endif %}
+    </div>
+
+    <!-- Corps : types -->
+    <div class="ia-card-body">
+    {% for type_key, t in shop.types.items %}
+    {% with panel_id=pos_id|add:"_"|add:ref|add:"_"|add:type_key %}
+    {% if t.entrees %}
+    <a class="ia-type-row {% if t.nb_erreurs > 0 %}has-err{% endif %}"
+       href="{% url 'dashboard:integration_asten_detail_type' pos_id ref type_key %}?date={{ date_str }}"
+       style="text-decoration:none;color:inherit;">
+    {% else %}
+    <div class="ia-type-row {% if t.nb_erreurs > 0 %}has-err{% endif %}">
+    {% endif %}
+        <span class="ia-type-icon {% if t.statut == 'ok' or t.statut == 'ok_erreurs' %}ok{% elif t.statut == 'absent' %}absent{% elif t.statut == 'en_cours' %}en_cours{% else %}erreur{% endif %}">
+            {% if t.statut == 'ok' or t.statut == 'ok_erreurs' %}<i class="bi bi-check-circle-fill"></i>
+            {% elif t.statut == 'en_cours' %}<i class="bi bi-hourglass-split"></i>
+            {% else %}<i class="bi bi-dash-circle"></i>{% endif %}
+        </span>
+        <span class="ia-type-name">
+            {{ t.detail_text }}
+            {% if t.detail_text != t.label %}<small>{{ t.label }}{% if t.optionnel %} <em style="color:#d97706;">(optionnel)</em>{% endif %}</small>{% endif %}
+        </span>
+        <div class="ia-type-right">
+            {% if t.integre %}
+                <span class="ia-nbpill ok">{{ t.nb_total }} ✓</span>
+            {% endif %}
+            {% if t.nb_erreurs > 0 %}
+                <span class="ia-nbpill err">{{ t.nb_erreurs }} art. ✗</span>
+            {% endif %}
+            {% if t.statut == 'absent' %}
+                {% if t.optionnel %}<span class="ia-nbpill muted" style="font-style:italic;">optionnel</span>
+                {% else %}<span class="ia-nbpill muted">—</span>{% endif %}
+            {% endif %}
+            {% if t.entrees %}
+                <i class="bi bi-chevron-right ia-det-arrow" style="color:#94a3b8;font-size:.75rem;"></i>
+            {% endif %}
+        </div>
+    {% if t.entrees %}</a>{% else %}</div>{% endif %}
+    {% endwith %}
+    {% endfor %}
+    </div>
+</div>
+{% endfor %}
+</div>
+
+{% empty %}
+<div style="background:#fff;border:1px solid #e8edf5;border-radius:18px;padding:60px;text-align:center;">
+    <i class="bi bi-inbox" style="font-size:3rem;color:#cbd5e1;display:block;margin-bottom:12px;"></i>
+    <h4 style="color:#334155;margin:0 0 6px;">Aucune donnée disponible</h4>
+    <p style="color:#94a3b8;margin:0;">Importez des fichiers CSV puis cliquez sur "Vérifier".</p>
+</div>
+{% endfor %}
+
+{% endblock %}

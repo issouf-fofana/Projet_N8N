@@ -1,0 +1,346 @@
+{% extends 'core/base.html' %}
+{% block title %}Détail {{ detail.date_str }}{% endblock %}
+
+{% block content %}
+<style>
+/* ── Header ── */
+.vad-header { display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap; }
+.vad-icon { width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#1e3a8a,#1e40af);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;
+    box-shadow:0 4px 14px rgba(30,58,138,.25);flex-shrink:0; }
+.vad-header h1 { font-size:1.45rem;font-weight:900;color:#0f172a;margin:0; }
+.vad-header p  { margin:3px 0 0;font-size:.82rem;color:#64748b; }
+.vad-header-right { margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap; }
+
+/* ── Statut global ── */
+.vad-status-bar { display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:14px;
+    margin-bottom:22px;border:1.5px solid; }
+.vad-status-bar.ok      { background:#f0fdf4;border-color:#bbf7d0;color:#15803d; }
+.vad-status-bar.warning { background:#fffbeb;border-color:#fcd34d;color:#b45309; }
+.vad-status-bar.error   { background:#fff1f2;border-color:#fecaca;color:#b91c1c; }
+.vad-status-bar i { font-size:1.3rem; }
+.vad-status-bar strong { font-size:.95rem; }
+.vad-status-bar small  { font-size:.78rem;opacity:.8;margin-left:6px; }
+
+/* ── Stat pills ── */
+.vad-pills { display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap; }
+.vad-pill { display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e8edf5;
+    border-radius:14px;padding:11px 18px;box-shadow:0 2px 8px rgba(15,23,42,.05); }
+.vad-pill i   { font-size:1.1rem;color:#1e3a8a; }
+.vad-pill-val { font-size:1.1rem;font-weight:800;color:#0f172a; }
+.vad-pill-lbl { font-size:.7rem;color:#94a3b8;font-weight:600; }
+
+/* ── Section title ── */
+.vad-stitle { font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
+    color:#94a3b8;margin:22px 0 12px;display:flex;align-items:center;gap:8px; }
+.vad-stitle .cnt { background:#1e3a8a;color:#fff;border-radius:10px;
+    padding:1px 8px;font-size:.65rem;font-weight:700; }
+
+/* ── Grille assortiments ── */
+.vad-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px; }
+
+.vad-card { background:#fff;border-radius:16px;border:1px solid #e8edf5;
+    box-shadow:0 2px 12px rgba(15,23,42,.06);overflow:hidden;
+    transition:box-shadow .18s,transform .15s; }
+.vad-card:hover { box-shadow:0 6px 24px rgba(15,23,42,.1);transform:translateY(-1px); }
+.vad-card.ok      { border-color:#d1fae5; }
+.vad-card.warning { border-color:#fcd34d; }
+.vad-card.error,
+.vad-card.absent  { border-color:#fecaca; }
+
+.vad-card-head { display:flex;align-items:center;gap:13px;padding:14px 18px;border-bottom:1px solid #f1f5f9; }
+.vad-card-code { width:42px;height:42px;border-radius:11px;flex-shrink:0;
+    background:#f1f5f9;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.8rem;font-weight:900;color:#475569; }
+.vad-card-code.absent  { background:rgba(220,38,38,.08);color:#b91c1c; }
+.vad-card-code.warning { background:rgba(217,119,6,.08);color:#b45309; }
+.vad-card-name { font-size:.95rem;font-weight:800;color:#0f172a; }
+.vad-card-meta { font-size:.72rem;color:#94a3b8;margin-top:2px; }
+
+/* Badge statut carte */
+.vad-card-status { margin-left:auto;display:inline-flex;align-items:center;gap:5px;
+    font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap; }
+.vad-card-status.ok      { background:#dcfce7;color:#15803d; }
+.vad-card-status.warning { background:#fef3c7;color:#b45309; }
+.vad-card-status.absent  { background:#fee2e2;color:#b91c1c; }
+
+/* Fichiers dans la carte */
+.vad-card-body { padding:6px 0; }
+.vad-file-row { display:flex;align-items:center;justify-content:space-between;
+    padding:8px 18px;border-bottom:1px solid #f8fafc;font-size:.8rem;
+    transition:background .12s; }
+.vad-file-row:last-child { border-bottom:none; }
+.vad-file-row:hover { background:#f8faff; }
+.vad-file-left { display:flex;align-items:center;gap:9px;flex:1;min-width:0; }
+.vad-file-icon { width:20px;text-align:center;font-size:.82rem;flex-shrink:0; }
+.vad-file-ok       { color:#16a34a; }
+.vad-file-missing  { color:#dc2626; }
+.vad-file-optional { color:#94a3b8; }
+.vad-fname { font-size:.72rem;font-family:monospace;color:#94a3b8;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;margin-top:1px; }
+.vad-file-label { color:#334155;font-weight:600; }
+.vad-file-label.missing { color:#94a3b8;font-style:italic; }
+.vad-file-right { display:flex;align-items:center;gap:8px;flex-shrink:0; }
+.vad-articles { font-size:.68rem;font-weight:700;background:#eff6ff;
+    color:#1e40af;padding:2px 8px;border-radius:8px; }
+.vad-taille { font-size:.67rem;color:#cbd5e1; }
+
+/* Alerte extra */
+.vad-extra-card { background:#fffbeb;border:1.5px solid #fcd34d;border-radius:16px;overflow:hidden; }
+.vad-extra-card .vad-card-code { background:rgba(217,119,6,.1);color:#b45309; }
+
+/* Fichiers 999 */
+.vad-999-grid { display:flex;gap:10px;flex-wrap:wrap; }
+.vad-999-pill { display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:12px;
+    font-size:.78rem;font-weight:600;border:1.5px solid; }
+.vad-999-pill.ok      { background:#f0fdf4;border-color:#bbf7d0;color:#15803d; }
+.vad-999-pill.missing { background:#fff1f2;border-color:#fecaca;color:#b91c1c; }
+</style>
+
+<!-- Header -->
+<div class="vad-header">
+    <div class="vad-icon"><i class="bi bi-archive-fill"></i></div>
+    <div>
+        <h1>{{ detail.date|date:"l d F Y" }}</h1>
+        <p>Backup <code>{{ detail.name }}</code> — généré à {{ detail.heure }}</p>
+    </div>
+    <div class="vad-header-right">
+        {% if detail.statut_global == 'ok' %}
+        <span class="st-badge ok" style="font-size:.82rem;padding:5px 14px;">
+            <i class="bi bi-check-circle-fill"></i> Conforme
+        </span>
+        {% elif detail.statut_global == 'warning' %}
+        <span class="st-badge warning" style="font-size:.82rem;padding:5px 14px;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Incomplet
+        </span>
+        {% else %}
+        <span class="st-badge error" style="font-size:.82rem;padding:5px 14px;">
+            <i class="bi bi-x-circle-fill"></i> Fichiers manquants
+        </span>
+        {% endif %}
+        <a href="{% url 'dashboard:version_asten' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Liste
+        </a>
+    </div>
+</div>
+
+<!-- Barre de statut global -->
+<div class="vad-status-bar {{ detail.statut_global }}">
+    {% if detail.statut_global == 'ok' %}
+        <i class="bi bi-check-circle-fill"></i>
+        <div><strong>Tous les assortiments sont conformes</strong>
+        <small>{{ detail.nb_ok }}/{{ detail.assortiments|length }} assortiments · {{ detail.nb_fichiers_total }} fichiers</small></div>
+    {% elif detail.statut_global == 'warning' %}
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div><strong>{{ detail.nb_incomplet }} assortiment(s) incomplet(s)</strong>
+        <small>Fichiers présents mais manquants dans certains assortiments</small></div>
+    {% else %}
+        <i class="bi bi-x-circle-fill"></i>
+        <div><strong>{{ detail.nb_absent }} assortiment(s) absent(s) · {{ detail.nb_incomplet }} incomplet(s)</strong>
+        <small>Vérifiez assortiment.txt — des écarts existent</small></div>
+    {% endif %}
+    <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:1.5rem;font-weight:900;">{{ detail.conformite_pct }}%</div>
+        <div style="font-size:.7rem;opacity:.7;">conformité</div>
+    </div>
+</div>
+
+<!-- Stat pills -->
+<div class="vad-pills">
+    <div class="vad-pill">
+        <i class="bi bi-check2-circle"></i>
+        <div><div class="vad-pill-val" style="color:#15803d;">{{ detail.nb_ok }}</div>
+             <div class="vad-pill-lbl">Conformes</div></div>
+    </div>
+    {% if detail.nb_incomplet > 0 %}
+    <div class="vad-pill">
+        <i class="bi bi-exclamation-triangle" style="color:#d97706;"></i>
+        <div><div class="vad-pill-val" style="color:#d97706;">{{ detail.nb_incomplet }}</div>
+             <div class="vad-pill-lbl">Incomplets</div></div>
+    </div>
+    {% endif %}
+    {% if detail.nb_absent > 0 %}
+    <div class="vad-pill">
+        <i class="bi bi-x-circle" style="color:#dc2626;"></i>
+        <div><div class="vad-pill-val" style="color:#dc2626;">{{ detail.nb_absent }}</div>
+             <div class="vad-pill-lbl">Absents</div></div>
+    </div>
+    {% endif %}
+    <div class="vad-pill">
+        <i class="bi bi-file-earmark-text"></i>
+        <div><div class="vad-pill-val">{{ detail.nb_fichiers_total }}</div>
+             <div class="vad-pill-lbl">/ {{ detail.nb_fichiers_max }} fichiers</div></div>
+    </div>
+    <div class="vad-pill">
+        <i class="bi bi-hdd"></i>
+        <div><div class="vad-pill-val" style="font-size:.95rem;">{{ detail.taille_fmt }}</div>
+             <div class="vad-pill-lbl">Taille totale</div></div>
+    </div>
+</div>
+
+<!-- ── Grille détail assortiments ────────────────────────────────────── -->
+{% if detail.nb_incomplet > 0 or detail.nb_absent > 0 %}
+<div class="vad-stitle" style="color:#b45309;">
+    <i class="bi bi-exclamation-triangle-fill"></i> Assortiments avec problèmes
+    <span class="cnt" style="background:#d97706;">{{ detail.nb_incomplet|add:detail.nb_absent }}</span>
+</div>
+<div class="vad-grid">
+{% for a in detail.assortiments %}{% if a.statut != 'ok' %}
+<div class="vad-card {% if a.statut == 'ok' %}ok{% elif a.statut == 'incomplet' %}warning{% else %}absent{% endif %}">
+    <div class="vad-card-head">
+        <div class="vad-card-code {% if a.statut != 'ok' %}{{ a.statut }}{% endif %}">{{ a.code }}</div>
+        <div>
+            <div class="vad-card-name">Assortiment {{ a.code }}</div>
+            <div class="vad-card-meta">
+                {% if a.statut == 'absent' %}No files found
+                {% else %}{{ a.nb_fichiers_presents }} / 4 files
+                {% if a.total_articles > 0 %}· {{ a.total_articles }} lines{% endif %}
+                {% endif %}
+            </div>
+        </div>
+        <span class="vad-card-status {% if a.statut == 'ok' %}ok{% elif a.statut == 'incomplet' %}warning{% else %}absent{% endif %}">
+            {% if a.statut == 'ok' %}✓ OK{% elif a.statut == 'incomplet' %}Incomplet{% else %}Absent{% endif %}
+        </span>
+    </div>
+    <div class="vad-card-body">
+        {% for f in a.fichiers %}
+        {% if f.present %}
+        <a href="{% url 'dashboard:version_asten_fichier' detail.name a.code f.type %}"
+           class="vad-file-row" style="text-decoration:none;display:flex;">
+        {% else %}
+        <div class="vad-file-row">
+        {% endif %}
+            <div class="vad-file-left">
+                <span class="vad-file-icon {% if f.present %}vad-file-ok{% elif f.optionnel %}vad-file-optional{% else %}vad-file-missing{% endif %}">
+                    {% if f.present %}<i class="bi bi-check-circle-fill"></i>
+                    {% elif f.optionnel %}<i class="bi bi-dash-circle"></i>
+                    {% else %}<i class="bi bi-x-circle-fill"></i>{% endif %}
+                </span>
+                <div>
+                    <div class="vad-file-label {% if not f.present and not f.optionnel %}missing{% endif %}">{{ f.label }}{% if f.optionnel and not f.present %} <span style="font-size:.65rem;color:#94a3b8;font-weight:500;">(optionnel)</span>{% endif %}</div>
+                    {% if f.nom %}<div class="vad-fname">{{ f.nom }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="vad-file-right">
+                {% if f.present and f.nb_lignes > 0 %}
+                <span class="vad-articles">{{ f.nb_lignes }} lignes</span>
+                {% endif %}
+                <span class="vad-taille">{{ f.taille }}</span>
+                {% if f.present %}
+                <i class="bi bi-chevron-right" style="font-size:.7rem;color:#1e3a8a;"></i>
+                {% endif %}
+            </div>
+        {% if f.present %}</a>{% else %}</div>{% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<!-- Grille assortiments conformes -->
+<div class="vad-stitle" style="color:#15803d;">
+    <i class="bi bi-check-circle-fill"></i> Assortiments conformes
+    <span class="cnt" style="background:#15803d;">{{ detail.nb_ok }}</span>
+</div>
+<div class="vad-grid">
+{% for a in detail.assortiments %}{% if a.statut == 'ok' %}
+<div class="vad-card ok">
+    <div class="vad-card-head">
+        <div class="vad-card-code">{{ a.code }}</div>
+        <div>
+            <div class="vad-card-name">Assortiment {{ a.code }}</div>
+            <div class="vad-card-meta">{{ a.nb_fichiers_presents }}/4 fichiers · {{ a.total_articles }} lignes</div>
+        </div>
+        <span class="vad-card-status ok"><i class="bi bi-check-circle-fill"></i> OK</span>
+    </div>
+    <div class="vad-card-body">
+    {% for f in a.fichiers %}
+    {% if f.present %}
+    <a href="{% url 'dashboard:version_asten_fichier' detail.name a.code f.type %}"
+       class="vad-file-row" style="text-decoration:none;color:inherit;">
+        <div class="vad-file-left">
+            <span class="vad-file-icon vad-file-ok"><i class="bi bi-check-circle-fill"></i></span>
+            <div>
+                <div class="vad-file-label">{{ f.label }}</div>
+                {% if f.nom %}<div class="vad-fname">{{ f.nom }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="vad-file-right">
+            {% if f.nb_lignes > 0 %}<span class="vad-articles">{{ f.nb_lignes }} lignes</span>{% endif %}
+            <span class="vad-taille">{{ f.taille }}</span>
+            <i class="bi bi-chevron-right" style="font-size:.68rem;color:#93c5fd;"></i>
+        </div>
+    </a>
+    {% else %}
+    <div class="vad-file-row" style="opacity:.5;">
+        <div class="vad-file-left">
+            <span class="vad-file-icon vad-file-optional"><i class="bi bi-dash-circle"></i></span>
+            <div class="vad-file-label missing">{{ f.label }} <span style="font-size:.65rem;">(optionnel)</span></div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    </div>
+</div>
+{% endif %}{% endfor %}
+</div>
+
+<!-- Assortiments extra (non répertoriés) -->
+{% if detail.assortiments_extra %}
+<div class="vad-stitle">
+    <i class="bi bi-question-circle"></i> Non répertoriés dans assortiment.txt
+    <span class="cnt" style="background:#d97706;">{{ detail.assortiments_extra|length }}</span>
+</div>
+<div class="vad-grid">
+{% for a in detail.assortiments_extra %}
+<div class="vad-card vad-extra-card">
+    <div class="vad-card-head">
+        <div class="vad-card-code" style="background:rgba(217,119,6,.1);color:#b45309;">{{ a.code }}</div>
+        <div>
+            <div class="vad-card-name">{{ a.nom }}</div>
+            <div class="vad-card-meta">Présent dans le backup · non attendu</div>
+        </div>
+        <span class="vad-card-status warning">Extra</span>
+    </div>
+    <div class="vad-card-body">
+        {% for f in a.fichiers %}
+        <div class="vad-file-row">
+            <div class="vad-file-left">
+                <span class="vad-file-icon vad-file-ok"><i class="bi bi-check-circle-fill"></i></span>
+                <span class="vad-file-label">{{ f.label }}</span>
+            </div>
+            <div class="vad-file-right">
+                {% if f.nb_lignes > 0 %}<span class="vad-articles">{{ f.nb_lignes }} lignes</span>{% endif %}
+                <span class="vad-taille">{{ f.taille }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+<!-- Fichiers globaux 999 -->
+<div class="vad-stitle"><i class="bi bi-globe"></i> Global files (999)</div>
+<div class="vad-999-grid">
+{% for f in detail.fichiers_999 %}
+<div class="vad-999-pill {% if f.present %}ok{% else %}missing{% endif %}">
+    {% if f.present %}<i class="bi bi-check-circle-fill"></i>{% else %}<i class="bi bi-x-circle-fill"></i>{% endif %}
+    {{ f.label }}
+    {% if f.present and f.nb_lignes > 0 %}
+    <span style="opacity:.65;font-size:.68rem;">({{ f.nb_lignes }} lignes)</span>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<style>
+.st-badge { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700; }
+.st-badge.ok      { background:#dcfce7;color:#15803d; }
+.st-badge.warning { background:#fef3c7;color:#b45309; }
+.st-badge.error   { background:#fee2e2;color:#b91c1c; }
+</style>
+{% endblock %}

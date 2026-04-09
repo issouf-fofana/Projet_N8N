@@ -1,0 +1,14 @@
+{
+  "started_at": "2026-03-25T15:36:23.123130",
+  "elapsed_s": 5.66,
+  "results": [
+    {
+      "pos_id": "pos1",
+      "pos_name": "POS 1",
+      "status": "ok",
+      "count": 100,
+      "file": "/home/youssef/Documents/traitement_n8n/Entree_journal/data/pos1_2026-03-25_15-36-17.csv",
+      "collected_at": "2026-03-25T15:36:17.457650+00:00"
+    }
+  ]
+}

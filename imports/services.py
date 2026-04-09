@@ -1315,6 +1315,14 @@ def scanner_et_importer_fichiers():
                 supprimer_fichier_source(fichier)
         except Exception as e:
             print(f"Erreur import fichier BR Asten {fichier.name}: {e}")
+            # Marquer l'import comme erreur pour éviter les tentatives répétées
+            try:
+                imp = ImportFichier.objects.filter(type_fichier='br_asten', nom_fichier=fichier.name, statut='en_cours').first()
+                if imp:
+                    imp.statut = 'erreur'
+                    imp.save()
+            except Exception:
+                pass
 
     # Comparer BR Asten vs BR IC (métadonnées uniquement, pas de suppression)
     try:
@@ -1333,6 +1341,13 @@ def scanner_et_importer_fichiers():
         scanner_factures_backup()
     except Exception as e:
         print(f"Erreur scan Facture Backup: {e}")
+
+    # Importer les fichiers Entrée Journal (POS)
+    try:
+        from entree_journal.services import importer_fichiers as importer_entree_journal
+        importer_entree_journal()
+    except Exception as e:
+        print(f"Erreur import Entrée Journal: {e}")
 
     return fichiers_importes
 
@@ -1593,3 +1608,979 @@ def importer_fichier_gpv(chemin_fichier):
         import_obj.save()
         raise
 
+
+
+# ─────────────────────────────────────────────
+#  Versions Asten — scan backups prdP2A
+# ─────────────────────────────────────────────
+_VERSION_PATTERN   = re.compile(r'^prdP2A_(\d{4}-\d{2}-\d{2})_(\d{2}h\d{2}m\d{2}s)$')
+_FICHIERS_REQUIS      = ['linkedcodes', 'pricing', 'products', 'productssuppliers']
+_FICHIERS_OPTIONNELS  = ['precommande']  # présent mais n'influence pas la conformité
+_FICHIERS_TOUS        = _FICHIERS_REQUIS + _FICHIERS_OPTIONNELS  # pour l'affichage complet
+_FICHIERS_GLOBAUX     = ['departement', 'linkedcodes', 'pricing', 'products', 'suppliers']
+# precommande = .txt  |  tous les autres = .csv
+_FICHIERS_TXT         = {'precommande'}
+_NB_FICHIERS_MIN      = 72   # 18 assortiments × 4 fichiers obligatoires
+_NB_FICHIERS_MAX      = 95   # + fichiers optionnels et 999
+_HEURE_CIBLE          = '23' # heure de génération attendue
+# Préfixes de fichiers globaux (ex: Cmdpro_0186.txt, Pricing_0186.txt) :
+# ce sont des fichiers par magasin, PAS des assortiments — ignorés des écarts
+_PREFIXES_FICHIERS_GLOBAUX = {'Cmdpro', 'Pricing'}
+
+FILE_TYPE_LABELS = {
+    'linkedcodes':       'Linked Code',
+    'pricing':           'Price Updater',
+    'products':          'Product',
+    'productssuppliers': 'Product Suppliers',
+    'precommande':       'Pre-order',
+    'departement':       'departement',
+    'suppliers':         'suppliers',
+}
+
+
+def _fmt_size(nb):
+    if nb < 1024:
+        return f"{nb} o"
+    if nb < 1024 * 1024:
+        return f"{nb / 1024:.1f} Ko"
+    return f"{nb / 1024 / 1024:.1f} Mo"
+
+
+def _load_assortiments():
+    """Charge la liste des codes assortiment depuis assortiment.txt."""
+    path = Path(settings.BASE_DIR) / 'assortiment.txt'
+    if not path.exists():
+        return []
+    return [l.strip() for l in path.read_text(encoding='utf-8').splitlines() if l.strip()]
+
+
+def _parse_version_dir(entry, assortiments_attendus, today):
+    """
+    Analyse un dossier de version et retourne un dict de stats + conformité.
+    Retourne None si la version ne correspond pas au format ou à l'heure 23h.
+    """
+    from datetime import timedelta
+    m = _VERSION_PATTERN.match(entry.name)
+    if not m:
+        return None
+
+    date_str, time_str = m.group(1), m.group(2)
+    heure = time_str[:2]
+
+    # Ignorer les versions hors 23h
+    if heure != _HEURE_CIBLE:
+        return None
+
+    try:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+    heure_fmt = f"{time_str[:2]}:{time_str[3:5]}:{time_str[6:8]}"
+    delta = (today - date).days
+
+    # Scanner les fichiers CSV + TXT (precommande)
+    all_files  = list(entry.glob('*.csv')) + list(entry.glob('*.txt'))
+    nb_total   = len(all_files)
+    total_size = sum(f.stat().st_size for f in all_files)
+
+    # Détecter les assortiments présents (hors 999)
+    assortiments_presents = {}
+    for f in all_files:
+        parts = f.name.split('_')
+        code  = parts[0]
+        ftype = parts[1] if len(parts) > 1 else ''
+        # Normaliser : retirer l'extension du ftype si présente
+        ftype = ftype.split('.')[0]
+        if code == '999' or code in _PREFIXES_FICHIERS_GLOBAUX:
+            continue
+        if code not in assortiments_presents:
+            assortiments_presents[code] = set()
+        assortiments_presents[code].add(ftype)
+
+    # Vérification conformité par assortiment
+    assortiments_ok      = []
+    assortiments_warning = []   # présents mais fichiers manquants
+    assortiments_manquants = [] # absents du dossier
+
+    for code in assortiments_attendus:
+        if code in assortiments_presents:
+            fichiers_presents = assortiments_presents[code]
+            manquants = [f for f in _FICHIERS_REQUIS if f not in fichiers_presents]
+            if manquants:
+                assortiments_warning.append({'code': code, 'manquants': manquants})
+            else:
+                assortiments_ok.append(code)  # les 4 obligatoires présents = OK
+        else:
+            assortiments_manquants.append(code)
+
+    # Assortiments non attendus (présents mais pas dans la liste)
+    assortiments_extra = []
+    for _code in assortiments_presents:
+        if _code in assortiments_attendus:
+            continue
+        _fichiers_trouves = sorted(assortiments_presents[_code])
+        assortiments_extra.append({
+            'code':    _code,
+            'fichiers': _fichiers_trouves,
+            'labels':  [FILE_TYPE_LABELS.get(f, f) for f in _fichiers_trouves],
+        })
+
+    nb_obligatoires = len(assortiments_attendus) * len(_FICHIERS_REQUIS)
+    nb_conformes    = len(assortiments_ok) * len(_FICHIERS_REQUIS)
+    conformite_pct  = round(nb_conformes / nb_obligatoires * 100) if nb_obligatoires else 0
+
+    # Statut global
+    if assortiments_manquants or assortiments_warning:
+        statut = 'error' if assortiments_manquants else 'warning'
+    elif nb_total < _NB_FICHIERS_MIN:
+        statut = 'warning'
+    else:
+        statut = 'ok'
+
+    return {
+        'name':                   entry.name,
+        'date':                   date,
+        'date_str':               date_str,
+        'heure':                  heure_fmt,
+        'delta_jours':            delta,
+        'is_today':               delta == 0,
+        'is_hier':                delta == 1,
+        'nb_total':               nb_total,
+        'nb_obligatoires':        len(assortiments_attendus) * len(_FICHIERS_REQUIS),
+        'nb_attendu_max':         _NB_FICHIERS_MAX,
+        'nb_assortiments':        len(assortiments_presents),
+        'taille_fmt':             _fmt_size(total_size),
+        'taille_raw':             total_size,
+        'statut':                 statut,
+        'conformite_pct':         conformite_pct,
+        'assortiments_ok':        assortiments_ok,
+        'assortiments_warning':   assortiments_warning,
+        'assortiments_manquants': assortiments_manquants,
+        'assortiments_extra':     assortiments_extra,
+    }
+
+
+def get_versions_asten(limit=None, filtre_jours=None, date_debut=None, date_fin=None):
+    """
+    Retourne la liste des versions prdP2A générées à 23h uniquement.
+    Essaie d'abord le SMB (lecture directe + sync auto si nouvelles versions),
+    sinon repli sur la base de données.
+    {'disponible': bool, 'versions': list, 'stats': dict, 'assortiments': list}
+    """
+    from datetime import date as date_cls, timedelta
+    backup_dir   = Path(settings.DOSSIER_VERSIONS_ASTEN_PATH)
+    assortiments = _load_assortiments()
+
+    smb_ok = backup_dir.exists()
+    if smb_ok:
+        try:
+            list(backup_dir.iterdir())  # teste l'accès
+        except PermissionError:
+            smb_ok = False
+
+    # SMB indisponible → repli sur DB
+    if not smb_ok:
+        from imports.models import VersionAstenSnap
+        if VersionAstenSnap.objects.exists():
+            result = get_versions_asten_from_db(
+                limit=limit, filtre_jours=filtre_jours,
+                date_debut=date_debut, date_fin=date_fin
+            )
+            result['disponible'] = False   # SMB absent, données depuis DB
+            result['source']     = 'db_fallback'
+            return result
+        return {'disponible': False, 'versions': [], 'stats': {}, 'assortiments': assortiments}
+
+    # SMB disponible : sync automatique des nouvelles versions (non bloquant)
+    try:
+        sync_versions_to_db(force=False)
+    except Exception:
+        pass  # la sync est optionnelle, ne bloque pas l'affichage
+
+    today    = datetime.today().date()
+    versions = []
+
+    try:
+        entries = list(backup_dir.iterdir())
+    except PermissionError:
+        return {'disponible': False, 'versions': [], 'stats': {}, 'assortiments': assortiments}
+
+    for entry in entries:
+        if not entry.is_dir():
+            continue
+        if filtre_jours or date_debut or date_fin:
+            m = _VERSION_PATTERN.match(entry.name)
+            if m:
+                try:
+                    d = datetime.strptime(m.group(1), '%Y-%m-%d').date()
+                    if filtre_jours and (today - d).days > filtre_jours:
+                        continue
+                    if date_debut and d < date_debut:
+                        continue
+                    if date_fin and d > date_fin:
+                        continue
+                except ValueError:
+                    continue
+
+        v = _parse_version_dir(entry, assortiments, today)
+        if v:
+            versions.append(v)
+
+    versions.sort(key=lambda v: (v['date'], v['heure']), reverse=True)
+    if limit:
+        versions = versions[:limit]
+
+    # Streak jours consécutifs (23h OK)
+    dates_set = {v['date'] for v in versions}
+    streak = 0
+    d = today
+    while d in dates_set:
+        streak += 1
+        d = d - timedelta(days=1)
+
+    nb_ok      = sum(1 for v in versions if v['statut'] == 'ok')
+    nb_warning = sum(1 for v in versions if v['statut'] == 'warning')
+    nb_error   = sum(1 for v in versions if v['statut'] == 'error')
+
+    stats = {
+        'total':          len(versions),
+        'nb_ok':          nb_ok,
+        'nb_warning':     nb_warning,
+        'nb_error':       nb_error,
+        'derniere':       versions[0]['date'] if versions else None,
+        'delta_derniere': versions[0]['delta_jours'] if versions else None,
+        'statut_derniere':versions[0]['statut'] if versions else None,
+        'streak':         streak,
+        'taille_totale':  _fmt_size(sum(v['taille_raw'] for v in versions)),
+        'nb_assortiments_attendus': len(assortiments),
+    }
+
+    return {'disponible': True, 'versions': versions, 'stats': stats, 'assortiments': assortiments}
+
+
+def get_version_asten_detail(version_name):
+    """
+    Retourne le détail complet d'une version prdP2A avec :
+    - Conformité par assortiment
+    - Nombre d'articles par fichier
+    - Fichiers manquants
+    """
+    backup_dir  = Path(settings.DOSSIER_VERSIONS_ASTEN_PATH)
+    version_dir = backup_dir / version_name
+
+    if not version_dir.exists() or not _VERSION_PATTERN.match(version_name):
+        return None
+
+    assortiments_attendus = _load_assortiments()
+    today = datetime.today().date()
+
+    m = _VERSION_PATTERN.match(version_name)
+    date_str, time_str = m.group(1), m.group(2)
+    date  = datetime.strptime(date_str, '%Y-%m-%d').date()
+    heure = f"{time_str[:2]}:{time_str[3:5]}:{time_str[6:8]}"
+
+    all_files  = list(version_dir.glob('*.csv')) + list(version_dir.glob('*.txt'))
+    csv_files  = list(version_dir.glob('*.csv'))
+    total_size = sum(f.stat().st_size for f in csv_files)
+
+    # Index fichiers par code assortiment (ignoré les préfixes globaux Cmdpro/Pricing)
+    fichiers_par_code = {}
+    for f in csv_files:
+        parts = f.name.split('_')
+        code  = parts[0]
+        if code in _PREFIXES_FICHIERS_GLOBAUX:
+            continue
+        ftype = parts[1] if len(parts) > 1 else ''
+        if code not in fichiers_par_code:
+            fichiers_par_code[code] = {}
+        try:
+            nb_lignes = sum(1 for _ in open(f, encoding='utf-8', errors='replace'))
+        except Exception:
+            nb_lignes = 0
+        fichiers_par_code[code][ftype] = {
+            'nom':      f.name,
+            'label':    FILE_TYPE_LABELS.get(ftype, ftype),
+            'nb_lignes': nb_lignes,
+            'taille':   _fmt_size(f.stat().st_size),
+        }
+
+    # Construire la liste des assortiments avec statut
+    assortiments_detail = []
+    for code in assortiments_attendus:
+        fichiers = fichiers_par_code.get(code, {})
+        conformite = []
+        for ftype in _FICHIERS_TOUS:
+            optionnel = ftype in _FICHIERS_OPTIONNELS
+            if ftype in fichiers:
+                conformite.append({'type': ftype, 'label': FILE_TYPE_LABELS[ftype],
+                                   'present': True, 'optionnel': optionnel, **fichiers[ftype]})
+            else:
+                conformite.append({'type': ftype, 'label': FILE_TYPE_LABELS[ftype],
+                                   'present': False, 'optionnel': optionnel, 'nb_lignes': 0, 'taille': '—'})
+        # Seuls les fichiers obligatoires comptent pour le statut
+        nb_manquants = sum(1 for c in conformite if not c['present'] and not c['optionnel'])
+        total_articles = sum(c['nb_lignes'] for c in conformite if c['present'] and c['type'] == 'products')
+        if not fichiers:
+            statut = 'absent'
+        elif nb_manquants > 0:
+            statut = 'incomplet'
+        else:
+            statut = 'ok'
+        assortiments_detail.append({
+            'code':           code,
+            'nom':            f'Assortiment {code}',
+            'statut':         statut,
+            'fichiers':       conformite,
+            'nb_manquants':   nb_manquants,
+            'total_articles': total_articles,
+            'nb_fichiers_presents': sum(1 for c in conformite if c['present'] and not c['optionnel']),
+        })
+
+    # Assortiments extra (présents dans les fichiers mais pas dans assortiment.txt)
+    codes_attendus = set(assortiments_attendus)
+    assortiments_extra = []
+    for code, fichiers in fichiers_par_code.items():
+        if code == '999' or code in codes_attendus:
+            continue
+        conformite = []
+        for ftype in _FICHIERS_TOUS:
+            if ftype in fichiers:
+                conformite.append({'type': ftype, 'label': FILE_TYPE_LABELS[ftype],
+                                   'present': True, 'optionnel': ftype in _FICHIERS_OPTIONNELS, **fichiers[ftype]})
+        total_articles = sum(c['nb_lignes'] for c in conformite if c['type'] == 'products')
+        assortiments_extra.append({
+            'code': code,
+            'nom':  f'Assortiment {code}',
+            'fichiers': conformite,
+            'total_articles': total_articles,
+        })
+
+    # Fichiers globaux 999
+    fichiers_999 = []
+    for ftype in _FICHIERS_GLOBAUX:
+        if ftype in fichiers_par_code.get('999', {}):
+            fichiers_999.append({'label': FILE_TYPE_LABELS[ftype], 'present': True,
+                                  **fichiers_par_code['999'][ftype]})
+        else:
+            fichiers_999.append({'label': FILE_TYPE_LABELS.get(ftype, ftype),
+                                  'present': False, 'nb_lignes': 0, 'taille': '—'})
+
+    nb_ok       = sum(1 for a in assortiments_detail if a['statut'] == 'ok')
+    nb_incomplet= sum(1 for a in assortiments_detail if a['statut'] == 'incomplet')
+    nb_absent   = sum(1 for a in assortiments_detail if a['statut'] == 'absent')
+    conformite_pct = round(nb_ok / len(assortiments_attendus) * 100) if assortiments_attendus else 0
+
+    return {
+        'name':               version_name,
+        'date':               date,
+        'date_str':           date_str,
+        'heure':              heure,
+        'nb_fichiers_total':  len(csv_files),
+        'nb_fichiers_min':    _NB_FICHIERS_MIN,
+        'nb_fichiers_max':    _NB_FICHIERS_MAX,
+        'taille_fmt':         _fmt_size(total_size),
+        'assortiments':       assortiments_detail,
+        'assortiments_extra': assortiments_extra,
+        'fichiers_999':       fichiers_999,
+        'nb_ok':              nb_ok,
+        'nb_incomplet':       nb_incomplet,
+        'nb_absent':          nb_absent,
+        'conformite_pct':     conformite_pct,
+        'statut_global':      'ok' if nb_incomplet == 0 and nb_absent == 0 else
+                              ('warning' if nb_absent == 0 else 'error'),
+    }
+
+
+# ─────────────────────────────────────────────
+#  Sync SMB → base de données (lecture seule du SMB)
+# ─────────────────────────────────────────────
+
+def sync_versions_to_db(force=False):
+    """
+    Lit les versions prdP2A depuis le SMB et les sauvegarde en base.
+    Ne supprime JAMAIS les fichiers originaux — lecture seule du SMB.
+
+    force=True : re-sync même les versions déjà en base (utile après correction)
+    Retourne un dict de stats : {synced, skipped, errors, smb_disponible}
+    """
+    from imports.models import VersionAstenSnap, AssortimentVersionSnap
+
+    backup_dir     = Path(settings.DOSSIER_VERSIONS_ASTEN_PATH)
+    assortiments   = _load_assortiments()
+    today          = datetime.today().date()
+
+    if not backup_dir.exists():
+        return {'smb_disponible': False, 'synced': 0, 'skipped': 0, 'errors': 0}
+
+    try:
+        entries = [e for e in backup_dir.iterdir() if e.is_dir()]
+    except PermissionError:
+        return {'smb_disponible': False, 'synced': 0, 'skipped': 0, 'errors': 0}
+
+    # Noms déjà en base (pour skip rapide)
+    existants = set(VersionAstenSnap.objects.values_list('nom', flat=True))
+
+    synced = skipped = errors = 0
+
+    for entry in entries:
+        if not _VERSION_PATTERN.match(entry.name):
+            continue
+        if entry.name in existants and not force:
+            skipped += 1
+            continue
+        try:
+            v = _parse_version_dir(entry, assortiments, today)
+            if v is None:
+                continue  # heure non-23h ou format invalide
+
+            # Upsert VersionAstenSnap
+            snap, _ = VersionAstenSnap.objects.update_or_create(
+                nom=entry.name,
+                defaults={
+                    'date':           v['date'],
+                    'heure':          v['heure'],
+                    'statut':         v['statut'],
+                    'conformite_pct': v['conformite_pct'],
+                    'nb_fichiers_total': v['nb_total'],
+                    'taille_raw':     v['taille_raw'],
+                    'taille_fmt':     v['taille_fmt'],
+                    'nb_ok':          len(v['assortiments_ok']),
+                    'nb_incomplet':   len(v['assortiments_warning']),
+                    'nb_absent':      len(v['assortiments_manquants']),
+                    'assortiments_manquants': v['assortiments_manquants'],
+                    'assortiments_extra':     v['assortiments_extra'],
+                }
+            )
+
+            # Détail complet via get_version_asten_detail (parse les fichiers)
+            detail = get_version_asten_detail(entry.name)
+            if detail:
+                # Supprimer les anciens assortiments pour réécrire proprement
+                snap.assortiments.all().delete()
+                AssortimentVersionSnap.objects.bulk_create([
+                    AssortimentVersionSnap(
+                        version=snap,
+                        code=a['code'],
+                        statut=a['statut'],
+                        nb_fichiers_presents=a['nb_fichiers_presents'],
+                        nb_manquants=a['nb_manquants'],
+                        total_articles=a['total_articles'],
+                        fichiers=a['fichiers'],
+                    )
+                    for a in detail['assortiments']
+                ])
+            synced += 1
+        except Exception as e:
+            errors += 1
+
+    return {
+        'smb_disponible': True,
+        'synced':  synced,
+        'skipped': skipped,
+        'errors':  errors,
+        'total_en_base': VersionAstenSnap.objects.count(),
+    }
+
+
+def get_versions_asten_from_db(limit=None, filtre_jours=None, date_debut=None, date_fin=None):
+    """
+    Lit les versions depuis la base de données (disponible sans SMB).
+    Même interface de retour que get_versions_asten().
+    """
+    from imports.models import VersionAstenSnap
+    from datetime import date as date_cls, timedelta
+
+    today = date_cls.today()
+    qs    = VersionAstenSnap.objects.all()
+
+    if filtre_jours:
+        qs = qs.filter(date__gte=today - timedelta(days=filtre_jours))
+    if date_debut:
+        qs = qs.filter(date__gte=date_debut)
+    if date_fin:
+        qs = qs.filter(date__lte=date_fin)
+
+    if limit:
+        qs = qs[:limit]
+
+    assortiments = _load_assortiments()
+    versions = []
+    for snap in qs:
+        delta = (today - snap.date).days
+        versions.append({
+            'name':                   snap.nom,
+            'date':                   snap.date,
+            'date_str':               str(snap.date),
+            'heure':                  snap.heure,
+            'delta_jours':            delta,
+            'is_today':               delta == 0,
+            'is_hier':                delta == 1,
+            'nb_total':               snap.nb_fichiers_total,
+            'nb_obligatoires':        len(assortiments) * len(_FICHIERS_REQUIS),
+            'nb_attendu_max':         _NB_FICHIERS_MAX,
+            'nb_assortiments':        snap.nb_ok + snap.nb_incomplet + snap.nb_absent,
+            'taille_fmt':             snap.taille_fmt,
+            'taille_raw':             snap.taille_raw,
+            'statut':                 snap.statut,
+            'conformite_pct':         snap.conformite_pct,
+            'assortiments_ok':        [],   # non stocké en liste, mais nb_ok disponible
+            'assortiments_warning':   [],
+            'assortiments_manquants': snap.assortiments_manquants,
+            'assortiments_extra':     snap.assortiments_extra,
+            'source':                 'db',
+        })
+
+    nb_ok      = sum(1 for v in versions if v['statut'] == 'ok')
+    nb_warning = sum(1 for v in versions if v['statut'] == 'warning')
+    nb_error   = sum(1 for v in versions if v['statut'] == 'error')
+    dates_set  = {v['date'] for v in versions}
+    streak = 0
+    d = today
+    while d in dates_set:
+        streak += 1
+        d = d - timedelta(days=1)
+
+    stats = {
+        'total':           len(versions),
+        'nb_ok':           nb_ok,
+        'nb_warning':      nb_warning,
+        'nb_error':        nb_error,
+        'derniere':        versions[0]['date'] if versions else None,
+        'delta_derniere':  versions[0]['delta_jours'] if versions else None,
+        'statut_derniere': versions[0]['statut'] if versions else None,
+        'streak':          streak,
+        'taille_totale':   _fmt_size(sum(v['taille_raw'] for v in versions)),
+        'nb_assortiments_attendus': len(assortiments),
+    }
+
+    return {
+        'disponible': True,
+        'source':     'db',
+        'versions':   versions,
+        'stats':      stats,
+        'assortiments': assortiments,
+    }
+
+
+# ─────────────────────────────────────────────
+#  Lecture d'un fichier CSV d'assortiment
+# ─────────────────────────────────────────────
+
+# Schéma des colonnes par type de fichier
+_FILE_SCHEMAS = {
+    'products': {
+        'sep': ';',
+        'cols': [
+            {'key': 'code_famille',       'label': 'Code famille',    'searchable': False},
+            {'key': 'ref_interne',        'label': 'Réf. interne',    'searchable': False},
+            {'key': '_skip1',             'label': '',                'hidden': True},
+            {'key': 'code_article',       'label': 'Code article',    'searchable': True,  'highlight': True},
+            {'key': 'quantite',           'label': 'Qté',             'searchable': False},
+            {'key': 'designation',        'label': 'Désignation',     'searchable': True},
+            {'key': 'designation_court',  'label': 'Désig. courte',   'searchable': False},
+            {'key': '_flag1',             'label': '',                'hidden': True},
+            {'key': '_flag2',             'label': '',                'hidden': True},
+            {'key': 'statut',             'label': 'Statut',          'searchable': False},
+            {'key': '_skip2',             'label': '',                'hidden': True},
+            {'key': 'prix1',              'label': 'Prix 1',          'searchable': False},
+            {'key': 'prix2',              'label': 'Prix 2',          'searchable': False},
+            {'key': 'prix3',              'label': 'Prix PV',         'searchable': False},
+            {'key': 'type_prix',          'label': 'Type',            'searchable': False},
+        ],
+        'search_col': 3,   # code_article
+    },
+    'pricing': {
+        'sep': ';',
+        'cols': [
+            {'key': 'type_ligne',    'label': 'Type',          'searchable': False},
+            {'key': 'code_article',  'label': 'Code article',  'searchable': True, 'highlight': True},
+            {'key': 'prix',          'label': 'Prix',          'searchable': False},
+            {'key': '_c3',           'label': '',              'hidden': True},
+            {'key': '_c4',           'label': '',              'hidden': True},
+            {'key': '_c5',           'label': '',              'hidden': True},
+            {'key': '_c6',           'label': '',              'hidden': True},
+        ],
+        'search_col': 1,
+        'filter_rows': lambda row: row[0] == 'P' if row else False,  # only P lines
+    },
+    'linkedcodes': {
+        'sep': ';',
+        'cols': [
+            {'key': '_skip',         'label': '',              'hidden': True},
+            {'key': 'code_article',  'label': 'Code article',  'searchable': True, 'highlight': True},
+            {'key': 'code_barre',    'label': 'Code barre',    'searchable': True},
+            {'key': '_end',          'label': '',              'hidden': True},
+        ],
+        'search_col': 1,
+    },
+    'productssuppliers': {
+        'sep': ';',
+        'cols': [
+            {'key': 'code_article',      'label': 'Code article',   'searchable': True, 'highlight': True},
+            {'key': 'code_fournisseur',  'label': 'Fournisseur',    'searchable': False},
+            {'key': 'prix',              'label': 'Prix achat',     'searchable': False},
+            {'key': 'ref_fournisseur',   'label': 'Réf. fourn.',    'searchable': False},
+            {'key': 'flag',              'label': 'Flag',           'searchable': False},
+        ],
+        'search_col': 0,
+    },
+}
+
+
+def get_fichier_content(version_name, assortiment_code, file_type, search=None, page=1, per_page=50):
+    """
+    Lit et parse un fichier CSV d'assortiment.
+    Retourne {'rows': list, 'cols': list, 'total': int, 'page': int, 'nb_pages': int, ...}
+    """
+    backup_dir  = Path(settings.DOSSIER_VERSIONS_ASTEN_PATH)
+    version_dir = backup_dir / version_name
+
+    if not version_dir.exists():
+        return None
+
+    # Trouver le fichier correspondant
+    pattern = f"{assortiment_code}_{file_type}_*.csv"
+    matches = list(version_dir.glob(pattern))
+    if not matches:
+        return {'rows': [], 'cols': [], 'total': 0, 'page': 1, 'nb_pages': 0,
+                'fichier_nom': None, 'file_type': file_type,
+                'assortiment': assortiment_code, 'version': version_name}
+
+    fichier = matches[0]
+    schema  = _FILE_SCHEMAS.get(file_type, None)
+
+    # Lecture brute
+    try:
+        raw_lines = fichier.read_text(encoding='utf-8', errors='replace').splitlines()
+    except Exception:
+        return None
+
+    sep = schema['sep'] if schema else ';'
+
+    # Parse toutes les lignes
+    all_rows = []
+    for line in raw_lines:
+        if not line.strip():
+            continue
+        parts = line.split(sep)
+        all_rows.append(parts)
+
+    # Filtre spécifique au type (ex: pricing → garder uniquement les lignes P)
+    if schema and 'filter_rows' in schema:
+        all_rows = [r for r in all_rows if schema['filter_rows'](r)]
+
+    # Filtre recherche
+    search_clean = search.strip() if search else ''
+    if search_clean and schema:
+        search_col = schema.get('search_col', 0)
+        search_lower = search_clean.lower()
+        filtered = []
+        for row in all_rows:
+            # Cherche dans toutes les colonnes searchable
+            searchable_idxs = [i for i, c in enumerate(schema['cols']) if c.get('searchable') and i < len(row)]
+            for idx in searchable_idxs:
+                if idx < len(row) and search_lower in row[idx].lower():
+                    filtered.append(row)
+                    break
+        all_rows = filtered
+    elif search_clean:
+        all_rows = [r for r in all_rows if any(search_clean.lower() in cell.lower() for cell in r)]
+
+    total = len(all_rows)
+    nb_pages = max(1, (total + per_page - 1) // per_page)
+    page = max(1, min(page, nb_pages))
+    start = (page - 1) * per_page
+    page_rows = all_rows[start:start + per_page]
+
+    # Colonnes visibles
+    if schema:
+        visible_cols = [c for c in schema['cols'] if not c.get('hidden')]
+        col_indices  = [i for i, c in enumerate(schema['cols']) if not c.get('hidden')]
+    else:
+        # Colonnes génériques si pas de schéma
+        max_cols = max((len(r) for r in page_rows), default=0)
+        visible_cols = [{'key': f'col{i}', 'label': f'Col {i+1}', 'searchable': True} for i in range(max_cols)]
+        col_indices  = list(range(max_cols))
+
+    # Construire les lignes avec cellules nommées
+    rows_out = []
+    for raw in page_rows:
+        cells = []
+        for idx, col in zip(col_indices, visible_cols):
+            val = raw[idx].strip() if idx < len(raw) else ''
+            cells.append({'value': val, 'highlight': col.get('highlight', False)})
+        rows_out.append(cells)
+
+    # Plages de pages avec ellipses
+    def _page_range(cur, tot, delta=2):
+        pages, left, right = [], max(1, cur-delta), min(tot, cur+delta)
+        if left > 1:
+            pages.append(1)
+            if left > 2: pages.append(-1)
+        pages += list(range(left, right+1))
+        if right < tot:
+            if right < tot-1: pages.append(-1)
+            pages.append(tot)
+        return pages
+
+    return {
+        'rows':        rows_out,
+        'cols':        visible_cols,
+        'total':       total,
+        'page':        page,
+        'nb_pages':    nb_pages,
+        'per_page':    per_page,
+        'page_start':  start + 1,
+        'page_end':    min(start + per_page, total),
+        'page_range':  _page_range(page, nb_pages),
+        'fichier_nom': fichier.name,
+        'file_type':   file_type,
+        'assortiment': assortiment_code,
+        'version':     version_name,
+        'search':      search_clean,
+        'has_prev':    page > 1,
+        'has_next':    page < nb_pages,
+        'prev_page':   page - 1,
+        'next_page':   page + 1,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Vérification des factures Asten / Cyrus
+# ---------------------------------------------------------------------------
+
+# Cache module-level pour le fichier Cyrus (peut dépasser 100 Mo)
+_cyrus_cache = {'data': None, 'mtime': 0, 'path': None}
+
+
+def _parse_dfac_cyrus(dfac_str):
+    """Parse DFAC Cyrus (format YYMMDD) → date. Retourne None si invalide."""
+    dfac_str = str(dfac_str).strip()
+    try:
+        return datetime.strptime('20' + dfac_str, '%Y%m%d').date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_date_asten_facture(date_str):
+    """Parse 'Date réception' Asten (DD/MM/YYYY HH:MM ou DD/MM/YYYY) → date."""
+    date_str = str(date_str).strip()
+    for fmt in ('%d/%m/%Y %H:%M', '%d/%m/%Y'):
+        try:
+            return datetime.strptime(date_str, fmt).date()
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+def _lire_cyrus_factures(dossier_path):
+    """
+    Lit tous les CSV Cyrus depuis dossier_path avec cache basé sur mtime.
+    Retourne (liste_de_dicts, mtime_max).
+    """
+    global _cyrus_cache
+    dossier = Path(dossier_path)
+    if not dossier.exists():
+        return [], 0
+
+    csvs = sorted(dossier.glob('*.csv')) + sorted(dossier.glob('*.CSV'))
+    if not csvs:
+        return [], 0
+
+    mtime_max = max(f.stat().st_mtime for f in csvs)
+
+    if (
+        _cyrus_cache['data'] is not None
+        and _cyrus_cache['mtime'] == mtime_max
+        and _cyrus_cache['path'] == str(dossier_path)
+    ):
+        return _cyrus_cache['data'], mtime_max
+
+    rows = []
+    for csv_path in csvs:
+        for row in _iter_csv_rows(csv_path):
+            nsee  = str(row.get('NSEE', '')).strip()
+            nfac  = str(row.get('NFAC', '')).strip()
+            dfac  = str(row.get('DFAC', '')).strip()
+            cidc  = str(row.get('CIDC', '')).strip()
+            lart  = str(row.get('LART', '')).strip()
+            if not nsee or not nfac:
+                continue
+            cle = (nsee + '00' + nfac)
+            if len(cle) < 10:
+                cle = cle.zfill(10)
+            rows.append({
+                **row,
+                'nsee':         nsee,
+                'nfac':         nfac,
+                'cle_facture':  cle,
+                'dfac_str':     dfac,
+                'dfac_date':    _parse_dfac_cyrus(dfac),
+                'cidc':         cidc,
+                'lart':         lart,
+                'fichier':      csv_path.name,
+            })
+
+    _cyrus_cache['data'] = rows
+    _cyrus_cache['mtime'] = mtime_max
+    _cyrus_cache['path'] = str(dossier_path)
+    return rows, mtime_max
+
+
+def _lire_asten_factures(dossier_path):
+    """
+    Lit tous les CSV Asten (receptions) depuis dossier_path.
+    Retourne liste de dicts avec champs normalisés.
+    """
+    dossier = Path(dossier_path)
+    if not dossier.exists():
+        return []
+
+    rows = []
+    for csv_path in sorted(dossier.glob('*.csv')):
+        for row in _iter_csv_rows(csv_path):
+            magasin  = str(row.get('Magasin', '')).strip()
+            n_bon    = str(row.get('N° bon livraison', '')).strip()
+            date_str = str(row.get('Date réception', '')).strip()
+            if not n_bon:
+                continue
+            rows.append({
+                **row,
+                'magasin':             magasin,
+                'n_bon_livraison':     n_bon,
+                'date_reception_str':  date_str,
+                'date_reception_date': _parse_date_asten_facture(date_str),
+                'fournisseur':         str(row.get('Fournisseur', '')).strip(),
+                'statut_commande':     str(row.get('Statut commande', '')).strip(),
+                'quantite_totale':     str(row.get('Quantité totale', '')).strip(),
+                'valorisation_ht':     str(row.get('Valorisation HT', '')).strip(),
+                'valorisation_ttc':    str(row.get('Valorisation TTC', '')).strip(),
+                'type_reception':      str(row.get('Type réception', '')).strip(),
+                'fichier':             csv_path.name,
+            })
+    return rows
+
+
+def get_factures_verification():
+    """
+    Jointure Cyrus ↔ Asten sur (cle_facture, date, magasin).
+    Déduplique : une entrée par facture unique (cle_facture, dfac_date, cidc).
+    Intègre les statuts manuels (FactureEcartStatut) :
+      - ignore    → exclut de joined et des stats
+      - integre   → compte comme intégrée (même si absente d'Asten)
+      - non_integre → compte comme manquante (défaut pour les écarts)
+    Retourne dict avec clés : cyrus, asten, joined, stats, error.
+    """
+    from imports.models import FactureEcartStatut
+    try:
+        cyrus_path = settings.DOSSIER_FACTURES_CYRUS_PATH
+        asten_path = settings.DOSSIER_FACTURES_ASTEN_CSV_PATH
+
+        cyrus_rows, _ = _lire_cyrus_factures(cyrus_path)
+        asten_rows    = _lire_asten_factures(asten_path)
+
+        # Charger tous les statuts manuels en mémoire : (cle, dfac, cidc) → statut
+        statuts_db = {
+            (s.cle_facture, s.dfac_str, s.cidc): s.statut
+            for s in FactureEcartStatut.objects.all()
+        }
+
+        # Index Asten : (n_bon_livraison, date, magasin) → row (dédupliqué)
+        asten_index = {}
+        for ar in asten_rows:
+            key = (ar['n_bon_livraison'], ar['date_reception_date'], ar['magasin'])
+            if key not in asten_index:
+                asten_index[key] = ar
+
+        # Dédoublonner Cyrus : une facture unique = (cle_facture, dfac_date, cidc)
+        factures_dict = {}
+        factures_articles = {}
+
+        for cr in cyrus_rows:
+            cidc = cr['cidc']
+            key  = (cr['cle_facture'], cr['dfac_date'], cidc)
+            if key not in factures_dict:
+                factures_dict[key] = cr
+                factures_articles[key] = []
+            factures_articles[key].append({
+                'lart':  cr.get('lart', ''),
+                'NART':  cr.get('NART', ''),
+                'PVTC':  cr.get('PVTC', ''),
+                'PTVC':  cr.get('PTVC', ''),
+            })
+
+        joined      = []
+        stats_mag   = {}
+        nb_integrees = 0
+        nb_ignores   = 0
+
+        for key, cr in factures_dict.items():
+            cidc        = cr['cidc']
+            dfac_str    = cr.get('dfac_str', '')
+            asten_match = asten_index.get(key)
+            integree_csv = asten_match is not None
+
+            # Clé DB pour statut manuel : (cle_facture, dfac_str, cidc)
+            db_key  = (cr['cle_facture'], dfac_str, cidc)
+            statut_manuel = statuts_db.get(db_key)  # None si pas de statut manuel
+
+            # Résolution du statut effectif
+            if integree_csv:
+                # Trouvée dans Asten → intégrée (statut manuel n'a pas d'effet sur une facture déjà intégrée)
+                statut_effectif = 'integre'
+            elif statut_manuel == 'ignore':
+                nb_ignores += 1
+                continue  # Exclure totalement de joined et des stats
+            elif statut_manuel == 'integre':
+                statut_effectif = 'integre'  # Forcé manuellement
+            else:
+                statut_effectif = 'non_integre'  # Par défaut pour les écarts
+
+            integree_effective = (statut_effectif == 'integre')
+            nb_articles = len(factures_articles[key])
+
+            if integree_effective:
+                nb_integrees += 1
+
+            joined.append({
+                **cr,
+                'integree':       integree_effective,
+                'integree_csv':   integree_csv,
+                'statut_manuel':  statut_manuel,
+                'statut_effectif': statut_effectif,
+                'asten':          asten_match,
+                'articles':       factures_articles[key],
+                'nb_articles':    nb_articles,
+            })
+
+            if cidc not in stats_mag:
+                stats_mag[cidc] = {'total': 0, 'integrees': 0, 'ecarts': 0}
+            stats_mag[cidc]['total'] += 1
+            if integree_effective:
+                stats_mag[cidc]['integrees'] += 1
+            else:
+                stats_mag[cidc]['ecarts'] += 1
+
+        total_actif = len(joined)
+        return {
+            'cyrus': cyrus_rows,
+            'asten': asten_rows,
+            'joined': joined,
+            'stats': {
+                'total':       total_actif,
+                'integrees':   nb_integrees,
+                'ecarts':      total_actif - nb_integrees,
+                'ignores':     nb_ignores,
+                'par_magasin': dict(sorted(stats_mag.items())),
+            },
+            'error': None,
+        }
+    except Exception as e:
+        return {
+            'cyrus':  [],
+            'asten':  [],
+            'joined': [],
+            'stats':  {'total': 0, 'integrees': 0, 'ecarts': 0, 'ignores': 0, 'par_magasin': {}},
+            'error':  str(e),
+        }

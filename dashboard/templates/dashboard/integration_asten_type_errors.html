@@ -1,0 +1,348 @@
+{% extends 'core/base.html' %}
+{% block title %}Erreurs {{ type_label }} — {{ run_date }}{% endblock %}
+
+{% block content %}
+<style>
+:root {
+    --red:#dc2626;--red-bg:#fff1f2;--red-bd:#fca5a5;
+    --green:#15803d;--green-bg:#f0fdf4;--green-bd:#bbf7d0;
+    --amber:#b45309;--amber-bg:#fffbeb;--amber-bd:#fde68a;
+    --blue:#1e3a8a;--blue-bg:#eff6ff;
+    --slate:#64748b;--border:#e8edf5;--light:#f8fafc;
+}
+
+/* Hero */
+.err-hero { background:linear-gradient(135deg,#991b1b,#dc2626,#ef4444);
+    border-radius:20px;padding:24px 28px;margin-bottom:20px;color:#fff;
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+    box-shadow:0 8px 28px rgba(220,38,38,.28);position:relative;overflow:hidden; }
+.err-hero::before { content:'';position:absolute;right:-30px;top:-30px;width:160px;height:160px;
+    border-radius:50%;background:rgba(255,255,255,.07); }
+.err-hero-left { display:flex;align-items:center;gap:14px;position:relative;z-index:1; }
+.err-hero-icon { width:48px;height:48px;border-radius:13px;background:rgba(255,255,255,.15);
+    display:flex;align-items:center;justify-content:center;font-size:1.3rem; }
+.err-hero h1 { font-size:1.4rem;font-weight:900;margin:0; }
+.err-hero p  { margin:3px 0 0;font-size:.8rem;opacity:.82; }
+.err-hero-badges { display:flex;gap:8px;position:relative;z-index:1;flex-wrap:wrap; }
+.err-badge { background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+    border-radius:10px;padding:7px 14px;text-align:center;min-width:75px; }
+.err-badge-val { font-size:1.4rem;font-weight:900;line-height:1; }
+.err-badge-lbl { font-size:.6rem;opacity:.8;text-transform:uppercase;letter-spacing:.07em;margin-top:1px; }
+
+/* Actions */
+.err-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px; }
+.btn-back { border-radius:10px;padding:7px 16px;font-size:.8rem;font-weight:700;
+    display:inline-flex;align-items:center;gap:5px;text-decoration:none;
+    background:#fff;color:var(--red);border:1.5px solid var(--red-bd); }
+.btn-back:hover { background:var(--red-bg);color:var(--red); }
+.btn-sec { background:#fff;color:var(--slate);border:1.5px solid var(--border);
+    border-radius:10px;padding:7px 16px;font-size:.8rem;font-weight:700;
+    display:inline-flex;align-items:center;gap:5px;text-decoration:none; }
+.btn-sec:hover { background:var(--light);color:#0f172a; }
+
+/* Strip */
+.err-strip { display:grid;grid-template-columns:repeat(4,1fr);background:#fff;
+    border-radius:14px;border:1px solid var(--border);overflow:hidden;
+    box-shadow:0 2px 8px rgba(15,23,42,.05);margin-bottom:22px; }
+.err-strip-col { padding:14px 16px;text-align:center;border-right:1px solid var(--border); }
+.err-strip-col:last-child { border-right:none; }
+.err-strip-lbl { font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:4px; }
+.err-strip-val { font-size:1.7rem;font-weight:900;line-height:1; }
+.err-strip-sub { font-size:.65rem;color:var(--slate);margin-top:3px; }
+
+/* Section heading */
+.sec-head { display:flex;align-items:center;gap:8px;margin:20px 0 12px; }
+.sec-icon { width:28px;height:28px;border-radius:8px;display:flex;align-items:center;
+    justify-content:center;font-size:.85rem;flex-shrink:0; }
+.sec-icon.err { background:var(--red-bg);color:var(--red); }
+.sec-icon.ok  { background:var(--green-bg);color:var(--green); }
+.sec-title { font-size:.85rem;font-weight:800;color:#0f172a; }
+.sec-sub { font-size:.7rem;color:var(--slate);margin-top:1px; }
+.sec-cnt { border-radius:8px;padding:2px 8px;font-size:.65rem;font-weight:700; }
+.sec-cnt.err { background:var(--red);color:#fff; }
+.sec-cnt.ok  { background:var(--green);color:#fff; }
+
+/* Shop card */
+.shop-card { border-radius:14px;border:1.5px solid var(--border);
+    background:#fff;margin-bottom:8px;overflow:hidden;
+    box-shadow:0 1px 6px rgba(15,23,42,.04); }
+.shop-card.serr { border-color:var(--red-bd); }
+.shop-card.sok  { border-color:var(--green-bd); }
+
+.shop-head { display:flex;align-items:center;gap:12px;padding:12px 18px;
+    cursor:pointer;user-select:none;transition:background .12s; }
+.shop-card.serr .shop-head { background:var(--red-bg); }
+.shop-card.sok  .shop-head:hover { background:var(--green-bg); }
+.shop-card.serr .shop-head:hover { background:#fecaca; }
+
+.shop-num { width:30px;height:30px;border-radius:8px;font-size:.8rem;font-weight:900;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.shop-card.serr .shop-num { background:#fee2e2;color:var(--red); }
+.shop-card.sok  .shop-num { background:var(--green-bg);color:var(--green); }
+.shop-ref  { font-size:.95rem;font-weight:800;color:#0f172a; }
+.shop-name { font-size:.72rem;color:var(--slate);margin-top:1px; }
+.shop-right { margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap; }
+.pill { border-radius:7px;padding:2px 8px;font-size:.68rem;font-weight:700;
+    display:inline-flex;align-items:center;gap:3px; }
+.pill-g { background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd); }
+.pill-r { background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd); }
+.chevron { font-size:.75rem;color:#94a3b8;margin-left:4px;transition:transform .18s; }
+.shop-card.open .chevron { transform:rotate(180deg); }
+
+/* Shop detail */
+.shop-detail { display:none;padding:12px 18px 14px;border-top:1px solid var(--border); }
+.shop-card.open .shop-detail { display:block; }
+
+/* Run card */
+.run-card { border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden; }
+.run-card:last-child { margin-bottom:0; }
+.run-card.has-err { border-color:var(--red-bd); }
+.run-head { display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--light);
+    font-size:.77rem;border-bottom:1px solid var(--border);flex-wrap:wrap; }
+.run-card.has-err .run-head { background:var(--red-bg);border-color:var(--red-bd); }
+.run-time { font-weight:700;color:#0f172a;display:flex;align-items:center;gap:4px; }
+.run-status { border-radius:6px;padding:1px 7px;font-size:.65rem;font-weight:700; }
+.run-status.ok  { background:var(--green-bg);color:var(--green); }
+.run-status.err { background:var(--red-bg);color:var(--red); }
+.run-label { font-size:.68rem;color:#94a3b8;margin-left:auto; }
+
+/* Rapport mini stats */
+.run-stats { display:flex;gap:0;padding:8px 14px;background:#fafbfc;border-bottom:1px solid #f1f5f9;flex-wrap:wrap; }
+.run-stat-item { text-align:center;padding:4px 14px;border-right:1px solid #f1f5f9;flex:1;min-width:70px; }
+.run-stat-item:last-child { border-right:none; }
+.run-stat-val { font-size:1.05rem;font-weight:900;color:#0f172a; }
+.run-stat-lbl { font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:2px; }
+
+/* Messages erreur */
+.run-errors { padding:8px 14px 10px; }
+.err-msg { display:flex;align-items:flex-start;gap:8px;padding:7px 10px;
+    border-radius:7px;margin-bottom:4px;border-left:3px solid var(--red-bd);background:#fff; }
+.err-msg:nth-child(even) { background:var(--red-bg); }
+.err-msg-num { background:var(--red-bg);color:var(--red);border-radius:5px;padding:1px 6px;
+    font-size:.62rem;font-weight:800;flex-shrink:0;margin-top:1px;white-space:nowrap; }
+.err-msg-text { font-size:.78rem;color:#374151;font-weight:600;word-break:break-word;line-height:1.4; }
+.err-msg-ts { font-size:.63rem;color:#94a3b8;margin-top:2px; }
+.err-more { font-size:.7rem;color:var(--red);padding:4px 0 0;font-weight:700; }
+
+/* Run OK (succès) — compact */
+.run-ok-head { display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:.77rem; }
+.run-stats-ok { display:flex;gap:12px;padding:4px 14px 10px;flex-wrap:wrap; }
+.run-stat-ok-item { display:flex;align-items:center;gap:4px;font-size:.75rem; }
+.run-stat-ok-val { font-weight:800;color:#0f172a; }
+.run-stat-ok-lbl { color:var(--slate); }
+
+/* Empty state */
+.empty-state { text-align:center;padding:40px 20px;color:#94a3b8;background:#fff;
+    border-radius:14px;border:1px solid var(--border); }
+
+@media(max-width:600px) {
+    .err-strip { grid-template-columns:repeat(2,1fr); }
+    .err-hero { padding:18px; }
+}
+</style>
+
+<!-- HERO -->
+<div class="err-hero">
+    <div class="err-hero-left">
+        <div class="err-hero-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div>
+            <h1>Erreurs — {{ type_label }}</h1>
+            <p>Nuit du <strong>{{ data.date_nuit }}</strong> &nbsp;·&nbsp; {{ data.fenetre }}</p>
+        </div>
+    </div>
+    <div class="err-hero-badges">
+        <div class="err-badge">
+            <div class="err-badge-val">{{ shops_with_errors|length }}</div>
+            <div class="err-badge-lbl">Avec erreurs</div>
+        </div>
+        <div class="err-badge">
+            <div class="err-badge-val">{{ nb_shops_ok }}</div>
+            <div class="err-badge-lbl">Sans erreur</div>
+        </div>
+        <div class="err-badge">
+            <div class="err-badge-val">{{ total_shops }}</div>
+            <div class="err-badge-lbl">Total magasins</div>
+        </div>
+        <div class="err-badge" style="background:rgba(255,255,255,.25);">
+            <div class="err-badge-val">{{ total_art_err }}</div>
+            <div class="err-badge-lbl">Articles en erreur</div>
+        </div>
+    </div>
+</div>
+
+<!-- ACTIONS -->
+<div class="err-actions">
+    <a href="{% url 'dashboard:integration_asten_stats' %}?date={{ date_str }}" class="btn-back">
+        <i class="bi bi-arrow-left"></i> Retour stats
+    </a>
+    <a href="{% url 'dashboard:integration_asten' %}?date={{ date_str }}" class="btn-sec">
+        <i class="bi bi-list-ul"></i> Vue magasins
+    </a>
+</div>
+
+<!-- STRIP -->
+<div class="err-strip">
+    <div class="err-strip-col">
+        <div class="err-strip-lbl">Magasins en erreur</div>
+        <div class="err-strip-val" style="color:var(--red);">{{ shops_with_errors|length }}</div>
+        <div class="err-strip-sub">sur {{ total_shops }} suivis</div>
+    </div>
+    <div class="err-strip-col">
+        <div class="err-strip-lbl">Magasins OK</div>
+        <div class="err-strip-val" style="color:var(--green);">{{ nb_shops_ok }}</div>
+        <div class="err-strip-sub">sans erreur article</div>
+    </div>
+    <div class="err-strip-col">
+        <div class="err-strip-lbl">Articles intégrés OK</div>
+        <div class="err-strip-val" style="color:var(--green);">{{ total_art_ok }}</div>
+        <div class="err-strip-sub">créés + MAJ</div>
+    </div>
+    <div class="err-strip-col">
+        <div class="err-strip-lbl">Articles en erreur</div>
+        <div class="err-strip-val" style="color:var(--red);">{{ total_art_err }}</div>
+        <div class="err-strip-sub">lignes rejetées</div>
+    </div>
+</div>
+
+<!-- ═══ SECTION ERREURS ══════════════════════════════════════════ -->
+{% if shops_with_errors %}
+<div class="sec-head">
+    <div class="sec-icon err"><i class="bi bi-exclamation-circle-fill"></i></div>
+    <div>
+        <div class="sec-title">Magasins avec erreurs articles</div>
+        <div class="sec-sub">Cliquez pour voir les messages d'erreur</div>
+    </div>
+    <span class="sec-cnt err">{{ shops_with_errors|length }}</span>
+</div>
+
+{% for shop in shops_with_errors %}
+<div class="shop-card serr" onclick="toggle(this)">
+    <div class="shop-head">
+        <div class="shop-num">{{ forloop.counter }}</div>
+        <div>
+            <div class="shop-ref">{{ shop.shop_ref }}</div>
+            <div class="shop-name">{{ shop.shop_name }}</div>
+        </div>
+        <div class="shop-right">
+            {% if shop.art_ok > 0 %}<span class="pill pill-g"><i class="bi bi-check-circle-fill"></i> {{ shop.art_ok }} OK</span>{% endif %}
+            <span class="pill pill-r"><i class="bi bi-exclamation-circle-fill"></i> {{ shop.art_err }} erreurs</span>
+            <i class="bi bi-chevron-down chevron"></i>
+        </div>
+    </div>
+    <div class="shop-detail">
+        {% if shop.entrees_err %}
+        {% for run in shop.entrees_err %}
+        <div class="run-card has-err">
+            <div class="run-head">
+                <span class="run-time"><i class="bi bi-clock"></i> {{ run.created_at }}</span>
+                {% if run.status_value == 0 %}<span class="run-status err"><i class="bi bi-x-circle-fill"></i> Erreur run</span>
+                {% else %}<span class="run-status ok"><i class="bi bi-check-circle-fill"></i> Succès</span>{% endif %}
+                {% if run.nb_art_err > 0 %}<span style="background:var(--red-bg);color:var(--red);border-radius:6px;padding:1px 7px;font-size:.65rem;font-weight:800;"><i class="bi bi-exclamation-circle-fill"></i> {{ run.nb_art_err }} articles en erreur</span>{% endif %}
+                {% if run.type_detail %}<span class="run-label">{{ run.type_detail }}</span>{% endif %}
+            </div>
+            <!-- Résumé rapport -->
+            {% if run.nb_formatees or run.nb_crees or run.nb_maj or run.nb_art_err %}
+            <div class="run-stats">
+                {% if run.nb_formatees %}<div class="run-stat-item"><div class="run-stat-val">{{ run.nb_formatees }}</div><div class="run-stat-lbl">Formatées</div></div>{% endif %}
+                {% if run.nb_crees %}<div class="run-stat-item"><div class="run-stat-val" style="color:var(--green);">{{ run.nb_crees }}</div><div class="run-stat-lbl">Créées</div></div>{% endif %}
+                {% if run.nb_maj %}<div class="run-stat-item"><div class="run-stat-val" style="color:var(--blue);">{{ run.nb_maj }}</div><div class="run-stat-lbl">MAJ</div></div>{% endif %}
+                {% if run.nb_art_err %}<div class="run-stat-item"><div class="run-stat-val" style="color:var(--red);">{{ run.nb_art_err }}</div><div class="run-stat-lbl">Erreurs</div></div>{% endif %}
+            </div>
+            {% endif %}
+            <!-- Messages d'erreur -->
+            {% if run.messages %}
+            <div class="run-errors">
+                {% for m in run.messages|slice:":30" %}
+                <div class="err-msg">
+                    <span class="err-msg-num">#{{ forloop.counter }}</span>
+                    <div>
+                        <div class="err-msg-text">{{ m.msg }}</div>
+                        {% if m.ts %}<div class="err-msg-ts">{{ m.ts }}</div>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% if run.messages|length > 30 %}
+                <div class="err-more"><i class="bi bi-three-dots"></i> + {{ run.messages|length|add:"-30" }} autres messages non affichés</div>
+                {% endif %}
+            </div>
+            {% elif run.report_raw %}
+            <div class="run-errors">
+                <div style="font-size:.7rem;color:var(--amber);margin-bottom:6px;"><i class="bi bi-file-text"></i> Rapport brut — {{ run.nb_art_err }} article(s) en erreur</div>
+                <pre style="margin:0;font-size:.72rem;color:#334155;background:#f8fafc;border-radius:6px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;">{{ run.report_raw }}</pre>
+            </div>
+            {% else %}
+            <div style="padding:8px 14px;font-size:.76rem;color:var(--amber);background:var(--amber-bg);border-top:1px solid var(--amber-bd);">
+                <i class="bi bi-info-circle-fill"></i> {{ run.nb_art_err }} article(s) en erreur — messages non disponibles dans le rapport
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="padding:12px;font-size:.78rem;color:var(--amber);"><i class="bi bi-info-circle"></i> Aucun détail d'erreur disponible dans le rapport pour ce magasin.</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- ═══ SECTION SUCCÈS ═══════════════════════════════════════════ -->
+{% if shops_ok %}
+<div class="sec-head" style="margin-top:28px;">
+    <div class="sec-icon ok"><i class="bi bi-check-circle-fill"></i></div>
+    <div>
+        <div class="sec-title">Magasins sans erreur</div>
+        <div class="sec-sub">Intégration réussie — cliquez pour voir le détail</div>
+    </div>
+    <span class="sec-cnt ok">{{ shops_ok|length }}</span>
+</div>
+
+{% for shop in shops_ok %}
+<div class="shop-card sok" onclick="toggle(this)">
+    <div class="shop-head">
+        <div class="shop-num">{{ forloop.counter }}</div>
+        <div>
+            <div class="shop-ref">{{ shop.shop_ref }}</div>
+            <div class="shop-name">{{ shop.shop_name }}</div>
+        </div>
+        <div class="shop-right">
+            {% if shop.art_ok > 0 %}<span class="pill pill-g"><i class="bi bi-check-circle-fill"></i> {{ shop.art_ok }} articles OK</span>{% endif %}
+            <span class="pill pill-g" style="background:var(--green-bg);"><i class="bi bi-check-circle-fill"></i> OK</span>
+            <i class="bi bi-chevron-down chevron"></i>
+        </div>
+    </div>
+    <div class="shop-detail">
+        {% for entry in shop.entrees_all %}
+        <div class="run-card">
+            <div class="run-ok-head">
+                <span class="run-time"><i class="bi bi-clock"></i> {{ entry.created_at }}</span>
+                {% if entry.status_value == 2 %}<span class="run-status ok"><i class="bi bi-check-circle-fill"></i> Succès</span>{% endif %}
+                {% if entry.type_detail %}<span style="font-size:.68rem;color:#94a3b8;margin-left:auto;">{{ entry.type_detail }}</span>{% endif %}
+            </div>
+            {% if entry.report_summary %}
+            <div class="run-stats-ok">
+                {% if entry.report_summary.nb_formatees %}<div class="run-stat-ok-item"><span class="run-stat-ok-val">{{ entry.report_summary.nb_formatees }}</span><span class="run-stat-ok-lbl">formatées</span></div>{% endif %}
+                {% if entry.report_summary.nb_crees %}<div class="run-stat-ok-item"><span class="run-stat-ok-val" style="color:var(--green);">{{ entry.report_summary.nb_crees }}</span><span class="run-stat-ok-lbl">créées</span></div>{% endif %}
+                {% if entry.report_summary.nb_maj %}<div class="run-stat-ok-item"><span class="run-stat-ok-val" style="color:var(--blue);">{{ entry.report_summary.nb_maj }}</span><span class="run-stat-ok-lbl">MAJ</span></div>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if not shops_with_errors and not shops_ok %}
+<div class="empty-state">
+    <i class="bi bi-check-circle-fill" style="font-size:2.5rem;color:var(--green);display:block;margin-bottom:10px;"></i>
+    <div style="font-size:1rem;font-weight:700;color:var(--green);">Aucune donnée disponible</div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggle(card) { card.classList.toggle('open'); }
+</script>
+{% endblock %}

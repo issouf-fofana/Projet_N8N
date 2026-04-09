@@ -49,14 +49,14 @@ body { background: #f0f2f8 !important; }
 }
 .acc-filters .period-pills .pp.active,
 .acc-filters .period-pills .pp:hover {
-    background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; border-color: transparent;
+    background: linear-gradient(135deg,#1e3a8a,#4d7cc7); color: #fff; border-color: transparent;
 }
 .acc-filters .date-inputs { display: flex; gap: 8px; align-items: center; }
 .acc-filters .date-inputs input {
     padding: 4px 10px; border: 1.5px solid #d1d9f0; border-radius: 8px;
     font-size: .82rem; color: #374151; background: #f9fafb; transition: border-color .15s;
 }
-.acc-filters .date-inputs input:focus { outline: none; border-color: #6366f1; background: #fff; }
+.acc-filters .date-inputs input:focus { outline: none; border-color: #1e3a8a; background: #fff; }
 
 /* ── STAT CARDS ── */
 .acc-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -66,18 +66,26 @@ body { background: #f0f2f8 !important; }
 .acc-card {
     background: #fff; border-radius: 14px; border: 1px solid #e8ecf5;
     box-shadow: 0 2px 12px rgba(15,23,42,.06); overflow: hidden;
-    transition: box-shadow .2s, transform .2s, border-color .2s;
+    transition: box-shadow .22s, transform .22s, border-color .22s;
     position: relative;
 }
-.acc-card:hover {
-    box-shadow: 0 8px 24px rgba(99,102,241,.13);
-    transform: translateY(-2px);
-    border-color: #c7d2fe;
-}
+
+/* ── Bordure colorée par thème (fond blanc pur) ── */
+.acc-card::before { display: none; }
+.asten-theme  { border-color: rgba(30,58,138,.28); }
+.gpv-theme    { border-color: rgba(34,197,94,.28);  }
+.legend-theme { border-color: rgba(245,158,11,.28); }
+.br-theme     { border-color: rgba(239,68,68,.28);  }
+.fact-theme   { border-color: rgba(168,85,247,.28); }
+.rem-theme    { border-color: rgba(14,165,233,.28); }
+
+/* hover neutre */
+.acc-card:hover { box-shadow: 0 6px 22px rgba(15,23,42,.10) !important; transform: translateY(-2px); }
 
 .acc-card-head {
     display: flex; align-items: center; gap: 10px;
-    padding: 14px 18px; border-bottom: 1px solid #f1f5f9; font-size: .9rem; font-weight: 700;
+    padding: 14px 18px; border-bottom: 1px solid rgba(0,0,0,.05);
+    font-size: .9rem; font-weight: 700; background: transparent;
 }
 .acc-card-head .head-icon {
     width: 36px; height: 36px; border-radius: 10px; display: flex;
@@ -88,15 +96,14 @@ body { background: #f0f2f8 !important; }
     font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; white-space: nowrap;
 }
 
-.asten-theme  .head-icon { background: #eff6ff; color: #3b82f6; }
+.asten-theme  .head-icon { background: #eff6ff; color: #1e3a8a; }
 .gpv-theme    .head-icon { background: #f0fdf4; color: #22c55e; }
 .legend-theme .head-icon { background: #fffbeb; color: #f59e0b; }
 .br-theme     .head-icon { background: #fff1f2; color: #ef4444; }
 .fact-theme   .head-icon { background: #fdf4ff; color: #a855f7; }
 .rem-theme    .head-icon { background: #f0f9ff; color: #0ea5e9; }
 
-/* hover accent unifié — plus de border-top colorée au repos */
-.acc-card:hover .acc-card-head { background: #f8f9ff; }
+.acc-card:hover .acc-card-head { background: rgba(255,255,255,.6); }
 
 /* ── Orbes décoratifs animés ── */
 @keyframes orbFloat {
@@ -114,7 +121,7 @@ body { background: #f0f2f8 !important; }
                  animation: orbFloat  6s ease-in-out infinite; }
 .acc-card-orb2 { width:  80px; height:  80px; left:  -20px; bottom: -20px;
                  animation: orbFloat2 9s ease-in-out infinite; }
-.asten-theme  .acc-card-orb, .asten-theme  .acc-card-orb2 { background: #3b82f6; }
+.asten-theme  .acc-card-orb, .asten-theme  .acc-card-orb2 { background: #1e3a8a; }
 .gpv-theme    .acc-card-orb, .gpv-theme    .acc-card-orb2 { background: #22c55e; }
 .legend-theme .acc-card-orb, .legend-theme .acc-card-orb2 { background: #f59e0b; }
 .br-theme     .acc-card-orb, .br-theme     .acc-card-orb2 { background: #ef4444; }
@@ -135,7 +142,7 @@ body { background: #f0f2f8 !important; }
 .acc-stats-row .sr-val { font-size: 1.15rem; font-weight: 700; color: #1f2937; }
 .acc-stats-row .sr-val.green { color: #16a34a; }
 .acc-stats-row .sr-val.red   { color: #dc2626; }
-.acc-stats-row .sr-val.blue  { color: #2563eb; }
+.acc-stats-row .sr-val.blue  { color: #1e40af; }
 .acc-stats-row .sr-val.amber { color: #d97706; }
 
 .acc-card-inner { display: flex; gap: 14px; align-items: center; }
@@ -158,10 +165,10 @@ body { background: #f0f2f8 !important; }
 .acc-card-btn {
     display: block; margin-top: 14px; padding: 9px 14px; border-radius: 10px;
     font-size: .82rem; font-weight: 600; text-align: center; text-decoration: none;
-    color: #6366f1; border: 1.5px solid #e0e4f6; background: transparent;
+    color: #1e3a8a; border: 1.5px solid #e0e4f6; background: transparent;
     transition: all .15s;
 }
-.acc-card-btn:hover { background: #eff0ff; color: #4f46e5; border-color: #c7d2fe; text-decoration: none; }
+.acc-card-btn:hover { background: #eff0ff; color: #1e40af; border-color: #c7d2fe; text-decoration: none; }
 </style>
 {% endblock %}
 
@@ -170,7 +177,7 @@ body { background: #f0f2f8 !important; }
 
     <!-- Page title -->
     <div class="d-flex align-items-center mb-3 gap-2">
-        <div style="width:34px;height:34px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <div style="width:34px;height:34px;background:linear-gradient(135deg,#1e3a8a,#4d7cc7);border-radius:10px;display:flex;align-items:center;justify-content:center;">
             <i class="bi bi-speedometer2" style="color:#fff;font-size:1rem;"></i>
         </div>
         <h1 class="h5 mb-0 fw-bold" style="color:#1e2a45;">Tableau de bord</h1>
@@ -510,18 +517,86 @@ body { background: #f0f2f8 !important; }
 
     </div><!-- /.acc-cards -->
 
+<!-- ══════════════ CARTE INTÉGRATION RPOS ══════════════ -->
+{% if ia_rpos %}
+<div style="background:#fff;border-radius:16px;border:1px solid #e8edf5;
+            box-shadow:0 2px 12px rgba(15,23,42,.06);overflow:hidden;margin-bottom:14px;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;
+                border-bottom:1px solid #f1f5f9;background:linear-gradient(135deg,#f0fdf4,#fff);">
+        <div style="width:38px;height:38px;border-radius:10px;flex-shrink:0;
+                    background:linear-gradient(135deg,#0f766e,#0d9488);
+                    display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;
+                    box-shadow:0 3px 10px rgba(13,148,136,.25);">
+            <i class="bi bi-patch-check-fill"></i>
+        </div>
+        <div>
+            <div style="font-size:.95rem;font-weight:900;color:#0f172a;">Intégration Version RPOS</div>
+            <div style="font-size:.72rem;color:#64748b;">Nuit du {{ ia_rpos.date_nuit }} &nbsp;·&nbsp; {{ ia_rpos.total_shops }} magasins</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+            {% if ia_rpos.art_err > 0 %}
+            <span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;">
+                <i class="bi bi-exclamation-circle-fill"></i> {{ ia_rpos.art_err }} art. en erreur
+            </span>
+            {% else %}
+            <span style="background:#dcfce7;color:#15803d;border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;">
+                <i class="bi bi-check-circle-fill"></i> Aucune erreur article
+            </span>
+            {% endif %}
+            <a href="{% url 'dashboard:integration_asten' %}?date={{ ia_rpos.run_date }}"
+               style="background:#0f766e;color:#fff;border-radius:10px;padding:5px 12px;font-size:.72rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+                <i class="bi bi-arrow-up-right-square"></i> Voir
+            </a>
+        </div>
+    </div>
+    <!-- 4 types -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+    {% for tk, t in ia_rpos.types.items %}
+    <div style="padding:14px 18px;{% if not forloop.last %}border-right:1px solid #f1f5f9;{% endif %}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;">{{ t.label }}</span>
+            <span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;
+                background:{% if t.nb_absent > 0 %}#ef4444{% elif t.nb_ok_erreurs > 0 %}#f59e0b{% else %}#22c55e{% endif %};
+                box-shadow:0 0 0 3px {% if t.nb_absent > 0 %}rgba(239,68,68,.15){% elif t.nb_ok_erreurs > 0 %}rgba(245,158,11,.15){% else %}rgba(34,197,94,.15){% endif %};"></span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:10px;">
+            <div>
+                <div style="font-size:1.4rem;font-weight:900;color:#0f172a;line-height:1;">{{ t.nb_ok }}</div>
+                <div style="font-size:.6rem;color:#94a3b8;margin-top:2px;">intégrés OK</div>
+            </div>
+            {% if t.nb_ok_erreurs > 0 %}<div style="padding-bottom:2px;">
+                <div style="font-size:.95rem;font-weight:800;color:#d97706;line-height:1;">{{ t.nb_ok_erreurs }}</div>
+                <div style="font-size:.58rem;color:#94a3b8;margin-top:2px;">avec erreurs</div>
+            </div>{% endif %}
+            {% if t.nb_absent > 0 %}<div style="padding-bottom:2px;">
+                <div style="font-size:.95rem;font-weight:800;color:#ef4444;line-height:1;">{{ t.nb_absent }}</div>
+                <div style="font-size:.58rem;color:#94a3b8;margin-top:2px;">absents</div>
+            </div>{% endif %}
+        </div>
+        <div style="display:flex;gap:2px;height:3px;border-radius:2px;overflow:hidden;background:#f1f5f9;">
+            {% if t.nb_ok > 0 %}<div style="flex:{{ t.nb_ok }};background:#22c55e;"></div>{% endif %}
+            {% if t.nb_ok_erreurs > 0 %}<div style="flex:{{ t.nb_ok_erreurs }};background:#f59e0b;"></div>{% endif %}
+            {% if t.nb_absent > 0 %}<div style="flex:{{ t.nb_absent }};background:#ef4444;"></div>{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- ══════════════ SECTIONS BASSES ══════════════ -->
 <div style="padding:0 4px;">
 
 <!-- ══════════════ ÉVOLUTION JOURNALIÈRE ══════════════ -->
 {% if evolution_journaliere.labels %}
 <div style="margin-bottom:14px;">
-<div style="background:linear-gradient(160deg,#f8f9ff 0%,#fff 60%);border-radius:20px;border:1px solid #e4e8f5;box-shadow:0 4px 28px rgba(99,102,241,.09);overflow:hidden;">
+<div style="background:linear-gradient(160deg,#f8f9ff 0%,#fff 60%);border-radius:20px;border:1px solid #e4e8f5;box-shadow:0 4px 28px rgba(30,58,138,.09);overflow:hidden;">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;">
         <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:38px;height:38px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(99,102,241,.32);">
+            <div style="width:38px;height:38px;background:linear-gradient(135deg,#1e3a8a,#4d7cc7);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(30,58,138,.32);">
                 <i class="bi bi-graph-up-arrow" style="color:#fff;font-size:1rem;"></i>
             </div>
             <div>
@@ -534,8 +609,8 @@ body { background: #f0f2f8 !important; }
         </div>
         <!-- Légende pills -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#2563eb;background:#eff6ff;padding:5px 12px;border-radius:20px;border:1px solid #bfdbfe;">
-                <span style="width:8px;height:8px;background:#3b82f6;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(59,130,246,.6);"></span>Asten
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#1e40af;background:#eff6ff;padding:5px 12px;border-radius:20px;border:1px solid #bfdbfe;">
+                <span style="width:8px;height:8px;background:#1e3a8a;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(30,58,138,.6);"></span>Asten
             </span>
             <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#15803d;background:#f0fdf4;padding:5px 12px;border-radius:20px;border:1px solid #bbf7d0;">
                 <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(34,197,94,.6);"></span>GPV
@@ -676,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: evoLabels,
                 datasets: [
-                    ds('Asten',  evoAsten,  59,  130, 246, '#3b82f6'),
+                    ds('Asten',  evoAsten,  59,  130, 246, '#1e3a8a'),
                     ds('GPV',    evoGPV,    34,  197, 94,  '#22c55e'),
                     ds('Legend', evoLegend, 245, 158, 11,  '#f59e0b'),
                     ds('BR',     evoBR,     168, 85,  247, '#a855f7'),
@@ -695,7 +770,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         bodyColor: '#94a3b8',
                         padding: { top:10, bottom:10, left:14, right:14 },
                         cornerRadius: 12,
-                        borderColor: 'rgba(99,102,241,.25)',
+                        borderColor: 'rgba(30,58,138,.25)',
                         borderWidth: 1,
                         titleFont: { weight:'700', size:12 },
                         callbacks: {
@@ -708,12 +783,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 scales: {
                     x: {
-                        grid: { color:'rgba(99,102,241,.06)', drawBorder:false },
+                        grid: { color:'rgba(30,58,138,.06)', drawBorder:false },
                         border: { display:false },
                         ticks: { color:'#94a3b8', font:{ size:11, weight:'600' }, maxRotation:0 }
                     },
                     y: {
-                        grid: { color:'rgba(99,102,241,.06)', drawBorder:false },
+                        grid: { color:'rgba(30,58,138,.06)', drawBorder:false },
                         border: { display:false },
                         ticks: { color:'#94a3b8', font:{ size:11 }, callback: v => v.toLocaleString('fr-FR'), maxTicksLimit:6 },
                         beginAtZero: true

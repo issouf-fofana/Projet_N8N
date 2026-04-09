@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import JSONField
 
 
 class ImportFichier(models.Model):
@@ -86,3 +87,91 @@ class FactureBackupCyrus(models.Model):
 
     def __str__(self):
         return f"Backup - {self.nom_fichier} - {self.code_magasin}"
+
+
+# ─── Snapshots versions Asten (sauvegarde depuis SMB → base de données) ────────
+
+class VersionAstenSnap(models.Model):
+    """
+    Snapshot d'une version prdP2A (dossier SMB) sauvegardée en base.
+    Permet de consulter les données même quand le SMB est déconnecté.
+    """
+    nom          = models.CharField(max_length=120, unique=True, verbose_name="Nom du dossier")
+    date         = models.DateField(verbose_name="Date de génération")
+    heure        = models.CharField(max_length=10, verbose_name="Heure")
+    statut       = models.CharField(max_length=20, verbose_name="Statut global")  # ok/warning/error
+    conformite_pct = models.IntegerField(default=0, verbose_name="Conformité %")
+    nb_fichiers_total = models.IntegerField(default=0, verbose_name="Nb fichiers total")
+    taille_raw   = models.BigIntegerField(default=0, verbose_name="Taille (octets)")
+    taille_fmt   = models.CharField(max_length=20, default='', verbose_name="Taille formatée")
+    nb_ok        = models.IntegerField(default=0, verbose_name="Assortiments OK")
+    nb_incomplet = models.IntegerField(default=0, verbose_name="Assortiments incomplets")
+    nb_absent    = models.IntegerField(default=0, verbose_name="Assortiments absents")
+    assortiments_manquants = JSONField(default=list, verbose_name="Codes assortiments manquants")
+    assortiments_extra     = JSONField(default=list, verbose_name="Codes assortiments extra")
+    synced_at    = models.DateTimeField(auto_now=True, verbose_name="Dernière sync")
+
+    class Meta:
+        verbose_name = "Version Asten (snap)"
+        verbose_name_plural = "Versions Asten (snaps)"
+        ordering = ['-date', '-heure']
+
+    def __str__(self):
+        return self.nom
+
+
+class AssortimentVersionSnap(models.Model):
+    """
+    Détail d'un assortiment au sein d'un snapshot de version.
+    Les fichiers sont stockés en JSON pour éviter une troisième table.
+    """
+    version              = models.ForeignKey(VersionAstenSnap, on_delete=models.CASCADE,
+                                             related_name='assortiments')
+    code                 = models.CharField(max_length=20, verbose_name="Code assortiment")
+    statut               = models.CharField(max_length=20, verbose_name="Statut")  # ok/incomplet/absent
+    nb_fichiers_presents = models.IntegerField(default=0)
+    nb_manquants         = models.IntegerField(default=0)
+    total_articles       = models.IntegerField(default=0)
+    fichiers             = JSONField(default=list, verbose_name="Détail fichiers")
+
+    class Meta:
+        verbose_name = "Assortiment (snap)"
+        verbose_name_plural = "Assortiments (snaps)"
+        unique_together = ('version', 'code')
+        ordering = ['code']
+
+    def __str__(self):
+        return f"{self.version.nom} / {self.code}"
+
+
+class FactureEcartStatut(models.Model):
+    """
+    Statut manuel pour les factures Cyrus en écart (non trouvées dans Asten).
+    Identifiée par (cle_facture, dfac_str, cidc) — clé unique de la facture Cyrus.
+    """
+    STATUT_CHOICES = [
+        ('non_integre', 'Non intégré'),
+        ('integre',     'Intégré'),
+        ('ignore',      'Ignoré'),
+    ]
+
+    cle_facture = models.CharField(max_length=50, verbose_name="Clé facture")
+    dfac_str    = models.CharField(max_length=10, verbose_name="Date DFAC (YYMMDD)")
+    cidc        = models.CharField(max_length=10, verbose_name="Code magasin (CIDC)")
+    statut      = models.CharField(
+        max_length=15,
+        choices=STATUT_CHOICES,
+        default='non_integre',
+        verbose_name="Statut"
+    )
+    note        = models.TextField(blank=True, default='', verbose_name="Note")
+    date_modif  = models.DateTimeField(auto_now=True, verbose_name="Dernière modification")
+
+    class Meta:
+        verbose_name = "Statut facture en écart"
+        verbose_name_plural = "Statuts factures en écart"
+        unique_together = ('cle_facture', 'dfac_str', 'cidc')
+        ordering = ['-date_modif']
+
+    def __str__(self):
+        return f"{self.cle_facture} / {self.cidc} → {self.statut}"

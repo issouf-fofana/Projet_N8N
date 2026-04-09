@@ -1,0 +1,551 @@
+{% extends 'core/base.html' %}
+{% block title %}Stats Intégration RPOS — {{ run_date }}{% endblock %}
+
+{% block content %}
+<style>
+/* ═══ ROOT ═══════════════════════════════════════════════════════════ */
+:root {
+    --green:  #15803d; --green-bg:  #f0fdf4; --green-bd:  #bbf7d0;
+    --amber:  #b45309; --amber-bg:  #fffbeb; --amber-bd:  #fde68a;
+    --red:    #dc2626; --red-bg:    #fff1f2; --red-bd:    #fecaca;
+    --blue:   #1e3a8a; --blue-bg:   #eff6ff; --blue-bd:   #bfdbfe;
+    --teal:   #0f766e; --teal-bg:   #f0fdfa; --teal-bd:   #99f6e4;
+    --slate:  #64748b; --light:     #f8fafc; --border:    #e8edf5;
+}
+
+/* ═══ HEADER ═══════════════════════════════════════════════════════ */
+.ias-hero {
+    background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    box-shadow: 0 8px 32px rgba(13,148,136,.30);
+    position: relative;
+    overflow: hidden;
+}
+.ias-hero::before {
+    content:'';
+    position:absolute;
+    right:-40px;top:-40px;
+    width:220px;height:220px;
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
+}
+.ias-hero::after {
+    content:'';
+    position:absolute;
+    right:60px;bottom:-60px;
+    width:160px;height:160px;
+    border-radius:50%;
+    background:rgba(255,255,255,.05);
+}
+.ias-hero-left { display:flex;align-items:center;gap:18px;position:relative;z-index:1; }
+.ias-hero-icon {
+    width:56px;height:56px;border-radius:16px;
+    background:rgba(255,255,255,.18);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.5rem;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);
+}
+.ias-hero h1 { font-size:1.6rem;font-weight:900;margin:0; }
+.ias-hero p  { margin:3px 0 0;font-size:.82rem;opacity:.85; }
+.ias-hero-right { display:flex;align-items:center;gap:10px;position:relative;z-index:1;flex-wrap:wrap; }
+.ias-hero-badge {
+    background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.3);
+    border-radius:12px;
+    padding:8px 16px;
+    text-align:center;
+    min-width:90px;
+}
+.ias-hero-badge-val { font-size:1.6rem;font-weight:900;line-height:1; }
+.ias-hero-badge-lbl { font-size:.65rem;opacity:.8;text-transform:uppercase;letter-spacing:.07em;margin-top:2px; }
+
+/* ═══ FORM ══════════════════════════════════════════════════════════ */
+.ias-form-wrap {
+    background:#fff;
+    border-radius:14px;
+    border:1px solid var(--border);
+    padding:16px 20px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin-bottom:24px;
+    box-shadow:0 2px 8px rgba(15,23,42,.04);
+}
+.ias-form-wrap label { font-size:.75rem;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.06em; }
+.ias-date-input {
+    border:1.5px solid var(--border);border-radius:10px;padding:7px 12px;
+    font-size:.82rem;color:#0f172a;background:var(--light);outline:none;
+}
+.ias-date-input:focus { border-color:#0d9488;background:#fff; }
+.ias-btn {
+    background:#0f766e;color:#fff;border:none;border-radius:10px;padding:8px 18px;
+    font-size:.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;
+}
+.ias-btn:hover { background:#0d9488;color:#fff; }
+.ias-btn-ghost { background:transparent;color:var(--teal);border:1.5px solid var(--teal-bd); }
+.ias-btn-ghost:hover { background:var(--teal-bg);color:var(--teal); }
+
+/* ═══ SUMMARY STRIP ════════════════════════════════════════════════ */
+.ias-strip {
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:0;
+    background:#fff;
+    border-radius:16px;
+    border:1px solid var(--border);
+    overflow:hidden;
+    box-shadow:0 2px 10px rgba(15,23,42,.05);
+    margin-bottom:28px;
+}
+.ias-strip-item {
+    padding:18px 16px;
+    text-align:center;
+    border-right:1px solid var(--border);
+    position:relative;
+}
+.ias-strip-item:last-child { border-right:none; }
+.ias-strip-lbl { font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:6px; }
+.ias-strip-val { font-size:2rem;font-weight:900;line-height:1;color:#0f172a; }
+.ias-strip-sub { font-size:.67rem;color:#94a3b8;margin-top:4px; }
+.ias-strip-item.c-blue .ias-strip-val  { color:var(--blue); }
+.ias-strip-item.c-green .ias-strip-val { color:var(--green); }
+.ias-strip-item.c-amber .ias-strip-val { color:var(--amber); }
+.ias-strip-item.c-red .ias-strip-val   { color:var(--red); }
+.ias-strip-item.c-teal .ias-strip-val  { color:var(--teal); }
+.ias-strip-item.c-orange .ias-strip-val { color:#ea580c; }
+.ias-strip-item.highlight { background:linear-gradient(135deg,var(--teal-bg),#f0fdf4); }
+
+/* ═══ SECTION TITLE ════════════════════════════════════════════════ */
+.ias-section {
+    display:flex;align-items:center;justify-content:space-between;
+    margin:0 0 16px;flex-wrap:wrap;gap:8px;
+}
+.ias-section-left { display:flex;align-items:center;gap:10px; }
+.ias-section-icon {
+    width:32px;height:32px;border-radius:9px;
+    background:var(--teal-bg);border:1px solid var(--teal-bd);
+    display:flex;align-items:center;justify-content:center;
+    font-size:.9rem;color:var(--teal);
+}
+.ias-section-title { font-size:.9rem;font-weight:800;color:#0f172a; }
+.ias-section-sub   { font-size:.72rem;color:var(--slate);margin-top:1px; }
+.ias-badge { background:var(--teal);color:#fff;border-radius:10px;padding:2px 9px;font-size:.65rem;font-weight:700; }
+
+/* ═══ TYPE CARDS ════════════════════════════════════════════════════ */
+.type-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-bottom:32px;
+}
+.type-card {
+    background:#fff;
+    border-radius:18px;
+    border:1.5px solid var(--border);
+    box-shadow:0 2px 10px rgba(15,23,42,.05);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+    transition:box-shadow .2s,transform .15s;
+}
+.type-card:hover { box-shadow:0 6px 24px rgba(15,23,42,.10);transform:translateY(-2px); }
+
+.type-card-banner {
+    height:6px;
+    background:linear-gradient(90deg,#0f766e,#0d9488);
+}
+.type-card.has-errors .type-card-banner { background:linear-gradient(90deg,#dc2626,#ef4444); }
+
+.type-card-header {
+    display:flex;align-items:center;gap:12px;
+    padding:16px 18px 0;
+}
+.type-card-icon {
+    width:40px;height:40px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;flex-shrink:0;
+}
+.type-card.no-errors .type-card-icon  { background:var(--teal-bg);color:var(--teal); }
+.type-card.has-errors .type-card-icon { background:var(--red-bg);color:var(--red); }
+
+.type-card-name { font-size:.95rem;font-weight:800;color:#0f172a;line-height:1.2; }
+.type-card-key  { font-size:.68rem;color:#94a3b8;margin-top:2px; }
+
+/* Big number */
+.type-card-big {
+    display:flex;align-items:center;justify-content:center;
+    padding:18px 18px 10px;
+    gap:20px;
+}
+.type-card-big-item { text-align:center; }
+.type-card-big-val  { font-size:2.2rem;font-weight:900;line-height:1; }
+.type-card-big-lbl  { font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-top:3px; }
+
+/* Rows */
+.type-card-rows { padding:0 18px 14px;flex:1; }
+.type-row {
+    display:flex;align-items:center;justify-content:space-between;
+    padding:7px 0;
+    border-bottom:1px solid #f8fafc;
+    font-size:.78rem;
+}
+.type-row:last-child { border-bottom:none; }
+.type-row-lbl { display:flex;align-items:center;gap:6px;color:var(--slate); }
+.type-row-val  { font-weight:800;color:#0f172a; }
+.type-row-val.green  { color:var(--green); }
+.type-row-val.amber  { color:var(--amber); }
+.type-row-val.red    { color:var(--red); }
+.type-row-val.muted  { color:#94a3b8; }
+
+/* Progress */
+.type-progress { margin:10px 18px 16px;height:7px;border-radius:4px;background:#f1f5f9;overflow:hidden; }
+.type-progress-fill { height:100%;border-radius:4px;background:linear-gradient(90deg,#0f766e,#0d9488);transition:width .4s; }
+.type-card.has-errors .type-progress-fill { background:linear-gradient(90deg,#dc2626,#ef4444); }
+
+/* Error link */
+.type-err-link {
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    margin:0 18px 16px;
+    background:var(--red-bg);
+    border:1.5px solid var(--red-bd);
+    border-radius:10px;
+    padding:8px 14px;
+    color:var(--red);
+    font-size:.76rem;
+    font-weight:700;
+    text-decoration:none;
+    transition:background .15s;
+}
+.type-err-link:hover { background:#fecaca;color:#991b1b; }
+
+/* ═══ TABLE MAGASINS ════════════════════════════════════════════════ */
+.ias-table-card {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid var(--border);
+    overflow:hidden;
+    box-shadow:0 2px 10px rgba(15,23,42,.05);
+}
+.ias-table { width:100%;border-collapse:collapse;font-size:.81rem; }
+.ias-table thead th {
+    background:var(--light);
+    font-size:.63rem;font-weight:800;text-transform:uppercase;
+    letter-spacing:.08em;color:#94a3b8;
+    padding:11px 14px;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+}
+.ias-table tbody tr { transition:background .1s; }
+.ias-table tbody tr:hover { background:var(--light); }
+.ias-table tbody td { padding:11px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle; }
+.ias-table tbody tr:last-child td { border-bottom:none; }
+
+.badge-ok     { background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:8px;font-size:.67rem;font-weight:700;display:inline-flex;align-items:center;gap:4px; }
+.badge-okerr  { background:#fef9c3;color:#854d0e;padding:3px 10px;border-radius:8px;font-size:.67rem;font-weight:700;display:inline-flex;align-items:center;gap:4px; }
+.badge-part   { background:#ffedd5;color:#9a3412;padding:3px 10px;border-radius:8px;font-size:.67rem;font-weight:700;display:inline-flex;align-items:center;gap:4px; }
+.badge-abs    { background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:8px;font-size:.67rem;font-weight:700;display:inline-flex;align-items:center;gap:4px; }
+
+.tc-ok  { color:#15803d;font-size:1rem; }
+.tc-err { color:#b45309; }
+.tc-abs { color:#cbd5e1;font-size:1rem; }
+
+/* Assortiment list pill */
+.assort-pills { display:flex;flex-wrap:wrap;gap:5px;margin-top:14px; }
+.assort-pill {
+    background:var(--teal-bg);border:1px solid var(--teal-bd);
+    color:var(--teal);border-radius:8px;padding:3px 9px;
+    font-size:.68rem;font-weight:700;
+}
+
+/* Search */
+.ias-search {
+    border:1.5px solid var(--border);border-radius:10px;padding:7px 13px;
+    font-size:.82rem;color:#0f172a;background:var(--light);outline:none;width:200px;
+}
+.ias-search:focus { border-color:#0d9488;background:#fff; }
+
+/* Responsive */
+@media (max-width: 900px) {
+    .ias-strip { grid-template-columns:repeat(3,1fr); }
+    .type-grid  { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width: 600px) {
+    .ias-strip { grid-template-columns:repeat(2,1fr); }
+    .type-grid  { grid-template-columns:1fr; }
+    .ias-hero { padding:20px; }
+}
+</style>
+
+<!-- ═══ HERO HEADER ════════════════════════════════════════════════ -->
+<div class="ias-hero">
+    <div class="ias-hero-left">
+        <div class="ias-hero-icon"><i class="bi bi-bar-chart-steps"></i></div>
+        <div>
+            <h1>Stats Intégration RPOS</h1>
+            <p>Nuit du <strong>{{ data.date_nuit }}</strong> &nbsp;·&nbsp; {{ data.fenetre }}</p>
+        </div>
+    </div>
+    <div class="ias-hero-right">
+        {% if nb_assortiments %}
+        <div class="ias-hero-badge">
+            <div class="ias-hero-badge-val">{{ nb_assortiments }}</div>
+            <div class="ias-hero-badge-lbl">Assortiments</div>
+        </div>
+        {% endif %}
+        <div class="ias-hero-badge">
+            <div class="ias-hero-badge-val">{{ totaux.total }}</div>
+            <div class="ias-hero-badge-lbl">Magasins suivis</div>
+        </div>
+        <div class="ias-hero-badge" style="background:rgba(255,255,255,.28);">
+            <div class="ias-hero-badge-val">4</div>
+            <div class="ias-hero-badge-lbl">Types fichiers</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ FORM DATE ════════════════════════════════════════════════ -->
+<div class="ias-form-wrap">
+    <label>Date :</label>
+    <form method="get" style="display:flex;align-items:center;gap:8px;">
+        <input type="date" name="date" value="{{ date_str }}" class="ias-date-input">
+        <button type="submit" class="ias-btn"><i class="bi bi-search"></i> Filtrer</button>
+    </form>
+    <a href="{% url 'dashboard:integration_asten' %}?date={{ date_str }}" class="ias-btn ias-btn-ghost">
+        <i class="bi bi-list-ul"></i> Vue magasins
+    </a>
+    <a href="{% url 'dashboard:dashboard' %}?type_donnees=version" class="ias-btn ias-btn-ghost" style="margin-left:auto;">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+</div>
+
+{% if not data.disponible %}
+<div style="background:var(--amber-bg);border:1px solid var(--amber-bd);border-radius:14px;padding:20px 24px;color:var(--amber);display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+    <i class="bi bi-calendar-x" style="font-size:2rem;"></i>
+    <div>
+        <div style="font-size:1.05rem;font-weight:800;">Aucune donnée pour cette nuit</div>
+        <div style="font-size:.82rem;margin-top:4px;">Fenêtre consultée : {{ data.fenetre }}</div>
+    </div>
+</div>
+{% else %}
+
+<!-- ═══ SUMMARY STRIP ════════════════════════════════════════════ -->
+<div class="ias-strip">
+    <div class="ias-strip-item c-teal highlight">
+        <div class="ias-strip-lbl">Assortiments</div>
+        <div class="ias-strip-val">{{ nb_assortiments }}</div>
+        <div class="ias-strip-sub">référentiels</div>
+    </div>
+    <div class="ias-strip-item c-blue">
+        <div class="ias-strip-lbl">Magasins suivis</div>
+        <div class="ias-strip-val">{{ totaux.total }}</div>
+        <div class="ias-strip-sub">RPOS actifs</div>
+    </div>
+    <div class="ias-strip-item c-green">
+        <div class="ias-strip-lbl">Intégrés OK</div>
+        <div class="ias-strip-val">{{ totaux.ok }}</div>
+        <div class="ias-strip-sub">4/4 · sans erreurs</div>
+    </div>
+    <div class="ias-strip-item c-orange">
+        <div class="ias-strip-lbl">Avec erreurs articles</div>
+        <div class="ias-strip-val">{{ totaux.ok_erreurs }}</div>
+        <div class="ias-strip-sub">4/4 · articles KO</div>
+    </div>
+    <div class="ias-strip-item c-amber">
+        <div class="ias-strip-lbl">Partiels</div>
+        <div class="ias-strip-val">{{ totaux.partial }}</div>
+        <div class="ias-strip-sub">fichiers manquants</div>
+    </div>
+    <div class="ias-strip-item c-red">
+        <div class="ias-strip-lbl">Erreurs articles</div>
+        <div class="ias-strip-val">{{ totaux.art_erreurs }}</div>
+        <div class="ias-strip-sub">lignes en erreur</div>
+    </div>
+</div>
+
+<!-- ═══ ASSORTIMENTS LIST ════════════════════════════════════════ -->
+{% if assortiments %}
+<div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:16px 20px;margin-bottom:24px;box-shadow:0 2px 8px rgba(15,23,42,.04);">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div class="ias-section-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+        <div>
+            <div class="ias-section-title">Assortiments référencés</div>
+            <div class="ias-section-sub">{{ nb_assortiments }} codes assortiment actifs</div>
+        </div>
+    </div>
+    <div class="assort-pills">
+        {% for code in assortiments %}
+        <span class="assort-pill">{{ code }}</span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ═══ TYPE CARDS ═══════════════════════════════════════════════ -->
+<div class="ias-section">
+    <div class="ias-section-left">
+        <div class="ias-section-icon"><i class="bi bi-file-earmark-bar-graph"></i></div>
+        <div>
+            <div class="ias-section-title">Fichiers intégrés par type</div>
+            <div class="ias-section-sub">4 types obligatoires · nuit du {{ data.date_nuit }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="type-grid">
+{% for t in stats_par_type_list %}
+<div class="type-card {% if t.nb_ok_erreurs > 0 or t.nb_total_errors > 0 %}has-errors{% else %}no-errors{% endif %}">
+    <div class="type-card-banner"></div>
+
+    <div class="type-card-header">
+        <div class="type-card-icon"><i class="bi {{ t.icon }}"></i></div>
+        <div>
+            <div class="type-card-name">{{ t.label }}</div>
+            <div class="type-card-key">{{ t.key }}</div>
+        </div>
+    </div>
+
+    <!-- Grands chiffres : magasins OK vs magasins avec erreurs -->
+    <div class="type-card-big">
+        <div class="type-card-big-item">
+            <div class="type-card-big-val" style="color:var(--green);">{{ t.nb_ok }}</div>
+            <div class="type-card-big-lbl">Magasins OK</div>
+        </div>
+        <div style="width:1px;height:40px;background:#f1f5f9;"></div>
+        <div class="type-card-big-item">
+            <div class="type-card-big-val" style="color:{% if t.nb_ok_erreurs > 0 %}var(--red){% else %}#94a3b8{% endif %};">{{ t.nb_ok_erreurs }}</div>
+            <div class="type-card-big-lbl">Avec erreurs</div>
+        </div>
+    </div>
+
+    <!-- Détail magasins -->
+    <div class="type-card-rows">
+        <div class="type-row">
+            <span class="type-row-lbl"><i class="bi bi-shop" style="color:var(--teal);"></i> Magasins intégrés</span>
+            <span class="type-row-val" style="color:var(--teal);">{{ t.nb_integres }}</span>
+        </div>
+        <div class="type-row">
+            <span class="type-row-lbl"><i class="bi bi-check-circle-fill" style="color:var(--green);"></i> Magasins sans erreur</span>
+            <span class="type-row-val green">{{ t.nb_ok }}</span>
+        </div>
+        <div class="type-row">
+            <span class="type-row-lbl"><i class="bi bi-exclamation-circle-fill" style="color:var(--amber);"></i> Magasins avec erreurs</span>
+            <span class="type-row-val {% if t.nb_ok_erreurs > 0 %}amber{% else %}muted{% endif %}">{{ t.nb_ok_erreurs }}</span>
+        </div>
+        <div class="type-row">
+            <span class="type-row-lbl"><i class="bi bi-x-circle-fill" style="color:var(--red);"></i> Magasins absents</span>
+            <span class="type-row-val {% if t.nb_absent > 0 %}red{% else %}muted{% endif %}">{{ t.nb_absent }}</span>
+        </div>
+    </div>
+
+    <!-- Barre de progression -->
+    <div class="type-progress">
+        {% if totaux.total > 0 %}
+        <div class="type-progress-fill" style="width:{% widthratio t.nb_integres totaux.total 100 %}%;"></div>
+        {% endif %}
+    </div>
+
+    <!-- Lien erreurs -->
+    {% if t.nb_ok_erreurs > 0 %}
+    <a href="{% url 'dashboard:integration_asten_type_errors' t.key %}?date={{ date_str }}" class="type-err-link">
+        <i class="bi bi-zoom-in"></i> Voir les {{ t.nb_ok_erreurs }} magasin(s) en erreur
+        <span style="background:var(--red);color:#fff;border-radius:6px;padding:1px 7px;font-size:.65rem;margin-left:auto;">{{ t.nb_total_errors }}</span>
+    </a>
+    {% else %}
+    <div style="margin:0 18px 16px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--green-bg);border-radius:10px;border:1px solid var(--green-bd);color:var(--green);font-size:.74rem;font-weight:700;gap:5px;">
+        <i class="bi bi-check-circle-fill"></i> Aucune erreur article
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<!-- ═══ TABLE MAGASINS ═══════════════════════════════════════════ -->
+<div class="ias-section">
+    <div class="ias-section-left">
+        <div class="ias-section-icon"><i class="bi bi-shop"></i></div>
+        <div>
+            <div class="ias-section-title">Détail par magasin</div>
+            <div class="ias-section-sub">{{ shops_list|length }} magasin(s) · cliquez sur ⚠ pour voir les erreurs</div>
+        </div>
+    </div>
+    <input type="text" id="shopSearch" class="ias-search" placeholder="Rechercher...">
+</div>
+
+<div class="ias-table-card">
+    <table class="ias-table" id="shopsTable">
+        <thead>
+            <tr>
+                <th>Magasin</th>
+                <th>Statut</th>
+                <th style="text-align:center;">Price Updater</th>
+                <th style="text-align:center;">Linked Code</th>
+                <th style="text-align:center;">Product</th>
+                <th style="text-align:center;">Product Suppliers</th>
+                <th style="text-align:center;">Fichiers</th>
+                <th style="text-align:center;">Erreurs articles</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for s in shops_list %}
+        <tr class="shop-row">
+            <td>
+                <div style="font-weight:800;color:#0f172a;">{{ s.ref }}</div>
+                <div style="font-size:.7rem;color:var(--slate);">{{ s.name }}</div>
+            </td>
+            <td>
+                {% if s.statut == 'ok' %}<span class="badge-ok"><i class="bi bi-check-circle-fill"></i> OK</span>
+                {% elif s.statut == 'ok_erreurs' %}<span class="badge-okerr"><i class="bi bi-exclamation-circle-fill"></i> Avec erreurs</span>
+                {% elif s.statut == 'partial' %}<span class="badge-part"><i class="bi bi-dash-circle-fill"></i> Partiel</span>
+                {% else %}<span class="badge-abs"><i class="bi bi-x-circle-fill"></i> Absent</span>{% endif %}
+            </td>
+            {% for tk, ft in s.types.items %}
+            <td style="text-align:center;">
+                {% if ft.integre and ft.nb_erreurs == 0 %}
+                    <i class="bi bi-check-circle-fill tc-ok" title="OK"></i>
+                {% elif ft.integre %}
+                    <a href="{% url 'dashboard:integration_asten_type_errors' tk %}?date={{ date_str }}" style="text-decoration:none;display:inline-flex;align-items:center;gap:3px;">
+                        <i class="bi bi-exclamation-circle-fill tc-err" style="font-size:.95rem;"></i>
+                        <span style="font-size:.68rem;color:var(--amber);font-weight:700;">{{ ft.nb_erreurs }}</span>
+                    </a>
+                {% else %}
+                    <i class="bi bi-x-circle tc-abs" title="Absent"></i>
+                {% endif %}
+            </td>
+            {% endfor %}
+            <td style="text-align:center;">
+                <span style="font-weight:800;font-size:.9rem;color:{% if s.nb_ok == 4 %}var(--green){% elif s.nb_ok > 0 %}var(--amber){% else %}var(--red){% endif %};">{{ s.nb_ok }}/4</span>
+            </td>
+            <td style="text-align:center;">
+                {% if s.nb_erreurs_articles > 0 %}
+                <span style="background:var(--red-bg);color:#991b1b;border-radius:8px;padding:3px 10px;font-size:.72rem;font-weight:800;">{{ s.nb_erreurs_articles }}</span>
+                {% else %}<span style="color:#94a3b8;font-size:.8rem;">—</span>{% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:30px;">Aucun magasin trouvé</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const shopSearch = document.getElementById('shopSearch');
+if (shopSearch) {
+    shopSearch.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#shopsTable .shop-row').forEach(row => {
+            row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    });
+}
+</script>
+{% endblock %}

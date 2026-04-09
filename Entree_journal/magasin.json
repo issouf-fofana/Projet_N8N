@@ -1,0 +1,355 @@
+{
+  "pos1": {
+    "url": "https://pos1-prod-prosuma.prosuma.pos",
+    "name": "POS 1",
+    "shops": [
+      {
+        "reference": "110",
+        "name": "SUPER U VALLON",
+        "id": "23c9d34a-dc11-4a72-907b-2fadfc260538"
+      }
+    ]
+  },
+  "pos2": {
+    "url": "https://pos2-prod-prosuma.prosuma.pos",
+    "name": "POS 2",
+    "shops": [
+      {
+        "reference": "120",
+        "name": "MANDARINE GOLF",
+        "id": "d722cbae-46fb-4d98-bf46-8b1f922d5651"
+      },
+      {
+        "reference": "281",
+        "name": "CASINO MANDARINE ANGRE",
+        "id": "465267f8-64c5-4aef-82ae-ecbf35af9c4b"
+      },
+      {
+        "reference": "294",
+        "name": "CASINO MANDARINE RIVIERA 4",
+        "id": "3995486b-35ae-4ab0-a009-2bdcbe96f928"
+      }
+    ]
+  },
+  "pos3": {
+    "url": "https://pos3-prod-prosuma.prosuma.pos",
+    "name": "POS 3",
+    "shops": [
+      {
+        "reference": "230",
+        "name": "HYPER CASINO PRIMA",
+        "id": "acdf655b-aeba-4bc5-82bd-8a607ffcb901"
+      }
+    ]
+  },
+  "pos4": {
+    "url": "https://pos4-prod-prosuma.prosuma.pos",
+    "name": "POS 4",
+    "shops": [
+      {
+        "reference": "035",
+        "name": "HYPER HAYAT",
+        "id": "2e9d29a5-d9d1-4637-95be-aaad0a334486"
+      }
+    ]
+  },
+  "pos5": {
+    "url": "https://pos5-prod-prosuma.prosuma.pos",
+    "name": "POS 5",
+    "shops": [
+      {
+        "reference": "100",
+        "name": "CASINO 2 PLATEAUX",
+        "id": "ebf89559-6abc-4fc7-85d8-25e808813284"
+      }
+    ]
+  },
+  "pos6": {
+    "url": "https://pos6-prod-prosuma.prosuma.pos",
+    "name": "POS 6",
+    "shops": [
+      {
+        "reference": "220",
+        "name": "SUPER U PLATEAU",
+        "id": "d7d88c8c-fe70-40bb-af5f-1a33856574db"
+      }
+    ]
+  },
+  "pos7": {
+    "url": "https://pos7-prod-prosuma.prosuma.pos",
+    "name": "POS 7",
+    "shops": [
+      {
+        "reference": "235",
+        "name": "SUPER U DJIBI",
+        "id": "cc895d37-6c39-4c6b-a432-302751a6ab65"
+      }
+    ]
+  },
+  "pos8": {
+    "url": "https://pos8-prod-prosuma.prosuma.pos",
+    "name": "POS 8",
+    "shops": [
+      {
+        "reference": "240",
+        "name": "FNAC CAP SUD",
+        "id": "a9016df1-c802-41fd-8122-d06da333e823"
+      },
+      {
+        "reference": "245",
+        "name": "FNAC CAP NORD",
+        "id": "293ec363-53a2-462f-b84c-3041826d66ef"
+      },
+      {
+        "reference": "250",
+        "name": "GIFI Z4",
+        "id": "8af414b2-90e6-4434-a033-bcb5e91b5196"
+      },
+      {
+        "reference": "261",
+        "name": "MONOP COCODY",
+        "id": "64c9f619-c5d0-41c7-9a73-06bf39561d84"
+      }
+    ]
+  },
+  "pos9": {
+    "url": "https://pos9-prod-prosuma.prosuma.pos",
+    "name": "POS 9",
+    "shops": [
+      {
+        "reference": "080",
+        "name": "MANDARINE MARCORY",
+        "id": "267ab8ec-b21e-4617-89e1-4a35e1787c91"
+      },
+      {
+        "reference": "291",
+        "name": "MANDARINE DANGA",
+        "id": "07cfcf93-fd2c-4ecb-81b0-186a028a625a"
+      },
+      {
+        "reference": "292",
+        "name": "MANDARINE KOUMASSI",
+        "id": "8ce74bff-75a9-4176-a13f-4586c8d4fc4e"
+      },
+      {
+        "reference": "293",
+        "name": "MANDARINE AMBASSADE CHINE",
+        "id": "78cdd61d-d6cb-43bf-897c-38c0ac0b9755"
+      }
+    ]
+  },
+  "pos10": {
+    "url": "https://pos10-prod-prosuma.prosuma.pos",
+    "name": "POS 10",
+    "shops": [
+      {
+        "reference": "290",
+        "name": "MANDARINE BIETRY",
+        "id": "7e56c34c-f332-4114-a72c-9d3bed214d2b"
+      }
+    ]
+  },
+  "pos11": {
+    "url": "https://pos11-prod-prosuma.prosuma.pos",
+    "name": "POS 11",
+    "shops": [
+      {
+        "reference": "295",
+        "name": "CASINO ALLABRA",
+        "id": "7cb62612-8254-43b7-bf07-3eaed50a1b1b"
+      }
+    ]
+  },
+  "pos12": {
+    "url": "https://pos12-prod-prosuma.prosuma.pos",
+    "name": "POS 12",
+    "shops": [
+      {
+        "reference": "301",
+        "name": "S2P SOCOCE ZONE 3",
+        "id": "b1dd0ebe-1036-4e6a-bdab-aa87e089d9a9"
+      },
+      {
+        "reference": "305",
+        "name": "S2P SOCOCE RUE DES JARDINS",
+        "id": "46df0974-99ff-4055-9351-b22e796ae036"
+      },
+      {
+        "reference": "308",
+        "name": "S2P SOCOCE ABOBO",
+        "id": "4872a5ae-ec51-4323-b249-0b640fe79718"
+      },
+      {
+        "reference": "311",
+        "name": "SOCOCE CHATEAU EAU",
+        "id": "a4ff89ae-7a91-451d-adca-ea01002c75a2"
+      }
+    ]
+  },
+  "pos13": {
+    "url": "https://pos13-prod-prosuma.prosuma.pos",
+    "name": "POS 13",
+    "shops": [
+      {
+        "reference": "302",
+        "name": "S2P HYPER U",
+        "id": "85044d72-87a7-49ed-bcd2-191c2c1eaf85"
+      }
+    ]
+  },
+  "pos14": {
+    "url": "https://pos14-prod-prosuma.prosuma.pos",
+    "name": "POS 14",
+    "shops": [
+      {
+        "reference": "304",
+        "name": "S2P SOCOCE DALOA",
+        "id": "114995ef-bbec-4421-a7a8-3082dbf0d64a"
+      },
+      {
+        "reference": "306",
+        "name": "S2P SOCOCE YAMOUSSOKRO",
+        "id": "0596d4b3-0153-46e2-8b68-c13482df71c4"
+      },
+      {
+        "reference": "310",
+        "name": "S2P ECOMARCHE SAN PEDRO",
+        "id": "94fc46bf-feab-4ca0-86de-64a601542bdc"
+      }
+    ]
+  },
+  "pos15": {
+    "url": "https://pos15-prod-prosuma.prosuma.pos",
+    "name": "POS 15",
+    "shops": [
+      {
+        "reference": "303",
+        "name": "S2P SOCOCE BOUAKE",
+        "id": "4eccf102-966a-4fac-898d-c6585deb0a73"
+      },
+      {
+        "reference": "307",
+        "name": "S2P SOCOCE GAGNOA",
+        "id": "b0af7dc6-de58-43c5-afa8-0cd493436af3"
+      },
+      {
+        "reference": "309",
+        "name": "S2P SUPERETTE SOCOCE BOUAKE",
+        "id": "3dd5a9da-84ae-4451-bab7-1d35ebb71a10"
+      },
+      {
+        "reference": "312",
+        "name": "S2P SOCOCE RIVIERA",
+        "id": "b2438a44-0779-4710-99d4-618b981c7147"
+      }
+    ]
+  },
+  "pos16": {
+    "url": "https://pos16-prod-prosuma.prosuma.pos",
+    "name": "POS 16",
+    "shops": [
+      {
+        "reference": "361",
+        "name": "CASH IVOIRE ABOBO",
+        "id": "f8fc250b-46d6-4598-a975-66f3c8796982"
+      },
+      {
+        "reference": "371",
+        "name": "CASH IVOIRE ANANERAIE",
+        "id": "659da7b4-04c0-4db3-a32c-4d924e6e4bf4"
+      },
+      {
+        "reference": "412",
+        "name": "CASH IVOIRE DOKUI",
+        "id": "d3a6dfc3-09b0-4885-af60-262348de8d44"
+      },
+      {
+        "reference": "414",
+        "name": "CASH IVOIRE U PORT-BOUËT",
+        "id": "e8e1e5f3-029f-485b-b806-0188becff6d6"
+      },
+      {
+        "reference": "415",
+        "name": "CASH IVOIRE U M'BADON",
+        "id": "28bf479b-25eb-4c42-87b6-89e3f4a56fbd"
+      },
+      {
+        "reference": "416",
+        "name": "CASH IVOIRE U LATRILLE",
+        "id": "9dfb4acf-9489-4c42-b954-cb2b3ddd5a45"
+      }
+    ]
+  },
+  "pos17": {
+    "url": "https://pos17-prod-prosuma.prosuma.pos",
+    "name": "POS 17",
+    "shops": [
+      {
+        "reference": "353",
+        "name": "CASH IVOIRE U ANGRE",
+        "id": "41aa93a0-209d-4278-95cc-29988fd3021e"
+      },
+      {
+        "reference": "356",
+        "name": "CASH IVOIRE U COCODY",
+        "id": "92734a6c-a685-4002-856b-465dd8617ef7"
+      },
+      {
+        "reference": "364",
+        "name": "CASH IVOIRE U 7 DECEMBRE",
+        "id": "8116af25-8baf-4202-8b61-2aa4051bbf72"
+      },
+      {
+        "reference": "410",
+        "name": "CASH IVOIRE U BESSIKOI",
+        "id": "f9ba8f56-78c3-42de-a56d-2f49a0c19c69"
+      },
+      {
+        "reference": "411",
+        "name": "CASH IVOIRE U ANTENNE",
+        "id": "d7aa59fe-1c09-4d16-8058-9b71568f5a9d"
+      },
+      {
+        "reference": "413",
+        "name": "CASH IVOIRE U AGOUTI",
+        "id": "8263378e-411c-47e3-8418-9865037650b1"
+      }
+    ]
+  },
+  "pos18": {
+    "url": "https://pos18-prod-prosuma.prosuma.pos",
+    "name": "POS 18",
+    "shops": [
+      {
+        "reference": "354",
+        "name": "CASH IVOIRE U TOITS ROUGES",
+        "id": "e7ab9bc8-ffeb-4155-ab9d-9355cb334938"
+      },
+      {
+        "reference": "357",
+        "name": "CASH IVOIRE U REMBLAIS",
+        "id": "32aec65b-b5bc-4bbe-bd06-9704962869a6"
+      },
+      {
+        "reference": "368",
+        "name": "CASH IVOIRE U SADIGUIBA",
+        "id": "d8f8aa89-ea51-4711-95e4-0f070d8dcd64"
+      },
+      {
+        "reference": "372",
+        "name": "CASH IVOIRE U MAROC",
+        "id": "5bcba3ef-b91d-4912-8cea-3722bad75221"
+      },
+      {
+        "reference": "376",
+        "name": "CASH IVOIRE U SICOGI ANGRE",
+        "id": "6cf43b47-9f2d-48c4-8c78-57996236ccaa"
+      },
+      {
+        "reference": "378",
+        "name": "CASH IVOIRE DJE KONAN",
+        "id": "a90f9c8a-be7f-4b49-85b5-596769a24f70"
+      }
+    ]
+  }
+}

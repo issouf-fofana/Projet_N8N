@@ -956,17 +956,41 @@ def dashboard(request):
             factures_qs = factures_qs.filter(date_modif__date__lte=date_fin_parsed)
 
         backup_files = factures_qs.order_by('-date_modif', 'nom_fichier')[:1000]
-        total_factures = factures_qs.count()
-        total_promo = factures_qs.filter(type_facture='promo').count()
-        total_general = factures_qs.filter(type_facture='general').count()
+
+        # Vraies stats depuis la jointure Cyrus/Asten
+        try:
+            from imports.services import get_factures_verification
+            fv = get_factures_verification()
+            fv_stats = fv['stats']
+            # Filtrer par magasin si demandé
+            if code_magasin:
+                joined_filtre = [r for r in fv['joined'] if r['cidc'] in code_magasin]
+                nb_int  = sum(1 for r in joined_filtre if r['integree'])
+                nb_eca  = sum(1 for r in joined_filtre if not r['integree'])
+                nb_tot  = len(joined_filtre)
+            else:
+                nb_int  = fv_stats['integrees']
+                nb_eca  = fv_stats['ecarts']
+                nb_tot  = fv_stats['total']
+            taux = round(nb_int / nb_tot * 100, 1) if nb_tot else 0
+            # Stats par magasin pour le graphique
+            stats_par_magasin = {}
+            for cidc, s in fv_stats['par_magasin'].items():
+                if not code_magasin or cidc in code_magasin:
+                    stats_par_magasin[cidc] = s
+        except Exception:
+            nb_int = nb_eca = nb_tot = 0
+            taux = 0
+            stats_par_magasin = {}
 
         stats = {
-            'total_source': total_factures,
-            'total_target': total_factures,
-            'integres': total_promo,
-            'non_integres': total_general,
-            'taux_integration': 0,
-            'taux_non_integration': 0,
+            'total_source':        nb_tot,
+            'total_target':        nb_tot,
+            'integres':            nb_int,
+            'non_integres':        nb_eca,
+            'taux_integration':    taux,
+            'taux_non_integration': round(100 - taux, 1) if nb_tot else 0,
+            'par_magasin':         stats_par_magasin,
         }
         titre_tableau = "Factures Backup (Cyrus)"
         
@@ -1114,6 +1138,95 @@ def dashboard(request):
         'top5': _get_top5_magasins(debut=date_debut_parsed, fin=date_fin_parsed, n=request.GET.get('top_n', 5)),
         'top_url_base': f"?type_donnees={request.GET.get('type_donnees','commandes_asten')}&periode={periode}&date_debut={date_debut or ''}&date_fin={date_fin or ''}",
     }
+
+    # Widget / données Version Asten
+    from datetime import date as _date_cls, timedelta as _td
+    _today_v = _date_cls.today()
+
+    if type_donnees == 'version':
+        context['today'] = _today_v
+        context['yesterday'] = _today_v - _td(days=1)
+        context['week_ago'] = _today_v - _td(days=6)
+        context['month_ago'] = _today_v - _td(days=29)
+
+        # ── Backup (SMB) – indépendant du RPOS ───────────────────────────────
+        try:
+            from imports.services import get_versions_asten
+            if date_debut_parsed or date_fin_parsed:
+                va_data = get_versions_asten(date_debut=date_debut_parsed, date_fin=date_fin_parsed)
+            else:
+                va_data = get_versions_asten(filtre_jours=30)
+            context['version_asten_data'] = va_data
+            context['version_asten_widget'] = va_data['versions'][0] if va_data.get('versions') else None
+            context['version_asten_disponible'] = va_data.get('disponible', False)
+        except Exception:
+            context['version_asten_widget'] = None
+            context['version_asten_disponible'] = False
+            context['version_asten_data'] = None
+
+        # ── Intégration RPOS (base de données) – toujours chargé ─────────────
+        # Cherche la nuit la plus récente avec données :
+        # - dans la plage [date_debut, date_fin] si un filtre est actif
+        # - sinon depuis aujourd'hui en remontant (max 4 jours)
+        try:
+            from entree_journal.services import get_integration_asten
+            ia_data  = None
+            _start   = date_fin_parsed or _today_v
+            _stop    = date_debut_parsed  # None = pas de limite basse
+            _max_days = (_start - _stop).days + 1 if _stop else 4
+            _max_days = min(_max_days, 60)   # sécurité : ne pas boucler à l'infini
+            for _delta in range(_max_days):
+                _candidate = _start - _td(days=_delta)
+                if _stop and _candidate < _stop:
+                    break
+                _result = get_integration_asten(run_date=_candidate)
+                if _result.get('nb_entrees_total', 0) >= 200:
+                    ia_data = _result
+                    break
+            if ia_data is None:
+                ia_data = get_integration_asten(run_date=_start)
+            context['integration_asten_data'] = ia_data
+            # Calcul rapide stats par type pour le dashboard
+            from entree_journal.services import TYPES_OBLIGATOIRES
+            _ia_stats_type = {}
+            for _tk in TYPES_OBLIGATOIRES:
+                _ia_stats_type[_tk] = {'label': TYPES_OBLIGATOIRES[_tk], 'nb_ok': 0, 'nb_ok_erreurs': 0, 'nb_absent': 0, 'nb_total_errors': 0, 'shops_erreurs': []}
+            for _pos in ia_data.get('pos', {}).values():
+                for _shop_ref, _shop in _pos.get('shops', {}).items():
+                    for _tk in TYPES_OBLIGATOIRES:
+                        _t = _shop.get('types', {}).get(_tk, {})
+                        _nb_err = _t.get('nb_erreurs', 0)
+                        if _t.get('integre') and _nb_err == 0:
+                            _ia_stats_type[_tk]['nb_ok'] += 1
+                        elif _t.get('integre') and _nb_err > 0:
+                            _ia_stats_type[_tk]['nb_ok_erreurs'] += 1
+                            _ia_stats_type[_tk]['shops_erreurs'].append({'shop_ref': _shop_ref, 'nb_erreurs': _nb_err})
+                        else:
+                            _ia_stats_type[_tk]['nb_absent'] += 1
+                        _ia_stats_type[_tk]['nb_total_errors'] += _nb_err
+            context['ia_stats_type'] = _ia_stats_type
+            context['ia_nb_fichiers_ok']      = sum(v['nb_ok']          for v in _ia_stats_type.values())
+            context['ia_nb_fichiers_erreurs'] = sum(v['nb_ok_erreurs']  for v in _ia_stats_type.values())
+            context['ia_nb_fichiers_absents'] = sum(v['nb_absent']      for v in _ia_stats_type.values())
+        except Exception as _e:
+            context['integration_asten_data'] = None
+            context['integration_asten_error'] = str(_e)
+
+    else:
+        try:
+            from imports.services import get_versions_asten
+            va_data = get_versions_asten(filtre_jours=7)
+            context['version_asten_data'] = None
+            if va_data['disponible'] and va_data['versions']:
+                context['version_asten_widget'] = va_data['versions'][0]
+                context['version_asten_disponible'] = True
+            else:
+                context['version_asten_widget'] = None
+                context['version_asten_disponible'] = va_data.get('disponible', False)
+        except Exception:
+            context['version_asten_widget'] = None
+            context['version_asten_disponible'] = False
+            context['version_asten_data'] = None
 
     return render(request, 'dashboard/dashboard.html', context)
 
@@ -1454,6 +1567,49 @@ def accueil(request):
     except Exception:
         evolution_journaliere = {'labels': [], 'asten': [], 'gpv': [], 'legend': [], 'br': []}
 
+    # Stats intégration RPOS (nuit dernière)
+    ia_rpos = None
+    try:
+        from entree_journal.services import get_integration_asten, TYPES_OBLIGATOIRES
+        from datetime import date as _date, timedelta as _td
+        _today = _date.today()
+        for _d in range(5):
+            _candidate = _today - _td(days=_d)
+            _ia = get_integration_asten(run_date=_candidate)
+            if _ia.get('nb_entrees_total', 0) >= 200:
+                _s = _ia.get('summary', {})
+                _types = {}
+                for _tk, _tlbl in TYPES_OBLIGATOIRES.items():
+                    _types[_tk] = {'label': _tlbl, 'nb_ok': 0, 'nb_ok_erreurs': 0, 'nb_absent': 0}
+                for _pos in _ia.get('pos', {}).values():
+                    for _shop in _pos.get('shops', {}).values():
+                        for _tk in TYPES_OBLIGATOIRES:
+                            _t = _shop.get('types', {}).get(_tk, {})
+                            if _t.get('integre') and _t.get('nb_erreurs', 0) == 0:
+                                _types[_tk]['nb_ok'] += 1
+                            elif _t.get('integre'):
+                                _types[_tk]['nb_ok_erreurs'] += 1
+                            else:
+                                _types[_tk]['nb_absent'] += 1
+                ia_rpos = {
+                    'run_date':    str(_candidate),
+                    'date_nuit':   _ia.get('date_nuit', ''),
+                    'fenetre':     _ia.get('fenetre', ''),
+                    'total_shops': _s.get('total_shops', 0),
+                    'nb_ok':       _s.get('ok', 0),
+                    'nb_erreurs':  sum(v['nb_ok_erreurs'] for v in _types.values()),
+                    'nb_absent':   sum(v['nb_absent'] for v in _types.values()),
+                    'types':       _types,
+                    'art_err':     sum(
+                        shop.get('nb_erreurs_articles', 0)
+                        for _pos in _ia.get('pos', {}).values()
+                        for shop in _pos.get('shops', {}).values()
+                    ),
+                }
+                break
+    except Exception:
+        ia_rpos = None
+
     context = {
         'stats_asten': stats_asten,
         'stats_gpv': stats_gpv,
@@ -1461,6 +1617,7 @@ def accueil(request):
         'stats_br': stats_br,
         'stats_factures': stats_factures,
         'stats_remontees': stats_remontees,
+        'ia_rpos': ia_rpos,
         'evolution_journaliere': evolution_journaliere,
         'periode': periode,
         'date_debut': date_debut.strftime('%Y-%m-%d') if date_debut else '',
@@ -1682,19 +1839,6 @@ def liste_ecarts(request):
     ecarts_combined = []
     
     for ecart in ecarts_asten:
-        # Vérifier si la commande existe dans Cyrus
-        existe_cyrus = CommandeCyrus.objects.filter(
-            date_commande=ecart.commande_asten.date_commande,
-            numero_commande=ecart.commande_asten.numero_commande,
-            code_magasin=ecart.commande_asten.code_magasin
-        ).exists()
-        
-        # Ne pas afficher les écarts résolus automatiquement (résolu ET existe dans Cyrus)
-        # Afficher seulement : ouverts, ignorés, et résolus manuellement (résolu mais n'existe pas dans Cyrus)
-        if ecart.statut == 'resolu' and existe_cyrus:
-            # Écart résolu automatiquement, ne pas l'afficher
-            continue
-        
         ecarts_combined.append({
             'type': 'asten',
             'ecart': ecart,
@@ -1706,67 +1850,21 @@ def liste_ecarts(request):
             'date_creation': ecart.date_creation,
             'statut': ecart.statut,
         })
-    
+
     for ecart in ecarts_gpv:
-        # Vérifier si la commande existe dans Cyrus
-        existe_cyrus = CommandeCyrus.objects.filter(
-            Q(date_commande=ecart.commande_gpv.date_creation) |
-            Q(numero_commande=ecart.commande_gpv.numero_commande, code_magasin=ecart.commande_gpv.code_magasin),
-            numero_commande=ecart.commande_gpv.numero_commande,
-            code_magasin=ecart.commande_gpv.code_magasin
-        ).exists()
-        
-        # Ne pas afficher les écarts résolus automatiquement (résolu ET existe dans Cyrus)
-        # Afficher seulement : ouverts, ignorés, et résolus manuellement (résolu mais n'existe pas dans Cyrus)
-        if ecart.statut == 'resolu' and existe_cyrus:
-            # Écart résolu automatiquement, ne pas l'afficher
-            continue
-        
         ecarts_combined.append({
             'type': 'gpv',
             'ecart': ecart,
             'id': ecart.id,
-            'date_commande': ecart.commande_gpv.date_creation,  # Utiliser date_creation pour GPV
+            'date_commande': ecart.commande_gpv.date_creation,
             'numero_commande': ecart.commande_gpv.numero_commande,
             'code_magasin': ecart.commande_gpv.code_magasin,
-            'montant': None,  # GPV n'a pas de montant
+            'montant': None,
             'date_creation': ecart.date_creation,
             'statut': ecart.statut,
         })
 
-    # Fonction de normalisation pour comparer les numéros
-    def normalize_numero(numero):
-        if not numero:
-            return ''
-        numero_str = str(numero).strip()
-        digits = ''.join(ch for ch in numero_str if ch.isdigit())
-        if digits:
-            return digits.lstrip('0') or '0'
-        return numero_str
-
     for ecart in ecarts_legend:
-        # Normaliser le numéro Legend
-        numero_legend_normalise = normalize_numero(ecart.commande_legend.numero_commande)
-        
-        # Vérifier si la commande existe dans Cyrus avec normalisation
-        existe_cyrus = False
-        for cyrus_cmd in CommandeCyrus.objects.filter(date_commande=ecart.commande_legend.date_commande):
-            if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
-                existe_cyrus = True
-                break
-        
-        if not existe_cyrus:
-            # Fallback: chercher par numéro seulement (sans date)
-            for cyrus_cmd in CommandeCyrus.objects.all():
-                if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
-                    existe_cyrus = True
-                    break
-
-        # Ne pas afficher les écarts résolus automatiquement (résolu ET existe dans Cyrus)
-        # Afficher seulement : ouverts, ignorés, et résolus manuellement (résolu mais n'existe pas dans Cyrus)
-        if ecart.statut == 'resolu' and existe_cyrus:
-            continue
-
         ecarts_combined.append({
             'type': 'legend',
             'ecart': ecart,
@@ -2963,3 +3061,710 @@ def rapport_global(request):
         'top_url_base': f"?section={section}&periode={periode}&date_debut={date_debut}&date_fin={date_fin}",
     }
     return render(request, 'dashboard/rapport_global.html', context)
+
+
+def remontee_asten(request):
+    return render(request, 'dashboard/en_cours.html', {
+        'page_title': 'Remontée Asten',
+        'page_icon': 'bi-arrow-up-circle',
+        'page_color': '#ef4444',
+        'page_color_light': '#fff1f2',
+    })
+
+
+def version_asten(request):
+    from imports.services import get_versions_asten
+    filtre = request.GET.get('periode', '30')
+    try:
+        filtre_jours = None if filtre == 'tout' else int(filtre)
+    except ValueError:
+        filtre, filtre_jours = '30', 30
+    data = get_versions_asten(filtre_jours=filtre_jours)
+    filtre_choices = [('7','7 jours'),('30','30 jours'),('90','3 mois'),('365','1 an'),('tout','Tout')]
+    return render(request, 'dashboard/version_asten.html', {
+        'disponible':     data['disponible'],
+        'versions':       data['versions'],
+        'stats':          data['stats'],
+        'filtre':         filtre,
+        'filtre_choices': filtre_choices,
+    })
+
+
+def version_asten_detail(request, version_name):
+    from imports.services import get_version_asten_detail
+    from django.http import Http404
+    detail = get_version_asten_detail(version_name)
+    if detail is None:
+        raise Http404("Version introuvable")
+    return render(request, 'dashboard/version_asten_detail.html', {'detail': detail})
+
+
+def version_asten_fichier(request, version_name, assortiment, file_type):
+    from imports.services import get_fichier_content
+    from django.http import Http404
+    search   = request.GET.get('q', '').strip()
+    page     = int(request.GET.get('page', 1))
+    per_page = int(request.GET.get('per_page', 50))
+    if per_page not in (20, 50, 100, 200):
+        per_page = 50
+    data = get_fichier_content(version_name, assortiment, file_type,
+                               search=search, page=page, per_page=per_page)
+    if data is None:
+        raise Http404("Fichier introuvable")
+    return render(request, 'dashboard/version_asten_fichier.html', {
+        'data':         data,
+        'version_name': version_name,
+        'assortiment':  assortiment,
+        'file_type':    file_type,
+        'per_page':     per_page,
+        'pp_choices':   [20, 50, 100, 200],
+    })
+
+
+
+def version_asten_sync(request):
+    """Déclenche la synchronisation SMB → DB (POST uniquement)."""
+    from imports.services import sync_versions_to_db
+    from django.http import JsonResponse
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST requis'}, status=405)
+    force = request.POST.get('force', '0') == '1'
+    result = sync_versions_to_db(force=force)
+    return JsonResponse(result)
+
+
+def integration_asten(request):
+    from entree_journal.services import get_integration_asten
+    from datetime import date, timedelta
+    date_str = request.GET.get('date', '')
+    today    = date.today()
+    if date_str:
+        try:
+            run_date = date.fromisoformat(date_str)
+        except ValueError:
+            run_date = today
+        data = get_integration_asten(run_date)
+    else:
+        # Pas de date précisée → chercher la nuit la plus récente avec données
+        data = None
+        run_date = today
+        for _delta in range(3):
+            _candidate = today - timedelta(days=_delta)
+            _result    = get_integration_asten(run_date=_candidate)
+            if _result.get('nb_entrees_total', 0) > 0:
+                data     = _result
+                run_date = _candidate
+                break
+        if data is None:
+            data = get_integration_asten(run_date=today)
+    yesterday = today - timedelta(days=1)
+    total_art_err = sum(
+        shop.get('nb_erreurs_articles', 0)
+        for pos in data.get('pos', {}).values()
+        for shop in pos.get('shops', {}).values()
+    )
+    # Agréger les 4 types obligatoires pour le bandeau résumé
+    from entree_journal.services import TYPES_OBLIGATOIRES
+    ia_types = {}
+    for tk, tlabel in TYPES_OBLIGATOIRES.items():
+        ia_types[tk] = {'label': tlabel, 'nb_ok': 0, 'nb_ok_erreurs': 0, 'nb_absent': 0}
+    for _pos in data.get('pos', {}).values():
+        for _shop in _pos.get('shops', {}).values():
+            for tk in TYPES_OBLIGATOIRES:
+                _t = _shop.get('types', {}).get(tk, {})
+                if _t.get('integre') and _t.get('nb_erreurs', 0) == 0:
+                    ia_types[tk]['nb_ok'] += 1
+                elif _t.get('integre'):
+                    ia_types[tk]['nb_ok_erreurs'] += 1
+                else:
+                    ia_types[tk]['nb_absent'] += 1
+    return render(request, 'dashboard/integration_asten.html', {
+        'data':          data,
+        'run_date':      run_date,
+        'date_str':      str(run_date),
+        'total_art_err': total_art_err,
+        'ia_types':      ia_types,
+        'today':         str(today),
+        'yesterday':     str(yesterday),
+    })
+
+
+def integration_asten_detail_type(request, pos_id, shop_ref, type_key):
+    from entree_journal.services import get_integration_asten
+    from datetime import date
+    from django.http import Http404
+    date_str = request.GET.get('date', '')
+    try:
+        run_date = date.fromisoformat(date_str) if date_str else date.today()
+    except ValueError:
+        run_date = date.today()
+    data = get_integration_asten(run_date)
+    pos = data['pos'].get(pos_id)
+    if not pos:
+        raise Http404("POS introuvable")
+    shop = pos['shops'].get(shop_ref)
+    if not shop:
+        raise Http404("Magasin introuvable")
+    type_data = shop['types'].get(type_key)
+    if not type_data:
+        raise Http404("Type introuvable")
+    return render(request, 'dashboard/integration_asten_detail_type.html', {
+        'data': data,
+        'pos_id': pos_id,
+        'pos': pos,
+        'shop_ref': shop_ref,
+        'shop': shop,
+        'type_key': type_key,
+        'type_data': type_data,
+        'run_date': run_date,
+        'date_str': str(run_date),
+    })
+
+
+def integration_asten_import(request):
+    from entree_journal.services import importer_fichiers
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
+    result = importer_fichiers()
+
+    if result['nouveaux'] == 0 and not result['erreurs']:
+        messages.info(request, "Aucun nouveau fichier à importer.")
+    elif result['nouveaux'] > 0:
+        messages.success(
+            request,
+            f"{result['nouveaux']} fichier(s) importé(s) — {result['lignes_inserees']} entrées ajoutées."
+        )
+
+    for err in result['erreurs']:
+        messages.error(request, f"Erreur : {err['fichier']} — {err['erreur']}")
+
+    return redirect('dashboard:integration_asten')
+
+
+def _load_assortiments():
+    """Lit assortiment.txt et retourne la liste + le nombre d'assortiments."""
+    from pathlib import Path
+    path = Path(settings.BASE_DIR) / 'assortiment.txt'
+    try:
+        codes = [l.strip() for l in path.read_text(encoding='utf-8').splitlines() if l.strip()]
+        return codes
+    except Exception:
+        return []
+
+
+def integration_asten_stats(request):
+    """Page de synthèse : fichiers intégrés par type et par magasin."""
+    from entree_journal.services import get_integration_asten, TYPES_OBLIGATOIRES
+    from datetime import date, timedelta
+
+    date_str = request.GET.get('date', '')
+    today    = date.today()
+    if date_str:
+        try:
+            run_date = date.fromisoformat(date_str)
+        except ValueError:
+            run_date = today
+        data = get_integration_asten(run_date)
+    else:
+        data = None
+        run_date = today
+        for _delta in range(3):
+            _candidate = today - timedelta(days=_delta)
+            _result    = get_integration_asten(run_date=_candidate)
+            if _result.get('nb_entrees_total', 0) > 0:
+                data     = _result
+                run_date = _candidate
+                break
+        if data is None:
+            data = get_integration_asten(run_date=today)
+
+    # ── Calcul stats par type de fichier ──────────────────────────────
+    types_order = list(TYPES_OBLIGATOIRES.keys())
+    stats_par_type = {}
+    for tk in types_order:
+        stats_par_type[tk] = {
+            'label':             TYPES_OBLIGATOIRES[tk],
+            'nb_ok':             0,
+            'nb_ok_erreurs':     0,
+            'nb_absent':         0,
+            'nb_articles_ok':    0,   # articles créés + MAJ (rapport)
+            'nb_articles_erreurs': 0, # articles en erreur (rapport)
+            'shops_erreurs':     [],
+        }
+
+    def _sum_report(entrees):
+        """Agrège nb_crees + nb_maj et nb_erreurs depuis les report_summary."""
+        art_ok = art_err = 0
+        for e in entrees:
+            s = e.get('report_summary') or {}
+            art_ok  += (s.get('nb_crees') or 0) + (s.get('nb_maj') or 0)
+            art_err += (s.get('nb_erreurs') or 0)
+        return art_ok, art_err
+
+    # ── Calcul stats par magasin (liste plate) ────────────────────────
+    shops_list = []
+
+    for pos_id, pos in data.get('pos', {}).items():
+        for shop_ref, shop in pos.get('shops', {}).items():
+            types_status = {}
+            for tk in types_order:
+                t = shop.get('types', {}).get(tk, {})
+                nb_run_err = t.get('nb_erreurs', 0)
+                integre    = t.get('integre', False)
+                art_ok, art_err = _sum_report(t.get('entrees', []))
+                types_status[tk] = {
+                    'label':        TYPES_OBLIGATOIRES[tk],
+                    'statut':       t.get('statut', 'absent'),
+                    'nb_succes':    t.get('nb_succes', 0),
+                    'nb_erreurs':   nb_run_err,
+                    'integre':      integre,
+                    'art_ok':       art_ok,
+                    'art_err':      art_err,
+                }
+                # Agréger dans stats_par_type
+                if integre and nb_run_err == 0:
+                    stats_par_type[tk]['nb_ok'] += 1
+                elif integre and nb_run_err > 0:
+                    stats_par_type[tk]['nb_ok_erreurs'] += 1
+                    stats_par_type[tk]['shops_erreurs'].append({
+                        'shop_ref':  shop_ref,
+                        'shop_name': shop.get('name', shop_ref),
+                        'nb_erreurs': nb_run_err,
+                    })
+                else:
+                    stats_par_type[tk]['nb_absent'] += 1
+                stats_par_type[tk]['nb_articles_ok']      += art_ok
+                stats_par_type[tk]['nb_articles_erreurs'] += art_err
+
+            shops_list.append({
+                'ref':    shop_ref,
+                'name':   shop.get('name', shop_ref),
+                'pos_id': pos_id,
+                'statut': shop.get('statut', 'absent'),
+                'nb_ok':  shop.get('nb_ok', 0),
+                'nb_total': shop.get('nb_total', 4),
+                'nb_erreurs_articles': shop.get('nb_erreurs_articles', 0),
+                'types':  types_status,
+            })
+
+    # Trier les magasins : absents/partiels d'abord, puis avec erreurs, puis ok
+    statut_order = {'absent': 0, 'partial': 1, 'ok_erreurs': 2, 'ok': 3}
+    shops_list.sort(key=lambda s: (statut_order.get(s['statut'], 9), s['ref']))
+
+    # Totaux globaux
+    total_ok_strict   = sum(1 for s in shops_list if s['statut'] == 'ok')
+    total_ok_erreurs  = sum(1 for s in shops_list if s['statut'] == 'ok_erreurs')
+    total_partial     = sum(1 for s in shops_list if s['statut'] == 'partial')
+    total_absent      = sum(1 for s in shops_list if s['statut'] == 'absent')
+    total_art_erreurs = sum(s['nb_erreurs_articles'] for s in shops_list)
+
+    # Convertir en liste ordonnée pour le template (évite {% with %} imbriqués)
+    ICONS = {
+        'price_updater':     'bi-tag-fill',
+        'linked_code':       'bi-link-45deg',
+        'product':           'bi-box-seam',
+        'product_suppliers': 'bi-truck',
+    }
+    stats_par_type_list = []
+    for tk in types_order:
+        td = stats_par_type[tk]
+        stats_par_type_list.append({
+            'key':                 tk,
+            'label':               td['label'],
+            'icon':                ICONS.get(tk, 'bi-file-earmark'),
+            'nb_ok':               td['nb_ok'],
+            'nb_ok_erreurs':       td['nb_ok_erreurs'],
+            'nb_absent':           td['nb_absent'],
+            'nb_articles_ok':      td['nb_articles_ok'],
+            'nb_articles_erreurs': td['nb_articles_erreurs'],
+            'shops_erreurs':       td['shops_erreurs'],
+            'nb_integres':         td['nb_ok'] + td['nb_ok_erreurs'],
+        })
+
+    assortiments = _load_assortiments()
+
+    return render(request, 'dashboard/integration_asten_stats.html', {
+        'data':                 data,
+        'run_date':             run_date,
+        'date_str':             str(run_date),
+        'today':                str(today),
+        'stats_par_type_list':  stats_par_type_list,
+        'shops_list':           shops_list,
+        'assortiments':         assortiments,
+        'nb_assortiments':      len(assortiments),
+        'totaux': {
+            'ok':           total_ok_strict,
+            'ok_erreurs':   total_ok_erreurs,
+            'partial':      total_partial,
+            'absent':       total_absent,
+            'total':        len(shops_list),
+            'art_erreurs':  total_art_erreurs,
+        },
+    })
+
+
+def integration_asten_type_errors(request, type_key):
+    """Détail des erreurs pour un type de fichier donné."""
+    from entree_journal.services import get_integration_asten, TYPES_OBLIGATOIRES
+    from datetime import date, timedelta
+    from django.http import Http404
+
+    if type_key not in TYPES_OBLIGATOIRES:
+        raise Http404("Type inconnu")
+
+    date_str = request.GET.get('date', '')
+    today    = date.today()
+    if date_str:
+        try:
+            run_date = date.fromisoformat(date_str)
+        except ValueError:
+            run_date = today
+        data = get_integration_asten(run_date)
+    else:
+        data = None
+        run_date = today
+        for _delta in range(3):
+            _candidate = today - timedelta(days=_delta)
+            _result    = get_integration_asten(run_date=_candidate)
+            if _result.get('nb_entrees_total', 0) > 0:
+                data     = _result
+                run_date = _candidate
+                break
+        if data is None:
+            data = get_integration_asten(run_date=today)
+
+    def _build_shop(shop_ref, shop, pos_id, t):
+        entrees = t.get('entrees', [])
+        # art_ok : depuis le run le plus récent
+        art_ok = 0
+        if entrees:
+            s = entrees[0].get('report_summary') or {}
+            art_ok = (s.get('nb_crees') or 0) + (s.get('nb_maj') or 0)
+
+        # Construire d'abord entrees_err (uniquement les runs avec erreurs articles)
+        entrees_err = []
+        for e in entrees:
+            rs = e.get('report_summary') or {}
+            nb_art_err = rs.get('nb_erreurs') or 0
+            re_list    = e.get('report_errors') or []
+            rl_list    = e.get('report_logs') or []
+            if nb_art_err > 0 or re_list:
+                # Priorité : report_errors → report_logs → rapport brut
+                if re_list:
+                    msg_src    = re_list
+                    report_raw = ''
+                elif nb_art_err > 0 and rl_list:
+                    msg_src    = rl_list
+                    report_raw = ''
+                else:
+                    msg_src    = []
+                    report_raw = (e.get('report') or '')[:2000]
+                entrees_err.append({
+                    'created_at':   e.get('created_at', ''),
+                    'status_value': e.get('status_value', 3),
+                    'status_label': e.get('status_label', ''),
+                    'type_detail':  e.get('type_detail', ''),
+                    'nb_art_err':   nb_art_err,
+                    'nb_crees':     rs.get('nb_crees') or 0,
+                    'nb_maj':       rs.get('nb_maj') or 0,
+                    'nb_formatees': rs.get('nb_formatees') or 0,
+                    'messages':     [{'msg': er.get('message', ''), 'ts': er.get('timestamp', '')}
+                                     for er in msg_src if er.get('message')],
+                    'report_raw':   report_raw,
+                })
+
+        # art_err = somme des erreurs articles des runs en erreur (cohérent avec ce qui est affiché)
+        art_err = sum(r['nb_art_err'] for r in entrees_err)
+
+        return {
+            'shop_ref':    shop_ref,
+            'shop_name':   shop.get('name', shop_ref),
+            'pos_id':      pos_id,
+            'art_ok':      art_ok,
+            'art_err':     art_err,
+            'entrees_err': entrees_err,
+            'entrees_all': entrees,
+        }
+
+    shops_with_errors = []
+    shops_ok          = []
+    total_shops = 0
+    for pos_id, pos in data.get('pos', {}).items():
+        for shop_ref, shop in pos.get('shops', {}).items():
+            t = shop.get('types', {}).get(type_key, {})
+            total_shops += 1
+            if not t.get('integre'):
+                continue
+            built = _build_shop(shop_ref, shop, pos_id, t)
+            if built['entrees_err']:  # a des runs avec erreurs articles réelles
+                shops_with_errors.append(built)
+            else:
+                shops_ok.append(built)
+
+    shops_with_errors.sort(key=lambda s: -s['art_err'])
+    shops_ok.sort(key=lambda s: s['shop_ref'])
+
+    total_art_ok  = sum(s['art_ok']  for s in shops_with_errors + shops_ok)
+    total_art_err = sum(s['art_err'] for s in shops_with_errors)
+    nb_shops_ok   = len(shops_ok)
+
+    return render(request, 'dashboard/integration_asten_type_errors.html', {
+        'data':              data,
+        'run_date':          run_date,
+        'date_str':          str(run_date),
+        'type_key':          type_key,
+        'type_label':        TYPES_OBLIGATOIRES[type_key],
+        'shops_with_errors': shops_with_errors,
+        'shops_ok':          shops_ok,
+        'total_shops':       total_shops,
+        'nb_shops_ok':       nb_shops_ok,
+        'total_art_ok':      total_art_ok,
+        'total_art_err':     total_art_err,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Vues Factures (Asten / Cyrus / Backup)
+# ---------------------------------------------------------------------------
+
+def _factures_parse_date_filter(date_str):
+    """Parse une date filtre (YYYY-MM-DD) → date ou None."""
+    if not date_str:
+        return None
+    try:
+        from datetime import date as _date
+        return datetime.strptime(date_str.strip(), '%Y-%m-%d').date()
+    except (ValueError, AttributeError):
+        return None
+
+
+def _paginate(request, rows, per_page=200):
+    """Pagine une liste. Retourne (page_obj, paginator)."""
+    from django.core.paginator import Paginator
+    paginator = Paginator(rows, per_page)
+    page_num  = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page_num)
+    except Exception:
+        page_obj = paginator.page(1)
+    return page_obj, paginator
+
+
+def vue_factures_asten(request):
+    from imports.services import get_factures_verification
+    result = get_factures_verification()
+    rows   = result['asten']
+    error  = result['error']
+
+    # Dédoublonner Asten sur (n_bon_livraison, date, magasin)
+    seen = set()
+    dedup = []
+    for r in rows:
+        key = (r['n_bon_livraison'], r['date_reception_date'], r['magasin'])
+        if key not in seen:
+            seen.add(key)
+            dedup.append(r)
+    rows = dedup
+
+    # Filtres
+    f_magasin    = request.GET.get('magasin', '').strip()
+    f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
+    f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
+
+    magasins_list = sorted({r['magasin'] for r in rows if r['magasin']})
+
+    if f_magasin:
+        rows = [r for r in rows if r['magasin'] == f_magasin]
+    if f_date_debut:
+        rows = [r for r in rows if r['date_reception_date'] and r['date_reception_date'] >= f_date_debut]
+    if f_date_fin:
+        rows = [r for r in rows if r['date_reception_date'] and r['date_reception_date'] <= f_date_fin]
+
+    total    = len(rows)
+    page_obj, paginator = _paginate(request, rows)
+
+    return render(request, 'dashboard/factures_asten.html', {
+        'rows':          page_obj,
+        'page_obj':      page_obj,
+        'paginator':     paginator,
+        'error':         error,
+        'magasins_list': magasins_list,
+        'f_magasin':     f_magasin,
+        'f_date_debut':  request.GET.get('date_debut', ''),
+        'f_date_fin':    request.GET.get('date_fin', ''),
+        'total':         total,
+    })
+
+
+def vue_factures_cyrus(request):
+    from imports.services import get_factures_verification
+    result = get_factures_verification()
+    error  = result['error']
+
+    # Utiliser les factures dédupliquées depuis joined
+    rows = result['joined']
+
+    # Filtres
+    f_magasin    = request.GET.get('magasin', '').strip()
+    f_nsee       = request.GET.get('nsee', '').strip()
+    f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
+    f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
+
+    magasins_list = sorted({r['cidc'] for r in rows if r['cidc']})
+    nsee_list     = sorted({r['nsee'] for r in rows if r['nsee']})
+
+    if f_magasin:
+        rows = [r for r in rows if r['cidc'] == f_magasin]
+    if f_nsee:
+        rows = [r for r in rows if r['nsee'] == f_nsee]
+    if f_date_debut:
+        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] >= f_date_debut]
+    if f_date_fin:
+        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] <= f_date_fin]
+
+    total    = len(rows)
+    page_obj, paginator = _paginate(request, rows)
+
+    return render(request, 'dashboard/factures_cyrus.html', {
+        'rows':          page_obj,
+        'page_obj':      page_obj,
+        'paginator':     paginator,
+        'error':         error,
+        'magasins_list': magasins_list,
+        'nsee_list':     nsee_list,
+        'f_magasin':     f_magasin,
+        'f_nsee':        f_nsee,
+        'f_date_debut':  request.GET.get('date_debut', ''),
+        'f_date_fin':    request.GET.get('date_fin', ''),
+        'total':         total,
+    })
+
+
+def vue_factures_backup(request):
+    from imports.services import get_factures_verification
+    result = get_factures_verification()
+    rows   = result['joined']
+    stats  = result['stats']
+    error  = result['error']
+
+    # Filtres
+    f_statut     = request.GET.get('statut', 'ecart').strip()  # défaut = écarts seulement
+    f_magasin    = request.GET.get('magasin', '').strip()
+    f_nsee       = request.GET.get('nsee', '').strip()
+    f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
+    f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
+
+    magasins_list = sorted({r['cidc'] for r in rows if r['cidc']})
+    nsee_list     = sorted({r['nsee'] for r in rows if r['nsee']})
+
+    if f_statut == 'integree':
+        rows = [r for r in rows if r['integree']]
+    elif f_statut == 'ecart':
+        rows = [r for r in rows if not r['integree']]
+    elif f_statut == 'manuel_integre':
+        rows = [r for r in rows if r.get('statut_manuel') == 'integre']
+    # 'tous' → pas de filtre
+    if f_magasin:
+        rows = [r for r in rows if r['cidc'] == f_magasin]
+    if f_nsee:
+        rows = [r for r in rows if r['nsee'] == f_nsee]
+    if f_date_debut:
+        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] >= f_date_debut]
+    if f_date_fin:
+        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] <= f_date_fin]
+
+    total    = len(rows)
+    page_obj, paginator = _paginate(request, rows, per_page=100)
+
+    return render(request, 'dashboard/factures_backup.html', {
+        'rows':          page_obj,
+        'page_obj':      page_obj,
+        'paginator':     paginator,
+        'stats':         stats,
+        'error':         error,
+        'magasins_list': magasins_list,
+        'nsee_list':     nsee_list,
+        'f_statut':      f_statut,
+        'f_magasin':     f_magasin,
+        'f_nsee':        f_nsee,
+        'f_date_debut':  request.GET.get('date_debut', ''),
+        'f_date_fin':    request.GET.get('date_fin', ''),
+        'total':         total,
+    })
+
+
+def detail_facture_cyrus(request):
+    """Détail d'une facture Cyrus : tous les articles de (cle_facture, dfac_date, cidc)."""
+    from imports.services import get_factures_verification
+    cle   = request.GET.get('cle', '').strip()
+    cidc  = request.GET.get('cidc', '').strip()
+    dfac  = request.GET.get('dfac', '').strip()
+
+    if not cle or not cidc:
+        return render(request, 'dashboard/facture_detail_cyrus.html', {'error': 'Paramètres manquants.'})
+
+    result = get_factures_verification()
+    facture = None
+    for r in result['joined']:
+        if r['cle_facture'] == cle and r['cidc'] == cidc and str(r.get('dfac_str', '')) == dfac:
+            facture = r
+            break
+    if facture is None:
+        return render(request, 'dashboard/facture_detail_cyrus.html', {'error': f'Facture {cle} introuvable.'})
+
+    return render(request, 'dashboard/facture_detail_cyrus.html', {
+        'facture': facture,
+        'error':   None,
+    })
+
+
+def detail_facture_asten(request):
+    """Détail d'une réception Asten : toutes les lignes de (n_bon_livraison, magasin)."""
+    from imports.services import _lire_asten_factures
+    from django.conf import settings as _settings
+    n_bon   = request.GET.get('n_bon', '').strip()
+    magasin = request.GET.get('magasin', '').strip()
+
+    if not n_bon or not magasin:
+        return render(request, 'dashboard/facture_detail_asten.html', {'error': 'Paramètres manquants.'})
+
+    asten_path = _settings.DOSSIER_FACTURES_ASTEN_CSV_PATH
+    all_rows = _lire_asten_factures(asten_path)
+    lignes = [r for r in all_rows if r['n_bon_livraison'] == n_bon and r['magasin'] == magasin]
+
+    if not lignes:
+        return render(request, 'dashboard/facture_detail_asten.html', {'error': f'Réception {n_bon} introuvable.'})
+
+    premier = lignes[0]
+    return render(request, 'dashboard/facture_detail_asten.html', {
+        'premier': premier,
+        'lignes':  lignes,
+        'error':   None,
+    })
+
+
+def set_statut_facture_ecart(request):
+    """API POST : enregistre le statut manuel d'une facture en écart."""
+    import json
+    from imports.models import FactureEcartStatut
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Méthode non autorisée'}, status=405)
+    try:
+        data        = json.loads(request.body)
+        cle         = data.get('cle_facture', '').strip()
+        dfac_str    = data.get('dfac_str', '').strip()
+        cidc        = data.get('cidc', '').strip()
+        statut      = data.get('statut', '').strip()
+        note        = data.get('note', '').strip()
+        if not cle or not cidc or statut not in ('non_integre', 'integre', 'ignore'):
+            return JsonResponse({'ok': False, 'error': 'Paramètres invalides'}, status=400)
+        obj, created = FactureEcartStatut.objects.update_or_create(
+            cle_facture=cle,
+            dfac_str=dfac_str,
+            cidc=cidc,
+            defaults={'statut': statut, 'note': note},
+        )
+        return JsonResponse({'ok': True, 'statut': statut, 'created': created})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)

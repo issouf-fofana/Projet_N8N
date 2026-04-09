@@ -1,0 +1,13 @@
+{
+  "started_at": "2026-03-25T16:50:22.242007",
+  "elapsed_s": 1.64,
+  "results": [
+    {
+      "pos_id": "pos4",
+      "pos_name": "POS 4",
+      "status": "empty",
+      "count": 0,
+      "collected_at": "2026-03-25T16:50:20.600755+00:00"
+    }
+  ]
+}
