@@ -2614,6 +2614,10 @@ def detail_commande_gpv(request, commande_id):
 
 def historique_imports(request):
     """Affiche l'historique des imports de fichiers de commandes"""
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'configurer_systeme'):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard:dashboard')
     # Filtrer par type de fichier si demandé
     type_fichier = request.GET.get('type_fichier', '')
     statut = request.GET.get('statut', '')
@@ -2668,6 +2672,10 @@ def configuration_systeme(request):
     Page de configuration générale de l'application (place‑holder).
     Permettra plus tard de gérer les paramètres globaux (chemins, options, etc.).
     """
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'configurer_systeme'):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard:dashboard')
     return render(request, 'dashboard/configuration_systeme.html', {})
 
 
@@ -2677,6 +2685,10 @@ def gestion_magasins(request):
     Permet d'ajouter / modifier / supprimer un magasin.
     Les magasins sont ensuite visibles dans tous les filtres (commandes, BR, remontées, etc.).
     """
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'gerer_magasins'):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard:dashboard')
     # Code du magasin en édition (pour pré‑remplir le formulaire)
     edit_code = request.GET.get('edit')
     magasin_edit = None
@@ -3152,6 +3164,9 @@ def version_asten_sync(request):
     """Déclenche la synchronisation SMB → DB (POST uniquement)."""
     from imports.services import sync_versions_to_db
     from django.http import JsonResponse
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'actualiser_importer'):
+        return JsonResponse({'error': 'Accès non autorisé.'}, status=403)
     if request.method != 'POST':
         return JsonResponse({'error': 'POST requis'}, status=405)
     force = request.POST.get('force', '0') == '1'
