@@ -151,7 +151,7 @@ Le dashboard affiche :
 - `EcartCommande` : Écarts détectés
 - `ImportFichier` : Historique des imports
 
-**Note** : La base de données utilise SQLite par défaut. Pour passer à PostgreSQL en production, modifiez `DATABASES` dans `settings.py`.
+**Note** : La base de données utilise SQLite par défaut. Voir la section ci-dessous pour migrer vers PostgreSQL avec Docker.
 
 ## 🔧 Commandes de gestion
 
@@ -178,7 +178,132 @@ L'architecture est conçue pour être extensible :
 - Même logique : Import → table → comparaison → écart
 - Sidebar modulaire prête pour de nouveaux modules
 
+## 🐘 Migration SQLite → PostgreSQL (Docker)
+
+### Prérequis
+- Docker et Docker Compose installés
+
+### Étape 1 — Sauvegarder les données existantes
+
+```bash
+source env/bin/activate
+python manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.Permission > backup.json
+```
+
+### Étape 2 — Créer le fichier `docker-compose.yml` à la racine du projet
+
+```yaml
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: verification_db
+      POSTGRES_USER: django_user
+      POSTGRES_PASSWORD: motdepasse
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+### Étape 3 — Lancer le conteneur PostgreSQL
+
+```bash
+docker-compose up -d
+```
+
+Vérifier que le conteneur tourne :
+```bash
+docker ps
+```
+
+### Étape 4 — Installer le driver Python
+
+```bash
+pip install psycopg2-binary
+```
+
+### Étape 5 — Modifier `verification_commande/settings.py`
+
+Remplacer le bloc `DATABASES` :
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'verification_db',
+        'USER': 'django_user',
+        'PASSWORD': 'motdepasse',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+```
+
+### Étape 6 — Appliquer les migrations
+
+```bash
+python manage.py migrate
+```
+
+### Étape 7 — Recharger les données
+
+```bash
+python manage.py loaddata backup.json
+```
+
+### Étape 8 — Recharger les magasins (si nécessaire)
+
+```bash
+python manage.py load_magasins
+```
+
+### Étape 9 — Lancer le serveur et vérifier
+
+```bash
+python manage.py runserver
+```
+
+Accédez à http://127.0.0.1:8000/ et vérifiez que tout fonctionne.
+
+---
+
+> **Tip** : Pour arrêter/relancer PostgreSQL Docker :
+> ```bash
+> docker-compose stop    # arrêter
+> docker-compose start   # relancer
+> docker-compose down    # supprimer le conteneur (les données sont conservées dans le volume)
+> ```
+
 ## 📞 Support
 
 Pour toute question ou problème, consultez la documentation Django ou les logs de l'application.
+
+
+
+
+## Pour démarrer après avoir allumé le PC
+1. PostgreSQL démarre automatiquement
+PostgreSQL se lance tout seul au démarrage du PC — tu n'as rien à faire.
+
+## que c'est bien configuré :
+
+
+sudo systemctl is-enabled postgresql
+Doit afficher enabled. Si ce n'est pas le cas :
+
+sudo systemctl enable postgresql
+
+## 2. Pour lancer le site
+
+cd ~/Documents/traitement_n8n
+source env/bin/activate
+python3 manage.py runserver
+Pour la production (serveur dédié)
+
+## Si tu mets ça sur un vrai serveur, tu n'utilises plus runserver — tu utilises Gunicorn + Nginx qui démarrent automatiquement comme services. Mais pour l'instant en local, les 3 commandes ci-dessus suffisent.
 

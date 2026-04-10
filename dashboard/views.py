@@ -174,94 +174,14 @@ def dashboard(request):
     # Les données existantes en base sont TOUJOURS chargées et affichées
     # Vérifier s'il y a de nouveaux fichiers à importer (même si déjà actualisé dans la session)
     # Les données restent en base de données donc elles persistent même si on change de type
-    if request.GET.get('type_donnees') != 'br':
+    # Le scanner d'import est déclenché uniquement lors de l'upload de fichiers,
+    # pas à chaque visite du dashboard (trop lent à cause du fichier BR IC Excel).
+    # Recalculer les écarts seulement si explicitement demandé (?recalculer=1).
+    if request.GET.get('recalculer') == '1':
         try:
-            # Vérifier s'il y a de nouveaux fichiers à importer
-            # Utiliser les chemins configurables depuis settings
-            sources = {
-                'asten': Path(settings.DOSSIER_COMMANDES_ASTEN_PATH),
-                'cyrus': Path(settings.DOSSIER_COMMANDES_CYRUS_PATH),
-                'gpv': Path(settings.DOSSIER_COMMANDES_GPV_PATH),
-                'legend': Path(settings.DOSSIER_COMMANDES_LEGEND_PATH),
-            }
-            nouveaux_fichiers = False
-            for type_fichier, dossier in sources.items():
-                if not dossier.exists():
-                    continue
-                fichiers = list(dossier.glob('*.csv')) + list(dossier.glob('*.CSV'))
-                for fichier in fichiers:
-                    import_existant = ImportFichier.objects.filter(
-                        type_fichier=type_fichier, nom_fichier=fichier.name
-                    ).first()
-                    if not import_existant:
-                        nouveaux_fichiers = True
-                        break
-                    date_modif = timezone.make_aware(datetime.fromtimestamp(fichier.stat().st_mtime))
-                    if date_modif > import_existant.date_import:
-                        nouveaux_fichiers = True
-                        break
-                if nouveaux_fichiers:
-                    break
-
-            # Vérifier les nouveaux fichiers Facture Sage
-            if not nouveaux_fichiers:
-                dossier_factures = Path(settings.DOSSIER_FACTURES_SAGE_PATH)
-                if dossier_factures.exists():
-                    prefixes = get_factures_sage_prefixes()
-                    fichiers_sage = list(dossier_factures.glob('*.csv')) + list(dossier_factures.glob('*.CSV'))
-                    for fichier in fichiers_sage:
-                        if prefixes != [''] and not any(fichier.name.startswith(p) for p in prefixes):
-                            continue
-                        existing = FactureSage.objects.filter(nom_fichier=fichier.name).first()
-                        if not existing:
-                            nouveaux_fichiers = True
-                            break
-                        if settings.USE_TZ:
-                            date_modif = datetime.fromtimestamp(fichier.stat().st_mtime, tz=timezone.get_current_timezone())
-                        else:
-                            date_modif = datetime.fromtimestamp(fichier.stat().st_mtime)
-                        existing_modif = existing.date_modif
-                        if settings.USE_TZ and existing_modif and timezone.is_naive(existing_modif):
-                            existing_modif = timezone.make_aware(existing_modif, timezone.get_current_timezone())
-                        if existing_modif and date_modif > existing_modif:
-                            nouveaux_fichiers = True
-                            break
-
-            # Vérifier les nouveaux fichiers Facture Backup (Cyrus)
-            if not nouveaux_fichiers:
-                dossier_backup = Path(settings.DOSSIER_FACTURE_BACKUP_PATH)
-                if dossier_backup.exists():
-                    fichiers_backup = [f for f in dossier_backup.iterdir() if f.is_file()]
-                    for fichier in fichiers_backup:
-                        existing = FactureBackupCyrus.objects.filter(nom_fichier=fichier.name).first()
-                        already_tracked = ImportFichier.objects.filter(
-                            type_fichier='facture_backup',
-                            nom_fichier=fichier.name
-                        ).exists()
-                        if not existing and not already_tracked:
-                            nouveaux_fichiers = True
-                            break
-            
-            # Importer seulement s'il y a de nouveaux fichiers ou si c'est la première visite
-            if nouveaux_fichiers or 'donnees_actualisees' not in request.session:
-                # Scanner et importer les nouveaux fichiers (silencieux, en arrière-plan)
-                scanner_et_importer_fichiers()
-                # Recalculer les écarts (silencieux, en arrière-plan)
-                recalculer_ecarts()
-                # Marquer comme actualisé dans la session
-                request.session['donnees_actualisees'] = True
-        except Exception as e:
-            # En cas d'erreur, on continue quand même (pas de message visible pour l'utilisateur)
-            # Les erreurs sont loggées mais n'interrompent pas l'affichage
-            pass
-    
-    # Recalculer les écarts seulement si demandé explicitement ou si c'est la première fois
-    # Ne pas le faire à chaque chargement pour améliorer les performances
-    if request.GET.get('recalculer') == '1' or ('donnees_actualisees' not in request.session and request.GET.get('type_donnees') != 'br'):
-        try:
+            scanner_et_importer_fichiers()
             recalculer_ecarts()
-        except Exception as e:
-            # En cas d'erreur, on continue quand même
+        except Exception:
             pass
     
     # Récupérer les filtres (gérer les valeurs "None" en string et la sélection multiple)
