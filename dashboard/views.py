@@ -1554,6 +1554,10 @@ def accueil(request):
 @require_http_methods(["POST"])
 def actualiser_donnees(request):
     """Actualise TOUTES les données globalement : importe les fichiers et recalcule les écarts pour tous les types"""
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'actualiser_importer'):
+        messages.error(request, "Action non autorisée.")
+        return redirect('dashboard:dashboard')
     try:
         # ACTUALISATION GLOBALE : Scanner et importer les nouveaux fichiers pour TOUS les types
         # (Asten, GPV, Legend, Factures, BR - quand ils seront implémentés)
@@ -2740,13 +2744,115 @@ def gestion_magasins(request):
 
 
 def gestion_utilisateurs(request):
-    """
-    Page de gestion des utilisateurs (lecture seule).
-    Utilise le modèle User standard de Django.
-    """
+    """Liste des utilisateurs."""
     from django.contrib.auth.models import User
-    users = User.objects.all().order_by('username')
-    return render(request, 'dashboard/gestion_utilisateurs.html', {'users': users})
+    from core.permissions import get_user_role, user_has_perm
+
+    if not user_has_perm(request.user, 'gerer_utilisateurs'):
+        messages.error(request, "Accès réservé aux administrateurs.")
+        return redirect('dashboard:dashboard')
+
+    role = get_user_role(request.user)
+
+    # Suppression
+    if request.method == 'POST' and request.POST.get('action') == 'delete' and role == 'superadmin':
+        user_id = request.POST.get('user_id')
+        try:
+            u = User.objects.get(pk=user_id)
+            if u == request.user:
+                messages.error(request, "Impossible de supprimer votre propre compte.")
+            else:
+                nom = u.username
+                u.delete()
+                messages.success(request, f"Utilisateur '{nom}' supprimé.")
+        except User.DoesNotExist:
+            messages.error(request, "Utilisateur introuvable.")
+        return redirect('dashboard:gestion_utilisateurs')
+
+    users = User.objects.select_related('profile').prefetch_related('profile__permissions').order_by('username')
+    return render(request, 'dashboard/gestion_utilisateurs.html', {
+        'users': users,
+        'current_role': role,
+    })
+
+
+def creer_utilisateur(request):
+    """Page de création d'un nouvel utilisateur."""
+    from django.contrib.auth.models import User
+    from core.permissions import get_user_role, user_has_perm
+
+    if not user_has_perm(request.user, 'gerer_utilisateurs'):
+        messages.error(request, "Accès réservé aux administrateurs.")
+        return redirect('dashboard:dashboard')
+
+    role = get_user_role(request.user)
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        new_role = request.POST.get('role', 'user')
+        if role != 'superadmin' and new_role != 'user':
+            messages.error(request, "Vous ne pouvez créer que des comptes 'Utilisateur'.")
+        elif not username or not password:
+            messages.error(request, "Nom d'utilisateur et mot de passe obligatoires.")
+        elif User.objects.filter(username=username).exists():
+            messages.error(request, f"L'utilisateur '{username}' existe déjà.")
+        else:
+            user = User.objects.create_user(username=username, password=password)
+            profile = user.profile
+            profile.role = new_role
+            profile.save()
+            messages.success(request, f"Utilisateur '{username}' créé.")
+            return redirect('dashboard:permissions_utilisateur', user_id=user.pk)
+
+    return render(request, 'dashboard/creer_utilisateur.html', {
+        'current_role': role,
+    })
+
+
+def permissions_utilisateur(request, user_id):
+    """Page de gestion des permissions d'un utilisateur."""
+    from django.contrib.auth.models import User
+    from core.models import UserProfile, AppPermission
+    from core.permissions import get_user_role, user_has_perm
+
+    if not user_has_perm(request.user, 'gerer_utilisateurs'):
+        messages.error(request, "Accès réservé aux administrateurs.")
+        return redirect('dashboard:dashboard')
+
+    role = get_user_role(request.user)
+
+    try:
+        u = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        messages.error(request, "Utilisateur introuvable.")
+        return redirect('dashboard:gestion_utilisateurs')
+
+    profile, _ = UserProfile.objects.get_or_create(user=u)
+
+    if request.method == 'POST':
+        if role != 'superadmin':
+            messages.error(request, "Action réservée au Super-Admin.")
+            return redirect('dashboard:permissions_utilisateur', user_id=user_id)
+        new_role = request.POST.get('role', 'user')
+        profile.role = new_role
+        profile.save()
+        if new_role != 'superadmin':
+            codes = request.POST.getlist('permissions')
+            perms = AppPermission.objects.filter(code__in=codes)
+            profile.permissions.set(perms)
+        messages.success(request, f"Permissions de '{u.username}' mises à jour.")
+        return redirect('dashboard:gestion_utilisateurs')
+
+    all_permissions = AppPermission.objects.all()
+    user_perm_codes = set(profile.permissions.values_list('code', flat=True))
+    return render(request, 'dashboard/permissions_utilisateur.html', {
+        'u': u,
+        'profile': profile,
+        'current_role': role,
+        'all_permissions': all_permissions,
+        'user_perm_codes': user_perm_codes,
+    })
 
 
 def preferences_utilisateur(request):
@@ -3142,6 +3248,10 @@ def integration_asten_detail_type(request, pos_id, shop_ref, type_key):
 
 
 def integration_asten_import(request):
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'actualiser_importer'):
+        messages.error(request, "Action non autorisée.")
+        return redirect('dashboard:dashboard')
     from entree_journal.services import importer_fichiers
     from django.contrib import messages
     from django.shortcuts import redirect
@@ -3666,6 +3776,10 @@ def detail_facture_asten(request):
 
 def set_statut_facture_ecart(request):
     """API POST : enregistre le statut manuel d'une facture en écart."""
+    from core.permissions import user_has_perm
+    from django.http import JsonResponse
+    if not user_has_perm(request.user, 'modifier_statuts'):
+        return JsonResponse({'error': 'Non autorisé'}, status=403)
     import json
     from imports.models import FactureEcartStatut
     if request.method != 'POST':

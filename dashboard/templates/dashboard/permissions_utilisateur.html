@@ -1,0 +1,155 @@
+{% extends 'core/base.html' %}
+{% load auth_extras %}
+
+{% block title %}Permissions — {{ u.username }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="bi bi-shield-lock"></i> Permissions — {{ u.username }}</h1>
+        <p class="text-muted mb-0">Gérer le rôle et les droits d'accès</p>
+    </div>
+    <a href="{% url 'dashboard:gestion_utilisateurs' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour
+    </a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+    <!-- Info utilisateur -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center py-4">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                     style="width:64px;height:64px;background:#e5e7eb;">
+                    <i class="bi bi-person-fill fs-3 text-muted"></i>
+                </div>
+                <h5 class="mb-1">{{ u.username }}</h5>
+                {% with role=u|user_role %}
+                {% if role == 'superadmin' %}
+                    <span class="badge bg-danger mb-2">⭐ Super-Admin</span>
+                {% elif role == 'admin' %}
+                    <span class="badge bg-primary mb-2">🔑 Admin</span>
+                {% else %}
+                    <span class="badge bg-secondary mb-2">👤 Utilisateur</span>
+                {% endif %}
+                {% endwith %}
+                <div class="text-muted small">
+                    {% if u.last_login %}
+                        Dernière connexion : {{ u.last_login|date:"d/m/Y H:i" }}
+                    {% else %}
+                        Jamais connecté
+                    {% endif %}
+                </div>
+                {% if u == request.user %}
+                <div class="mt-2">
+                    <span class="badge bg-light text-muted border">C'est vous</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire permissions -->
+    <div class="col-md-8">
+        {% if current_role == 'superadmin' %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-person-badge"></i> Rôle</h6>
+                </div>
+                <div class="card-body">
+                    <select name="role" class="form-select" id="roleSelect" onchange="togglePermissions(this.value)">
+                        <option value="user" {% if profile.role == 'user' %}selected{% endif %}>👤 Utilisateur</option>
+                        <option value="admin" {% if profile.role == 'admin' %}selected{% endif %}>🔑 Administrateur</option>
+                        <option value="superadmin" {% if profile.role == 'superadmin' %}selected{% endif %}>⭐ Super-Admin</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card" id="permissionsCard">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-shield-check"></i> Permissions</h6>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" onclick="selectAll(true)">Tout cocher</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="selectAll(false)">Tout décocher</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if profile.role == 'superadmin' %}
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-shield-fill-check"></i> Le Super-Admin a accès à toutes les fonctionnalités sans restriction.
+                    </div>
+                    {% else %}
+                    <div class="row g-2" id="permCheckboxes">
+                        {% for perm in all_permissions %}
+                        <div class="col-12">
+                            <div class="form-check p-3 border rounded {% if perm.code in user_perm_codes %}bg-light-success{% endif %}">
+                                <input class="form-check-input" type="checkbox" name="permissions"
+                                       value="{{ perm.code }}" id="perm_{{ perm.code }}"
+                                       {% if perm.code in user_perm_codes %}checked{% endif %}>
+                                <label class="form-check-label w-100" for="perm_{{ perm.code }}">
+                                    <span class="fw-semibold">{{ perm.label }}</span>
+                                    {% if perm.description %}
+                                    <br><span class="text-muted small">{{ perm.description }}</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-muted">Aucune permission disponible. Lancez <code>python manage.py init_permissions</code>.</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Enregistrer
+                </button>
+                <a href="{% url 'dashboard:gestion_utilisateurs' %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-muted">
+                <i class="bi bi-lock"></i> Seul un Super-Admin peut modifier les permissions.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function togglePermissions(role) {
+    const card = document.getElementById('permissionsCard');
+    const checkboxes = document.getElementById('permCheckboxes');
+    if (role === 'superadmin') {
+        card.style.opacity = '0.5';
+        if (checkboxes) checkboxes.querySelectorAll('input').forEach(cb => cb.disabled = true);
+    } else {
+        card.style.opacity = '1';
+        if (checkboxes) checkboxes.querySelectorAll('input').forEach(cb => cb.disabled = false);
+    }
+}
+
+function selectAll(checked) {
+    document.querySelectorAll('#permCheckboxes input[type=checkbox]').forEach(cb => {
+        cb.checked = checked;
+    });
+}
+
+// Init on load
+togglePermissions(document.getElementById('roleSelect')?.value);
+</script>
+{% endblock %}

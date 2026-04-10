@@ -1,65 +1,115 @@
 {% extends 'core/base.html' %}
+{% load auth_extras %}
 
-{% block title %}Gestion des utilisateurs{% endblock %}
+{% block title %}Utilisateurs{% endblock %}
 
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
-    <h1><i class="bi bi-people"></i> Gestion des utilisateurs</h1>
+    <div>
+        <h1><i class="bi bi-people"></i> Utilisateurs</h1>
+        <p class="text-muted mb-0">{{ users|length }} utilisateur(s)</p>
+    </div>
+    <a href="{% url 'dashboard:creer_utilisateur' %}" class="btn btn-primary">
+        <i class="bi bi-person-plus"></i> Nouvel utilisateur
+    </a>
 </div>
 
-<div class="card dashboard-card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-person-lines-fill"></i> Utilisateurs de l'application</h5>
-    </div>
+<div class="card">
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead>
-                    <tr>
-                        <th>Nom d'utilisateur</th>
-                        <th>Nom complet</th>
-                        <th>Email</th>
-                        <th>Actif</th>
-                        <th>Super‑utilisateur</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if users %}
-                        {% for user in users %}
-                            <tr>
-                                <td class="fw-semibold">{{ user.username }}</td>
-                                <td>{{ user.get_full_name|default:"-" }}</td>
-                                <td>{{ user.email|default:"-" }}</td>
-                                <td>
-                                    {% if user.is_active %}
-                                        <span class="badge bg-success">Actif</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Inactif</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if user.is_superuser %}
-                                        <span class="badge bg-primary">Admin</span>
-                                    {% else %}
-                                        <span class="badge bg-light text-muted">Standard</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox"></i> Aucun utilisateur trouvé.
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Rôle</th>
+                    <th>Permissions</th>
+                    <th>Dernière connexion</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:36px;height:36px;background:#e5e7eb;">
+                                <i class="bi bi-person-fill text-muted"></i>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">{{ u.username }}</div>
+                                {% if u == request.user %}<span class="badge bg-light text-muted border" style="font-size:0.65rem;">Vous</span>{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% with role=u|user_role %}
+                        {% if role == 'superadmin' %}
+                            <span class="badge bg-danger">⭐ Super-Admin</span>
+                        {% elif role == 'admin' %}
+                            <span class="badge bg-primary">🔑 Admin</span>
+                        {% else %}
+                            <span class="badge bg-secondary">👤 Utilisateur</span>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% with role=u|user_role %}
+                        {% if role == 'superadmin' %}
+                            <span class="text-success small"><i class="bi bi-shield-fill-check"></i> Toutes</span>
+                        {% else %}
+                            {% if u.profile %}
+                                <span class="text-muted small">{{ u.profile.permissions.count }} permission(s)</span>
+                            {% else %}
+                                <span class="text-muted small">Aucune</span>
+                            {% endif %}
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td class="text-muted small">
+                        {% if u.last_login %}{{ u.last_login|date:"d/m/Y H:i" }}{% else %}Jamais{% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if current_role == 'superadmin' %}
+                        <a href="{% url 'dashboard:permissions_utilisateur' u.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-shield-lock"></i> Permissions
+                        </a>
+                        {% if u != request.user %}
+                        <button class="btn btn-sm btn-outline-danger ms-1"
+                            onclick="confirmerSuppression({{ u.pk }}, '{{ u.username }}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">Aucun utilisateur</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
+
+<!-- Formulaire suppression caché -->
+<form method="post" id="formSuppression" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="user_id" id="suppUserId">
+</form>
+
+<script>
+function confirmerSuppression(userId, username) {
+    AppModal.confirm({
+        type: 'danger',
+        title: 'Supprimer l\'utilisateur',
+        message: `Voulez-vous vraiment supprimer <strong>${username}</strong> ? Cette action est irréversible.`,
+        confirmLabel: 'Supprimer',
+        cancelLabel: 'Annuler',
+        onConfirm: () => {
+            document.getElementById('suppUserId').value = userId;
+            document.getElementById('formSuppression').submit();
+        }
+    });
+}
+</script>
 {% endblock %}
-
-
-
-

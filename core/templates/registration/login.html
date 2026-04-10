@@ -1,43 +1,90 @@
-{% extends 'core/base.html' %}
-
-{% block title %}Connexion{% endblock %}
-
-{% block content %}
-<div class="page-header">
-    <h1>Connexion</h1>
-    <p class="text-muted mb-0">Merci de vous connecter pour accéder aux tickets.</p>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            <div class="mb-3">
-                <label class="form-label" for="id_username">Nom d'utilisateur</label>
-                <input type="text" name="username" class="form-control" id="id_username" required>
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion — Vérification Commandes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            width: 400px;
+            border: none;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .login-header {
+            background: #1e3a8a;
+            padding: 2rem;
+            text-align: center;
+        }
+        .login-body { padding: 2rem; }
+        .form-control:focus {
+            border-color: #1e3a8a;
+            box-shadow: 0 0 0 0.2rem rgba(30,58,138,0.15);
+        }
+        .btn-login {
+            background: #1e3a8a;
+            border: none;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .btn-login:hover { background: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="login-card card">
+        <div class="login-header">
+            <i class="bi bi-shield-check text-white" style="font-size: 2.5rem;"></i>
+            <h4 class="text-white mt-2 mb-0 fw-bold">Vérification Commandes</h4>
+            <p class="text-white-50 small mb-0 mt-1">Connectez-vous pour accéder à l'application</p>
+        </div>
+        <div class="login-body">
+            {% if form.errors %}
+            <div class="alert alert-danger d-flex align-items-center py-2 mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Identifiants incorrects. Veuillez réessayer.
             </div>
-            <div class="mb-3">
-                <label class="form-label" for="id_password">Mot de passe</label>
-                <input type="password" name="password" class="form-control" id="id_password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Se connecter</button>
-        </form>
+            {% endif %}
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-info py-2 mb-3">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted small">NOM D'UTILISATEUR</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
+                        <input type="text" name="username" class="form-control border-start-0" placeholder="Identifiant" autofocus required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-muted small">MOT DE PASSE</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                        <input type="password" name="password" class="form-control border-start-0" placeholder="Mot de passe" required>
+                    </div>
+                </div>
+                <input type="hidden" name="next" value="{{ next }}">
+                <button type="submit" class="btn btn-login btn-primary w-100 text-white">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
+                </button>
+            </form>
+        </div>
     </div>
-</div>
-{% endblock %}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+</body>
+</html>

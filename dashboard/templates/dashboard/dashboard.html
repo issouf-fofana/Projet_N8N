@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% load dashboard_filters l10n %}
+{% load dashboard_filters l10n auth_extras %}
 
 {% block title %}Dashboard - Vérification Commandes{% endblock %}
 
@@ -537,13 +537,15 @@
         <a href="{% url 'tickets:liste' %}" class="btn btn-outline-primary">
             <i class="bi bi-ticket-perforated"></i> Voir les remontées
         </a>
+        {% if request.user|has_perm:'actualiser_importer' %}
         <form method="post" action="{% url 'dashboard:actualiser' %}" class="d-inline">
             {% csrf_token %}
             <input type="hidden" name="type_donnees" value="{{ filtres.type_donnees|default:'commandes_asten' }}">
             <button type="submit" class="btn btn-primary">
-                <i class="bi bi-arrow-clockwise"></i> Actualiser / Recalculer
+                <i class="bi bi-arrow-clockwise"></i> Actualiser / Importer
             </button>
         </form>
+        {% endif %}
     </div>
 </div>
 

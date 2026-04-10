@@ -1,4 +1,5 @@
 {% load static %}
+{% load auth_extras %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -829,89 +830,104 @@
                 </a>
             </li>
         </ul>
-        
+
+        <!-- Séparateur section -->
+        <div style="padding: 0 16px; margin: 8px 0 4px;">
+            <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-transform:uppercase;">Données</span>
+        </div>
+
         <!-- Accordion Menu -->
         <div class="accordion sidebar-accordion" id="sidebarAccordion">
+
             <!-- Commandes -->
+            {% with is_cmd=request.resolver_match.url_name %}
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'detail_ecart_gpv' or request.resolver_match.url_name == 'detail_ecart_legend' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'detail_commande_gpv' or request.resolver_match.url_name == 'liste_commandes_legend' or request.resolver_match.url_name == 'detail_commande_legend' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCommandes">
+                    <button class="accordion-button {% if is_cmd == 'liste_ecarts' or is_cmd == 'detail_ecart' or is_cmd == 'detail_ecart_gpv' or is_cmd == 'detail_ecart_legend' or is_cmd == 'liste_commandes_asten' or is_cmd == 'detail_commande_asten' or is_cmd == 'liste_commandes_gpv' or is_cmd == 'detail_commande_gpv' or is_cmd == 'liste_commandes_legend' or is_cmd == 'detail_commande_legend' or is_cmd == 'liste_commandes_cyrus' or is_cmd == 'detail_commande_cyrus' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCommandes">
                         <i class="bi bi-box-seam"></i> Commandes
                     </button>
                 </h2>
-                <div id="collapseCommandes" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' or request.resolver_match.url_name == 'detail_ecart_gpv' or request.resolver_match.url_name == 'detail_ecart_legend' or request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' or request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'detail_commande_gpv' or request.resolver_match.url_name == 'liste_commandes_legend' or request.resolver_match.url_name == 'detail_commande_legend' or request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                <div id="collapseCommandes" class="accordion-collapse collapse {% if is_cmd == 'liste_ecarts' or is_cmd == 'detail_ecart' or is_cmd == 'detail_ecart_gpv' or is_cmd == 'detail_ecart_legend' or is_cmd == 'liste_commandes_asten' or is_cmd == 'detail_commande_asten' or is_cmd == 'liste_commandes_gpv' or is_cmd == 'detail_commande_gpv' or is_cmd == 'liste_commandes_legend' or is_cmd == 'detail_commande_legend' or is_cmd == 'liste_commandes_cyrus' or is_cmd == 'detail_commande_cyrus' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
-                        <a href="{% url 'dashboard:liste_ecarts' %}" class="{% if request.resolver_match.url_name == 'liste_ecarts' or request.resolver_match.url_name == 'detail_ecart' %}active{% endif %}">
+                        <a href="{% url 'dashboard:liste_ecarts' %}" class="{% if is_cmd == 'liste_ecarts' or is_cmd == 'detail_ecart' or is_cmd == 'detail_ecart_gpv' or is_cmd == 'detail_ecart_legend' %}active{% endif %}">
                             <i class="bi bi-exclamation-triangle"></i> Écarts
                         </a>
-                        <a href="{% url 'dashboard:liste_commandes_asten' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_asten' or request.resolver_match.url_name == 'detail_commande_asten' %}active{% endif %}">
+                        <a href="{% url 'dashboard:liste_commandes_asten' %}" class="{% if is_cmd == 'liste_commandes_asten' or is_cmd == 'detail_commande_asten' %}active{% endif %}">
                             <i class="bi bi-list-ul"></i> Asten
                         </a>
-                        <a href="{% url 'dashboard:liste_commandes_gpv' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_gpv' or request.resolver_match.url_name == 'detail_commande_gpv' %}active{% endif %}">
+                        <a href="{% url 'dashboard:liste_commandes_gpv' %}" class="{% if is_cmd == 'liste_commandes_gpv' or is_cmd == 'detail_commande_gpv' %}active{% endif %}">
                             <i class="bi bi-list-ul"></i> GPV
                         </a>
-                        <a href="{% url 'dashboard:liste_commandes_legend' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_legend' or request.resolver_match.url_name == 'detail_commande_legend' %}active{% endif %}">
+                        <a href="{% url 'dashboard:liste_commandes_legend' %}" class="{% if is_cmd == 'liste_commandes_legend' or is_cmd == 'detail_commande_legend' %}active{% endif %}">
                             <i class="bi bi-list-ul"></i> Legend
                         </a>
-                        <a href="{% url 'dashboard:liste_commandes_cyrus' %}" class="{% if request.resolver_match.url_name == 'liste_commandes_cyrus' or request.resolver_match.url_name == 'detail_commande_cyrus' %}active{% endif %}">
+                        <a href="{% url 'dashboard:liste_commandes_cyrus' %}" class="{% if is_cmd == 'liste_commandes_cyrus' or is_cmd == 'detail_commande_cyrus' %}active{% endif %}">
                             <i class="bi bi-list-ul"></i> Cyrus
                         </a>
                     </div>
                 </div>
             </div>
-            
+            {% endwith %}
+
             <!-- Factures -->
+            {% with is_fac=request.resolver_match.url_name %}
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name in 'vue_factures_asten vue_factures_cyrus vue_factures_backup' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFactures">
+                    <button class="accordion-button {% if is_fac == 'vue_factures_asten' or is_fac == 'vue_factures_cyrus' or is_fac == 'vue_factures_backup' or is_fac == 'detail_facture_asten' or is_fac == 'detail_facture_cyrus' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFactures">
                         <i class="bi bi-file-earmark-text"></i> Factures
                     </button>
                 </h2>
-                <div id="collapseFactures" class="accordion-collapse collapse {% if request.resolver_match.url_name in 'vue_factures_asten vue_factures_cyrus vue_factures_backup' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                <div id="collapseFactures" class="accordion-collapse collapse {% if is_fac == 'vue_factures_asten' or is_fac == 'vue_factures_cyrus' or is_fac == 'vue_factures_backup' or is_fac == 'detail_facture_asten' or is_fac == 'detail_facture_cyrus' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
-                        <a href="{% url 'dashboard:vue_factures_backup' %}" class="{% if request.resolver_match.url_name == 'vue_factures_backup' %}active{% endif %}">
-                            <i class="bi bi-search"></i> Facture Backup
+                        <a href="{% url 'dashboard:vue_factures_backup' %}" class="{% if is_fac == 'vue_factures_backup' %}active{% endif %}">
+                            <i class="bi bi-search"></i> Backup (écarts)
                         </a>
-                        <a href="{% url 'dashboard:vue_factures_asten' %}" class="{% if request.resolver_match.url_name == 'vue_factures_asten' %}active{% endif %}">
-                            <i class="bi bi-list-ul"></i> Vue Asten
+                        <a href="{% url 'dashboard:vue_factures_asten' %}" class="{% if is_fac == 'vue_factures_asten' or is_fac == 'detail_facture_asten' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Asten
                         </a>
-                        <a href="{% url 'dashboard:vue_factures_cyrus' %}" class="{% if request.resolver_match.url_name == 'vue_factures_cyrus' %}active{% endif %}">
-                            <i class="bi bi-list-ul"></i> Vue Cyrus
+                        <a href="{% url 'dashboard:vue_factures_cyrus' %}" class="{% if is_fac == 'vue_factures_cyrus' or is_fac == 'detail_facture_cyrus' %}active{% endif %}">
+                            <i class="bi bi-list-ul"></i> Cyrus
                         </a>
                     </div>
                 </div>
             </div>
-            
-            <!-- BR (Bon de réception) -->
+            {% endwith %}
+
+            <!-- BR (Bons de réception) -->
+            {% with is_br=request.resolver_match.url_name %}
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name == 'liste_br_asten' or request.resolver_match.url_name == 'liste_br_ecart' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBR">
-                        <i class="bi bi-receipt"></i> BR (Bon de réception)
+                    <button class="accordion-button {% if is_br == 'liste_br_asten' or is_br == 'detail_br_asten' or is_br == 'liste_br_ecart' or is_br == 'liste_br_ic' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBR">
+                        <i class="bi bi-receipt"></i> Bons de réception
                     </button>
                 </h2>
-                <div id="collapseBR" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'liste_br_asten' or request.resolver_match.url_name == 'liste_br_ecart' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                <div id="collapseBR" class="accordion-collapse collapse {% if is_br == 'liste_br_asten' or is_br == 'detail_br_asten' or is_br == 'liste_br_ecart' or is_br == 'liste_br_ic' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
-                        <a href="/br/asten/" class="{% if request.resolver_match.url_name == 'liste_br_asten' %}active{% endif %}">
+                        <a href="{% url 'dashboard:liste_br_asten' %}" class="{% if is_br == 'liste_br_asten' or is_br == 'detail_br_asten' %}active{% endif %}">
                             <i class="bi bi-list-ul"></i> Liste BR
                         </a>
-                        <a href="{% url 'dashboard:liste_br_ecart' %}" class="{% if request.resolver_match.url_name == 'liste_br_ecart' %}active{% endif %}">
+                        <a href="{% url 'dashboard:liste_br_ecart' %}" class="{% if is_br == 'liste_br_ecart' %}active{% endif %}">
                             <i class="bi bi-exclamation-triangle"></i> BR en écart
+                        </a>
+                        <a href="{% url 'dashboard:liste_br_ic' %}" class="{% if is_br == 'liste_br_ic' %}active{% endif %}">
+                            <i class="bi bi-info-circle"></i> BR IC
                         </a>
                     </div>
                 </div>
             </div>
+            {% endwith %}
 
-            <!-- Remontées -->
+            <!-- Remontées / Tickets -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.app_name == 'tickets' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTickets">
+                    <button class="accordion-button {% if request.resolver_match.app_name == 'tickets' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTickets">
                         <i class="bi bi-ticket-perforated"></i> Remontées
                     </button>
                 </h2>
                 <div id="collapseTickets" class="accordion-collapse collapse {% if request.resolver_match.app_name == 'tickets' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
                         <a href="{% url 'tickets:liste' %}" class="{% if request.resolver_match.url_name == 'liste' and request.resolver_match.app_name == 'tickets' %}active{% endif %}">
-                            <i class="bi bi-list-ul"></i> Liste des remontées
+                            <i class="bi bi-list-ul"></i> Liste
                         </a>
                         <a href="{% url 'tickets:nouveau' %}" class="{% if request.resolver_match.url_name == 'nouveau' and request.resolver_match.app_name == 'tickets' %}active{% endif %}">
                             <i class="bi bi-plus-circle"></i> Nouvelle remontée
@@ -920,62 +936,53 @@
                 </div>
             </div>
 
-            
+        </div>
 
+        <!-- Séparateur section Asten -->
+        <div style="padding: 0 16px; margin: 8px 0 4px;">
+            <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-transform:uppercase;">Asten</span>
+        </div>
+
+        <div class="accordion sidebar-accordion" id="sidebarAccordionAsten">
             <!-- Version Asten -->
+            {% with is_va=request.resolver_match.url_name %}
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name in 'version_asten,integration_asten' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVersionAsten">
-                        <i class="bi bi-cpu"></i> Version Asten
+                    <button class="accordion-button {% if is_va == 'version_asten' or is_va == 'version_asten_detail' or is_va == 'integration_asten' or is_va == 'integration_asten_import' or is_va == 'integration_asten_detail_type' or is_va == 'remontee_asten' or is_va == 'version_asten_sync' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVersionAsten">
+                        <i class="bi bi-cpu"></i> Asten
                     </button>
                 </h2>
-                <div id="collapseVersionAsten" class="accordion-collapse collapse {% if request.resolver_match.url_name in 'version_asten,integration_asten' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                <div id="collapseVersionAsten" class="accordion-collapse collapse {% if is_va == 'version_asten' or is_va == 'version_asten_detail' or is_va == 'integration_asten' or is_va == 'integration_asten_import' or is_va == 'integration_asten_detail_type' or is_va == 'remontee_asten' or is_va == 'version_asten_sync' %}show{% endif %}" data-bs-parent="#sidebarAccordionAsten">
                     <div class="accordion-body">
-                        <a href="{% url 'dashboard:version_asten' %}" class="{% if request.resolver_match.url_name == 'version_asten' %}active{% endif %}">
+                        <a href="{% url 'dashboard:version_asten' %}" class="{% if is_va == 'version_asten' or is_va == 'version_asten_detail' or is_va == 'version_asten_sync' %}active{% endif %}">
                             <i class="bi bi-archive"></i> Versions backup
                         </a>
-                        <a href="{% url 'dashboard:integration_asten' %}" class="{% if request.resolver_match.url_name == 'integration_asten' %}active{% endif %}">
+                        <a href="{% url 'dashboard:integration_asten' %}" class="{% if is_va == 'integration_asten' or is_va == 'integration_asten_import' or is_va == 'integration_asten_detail_type' %}active{% endif %}">
                             <i class="bi bi-patch-check"></i> Intégration POS
                         </a>
+                        <a href="{% url 'dashboard:remontee_asten' %}" class="{% if is_va == 'remontee_asten' %}active{% endif %}">
+                            <i class="bi bi-arrow-up-circle"></i> Remontée
+                        </a>
                     </div>
                 </div>
             </div>
+            {% endwith %}
+        </div>
 
-            <!-- Paramètres -->
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name in 'historique_imports configuration_systeme gestion_magasins gestion_utilisateurs preferences_utilisateur' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
-                        <i class="bi bi-gear"></i> Paramètres
-                    </button>
-                </h2>
-                <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name in 'historique_imports configuration_systeme gestion_magasins gestion_utilisateurs preferences_utilisateur' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
-                    <div class="accordion-body">
-                        <a href="{% url 'dashboard:historique_imports' %}" class="{% if request.resolver_match.url_name == 'historique_imports' %}active{% endif %}">
-                            <i class="bi bi-clock-history"></i> Historique des imports
-                        </a>
-                        <a href="{% url 'dashboard:configuration_systeme' %}" class="{% if request.resolver_match.url_name == 'configuration_systeme' %}active{% endif %}">
-                            <i class="bi bi-sliders"></i> Configuration système
-                        </a>
-                        <a href="{% url 'dashboard:gestion_magasins' %}" class="{% if request.resolver_match.url_name == 'gestion_magasins' %}active{% endif %}">
-                            <i class="bi bi-shop"></i> Gestion des magasins
-                        </a>
-                        <a href="{% url 'dashboard:gestion_utilisateurs' %}" class="{% if request.resolver_match.url_name == 'gestion_utilisateurs' %}active{% endif %}">
-                            <i class="bi bi-people"></i> Utilisateurs
-                        </a>
-                        <a href="{% url 'dashboard:preferences_utilisateur' %}" class="{% if request.resolver_match.url_name == 'preferences_utilisateur' %}active{% endif %}">
-                            <i class="bi bi-sliders2-vertical"></i> Préférences</a>
-                    </div>
-                </div>
-            </div>
-            
+        <!-- Séparateur section Analyse -->
+        <div style="padding: 0 16px; margin: 8px 0 4px;">
+            <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-transform:uppercase;">Analyse</span>
+        </div>
+
+        <div class="accordion sidebar-accordion" id="sidebarAccordionAnalyse">
             <!-- Rapports -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name == 'rapport_global' %}show{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRapports">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'rapport_global' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRapports">
                         <i class="bi bi-graph-up"></i> Rapports
                     </button>
                 </h2>
-                <div id="collapseRapports" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'rapport_global' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
+                <div id="collapseRapports" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'rapport_global' %}show{% endif %}" data-bs-parent="#sidebarAccordionAnalyse">
                     <div class="accordion-body">
                         <a href="{% url 'dashboard:rapport_global' %}?section=commandes&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' %}active{% endif %}">
                             <i class="bi bi-box-seam"></i> Commandes
@@ -990,8 +997,84 @@
                 </div>
             </div>
         </div>
+
+        <!-- Paramètres (selon permissions) -->
+        {% with u=request.user %}
+        {% if u|has_perm:'gerer_utilisateurs' or u|has_perm:'gerer_magasins' or u|has_perm:'configurer_systeme' or u|is_admin_or_above %}
+
+        <div style="padding: 0 16px; margin: 8px 0 4px;">
+            <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-transform:uppercase;">Administration</span>
+        </div>
+
+        <div class="accordion sidebar-accordion" id="sidebarAccordionAdmin">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'historique_imports' or request.resolver_match.url_name == 'configuration_systeme' or request.resolver_match.url_name == 'gestion_magasins' or request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' or request.resolver_match.url_name == 'preferences_utilisateur' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
+                        <i class="bi bi-gear"></i> Paramètres
+                    </button>
+                </h2>
+                <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'historique_imports' or request.resolver_match.url_name == 'configuration_systeme' or request.resolver_match.url_name == 'gestion_magasins' or request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' or request.resolver_match.url_name == 'preferences_utilisateur' %}show{% endif %}" data-bs-parent="#sidebarAccordionAdmin">
+                    <div class="accordion-body">
+                        <a href="{% url 'dashboard:historique_imports' %}" class="{% if request.resolver_match.url_name == 'historique_imports' %}active{% endif %}">
+                            <i class="bi bi-clock-history"></i> Historique imports
+                        </a>
+                        {% if u|has_perm:'configurer_systeme' %}
+                        <a href="{% url 'dashboard:configuration_systeme' %}" class="{% if request.resolver_match.url_name == 'configuration_systeme' %}active{% endif %}">
+                            <i class="bi bi-sliders"></i> Configuration
+                        </a>
+                        {% endif %}
+                        {% if u|has_perm:'gerer_magasins' %}
+                        <a href="{% url 'dashboard:gestion_magasins' %}" class="{% if request.resolver_match.url_name == 'gestion_magasins' %}active{% endif %}">
+                            <i class="bi bi-shop"></i> Magasins
+                        </a>
+                        {% endif %}
+                        {% if u|has_perm:'gerer_utilisateurs' %}
+                        <a href="{% url 'dashboard:gestion_utilisateurs' %}" class="{% if request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' %}active{% endif %}">
+                            <i class="bi bi-people"></i> Utilisateurs
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'dashboard:preferences_utilisateur' %}" class="{% if request.resolver_match.url_name == 'preferences_utilisateur' %}active{% endif %}">
+                            <i class="bi bi-sliders2-vertical"></i> Préférences
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Bloc utilisateur connecté -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding: 0.875rem 1rem; margin-top: auto;">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:34px;height:34px;background:rgba(255,255,255,0.15);">
+                    <i class="bi bi-person-fill text-white" style="font-size:1rem;"></i>
+                </div>
+                <div class="flex-grow-1 overflow-hidden">
+                    <div class="text-white fw-semibold text-truncate" style="font-size:0.85rem;">
+                        {{ request.user.username }}
+                    </div>
+                    <div style="font-size:0.72rem; color:rgba(255,255,255,0.5);">
+                        {% with role=request.user|user_role %}
+                            {% if role == 'superadmin' %}<span style="color:#fbbf24;">⭐ Super-Admin</span>
+                            {% elif role == 'admin' %}<span style="color:#93c5fd;">🔑 Administrateur</span>
+                            {% else %}<span style="color:rgba(255,255,255,0.5);">👤 Utilisateur</span>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+                <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" title="Se déconnecter"
+                       style="background:none;border:none;padding:0;cursor:pointer;color:rgba(255,255,255,0.6);transition:color 0.2s;"
+                       onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">
+                        <i class="bi bi-box-arrow-right" style="font-size:1.1rem;"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
-    
+
     <!-- Main Content -->
     <div class="main-content">
         {% if messages %}
@@ -1139,7 +1222,7 @@
         position: fixed; inset: 0;
         background: rgba(15, 23, 42, 0.55);
         backdrop-filter: blur(3px);
-        z-index: 99990;
+        z-index: 1060;
         align-items: center;
         justify-content: center;
         padding: 16px;
@@ -1219,7 +1302,7 @@
         position: fixed; inset: 0;
         background: rgba(255,255,255,0.75);
         backdrop-filter: blur(3px);
-        z-index: 99995;
+        z-index: 1070;
         align-items: center; justify-content: center;
         flex-direction: column; gap: 14px;
     }
