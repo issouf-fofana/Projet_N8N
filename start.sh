@@ -13,3 +13,4 @@ fi
 # Activer l'environnement virtuel et lancer le serveur
 source env/bin/activate
 python3 manage.py runserver
+#echo "Application démarrée avec succès!"
