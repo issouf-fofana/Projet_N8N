@@ -114,7 +114,7 @@ EXIT_CODE=$?
 
 echo ""
 if [ $EXIT_CODE -eq 0 ]; then
-    echo -e "${GREEN}✓ Extraction terminée. Fichiers dans : ${SCRIPT_DIR}/data/${RESET}"
+    echo -e "${GREEN}✓ Extraction terminée. Fichiers dans : $(dirname ${SCRIPT_DIR})/media/entree_journal/${RESET}"
 else
     echo -e "${RED}✗ Erreur lors de l'extraction (code $EXIT_CODE).${RESET}"
 fi

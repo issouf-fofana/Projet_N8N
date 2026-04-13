@@ -20,11 +20,11 @@ from dotenv import load_dotenv
 # ─── Chemins ────────────────────────────────────────────────────────────────
 
 BASE_DIR   = Path(__file__).parent
-DATA_DIR   = BASE_DIR / "data"
+DATA_DIR   = BASE_DIR.parent / "media" / "entree_journal"
 LOGS_DIR   = BASE_DIR / "logs"
 MAGASIN    = BASE_DIR / "magasin.json"
 
-DATA_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 LOGS_DIR.mkdir(exist_ok=True)
 
 # ─── Logger ─────────────────────────────────────────────────────────────────
