@@ -1,0 +1,794 @@
+[
+{
+  "model": "core.magasin",
+  "pk": "035",
+  "fields": {
+    "nom": "HYPER HAYAT",
+    "date_creation": "2026-01-14T23:12:11.920Z",
+    "date_modification": "2026-01-14T23:12:11.920Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "040",
+  "fields": {
+    "nom": "JDM PLATEAU",
+    "date_creation": "2026-01-14T23:12:11.927Z",
+    "date_modification": "2026-01-14T23:12:11.927Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "050",
+  "fields": {
+    "nom": "CASH ZONE 4",
+    "date_creation": "2026-01-13T22:06:49.848Z",
+    "date_modification": "2026-01-14T23:12:11.932Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "080",
+  "fields": {
+    "nom": "CASINO MAND MARCORY",
+    "date_creation": "2026-01-13T22:06:49.855Z",
+    "date_modification": "2026-01-14T23:12:11.938Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "100",
+  "fields": {
+    "nom": "CASINO II PLATEAUX",
+    "date_creation": "2026-01-13T22:06:49.863Z",
+    "date_modification": "2026-01-14T23:12:11.944Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "109",
+  "fields": {
+    "nom": "109",
+    "date_creation": "2026-01-15T17:55:03.732Z",
+    "date_modification": "2026-01-15T17:55:03.732Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "110",
+  "fields": {
+    "nom": "SUPER U VALLON",
+    "date_creation": "2026-01-13T22:06:49.873Z",
+    "date_modification": "2026-01-14T23:12:11.950Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "120",
+  "fields": {
+    "nom": "CASINO MAND GOLF",
+    "date_creation": "2026-01-13T22:06:49.883Z",
+    "date_modification": "2026-01-14T23:12:11.959Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "201",
+  "fields": {
+    "nom": "OENO CAVISTE NAH",
+    "date_creation": "2026-01-14T23:12:11.966Z",
+    "date_modification": "2026-01-14T23:12:11.966Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "203",
+  "fields": {
+    "nom": "OENO ZONE 3",
+    "date_creation": "2026-01-14T23:12:11.972Z",
+    "date_modification": "2026-01-14T23:12:11.972Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "205",
+  "fields": {
+    "nom": "OENO COSMOS",
+    "date_creation": "2026-01-14T23:12:11.978Z",
+    "date_modification": "2026-01-14T23:12:11.978Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "207",
+  "fields": {
+    "nom": "OENOPHILE BKE",
+    "date_creation": "2026-01-14T23:12:11.984Z",
+    "date_modification": "2026-01-14T23:12:11.984Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "208",
+  "fields": {
+    "nom": "OENOPHILE GB",
+    "date_creation": "2026-01-14T23:12:11.990Z",
+    "date_modification": "2026-01-14T23:12:11.990Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "210",
+  "fields": {
+    "nom": "OENOPHILE PLTX",
+    "date_creation": "2026-01-14T23:12:11.996Z",
+    "date_modification": "2026-01-14T23:12:11.996Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "211",
+  "fields": {
+    "nom": "OENOPHILE CAP SUD",
+    "date_creation": "2026-01-14T23:12:12.002Z",
+    "date_modification": "2026-01-14T23:12:12.002Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "212",
+  "fields": {
+    "nom": "OENOPHILE 2PLTX",
+    "date_creation": "2026-01-14T23:12:12.007Z",
+    "date_modification": "2026-01-14T23:12:12.007Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "213",
+  "fields": {
+    "nom": "OENOPHILE ZONE 4",
+    "date_creation": "2026-01-14T23:12:12.014Z",
+    "date_modification": "2026-01-14T23:12:12.014Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "214",
+  "fields": {
+    "nom": "OENOPHILE YAKRO",
+    "date_creation": "2026-01-14T23:12:12.021Z",
+    "date_modification": "2026-01-14T23:12:12.021Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "215",
+  "fields": {
+    "nom": "OENOPHILE YOP",
+    "date_creation": "2026-01-14T23:12:12.029Z",
+    "date_modification": "2026-01-14T23:12:12.029Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "216",
+  "fields": {
+    "nom": "OENOPHILE ALLABRA",
+    "date_creation": "2026-01-14T23:12:12.036Z",
+    "date_modification": "2026-01-14T23:12:12.036Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "217",
+  "fields": {
+    "nom": "OENOPHILE SP",
+    "date_creation": "2026-01-14T23:12:12.043Z",
+    "date_modification": "2026-01-14T23:12:12.043Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "218",
+  "fields": {
+    "nom": "OENOPHILE DJIBI",
+    "date_creation": "2026-01-14T23:12:12.050Z",
+    "date_modification": "2026-01-14T23:12:12.050Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "220",
+  "fields": {
+    "nom": "SUPER U PLATEAU",
+    "date_creation": "2026-01-13T22:06:49.891Z",
+    "date_modification": "2026-01-14T23:12:12.056Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "221",
+  "fields": {
+    "nom": "OENOPHILE S2P",
+    "date_creation": "2026-01-14T23:12:12.063Z",
+    "date_modification": "2026-01-14T23:12:12.063Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "223",
+  "fields": {
+    "nom": "OENOPHILE KOUMASSI",
+    "date_creation": "2026-01-14T23:12:12.069Z",
+    "date_modification": "2026-01-14T23:12:12.069Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "224",
+  "fields": {
+    "nom": "OENOPHILE LATRILLE 2PLTX",
+    "date_creation": "2026-01-14T23:12:12.076Z",
+    "date_modification": "2026-01-14T23:12:12.076Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "225",
+  "fields": {
+    "nom": "BONPRIX BIETRY",
+    "date_creation": "2026-01-14T23:12:12.084Z",
+    "date_modification": "2026-01-14T23:12:12.084Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "226",
+  "fields": {
+    "nom": "BONPRIX COMMERCE",
+    "date_creation": "2026-01-14T23:12:12.093Z",
+    "date_modification": "2026-01-14T23:12:12.093Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "227",
+  "fields": {
+    "nom": "BONPRIX ANGRE",
+    "date_creation": "2026-01-14T23:12:12.101Z",
+    "date_modification": "2026-01-14T23:12:12.101Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "228",
+  "fields": {
+    "nom": "CASH PORT",
+    "date_creation": "2026-01-14T23:12:12.108Z",
+    "date_modification": "2026-01-14T23:12:12.108Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "229",
+  "fields": {
+    "nom": "BONPRIX CASH Z4",
+    "date_creation": "2026-01-14T23:12:12.117Z",
+    "date_modification": "2026-01-14T23:12:12.117Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "230",
+  "fields": {
+    "nom": "HYPER CASINO PRIMA",
+    "date_creation": "2026-01-13T22:06:49.900Z",
+    "date_modification": "2026-01-14T23:12:12.127Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "235",
+  "fields": {
+    "nom": "SUPER U DJIBI",
+    "date_creation": "2026-01-13T22:06:49.908Z",
+    "date_modification": "2026-01-14T23:12:12.133Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "240",
+  "fields": {
+    "nom": "FNAC CAP SUD",
+    "date_creation": "2026-01-13T22:06:49.917Z",
+    "date_modification": "2026-01-14T23:12:12.138Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "245",
+  "fields": {
+    "nom": "FNAC CAP NORD",
+    "date_creation": "2026-01-13T22:06:49.927Z",
+    "date_modification": "2026-01-14T23:12:12.144Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "250",
+  "fields": {
+    "nom": "GIFI ZONE 4",
+    "date_creation": "2026-01-13T22:06:49.937Z",
+    "date_modification": "2026-01-14T23:12:12.151Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "261",
+  "fields": {
+    "nom": "MONOP COCODY IVOIRE",
+    "date_creation": "2026-01-13T22:06:49.946Z",
+    "date_modification": "2026-01-14T23:12:12.160Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "271",
+  "fields": {
+    "nom": "OENOPHILE FAYA",
+    "date_creation": "2026-01-14T23:12:12.166Z",
+    "date_modification": "2026-01-14T23:12:12.166Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "272",
+  "fields": {
+    "nom": "OENOPHILE DALOA",
+    "date_creation": "2026-01-14T23:12:12.172Z",
+    "date_modification": "2026-01-14T23:12:12.172Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "273",
+  "fields": {
+    "nom": "OENOPHILE SOL BENI",
+    "date_creation": "2026-01-14T23:12:12.178Z",
+    "date_modification": "2026-01-14T23:12:12.178Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "274",
+  "fields": {
+    "nom": "OENOPHILE KOROGHO",
+    "date_creation": "2026-01-14T23:12:12.184Z",
+    "date_modification": "2026-01-14T23:12:12.184Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "275",
+  "fields": {
+    "nom": "OENOPHILE BONOUMIN",
+    "date_creation": "2026-01-14T23:12:12.189Z",
+    "date_modification": "2026-01-14T23:12:12.189Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "281",
+  "fields": {
+    "nom": "CASINO ANGRE",
+    "date_creation": "2026-01-13T22:06:49.955Z",
+    "date_modification": "2026-01-14T23:12:12.195Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "290",
+  "fields": {
+    "nom": "CASINO MBIETRY",
+    "date_creation": "2026-01-13T22:06:49.964Z",
+    "date_modification": "2026-01-14T23:12:12.201Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "291",
+  "fields": {
+    "nom": "CASINO MDANGA",
+    "date_creation": "2026-01-13T22:06:49.976Z",
+    "date_modification": "2026-01-14T23:12:12.208Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "292",
+  "fields": {
+    "nom": "CASINO MKOUM",
+    "date_creation": "2026-01-13T22:06:49.985Z",
+    "date_modification": "2026-01-14T23:12:12.215Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "293",
+  "fields": {
+    "nom": "CASINO AMB CHINE",
+    "date_creation": "2026-01-13T22:06:49.994Z",
+    "date_modification": "2026-01-14T23:12:12.222Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "294",
+  "fields": {
+    "nom": "CASINO MANDARINE RIVIERA 4",
+    "date_creation": "2026-01-13T22:06:50.002Z",
+    "date_modification": "2026-01-13T22:07:07.510Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "295",
+  "fields": {
+    "nom": "CASINO ALLABRA",
+    "date_creation": "2026-01-13T22:06:50.011Z",
+    "date_modification": "2026-01-14T23:12:12.229Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "301",
+  "fields": {
+    "nom": "S2P SOCOCE ZONE 3",
+    "date_creation": "2026-01-13T22:06:50.021Z",
+    "date_modification": "2026-01-14T23:12:12.237Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "302",
+  "fields": {
+    "nom": "S2P LATRILLE",
+    "date_creation": "2026-01-13T22:06:50.037Z",
+    "date_modification": "2026-01-14T23:12:12.245Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "303",
+  "fields": {
+    "nom": "S2P SOCOCE BOUAKE",
+    "date_creation": "2026-01-13T22:06:50.053Z",
+    "date_modification": "2026-01-14T23:12:12.253Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "304",
+  "fields": {
+    "nom": "S2P SOCOCE DALOA",
+    "date_creation": "2026-01-13T22:06:50.063Z",
+    "date_modification": "2026-01-14T23:12:12.262Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "305",
+  "fields": {
+    "nom": "S2P RUE DES JARDINS",
+    "date_creation": "2026-01-13T22:06:50.073Z",
+    "date_modification": "2026-01-14T23:12:12.270Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "306",
+  "fields": {
+    "nom": "SOCOCE YAKRO",
+    "date_creation": "2026-01-13T22:06:50.082Z",
+    "date_modification": "2026-01-14T23:12:12.279Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "307",
+  "fields": {
+    "nom": "S2P SOCOCE GAGNOA",
+    "date_creation": "2026-01-13T22:06:50.091Z",
+    "date_modification": "2026-01-14T23:12:12.287Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "308",
+  "fields": {
+    "nom": "S2P SOCOCE ABOBO",
+    "date_creation": "2026-01-13T22:06:50.100Z",
+    "date_modification": "2026-01-14T23:12:12.295Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "309",
+  "fields": {
+    "nom": "S2P SUPERETTE BOUAKE",
+    "date_creation": "2026-01-13T22:06:50.109Z",
+    "date_modification": "2026-01-14T23:12:12.303Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "310",
+  "fields": {
+    "nom": "S2P SAN PEDRO",
+    "date_creation": "2026-01-13T22:06:50.118Z",
+    "date_modification": "2026-01-14T23:12:12.311Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "311",
+  "fields": {
+    "nom": "S2P CHATEAUX",
+    "date_creation": "2026-01-13T22:06:50.127Z",
+    "date_modification": "2026-01-14T23:12:12.320Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "312",
+  "fields": {
+    "nom": "SOCOCE RIVIERA",
+    "date_creation": "2026-01-13T22:06:50.136Z",
+    "date_modification": "2026-01-14T23:12:12.329Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "330",
+  "fields": {
+    "nom": "NESPRESSO",
+    "date_creation": "2026-01-14T23:12:12.338Z",
+    "date_modification": "2026-01-14T23:12:12.338Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "332",
+  "fields": {
+    "nom": "NESPRESSO CAP NORD",
+    "date_creation": "2026-01-14T23:12:12.346Z",
+    "date_modification": "2026-01-14T23:12:12.347Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "334",
+  "fields": {
+    "nom": "NESPRESSO 2 PLATEAUX",
+    "date_creation": "2026-01-14T23:12:12.356Z",
+    "date_modification": "2026-01-14T23:12:12.356Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "335",
+  "fields": {
+    "nom": "NESPRESSO COSMOS",
+    "date_creation": "2026-01-14T23:12:12.365Z",
+    "date_modification": "2026-01-14T23:12:12.365Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "336",
+  "fields": {
+    "nom": "NESPRESSO NOUR AL",
+    "date_creation": "2026-01-14T23:12:12.373Z",
+    "date_modification": "2026-01-14T23:12:12.373Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "337",
+  "fields": {
+    "nom": "NESPRESSO DJIBI",
+    "date_creation": "2026-01-14T23:12:12.380Z",
+    "date_modification": "2026-01-14T23:12:12.380Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "338",
+  "fields": {
+    "nom": "NESPRESSO S2P",
+    "date_creation": "2026-01-14T23:12:12.388Z",
+    "date_modification": "2026-01-14T23:12:12.388Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "339",
+  "fields": {
+    "nom": "NESPRESSO SOL BENI",
+    "date_creation": "2026-01-14T23:12:12.396Z",
+    "date_modification": "2026-01-14T23:12:12.396Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "340",
+  "fields": {
+    "nom": "NESPRESSO ZONE 4",
+    "date_creation": "2026-01-14T23:12:12.403Z",
+    "date_modification": "2026-01-14T23:12:12.403Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "353",
+  "fields": {
+    "nom": "C.I. PROSUMA ANGRE 8T",
+    "date_creation": "2026-01-13T22:06:50.146Z",
+    "date_modification": "2026-01-14T23:12:12.411Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "354",
+  "fields": {
+    "nom": "CIV U TOITS ROUGES",
+    "date_creation": "2026-01-13T22:06:50.154Z",
+    "date_modification": "2026-01-14T23:12:12.419Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "356",
+  "fields": {
+    "nom": "CIV U COCODY (P)",
+    "date_creation": "2026-01-13T22:06:50.164Z",
+    "date_modification": "2026-01-14T23:12:12.427Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "357",
+  "fields": {
+    "nom": "CI REMBLAIS",
+    "date_creation": "2026-01-13T22:06:50.173Z",
+    "date_modification": "2026-01-14T23:12:12.436Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "361",
+  "fields": {
+    "nom": "CIV ABOBO",
+    "date_creation": "2026-01-13T22:06:50.182Z",
+    "date_modification": "2026-01-14T23:12:12.444Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "364",
+  "fields": {
+    "nom": "CIV KOUMASSI 7 DEC. (P)",
+    "date_creation": "2026-01-13T22:06:50.191Z",
+    "date_modification": "2026-01-14T23:12:12.452Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "368",
+  "fields": {
+    "nom": "CI SAGUIDIBA",
+    "date_creation": "2026-01-13T22:06:50.200Z",
+    "date_modification": "2026-01-14T23:12:12.460Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "371",
+  "fields": {
+    "nom": "CIV YOP ANANERAIE (P)",
+    "date_creation": "2026-01-13T22:06:50.210Z",
+    "date_modification": "2026-01-14T23:12:12.468Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "372",
+  "fields": {
+    "nom": "CIV U MAROC",
+    "date_creation": "2026-01-13T22:06:50.219Z",
+    "date_modification": "2026-01-14T23:12:12.476Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "376",
+  "fields": {
+    "nom": "CI SICOGI ANGRE",
+    "date_creation": "2026-01-13T22:06:50.229Z",
+    "date_modification": "2026-01-14T23:12:12.486Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "378",
+  "fields": {
+    "nom": "CI K. DJE KONAN",
+    "date_creation": "2026-01-13T22:06:50.238Z",
+    "date_modification": "2026-01-14T23:12:12.497Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "410",
+  "fields": {
+    "nom": "CIV BESSI",
+    "date_creation": "2026-01-13T22:06:50.247Z",
+    "date_modification": "2026-01-14T23:12:12.511Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "411",
+  "fields": {
+    "nom": "CIV YOP ANTENNE",
+    "date_creation": "2026-01-13T22:06:50.257Z",
+    "date_modification": "2026-01-14T23:12:12.523Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "412",
+  "fields": {
+    "nom": "CIV DOKUI (P)",
+    "date_creation": "2026-01-13T22:06:50.267Z",
+    "date_modification": "2026-01-14T23:12:12.531Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "413",
+  "fields": {
+    "nom": "CIV AGOUTI (P)",
+    "date_creation": "2026-01-13T22:06:50.276Z",
+    "date_modification": "2026-01-14T23:12:12.539Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "414",
+  "fields": {
+    "nom": "CIV U PORT-BOUET (P)",
+    "date_creation": "2026-01-13T22:06:50.286Z",
+    "date_modification": "2026-01-14T23:12:12.545Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "415",
+  "fields": {
+    "nom": "CIV U M'BADON (P)",
+    "date_creation": "2026-01-13T22:06:50.297Z",
+    "date_modification": "2026-01-14T23:12:12.551Z"
+  }
+},
+{
+  "model": "core.magasin",
+  "pk": "416",
+  "fields": {
+    "nom": "CASH IVOIRE U LATRILLE",
+    "date_creation": "2026-01-13T22:06:50.306Z",
+    "date_modification": "2026-01-14T23:12:12.557Z"
+  }
+}
+]

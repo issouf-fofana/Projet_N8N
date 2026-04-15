@@ -2846,6 +2846,18 @@ def permissions_utilisateur(request, user_id):
         if role != 'superadmin':
             messages.error(request, "Action réservée au Super-Admin.")
             return redirect('dashboard:permissions_utilisateur', user_id=user_id)
+
+        # Réinitialisation mot de passe
+        if request.POST.get('action') == 'reset_password':
+            nouveau_mdp = request.POST.get('nouveau_mdp', '').strip()
+            if len(nouveau_mdp) < 6:
+                messages.error(request, "Le mot de passe doit contenir au moins 6 caractères.")
+            else:
+                u.set_password(nouveau_mdp)
+                u.save()
+                messages.success(request, f"Mot de passe de '{u.username}' réinitialisé.")
+            return redirect('dashboard:permissions_utilisateur', user_id=user_id)
+
         new_role = request.POST.get('role', 'user')
         profile.role = new_role
         profile.save()
@@ -2868,10 +2880,24 @@ def permissions_utilisateur(request, user_id):
 
 
 def preferences_utilisateur(request):
-    """
-    Page de préférences utilisateur (place‑holder).
-    Pourra accueillir des réglages personnels par utilisateur.
-    """
+    """Préférences utilisateur — changement de mot de passe."""
+    if request.method == 'POST':
+        ancien = request.POST.get('ancien_mdp', '')
+        nouveau = request.POST.get('nouveau_mdp', '')
+        confirm = request.POST.get('confirm_mdp', '')
+        if not request.user.check_password(ancien):
+            messages.error(request, "Mot de passe actuel incorrect.")
+        elif len(nouveau) < 6:
+            messages.error(request, "Le nouveau mot de passe doit contenir au moins 6 caractères.")
+        elif nouveau != confirm:
+            messages.error(request, "Les deux mots de passe ne correspondent pas.")
+        else:
+            request.user.set_password(nouveau)
+            request.user.save()
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "Mot de passe modifié avec succès.")
+            return redirect('dashboard:preferences_utilisateur')
     return render(request, 'dashboard/preferences_utilisateur.html', {})
 
 
