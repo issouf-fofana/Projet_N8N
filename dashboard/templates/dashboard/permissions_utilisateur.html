@@ -61,6 +61,43 @@
     <!-- Formulaire permissions -->
     <div class="col-md-8">
         {% if current_role == 'superadmin' %}
+
+        <!-- Modifier les infos -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-pencil"></i> Informations du compte</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit_info">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nom d'utilisateur <span class="text-danger">*</span></label>
+                            <input type="text" name="username" class="form-control" value="{{ u.username }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ u.email }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Prénom</label>
+                            <input type="text" name="first_name" class="form-control" value="{{ u.first_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nom</label>
+                            <input type="text" name="last_name" class="form-control" value="{{ u.last_name }}">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <form method="post">
             {% csrf_token %}
             <div class="card mb-3">

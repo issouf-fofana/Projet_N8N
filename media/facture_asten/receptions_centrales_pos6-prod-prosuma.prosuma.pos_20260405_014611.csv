@@ -1,0 +1,10 @@
+﻿Id;Magasin;Nom affiché;N° bon livraison;Type réception;Fournisseur;Commande fournisseur;Statut commande;Validée;Date réception;Date création;Date validation;Quantité totale;Valorisation HT;Valorisation TTC
+01755bcf-034d-4e38-83ab-22c029090aa5;220;Réception (B.L. : 1100215693);1100215693;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 17:11;0.000;0.0;0.0
+0b2a5420-ce02-466d-b465-4cba0c7ad195;220;Réception (B.L. : 1200108014);1200108014;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:12;0.000;0.0;0.0
+54411d08-810c-4b4e-9889-6c8e68256f06;220;Réception (B.L. : 1200108050);1200108050;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:14;0.000;0.0;0.0
+8aa10c1d-e144-40fe-8185-c230f49d9216;220;Réception (B.L. : 1200108031);1200108031;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:13;0.000;0.0;0.0
+9ae3c198-33f6-4f75-b0c2-0028d04432db;220;Réception (B.L. : 1800336544);1800336544;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 17:12;0.000;0.0;0.0
+a24a4370-c295-4f63-afa9-a10da95f4aaf;220;Réception (B.L. : 1800336529);1800336529;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:18;0.000;0.0;0.0
+c66a61c3-7d9e-4bcf-873a-97043eaad7b4;220;Réception (B.L. : 1200107979);1200107979;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:11;0.000;0.0;0.0
+f262d8af-3c93-4097-a9d4-61b567a9c4f3;220;Réception (B.L. : 1700236754);1700236754;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:16;0.000;0.0;0.0
+fb5409c9-3b54-44ca-a9dc-c35d602e2870;220;Réception (B.L. : 1700236715);1700236715;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:15;0.000;0.0;0.0

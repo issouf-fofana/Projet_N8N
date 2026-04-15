@@ -2847,6 +2847,25 @@ def permissions_utilisateur(request, user_id):
             messages.error(request, "Action réservée au Super-Admin.")
             return redirect('dashboard:permissions_utilisateur', user_id=user_id)
 
+        # Modifier les infos du compte
+        if request.POST.get('action') == 'edit_info':
+            new_username = request.POST.get('username', '').strip()
+            new_first_name = request.POST.get('first_name', '').strip()
+            new_last_name = request.POST.get('last_name', '').strip()
+            new_email = request.POST.get('email', '').strip()
+            if not new_username:
+                messages.error(request, "Le nom d'utilisateur est obligatoire.")
+            elif new_username != u.username and User.objects.filter(username=new_username).exists():
+                messages.error(request, f"Le nom d'utilisateur '{new_username}' est déjà pris.")
+            else:
+                u.username = new_username
+                u.first_name = new_first_name
+                u.last_name = new_last_name
+                u.email = new_email
+                u.save()
+                messages.success(request, f"Informations de '{new_username}' mises à jour.")
+            return redirect('dashboard:permissions_utilisateur', user_id=user_id)
+
         # Réinitialisation mot de passe
         if request.POST.get('action') == 'reset_password':
             nouveau_mdp = request.POST.get('nouveau_mdp', '').strip()

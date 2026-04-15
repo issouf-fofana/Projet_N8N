@@ -1,0 +1,4 @@
+﻿Id;Magasin;Nom affiché;N° bon livraison;Type réception;Fournisseur;Commande fournisseur;Statut commande;Validée;Date réception;Date création;Date validation;Quantité totale;Valorisation HT;Valorisation TTC
+22c47cc0-c5e2-4c2f-a209-adfc7f574533;310;Réception (B.L. : FA00413378);FA00413378;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:11;0.000;0.0;0.0
+892584ff-9bfd-4974-b9f3-85b267742f97;310;Réception (B.L. : FA00413393);FA00413393;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 17:11;0.000;0.0;0.0
+c9a4d62e-da10-498d-9a35-d173f7251c66;310;Réception (B.L. : FA00413379);FA00413379;;FOURNISSEUR CENTRALE;;Pas de commande associée;O;04/04/2026 00:00;;04/04/2026 12:12;0.000;0.0;0.0
