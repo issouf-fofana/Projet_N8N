@@ -1,0 +1,60 @@
+{% comment %}
+Include réutilisable pour pagination + sélecteur per_page.
+Variables requises dans le contexte : page_obj, per_page, per_page_options
+Toutes les autres params GET sont conservées automatiquement.
+{% endcomment %}
+
+{% if page_obj.paginator.num_pages > 1 or per_page_options %}
+<div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+
+    <!-- Sélecteur par page -->
+    <div class="d-flex align-items-center gap-2">
+        <span class="text-muted small">Lignes par page :</span>
+        {% for opt in per_page_options %}
+            {% if opt == per_page %}
+            <span class="badge bg-primary px-3 py-2" style="font-size:0.85rem;">{{ opt }}</span>
+            {% else %}
+            <a href="?{% for key, val in request.GET.items %}{% if key != 'per_page' and key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}per_page={{ opt }}&page=1"
+               class="badge bg-light text-dark border px-3 py-2 text-decoration-none" style="font-size:0.85rem;">{{ opt }}</a>
+            {% endif %}
+        {% endfor %}
+        <span class="text-muted small ms-2">— {{ page_obj.paginator.count }} résultat(s)</span>
+    </div>
+
+    <!-- Navigation pages -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page=1">&laquo;</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">&#8249;</a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">&#8250;</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?{% for key, val in request.GET.items %}{% if key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">&raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+</div>
+{% endif %}

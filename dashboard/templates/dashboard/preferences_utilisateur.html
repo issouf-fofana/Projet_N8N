@@ -3,50 +3,283 @@
 
 {% block title %}Préférences{% endblock %}
 
+{% block extra_css %}
+<style>
+.pref-wrapper {
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pref-card {
+    width: 100%;
+    max-width: 480px;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(30,58,138,.12);
+    border: 1px solid #e5e9f5;
+    overflow: hidden;
+}
+.pref-card-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    padding: 28px 32px 22px;
+    text-align: center;
+}
+.pref-avatar {
+    width: 64px; height: 64px;
+    background: rgba(255,255,255,.18);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+    border: 2px solid rgba(255,255,255,.35);
+}
+.pref-username {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+}
+.pref-role-badge {
+    display: inline-block;
+    background: rgba(255,255,255,.18);
+    color: rgba(255,255,255,.9);
+    font-size: .72rem;
+    font-weight: 600;
+    padding: 2px 12px;
+    border-radius: 20px;
+    letter-spacing: .04em;
+}
+.pref-body {
+    padding: 28px 32px 32px;
+    background: #fff;
+}
+.pref-section-title {
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.pref-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e9f5;
+}
+.input-group-icon {
+    position: relative;
+}
+.input-group-icon .form-control {
+    padding-left: 42px;
+    padding-right: 42px;
+    border-radius: 10px !important;
+    border: 1.5px solid #e2e8f0;
+    font-size: .9rem;
+    transition: border-color .2s, box-shadow .2s;
+}
+.input-group-icon .form-control:focus {
+    border-color: #1e3a8a;
+    box-shadow: 0 0 0 3px rgba(30,58,138,.1);
+}
+.input-icon-left {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: .95rem;
+    pointer-events: none;
+    z-index: 5;
+}
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: .95rem;
+    z-index: 5;
+    transition: color .15s;
+    background: none;
+    border: none;
+    padding: 0;
+}
+.toggle-password:hover { color: #1e3a8a; }
+.btn-save {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    border: none;
+    border-radius: 10px;
+    padding: 11px 0;
+    font-weight: 600;
+    font-size: .95rem;
+    letter-spacing: .02em;
+    transition: opacity .2s, transform .15s;
+    width: 100%;
+}
+.btn-save:hover {
+    opacity: .92;
+    transform: translateY(-1px);
+}
+.strength-bar {
+    height: 4px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.strength-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width .3s, background .3s;
+    width: 0%;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header d-flex justify-content-between align-items-center">
-    <div>
-        <h1><i class="bi bi-sliders2-vertical"></i> Préférences</h1>
-        <p class="text-muted mb-0">{{ request.user.username }}</p>
-    </div>
-</div>
 
 {% if messages %}
+<div style="max-width:480px;margin:0 auto 0;">
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3 mb-2" role="alert">
+        <i class="bi bi-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endfor %}
+</div>
 {% endif %}
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="bi bi-key"></i> Changer mon mot de passe</h6>
+<div class="pref-wrapper">
+    <div class="pref-card">
+
+        <!-- Header -->
+        <div class="pref-card-header">
+            <div class="pref-avatar">
+                <i class="bi bi-person-fill" style="font-size:1.7rem;color:#fff;"></i>
             </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Mot de passe actuel <span class="text-danger">*</span></label>
-                        <input type="password" name="ancien_mdp" class="form-control" required autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nouveau mot de passe <span class="text-danger">*</span></label>
-                        <input type="password" name="nouveau_mdp" class="form-control" required minlength="6">
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">Confirmer le nouveau mot de passe <span class="text-danger">*</span></label>
-                        <input type="password" name="confirm_mdp" class="form-control" required minlength="6">
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Enregistrer
-                    </button>
-                </form>
+            <div class="pref-username">{{ request.user.get_full_name|default:request.user.username }}</div>
+            {% if request.user.get_full_name %}
+            <div style="color:rgba(255,255,255,.65);font-size:.8rem;margin-bottom:6px;">{{ request.user.username }}</div>
+            {% endif %}
+            {% with role=request.user|user_role %}
+            <span class="pref-role-badge">
+                {% if role == 'superadmin' %}⭐ Super-Admin
+                {% elif role == 'admin' %}🔑 Admin
+                {% else %}👤 Utilisateur{% endif %}
+            </span>
+            {% endwith %}
+        </div>
+
+        <!-- Body -->
+        <div class="pref-body">
+            <div class="pref-section-title">
+                <i class="bi bi-shield-lock"></i> Sécurité
             </div>
+
+            <form method="post" id="prefForm">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:.85rem;">Mot de passe actuel <span class="text-danger">*</span></label>
+                    <div class="input-group-icon">
+                        <i class="bi bi-lock input-icon-left"></i>
+                        <input type="password" name="ancien_mdp" class="form-control" id="ancien_mdp" required autofocus placeholder="Votre mot de passe actuel">
+                        <button type="button" class="toggle-password" onclick="togglePwd('ancien_mdp', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:.85rem;">Nouveau mot de passe <span class="text-danger">*</span></label>
+                    <div class="input-group-icon">
+                        <i class="bi bi-key input-icon-left"></i>
+                        <input type="password" name="nouveau_mdp" class="form-control" id="nouveau_mdp" required minlength="6"
+                               placeholder="Minimum 6 caractères" oninput="checkStrength(this.value)">
+                        <button type="button" class="toggle-password" onclick="togglePwd('nouveau_mdp', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                    <div id="strengthLabel" style="font-size:.72rem;color:#94a3b8;margin-top:3px;"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" style="font-size:.85rem;">Confirmer le nouveau mot de passe <span class="text-danger">*</span></label>
+                    <div class="input-group-icon">
+                        <i class="bi bi-key-fill input-icon-left"></i>
+                        <input type="password" name="confirm_mdp" class="form-control" id="confirm_mdp" required minlength="6"
+                               placeholder="Répétez le nouveau mot de passe" oninput="checkMatch()">
+                        <button type="button" class="toggle-password" onclick="togglePwd('confirm_mdp', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <div id="matchMsg" style="font-size:.72rem;margin-top:3px;"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-save">
+                    <i class="bi bi-save2"></i> Enregistrer le mot de passe
+                </button>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+function togglePwd(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function checkStrength(val) {
+    const fill = document.getElementById('strengthFill');
+    const label = document.getElementById('strengthLabel');
+    let score = 0;
+    if (val.length >= 6) score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const levels = [
+        { pct: 0,   color: '#e2e8f0', text: '' },
+        { pct: 20,  color: '#ef4444', text: 'Très faible' },
+        { pct: 40,  color: '#f97316', text: 'Faible' },
+        { pct: 60,  color: '#eab308', text: 'Moyen' },
+        { pct: 80,  color: '#22c55e', text: 'Fort' },
+        { pct: 100, color: '#16a34a', text: 'Très fort' },
+    ];
+    const lvl = val.length === 0 ? levels[0] : levels[score] || levels[levels.length-1];
+    fill.style.width = lvl.pct + '%';
+    fill.style.background = lvl.color;
+    label.textContent = lvl.text;
+    label.style.color = lvl.color;
+}
+
+function checkMatch() {
+    const nv = document.getElementById('nouveau_mdp').value;
+    const cf = document.getElementById('confirm_mdp').value;
+    const msg = document.getElementById('matchMsg');
+    if (cf.length === 0) { msg.textContent = ''; return; }
+    if (nv === cf) {
+        msg.textContent = '✓ Les mots de passe correspondent';
+        msg.style.color = '#22c55e';
+    } else {
+        msg.textContent = '✗ Les mots de passe ne correspondent pas';
+        msg.style.color = '#ef4444';
+    }
+}
+</script>
 {% endblock %}

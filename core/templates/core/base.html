@@ -638,17 +638,18 @@
             color: #ffffff;
         }
 
-        /* SaaS modern theme overrides */
+        /* ══ Thème global ══ */
         :root {
-            --sidebar-bg: #0b1220;
-            --sidebar-color: #d6dbe6;
-            --main-bg: #f6f8fc;
-            --color-primary: #1e3a8a;
+            --sidebar-bg: #0f172a;
+            --sidebar-color: #cbd5e1;
+            --main-bg: #f1f5f9;
+            --color-primary: #334155;
             --color-success: #22c55e;
             --color-warning: #f59e0b;
             --color-alert: #ef4444;
             --color-neutral: #64748b;
-            --primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #1e3a8a 100%);
+            --accent: #6366f1;
+            --primary-gradient: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         }
 
         body {
@@ -658,21 +659,21 @@
         }
 
         @keyframes pageEnter {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(14px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
         .main-content {
             background: var(--main-bg);
             padding: 32px 34px;
-            animation: pageEnter .42s cubic-bezier(.4,0,.2,1) both;
+            animation: pageEnter .38s cubic-bezier(.4,0,.2,1) both;
         }
 
         .page-header {
             background: #ffffff;
             color: #0f172a;
-            border: 1px solid #e5e9f2;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 16px rgba(15,23,42,.06);
             border-radius: 16px;
         }
 
@@ -681,26 +682,41 @@
             font-weight: 700;
         }
 
+        /* ── Sidebar ── */
         .sidebar {
-            background: linear-gradient(180deg, #0b1220 0%, #121a2c 100%);
-            box-shadow: 10px 0 30px rgba(15, 23, 42, 0.2);
+            background: linear-gradient(180deg, #0f172a 0%, #1a2540 100%);
+            box-shadow: 4px 0 24px rgba(15,23,42,.18);
         }
 
         .sidebar-header {
-            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            border-bottom: 1px solid rgba(255,255,255,.07);
         }
 
         .sidebar-menu a,
         .sidebar-accordion .accordion-button {
-            color: rgba(226, 232, 240, 0.9);
+            color: rgba(203,213,225,.85);
             border-left-color: transparent;
         }
 
         .sidebar-menu a:hover,
-        .sidebar-menu a.active,
+        .sidebar-menu a.active {
+            background-color: rgba(255,255,255,.07);
+            border-left-color: #6366f1;
+            color: #fff;
+        }
+
         .sidebar-accordion .accordion-button:not(.collapsed) {
-            background-color: rgba(30, 58, 138, 0.16);
-            border-left-color: #4d7cc7;
+            background-color: rgba(255,255,255,.07);
+            border-left-color: #6366f1;
+            color: #fff;
+        }
+
+        .sidebar-accordion .accordion-body a:hover,
+        .sidebar-accordion .accordion-body a.active {
+            background-color: rgba(255,255,255,.07);
+            border-left-color: #6366f1;
+            color: #fff;
+            padding-left: 55px;
         }
 
         .card {
@@ -769,45 +785,68 @@
             border: none;
         }
 
-        /* ── Unification globale : un seul bleu = #1e3a8a ── */
-        .text-primary, a.text-primary, strong.text-primary, code.text-primary { color: #1e3a8a !important; }
-        .bg-primary  { background-color: #1e3a8a !important; }
-        .border-primary { border-color: #1e3a8a !important; }
-        .link-primary { color: #1e3a8a !important; }
+        /* ── Unification globale couleurs ── */
+        .text-primary, a.text-primary, strong.text-primary { color: #334155 !important; }
+        .bg-primary  { background-color: #1e293b !important; }
+        .border-primary { border-color: #334155 !important; }
+        .link-primary { color: #334155 !important; }
+
+        a { color: #334155; }
+        a:hover { color: #0f172a; }
+
         .form-control:focus, .form-select:focus {
-            border-color: #1e3a8a;
-            box-shadow: 0 0 0 3px rgba(30,58,138,.12);
+            border-color: #94a3b8;
+            box-shadow: 0 0 0 3px rgba(100,116,139,.12);
         }
 
-        .btn-outline-primary {
-            border-color: #1e3a8a;
-            color: #1e3a8a;
-            background: #ffffff;
+        .btn-primary {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: none;
+            color: #fff;
         }
-        .btn-outline-primary:hover, .btn-outline-primary:focus {
-            background: #1e3a8a;
-            border-color: #1e3a8a;
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: #fff;
         }
 
-        .btn-outline-secondary,
-        .btn-outline-secondary:hover,
-        .btn-outline-secondary:focus {
-            color: #0f172a;
+        .btn-outline-primary {
+            border-color: #cbd5e1;
+            color: #334155;
+            background: #ffffff;
+        }
+        .btn-outline-primary:hover, .btn-outline-primary:focus,
+        .btn-check:checked + .btn-outline-primary {
+            background: #1e293b;
+            border-color: #1e293b;
+            color: #fff;
+        }
+
+        .btn-outline-secondary {
+            color: #475569;
             background: #ffffff;
             border-color: #cbd5e1;
+        }
+        .btn-outline-secondary:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+            border-color: #94a3b8;
         }
 
         .badge {
             border-radius: 999px;
             font-weight: 600;
-            padding: 6px 12px;
+            padding: 5px 11px;
         }
+
+        .badge.bg-primary { background-color: #334155 !important; }
+        .badge.bg-info    { background-color: #475569 !important; }
+
+        .card-header h5 i { color: #475569; }
 
         .dropdown-menu {
             border-radius: 14px;
-            border: 1px solid #e5e9f2;
-            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 14px 34px rgba(15,23,42,.12);
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -949,7 +988,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button {% if is_va == 'version_asten' or is_va == 'version_asten_detail' or is_va == 'integration_asten' or is_va == 'integration_asten_import' or is_va == 'integration_asten_detail_type' or is_va == 'remontee_asten' or is_va == 'version_asten_sync' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVersionAsten">
-                        <i class="bi bi-cpu"></i> Asten
+                        <i class="bi bi-cpu"></i> Versions
                     </button>
                 </h2>
                 <div id="collapseVersionAsten" class="accordion-collapse collapse {% if is_va == 'version_asten' or is_va == 'version_asten_detail' or is_va == 'integration_asten' or is_va == 'integration_asten_import' or is_va == 'integration_asten_detail_type' or is_va == 'remontee_asten' or is_va == 'version_asten_sync' %}show{% endif %}" data-bs-parent="#sidebarAccordionAsten">
@@ -984,13 +1023,19 @@
                 </h2>
                 <div id="collapseRapports" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'rapport_global' %}show{% endif %}" data-bs-parent="#sidebarAccordionAnalyse">
                     <div class="accordion-body">
-                        <a href="{% url 'dashboard:rapport_global' %}?section=commandes&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' %}active{% endif %}">
+                        <a href="{% url 'dashboard:rapport_global' %}?section=commandes&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' and request.GET.section == 'commandes' %}active{% endif %}">
                             <i class="bi bi-box-seam"></i> Commandes
                         </a>
-                        <a href="{% url 'dashboard:rapport_global' %}?section=br&periode=mois">
+                        <a href="{% url 'dashboard:rapport_global' %}?section=br&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' and request.GET.section == 'br' %}active{% endif %}">
                             <i class="bi bi-receipt"></i> BR
                         </a>
-                        <a href="{% url 'dashboard:rapport_global' %}?section=remontees&periode=mois">
+                        <a href="{% url 'dashboard:rapport_global' %}?section=factures&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' and request.GET.section == 'factures' %}active{% endif %}">
+                            <i class="bi bi-file-earmark-text"></i> Factures
+                        </a>
+                        <a href="{% url 'dashboard:rapport_global' %}?section=versions&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' and request.GET.section == 'versions' %}active{% endif %}">
+                            <i class="bi bi-cpu"></i> Versions Asten
+                        </a>
+                        <a href="{% url 'dashboard:rapport_global' %}?section=remontees&periode=mois" class="{% if request.resolver_match.url_name == 'rapport_global' and request.GET.section == 'remontees' %}active{% endif %}">
                             <i class="bi bi-ticket-perforated"></i> Remontées
                         </a>
                     </div>

@@ -2148,6 +2148,11 @@
         </div>
         {% endif %}
     </div>
+    {% if type_donnees != 'factures' and type_donnees != 'factures_backup' and type_donnees != 'version' %}
+    <div class="px-3 pb-2">
+        {% include 'dashboard/includes/pagination.html' %}
+    </div>
+    {% endif %}
 </div>
 
 </div><!-- /dashboard-dynamic -->

@@ -130,10 +130,14 @@
         </div>
     </div>
 
-    <!-- Grid -->
+    <!-- Grid — 1 colonne si type_donnees ciblé, sinon 4 colonnes -->
+    {% if type_donnees and type_donnees != 'factures' and type_donnees != 'factures_backup' and type_donnees != 'version' %}
+    <style>.tmw-grid { grid-template-columns: 1fr !important; }</style>
+    {% endif %}
     <div class="tmw-grid">
 
         <!-- ASTEN -->
+        {% if not type_donnees or type_donnees == 'commandes_asten' %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon asten"><i class="bi bi-box-seam"></i></div>
@@ -152,8 +156,10 @@
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
+        {% endif %}
 
         <!-- GPV -->
+        {% if not type_donnees or type_donnees == 'commandes_gpv' %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon gpv"><i class="bi bi-truck"></i></div>
@@ -172,8 +178,10 @@
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
+        {% endif %}
 
         <!-- LEGEND -->
+        {% if not type_donnees or type_donnees == 'commandes_legend' %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon legend"><i class="bi bi-archive"></i></div>
@@ -192,8 +200,10 @@
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
+        {% endif %}
 
         <!-- BR ASTEN -->
+        {% if not type_donnees or type_donnees == 'br' %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon br"><i class="bi bi-receipt"></i></div>
@@ -212,6 +222,7 @@
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
+        {% endif %}
 
     </div>
 

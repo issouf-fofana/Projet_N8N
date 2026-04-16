@@ -116,7 +116,7 @@ def _get_semaine_comparison(periode='semaine'):
     }
 
 
-def _get_top5_magasins(debut=None, fin=None, n=5):
+def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
     """Retourne le top N magasins par source sur la période donnée (défaut : 30 derniers jours)."""
     from datetime import date, timedelta
     from django.db.models import Count, Q
@@ -127,12 +127,17 @@ def _get_top5_magasins(debut=None, fin=None, n=5):
         fin = today
     n = max(1, min(int(n), 100))
 
+    want_asten  = source in (None, 'commandes_asten')
+    want_gpv    = source in (None, 'commandes_gpv')
+    want_legend = source in (None, 'commandes_legend')
+    want_br     = source in (None, 'br')
+
     try:
         asten = list(
             CommandeAsten.objects.filter(date_commande__gte=debut, date_commande__lte=fin)
             .values('code_magasin__code', 'code_magasin__nom')
             .annotate(total=Count('id')).order_by('-total')[:n]
-        )
+        ) if want_asten else []
     except Exception:
         asten = []
 
@@ -141,7 +146,7 @@ def _get_top5_magasins(debut=None, fin=None, n=5):
             CommandeGPV.objects.filter(date_creation__gte=debut, date_creation__lte=fin, statut__iexact='Transmise')
             .values('code_magasin__code', 'code_magasin__nom')
             .annotate(total=Count('id')).order_by('-total')[:n]
-        )
+        ) if want_gpv else []
     except Exception:
         gpv = []
 
@@ -150,7 +155,7 @@ def _get_top5_magasins(debut=None, fin=None, n=5):
             CommandeLegend.objects.filter(date_commande__gte=debut, date_commande__lte=fin)
             .values('depot_destination')
             .annotate(total=Count('id')).order_by('-total')[:n]
-        )
+        ) if want_legend else []
     except Exception:
         legend = []
 
@@ -162,7 +167,7 @@ def _get_top5_magasins(debut=None, fin=None, n=5):
                 total=Count('id'),
                 integrees=Count('id', filter=Q(ic_integre=True)),
             ).order_by('-total')[:n]
-        )
+        ) if want_br else []
     except Exception:
         br = []
 
@@ -230,6 +235,15 @@ def dashboard(request):
     sage_error = None
     backup_files = None
     backup_error = None
+    br_trouvees = BRAsten.objects.none()
+    br_non_trouvees = BRAsten.objects.none()
+    statut_ic = ''
+    from django.core.paginator import Paginator as _Pag
+    from django.db.models import Case, When, IntegerField as _IntField
+    _dashboard_page_obj = None
+    _dashboard_per_page = int(request.GET.get('per_page', 30))
+    if _dashboard_per_page not in [30, 50, 100, 200]:
+        _dashboard_per_page = 30
 
 
     # Traiter selon le type de données sélectionné
@@ -312,96 +326,66 @@ def dashboard(request):
             'taux_non_integration': taux_non_integration,
         }
         
-        # Optimiser les requêtes : précharger les écarts et les commandes Cyrus correspondantes
-        # Utiliser prefetch_related pour éviter les requêtes N+1
-        commandes_asten = CommandeAsten.objects.filter(**filtres_asten).select_related('code_magasin').prefetch_related(
-            Prefetch('ecart', queryset=EcartCommande.objects.all())
-        ).order_by('-date_commande', 'numero_commande')
-        
-        # Limiter le nombre de commandes pour l'affichage (pagination implicite)
-        # Charger seulement les 200 premières pour améliorer les performances
-        commandes_asten_limited = list(commandes_asten[:200])
-        
-        # Créer un dictionnaire des commandes Cyrus pour lookup rapide
-        # Récupérer toutes les commandes Cyrus correspondantes en une seule requête optimisée
+        # Queryset ordonné : non-intégrés (écart ouvert) d'abord, puis intégrés
+        from django.db.models import Case, When, IntegerField as _IntField
+        commandes_asten_qs = CommandeAsten.objects.filter(**filtres_asten)\
+            .select_related('code_magasin')\
+            .prefetch_related(Prefetch('ecart', queryset=EcartCommande.objects.all()))\
+            .exclude(ecart__statut='quantite_0')\
+            .annotate(_prio=Case(
+                When(ecart__statut='ouvert', then=0),
+                default=1, output_field=_IntField()
+            ))\
+            .order_by('_prio', '-date_commande', 'numero_commande')
+
+        if show == 'non_integres':
+            commandes_asten_qs = commandes_asten_qs.filter(ecart__statut='ouvert')
+
+        # Paginer le queryset directement
+        from django.core.paginator import Paginator as _Pag
+        _per_page_asten = int(request.GET.get('per_page', 30))
+        if _per_page_asten not in [30, 50, 100, 200]:
+            _per_page_asten = 30
+        _pag_asten = _Pag(commandes_asten_qs, _per_page_asten)
+        _page_asten = _pag_asten.get_page(request.GET.get('page', 1))
+
+        # Lookup Cyrus uniquement sur la page courante
         cyrus_lookup = {}
-        if commandes_asten_limited:
-            # Convertir en liste pour éviter les problèmes d'itération
-            commandes_list = commandes_asten_limited
-            
-            # Récupérer les clés uniques des commandes Asten
-            asten_keys = []
-            for cmd in commandes_list:
-                asten_keys.append((cmd.date_commande, cmd.numero_commande, cmd.code_magasin.code))
-            
-            # Construire une requête optimisée avec Q objects
-            # Utiliser toutes les clés pour vérifier toutes les commandes affichées
-            if asten_keys:
-                # Construire la requête Q par lots de 50 pour éviter les requêtes SQL trop complexes
-                # mais traiter toutes les commandes affichées
-                cyrus_commands_list = []
-                for i in range(0, len(asten_keys), 50):
-                    batch_keys = asten_keys[i:i+50]
-                    q_objects = Q()
-                    for date, numero, code in batch_keys:
-                        q_objects |= Q(date_commande=date, numero_commande=numero, code_magasin__code=code)
-                    
-                    batch_cyrus = CommandeCyrus.objects.filter(q_objects).select_related('code_magasin')
-                    cyrus_commands_list.extend(batch_cyrus)
-                
-                # Créer un dictionnaire pour lookup rapide
-                for cyrus_cmd in cyrus_commands_list:
-                    key = (cyrus_cmd.date_commande, cyrus_cmd.numero_commande, cyrus_cmd.code_magasin.code)
-                    cyrus_lookup[key] = cyrus_cmd
-        
-        # Préparer les données pour l'affichage
-        commandes_integres_list = []
-        commandes_non_integres_list = []
-        
-        for cmd_asten in commandes_asten_limited:
-            # Lookup rapide dans le dictionnaire
+        page_cmds = list(_page_asten)
+        if page_cmds:
+            asten_keys = [(cmd.date_commande, cmd.numero_commande, cmd.code_magasin.code) for cmd in page_cmds]
+            cyrus_commands_list = []
+            for i in range(0, len(asten_keys), 50):
+                batch = asten_keys[i:i+50]
+                q_objects = Q()
+                for date, numero, code in batch:
+                    q_objects |= Q(date_commande=date, numero_commande=numero, code_magasin__code=code)
+                cyrus_commands_list.extend(CommandeCyrus.objects.filter(q_objects).select_related('code_magasin'))
+            for cyrus_cmd in cyrus_commands_list:
+                key = (cyrus_cmd.date_commande, cyrus_cmd.numero_commande, cyrus_cmd.code_magasin.code)
+                cyrus_lookup[key] = cyrus_cmd
+
+        commandes_data = []
+        for cmd_asten in page_cmds:
             key = (cmd_asten.date_commande, cmd_asten.numero_commande, cmd_asten.code_magasin.code)
             cmd_cyrus = cyrus_lookup.get(key)
-            
-            # Récupérer l'écart (déjà préchargé avec prefetch_related)
             try:
                 ecart = cmd_asten.ecart
-            except:
+            except Exception:
                 ecart = None
-            
-            # Si l'écart est résolu, considérer comme intégré même si pas dans Cyrus
-            # Si l'écart est quantite_0, ne pas le compter (ni intégré ni non intégré)
             is_integre = False
             if ecart:
-                if ecart.statut == 'resolu':
-                    is_integre = True  # Écart résolu = considéré comme intégré
-                elif ecart.statut == 'quantite_0':
-                    continue  # Écart quantite_0 = exclu de l'affichage
-                elif ecart.statut == 'ignore':
-                    is_integre = True  # Écart ignoré = considéré comme intégré
-                else:
-                    is_integre = cmd_cyrus is not None  # Écart ouvert = vérifier si dans Cyrus
+                if ecart.statut in ('resolu', 'ignore'):
+                    is_integre = True
+                elif ecart.statut == 'ouvert':
+                    is_integre = cmd_cyrus is not None
             else:
-                is_integre = cmd_cyrus is not None  # Pas d'écart = vérifier si dans Cyrus
-            
-            item = {
-                'asten': cmd_asten,
-                'cyrus': cmd_cyrus,
-                'integre': is_integre,
-                'ecart': ecart,
-            }
-            
-            # Séparer les intégrées et non intégrées
-            if is_integre:
-                commandes_integres_list.append(item)
-            else:
-                commandes_non_integres_list.append(item)
-        
-        # Mettre les non intégrées en premier, puis les intégrées (ou seulement non intégrées selon le filtre)
-        if show == 'non_integres':
-            commandes_data = commandes_non_integres_list
-        else:
-            commandes_data = commandes_non_integres_list + commandes_integres_list
+                is_integre = cmd_cyrus is not None
+            commandes_data.append({'asten': cmd_asten, 'cyrus': cmd_cyrus, 'integre': is_integre, 'ecart': ecart})
+
+        # Stocker la page pour la pagination dans le contexte
+        _dashboard_page_obj = _page_asten
+        _dashboard_per_page = _per_page_asten
         titre_tableau = "Comparaison Asten vs Cyrus"
         
     elif type_donnees == 'commandes_gpv':
@@ -489,128 +473,79 @@ def dashboard(request):
             'taux_non_integration': taux_non_integration,
         }
         
-        # Optimiser les requêtes : précharger les écarts
-        commandes_gpv = CommandeGPV.objects.filter(**filtres_gpv).select_related('code_magasin').prefetch_related(
-            Prefetch('ecart', queryset=EcartGPV.objects.all())
-        ).order_by('-date_creation', 'numero_commande')
-        
-        # Limiter le nombre de commandes pour l'affichage (pagination implicite)
-        # Charger seulement les 200 premières pour améliorer les performances
-        commandes_gpv_limited = list(commandes_gpv[:200])
-        
-        # Créer un dictionnaire des commandes Cyrus pour lookup rapide
-        # Filtrer seulement les commandes "Transmise" pour le lookup Cyrus
+        # Queryset GPV ordonné : non-intégrés (écart ouvert) d'abord
+        commandes_gpv_qs = CommandeGPV.objects.filter(**filtres_gpv)\
+            .select_related('code_magasin')\
+            .prefetch_related(Prefetch('ecart', queryset=EcartGPV.objects.all()))\
+            .exclude(ecart__statut='quantite_0')\
+            .annotate(_prio=Case(
+                When(ecart__statut='ouvert', then=0),
+                default=1, output_field=_IntField()
+            ))\
+            .order_by('_prio', '-date_creation', 'numero_commande')
+
+        if show == 'non_integres':
+            commandes_gpv_qs = commandes_gpv_qs.filter(ecart__statut='ouvert')
+
+        _per_page_gpv = int(request.GET.get('per_page', 30))
+        if _per_page_gpv not in [30, 50, 100, 200]:
+            _per_page_gpv = 30
+        _pag_gpv = _Pag(commandes_gpv_qs, _per_page_gpv)
+        _page_gpv = _pag_gpv.get_page(request.GET.get('page', 1))
+
         cyrus_lookup = {}
         cyrus_pair_lookup = set()
-        commandes_transmise = [cmd for cmd in commandes_gpv_limited if (cmd.statut or '').strip().upper() in ['TRANSMISE', 'TRANSMIS']]
+        page_gpv_cmds = list(_page_gpv)
+        commandes_transmise = [cmd for cmd in page_gpv_cmds if (cmd.statut or '').strip().upper() in ('TRANSMISE', 'TRANSMIS')]
         if commandes_transmise:
-            # Récupérer les clés uniques des commandes GPV transmises
-            gpv_keys = []
-            gpv_pairs = []
-            for cmd in commandes_transmise:
-                gpv_keys.append((cmd.date_creation, cmd.numero_commande, cmd.code_magasin.code))
-                gpv_pairs.append((cmd.numero_commande, cmd.code_magasin.code))
-            
-            # Construire une requête optimisée avec Q objects
-            # Utiliser toutes les clés pour vérifier toutes les commandes affichées
-            if gpv_keys:
-                # Construire la requête Q par lots de 50 pour éviter les requêtes SQL trop complexes
-                # mais traiter toutes les commandes affichées
-                cyrus_commands_list = []
-                for i in range(0, len(gpv_keys), 50):
-                    batch_keys = gpv_keys[i:i+50]
-                    q_objects = Q()
-                    for date, numero, code in batch_keys:
-                        q_objects |= Q(date_commande=date, numero_commande=numero, code_magasin__code=code)
-                    
-                    batch_cyrus = CommandeCyrus.objects.filter(q_objects).select_related('code_magasin')
-                    cyrus_commands_list.extend(batch_cyrus)
-                
-                for cyrus_cmd in cyrus_commands_list:
-                    key = (cyrus_cmd.date_commande, cyrus_cmd.numero_commande, cyrus_cmd.code_magasin.code)
-                    cyrus_lookup[key] = cyrus_cmd
-            
-            # Lookup fallback : numéro + magasin (date différente)
-            if gpv_pairs:
-                gpv_pairs = list({pair for pair in gpv_pairs})
-                cyrus_pairs_list = []
-                for i in range(0, len(gpv_pairs), 50):
-                    batch_pairs = gpv_pairs[i:i+50]
-                    q_objects = Q()
-                    for numero, code in batch_pairs:
-                        q_objects |= Q(numero_commande=numero, code_magasin__code=code)
-                    if q_objects:
-                        cyrus_pairs_list.extend(
-                            CommandeCyrus.objects.filter(q_objects).select_related('code_magasin')
-                        )
-                for cyrus_cmd in cyrus_pairs_list:
+            gpv_keys = [(cmd.date_creation, cmd.numero_commande, cmd.code_magasin.code) for cmd in commandes_transmise]
+            gpv_pairs = list({(cmd.numero_commande, cmd.code_magasin.code) for cmd in commandes_transmise})
+            cyrus_commands_list = []
+            for i in range(0, len(gpv_keys), 50):
+                batch = gpv_keys[i:i+50]
+                q_objects = Q()
+                for date, numero, code in batch:
+                    q_objects |= Q(date_commande=date, numero_commande=numero, code_magasin__code=code)
+                cyrus_commands_list.extend(CommandeCyrus.objects.filter(q_objects).select_related('code_magasin'))
+            for cyrus_cmd in cyrus_commands_list:
+                key = (cyrus_cmd.date_commande, cyrus_cmd.numero_commande, cyrus_cmd.code_magasin.code)
+                cyrus_lookup[key] = cyrus_cmd
+            for i in range(0, len(gpv_pairs), 50):
+                batch_pairs = gpv_pairs[i:i+50]
+                q_objects = Q()
+                for numero, code in batch_pairs:
+                    q_objects |= Q(numero_commande=numero, code_magasin__code=code)
+                for cyrus_cmd in CommandeCyrus.objects.filter(q_objects).select_related('code_magasin'):
                     cyrus_pair_lookup.add((cyrus_cmd.numero_commande, cyrus_cmd.code_magasin.code))
-        
-        # Préparer les données pour l'affichage
-        commandes_integres_list = []
-        commandes_non_integres_list = []
-        
-        for cmd_gpv in commandes_gpv_limited:
-            # Normaliser le statut
+
+        commandes_data = []
+        for cmd_gpv in page_gpv_cmds:
             statut_gpv = (cmd_gpv.statut or '').strip().upper()
-            doit_etre_dans_cyrus = (statut_gpv == 'TRANSMISE' or statut_gpv == 'TRANSMIS')
-            
-            # Vérifier si intégrée dans Cyrus (lookup rapide dans le dictionnaire)
+            doit_etre_dans_cyrus = statut_gpv in ('TRANSMISE', 'TRANSMIS')
             cmd_cyrus = None
             if doit_etre_dans_cyrus:
                 key = (cmd_gpv.date_creation, cmd_gpv.numero_commande, cmd_gpv.code_magasin.code)
                 cmd_cyrus = cyrus_lookup.get(key)
-                if cmd_cyrus is None:
-                    pair_key = (cmd_gpv.numero_commande, cmd_gpv.code_magasin.code)
-                    if pair_key in cyrus_pair_lookup:
-                        cmd_cyrus = True
-            
-            # Récupérer l'écart (déjà préchargé avec prefetch_related)
-            ecart = None
-            if doit_etre_dans_cyrus:
-                try:
-                    ecart = cmd_gpv.ecart
-                except:
-                    ecart = None
-            
-            # Si l'écart est résolu, considérer comme intégré même si pas dans Cyrus
-            # Si l'écart est quantite_0, ne pas le compter (ni intégré ni non intégré)
-            is_integre = False
+                if cmd_cyrus is None and (cmd_gpv.numero_commande, cmd_gpv.code_magasin.code) in cyrus_pair_lookup:
+                    cmd_cyrus = True
+            try:
+                ecart = cmd_gpv.ecart if doit_etre_dans_cyrus else None
+            except Exception:
+                ecart = None
             if doit_etre_dans_cyrus:
                 if ecart:
-                    if ecart.statut == 'resolu':
-                        is_integre = True  # Écart résolu = considéré comme intégré
-                    elif ecart.statut == 'quantite_0':
-                        continue  # Écart quantite_0 = exclu de l'affichage
-                    elif ecart.statut == 'ignore':
-                        is_integre = True  # Écart ignoré = considéré comme intégré
+                    if ecart.statut in ('resolu', 'ignore'):
+                        is_integre = True
                     else:
-                        is_integre = cmd_cyrus is not None  # Écart ouvert = vérifier si dans Cyrus
+                        is_integre = cmd_cyrus is not None
                 else:
-                    is_integre = cmd_cyrus is not None  # Pas d'écart = vérifier si dans Cyrus
+                    is_integre = cmd_cyrus is not None
             else:
-                # Si le statut n'est pas "Transmise", ne pas créer d'écart et considérer comme intégré
                 is_integre = True
-            
-            item = {
-                'gpv': cmd_gpv,
-                'cyrus': cmd_cyrus,
-                'integre': is_integre,
-                'ecart': ecart,
-                'doit_etre_dans_cyrus': doit_etre_dans_cyrus,
-            }
-            
-            # Séparer les intégrées et non intégrées
-            if is_integre:
-                commandes_integres_list.append(item)
-            else:
-                commandes_non_integres_list.append(item)
-        
-        # Mettre les non intégrées en premier, puis les intégrées (ou seulement non intégrées selon le filtre)
-        if show == 'non_integres':
-            commandes_data = commandes_non_integres_list
-        else:
-            commandes_data = commandes_non_integres_list + commandes_integres_list
+            commandes_data.append({'gpv': cmd_gpv, 'cyrus': cmd_cyrus, 'integre': is_integre, 'ecart': ecart, 'doit_etre_dans_cyrus': doit_etre_dans_cyrus})
+
+        _dashboard_page_obj = _page_gpv
+        _dashboard_per_page = _per_page_gpv
         titre_tableau = "Comparaison GPV vs Cyrus"
         
     elif type_donnees == 'commandes_legend':
@@ -677,103 +612,69 @@ def dashboard(request):
             'taux_non_integration': taux_non_integration,
         }
 
-        # Préparer les données pour l'affichage
-        commandes_legend = CommandeLegend.objects.filter(**filtres_legend).prefetch_related(
-            Prefetch('ecart', queryset=EcartLegend.objects.all())
-        ).order_by('-date_commande', 'numero_commande')
-
-        commandes_legend_limited = list(commandes_legend[:200])
-
-        # Fonction de normalisation pour comparer les numéros de commande
         def normalize_numero(numero):
-            """Normalise un numéro de commande pour la comparaison (enlève les zéros en tête)"""
             if not numero:
                 return ''
-            numero_str = str(numero).strip()
-            # Extraire uniquement les chiffres
-            digits = ''.join(ch for ch in numero_str if ch.isdigit())
-            if digits:
-                return digits.lstrip('0') or '0'
-            return numero_str
+            digits = ''.join(ch for ch in str(numero).strip() if ch.isdigit())
+            return digits.lstrip('0') or '0' if digits else str(numero).strip()
 
-        legend_keys = [(cmd.date_commande, normalize_numero(cmd.numero_commande)) for cmd in commandes_legend_limited]
+        # Queryset Legend ordonné : non-intégrés (écart ouvert) d'abord
+        commandes_legend_qs = CommandeLegend.objects.filter(**filtres_legend)\
+            .prefetch_related(Prefetch('ecart', queryset=EcartLegend.objects.all()))\
+            .exclude(ecart__statut='quantite_0')\
+            .annotate(_prio=Case(
+                When(ecart__statut='ouvert', then=0),
+                default=1, output_field=_IntField()
+            ))\
+            .order_by('_prio', '-date_commande', 'numero_commande')
+
+        if show == 'non_integres':
+            commandes_legend_qs = commandes_legend_qs.filter(ecart__statut='ouvert')
+
+        _per_page_legend = int(request.GET.get('per_page', 30))
+        if _per_page_legend not in [30, 50, 100, 200]:
+            _per_page_legend = 30
+        _pag_legend = _Pag(commandes_legend_qs, _per_page_legend)
+        _page_legend = _pag_legend.get_page(request.GET.get('page', 1))
+
+        # Lookup Cyrus sur la page uniquement
         cyrus_lookup = set()
         cyrus_numero_lookup = set()
-
-        if legend_keys:
-            # Récupérer tous les numéros normalisés pour la recherche
-            numeros_normalises = list({numero for _, numero in legend_keys})
-            
-            # Récupérer toutes les commandes Cyrus de la période
+        page_legend_cmds = list(_page_legend)
+        if page_legend_cmds:
             filtres_cyrus_lookup = {}
             if date_debut_parsed:
                 filtres_cyrus_lookup['date_commande__gte'] = date_debut_parsed
             if date_fin_parsed:
                 filtres_cyrus_lookup['date_commande__lte'] = date_fin_parsed
-            
-            # Récupérer toutes les commandes Cyrus de la période et les normaliser
-            for cyrus_cmd in CommandeCyrus.objects.filter(**filtres_cyrus_lookup):
-                numero_normalise = normalize_numero(cyrus_cmd.numero_commande)
-                cyrus_lookup.add((cyrus_cmd.date_commande, numero_normalise))
-                cyrus_numero_lookup.add(numero_normalise)
+            for cyrus_cmd in CommandeCyrus.objects.filter(**filtres_cyrus_lookup).values_list('date_commande', 'numero_commande'):
+                cyrus_lookup.add((cyrus_cmd[0], normalize_numero(cyrus_cmd[1])))
+                cyrus_numero_lookup.add(normalize_numero(cyrus_cmd[1]))
 
         commandes_data = []
-        for cmd_legend in commandes_legend_limited:
+        for cmd_legend in page_legend_cmds:
             numero_normalise = normalize_numero(cmd_legend.numero_commande)
-            key = (cmd_legend.date_commande, numero_normalise)
-            cyrus_present = key in cyrus_lookup
-            if not cyrus_present:
-                cyrus_present = numero_normalise in cyrus_numero_lookup
-
+            cyrus_present = (cmd_legend.date_commande, numero_normalise) in cyrus_lookup or numero_normalise in cyrus_numero_lookup
             try:
                 ecart = cmd_legend.ecart
             except Exception:
                 ecart = None
-
             integre = True
             etape_blocage = None
             if cmd_legend.exportee:
-                # Si l'écart est résolu, considérer comme intégré même si pas dans Cyrus
-                # Si l'écart est quantite_0, ne pas le compter (ni intégré ni non intégré)
                 if ecart:
-                    if ecart.statut == 'resolu':
-                        integre = True  # Écart résolu = considéré comme intégré
-                    elif ecart.statut == 'quantite_0':
-                        continue  # Écart quantite_0 = exclu de l'affichage
-                    elif ecart.statut == 'ignore':
-                        integre = True  # Écart ignoré = considéré comme intégré
+                    if ecart.statut in ('resolu', 'ignore'):
+                        integre = True
                     elif not cyrus_present:
-                        integre = False  # Écart ouvert = vérifier si dans Cyrus
+                        integre = False
                         etape_blocage = "Absente dans Cyrus"
                 elif not cyrus_present:
                     integre = False
                     etape_blocage = "Absente dans Cyrus"
+            commandes_data.append({'legend': cmd_legend, 'cyrus_present': cyrus_present, 'integre': integre, 'etape_blocage': etape_blocage, 'ecart': ecart})
 
-            commandes_data.append({
-                'legend': cmd_legend,
-                'cyrus_present': cyrus_present,
-                'integre': integre,
-                'etape_blocage': etape_blocage,
-                'ecart': ecart,
-            })
-
-        # Mettre les non intégrées en premier (False avant True)
-        # Trier : non intégrées (integre=False) en premier, puis intégrées (integre=True)
-        def sort_legend_key(x):
-            # Priorité 0 pour non intégrées (False), 1 pour intégrées (True)
-            priority = 1 if x['integre'] else 0
-            # Date la plus récente en premier
-            try:
-                date_cmd = x['legend'].date_commande
-                if hasattr(date_cmd, 'timestamp'):
-                    date_timestamp = date_cmd.timestamp()
-                else:
-                    date_timestamp = 0
-            except:
-                date_timestamp = 0
-            return (priority, -date_timestamp)
-        
-        commandes_data.sort(key=sort_legend_key)
+        _dashboard_page_obj = _page_legend
+        _dashboard_per_page = _per_page_legend
         titre_tableau = "Comparaison Legend vs Cyrus"
         
     elif type_donnees == 'factures':
@@ -984,23 +885,24 @@ def dashboard(request):
             Q(statut_ic__icontains='Quantite 0')
         )
 
+        _per_page_br = int(request.GET.get('per_page', 30))
+        if _per_page_br not in [30, 50, 100, 200]:
+            _per_page_br = 30
+
         if statut_ic == 'integre':
-            br_non_trouvees = BRAsten.objects.none()
-            br_trouvees = BRAsten.objects.filter(ic_integre=True, **filtres_br_date).exclude(
-                exclude_quantite_0
-            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_non_trouvees_qs = BRAsten.objects.none()
+            br_trouvees_qs = BRAsten.objects.filter(ic_integre=True, **filtres_br_date).exclude(exclude_quantite_0).select_related('code_magasin').order_by('-date_br', 'numero_br')
         elif statut_ic == 'non_integre':
-            br_trouvees = BRAsten.objects.none()
-            br_non_trouvees = BRAsten.objects.filter(ic_integre=False, **filtres_br_date).exclude(
-                exclude_quantite_0
-            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_trouvees_qs = BRAsten.objects.none()
+            br_non_trouvees_qs = BRAsten.objects.filter(ic_integre=False, **filtres_br_date).exclude(exclude_quantite_0).select_related('code_magasin').order_by('-date_br', 'numero_br')
         else:
-            br_non_trouvees = BRAsten.objects.filter(ic_integre=False, **filtres_br_base).exclude(
-                exclude_quantite_0
-            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
-            br_trouvees = BRAsten.objects.filter(ic_integre=True, **filtres_br_date).exclude(
-                exclude_quantite_0
-            ).select_related('code_magasin').order_by('-date_br', 'numero_br')[:200]
+            br_non_trouvees_qs = BRAsten.objects.filter(ic_integre=False, **filtres_br_base).exclude(exclude_quantite_0).select_related('code_magasin').order_by('-date_br', 'numero_br')
+            br_trouvees_qs = BRAsten.objects.filter(ic_integre=True, **filtres_br_date).exclude(exclude_quantite_0).select_related('code_magasin').order_by('-date_br', 'numero_br')
+
+        br_non_trouvees = _Pag(br_non_trouvees_qs, _per_page_br).get_page(request.GET.get('page', 1))
+        br_trouvees = _Pag(br_trouvees_qs, _per_page_br).get_page(request.GET.get('page', 1))
+        _dashboard_page_obj = br_non_trouvees
+        _dashboard_per_page = _per_page_br
         commandes_data = []
         titre_tableau = "BR ASTEN (Statut IC)"
     
@@ -1032,6 +934,9 @@ def dashboard(request):
         'stats': stats,
         'evolution_journaliere': evolution_journaliere,
         'commandes': commandes_data,
+        'page_obj': _dashboard_page_obj,
+        'per_page': _dashboard_per_page,
+        'per_page_options': [30, 50, 100, 200],
         'br_trouvees': br_trouvees if type_donnees == 'br' else None,
         'br_non_trouvees': br_non_trouvees if type_donnees == 'br' else None,
         'sage_files': sage_files if type_donnees == 'factures' else None,
@@ -1055,7 +960,7 @@ def dashboard(request):
         'show': show,
         'semaine_comparison': _get_semaine_comparison(request.GET.get('periode_cmp', 'semaine')),
         'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
-        'top5': _get_top5_magasins(debut=date_debut_parsed, fin=date_fin_parsed, n=request.GET.get('top_n', 5)),
+        'top5': _get_top5_magasins(debut=date_debut_parsed, fin=date_fin_parsed, n=request.GET.get('top_n', 5), source=type_donnees) if type_donnees not in ('factures', 'factures_backup', 'version') else None,
         'top_url_base': f"?type_donnees={request.GET.get('type_donnees','commandes_asten')}&periode={periode}&date_debut={date_debut or ''}&date_fin={date_fin or ''}",
     }
 
@@ -1834,7 +1739,10 @@ def liste_ecarts(request):
     
     ecarts_combined.sort(key=sort_key)
 
-    paginator = Paginator(ecarts_combined, 50)
+    per_page = int(request.GET.get('per_page', 30))
+    if per_page not in [30, 50, 100, 200]:
+        per_page = 30
+    paginator = Paginator(ecarts_combined, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
@@ -1852,9 +1760,11 @@ def liste_ecarts(request):
             'magasin': code_magasin or '',
             'statut': statut or '',
             'type_ecart': type_ecart or '',
-        }
+        },
+        'per_page': per_page,
+        'per_page_options': [30, 50, 100, 200],
     }
-    
+
     return render(request, 'dashboard/liste_ecarts.html', context)
 
 
@@ -1886,14 +1796,16 @@ def liste_commandes_asten(request):
         'code_magasin'
     ).order_by('-date_commande', 'numero_commande')
     
-    # Pagination pour améliorer les performances
-    paginator = Paginator(commandes, 50)  # 50 commandes par page
+    # Pagination
+    per_page = int(request.GET.get('per_page', 30))
+    if per_page not in [30, 50, 100, 200]:
+        per_page = 30
+    paginator = Paginator(commandes, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
-    
-    # Charger tous les magasins pour le select (le filtrage se fait côté client)
+
     magasins = Magasin.objects.all().order_by('code')
-    
+
     context = {
         'commandes': page_obj,
         'page_obj': page_obj,
@@ -1906,8 +1818,10 @@ def liste_commandes_asten(request):
             'recherche_magasin': recherche_magasin,
         },
         'total': paginator.count,
+        'per_page': per_page,
+        'per_page_options': [30, 50, 100, 200],
     }
-    
+
     return render(request, 'dashboard/liste_commandes_asten.html', context)
 
 
@@ -1936,15 +1850,16 @@ def liste_commandes_cyrus(request):
     commandes = CommandeCyrus.objects.filter(**filtres).select_related(
         'code_magasin'
     ).order_by('-date_commande', 'numero_commande')
-    
-    # Pagination pour améliorer les performances
-    paginator = Paginator(commandes, 50)  # 50 commandes par page
+
+    per_page = int(request.GET.get('per_page', 30))
+    if per_page not in [30, 50, 100, 200]:
+        per_page = 30
+    paginator = Paginator(commandes, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
-    
-    # Charger tous les magasins pour le select (le filtrage se fait côté client)
+
     magasins = Magasin.objects.all().order_by('code')
-    
+
     context = {
         'commandes': page_obj,
         'page_obj': page_obj,
@@ -1957,6 +1872,8 @@ def liste_commandes_cyrus(request):
             'recherche_magasin': recherche_magasin,
         },
         'total': paginator.count,
+        'per_page': per_page,
+        'per_page_options': [30, 50, 100, 200],
     }
     
     return render(request, 'dashboard/liste_commandes_cyrus.html', context)
@@ -1989,7 +1906,10 @@ def liste_br_asten(request):
 
     brs = BRAsten.objects.filter(**filtres).select_related('code_magasin').order_by('-date_br', 'numero_br')
 
-    paginator = Paginator(brs, 50)
+    per_page = int(request.GET.get('per_page', 30))
+    if per_page not in [30, 50, 100, 200]:
+        per_page = 30
+    paginator = Paginator(brs, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
@@ -2007,6 +1927,8 @@ def liste_br_asten(request):
             'statut_ic': statut_ic,
         },
         'total': paginator.count,
+        'per_page': per_page,
+        'per_page_options': [30, 50, 100, 200],
         'titre': "Liste BR",
     }
 
@@ -2060,7 +1982,10 @@ def liste_br_ecart(request):
         filtres['numero_br__icontains'] = numero_br
 
     brs = BRAsten.objects.filter(**filtres).select_related('code_magasin').order_by('-date_br', 'numero_br')
-    paginator = Paginator(brs, 50)
+    per_page = int(request.GET.get('per_page', 30))
+    if per_page not in [30, 50, 100, 200]:
+        per_page = 30
+    paginator = Paginator(brs, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     magasins = Magasin.objects.all().order_by('code')
@@ -2077,6 +2002,8 @@ def liste_br_ecart(request):
             'statut_ic': 'non_integre',
         },
         'total': paginator.count,
+        'per_page': per_page,
+        'per_page_options': [30, 50, 100, 200],
         'titre': "BR en écart",
     }
 
@@ -2430,15 +2357,16 @@ def liste_commandes_gpv(request):
     commandes = CommandeGPV.objects.filter(**filtres).select_related(
         'code_magasin'
     ).order_by('-date_creation', 'numero_commande')
-    
-    # Pagination pour améliorer les performances
-    paginator = Paginator(commandes, 50)  # 50 commandes par page
+
+    per_page = int(request.GET.get('per_page', 30))
+    if per_page not in [30, 50, 100, 200]:
+        per_page = 30
+    paginator = Paginator(commandes, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
-    
-    # Charger tous les magasins pour le select (le filtrage se fait côté client)
+
     magasins = Magasin.objects.all().order_by('code')
-    
+
     context = {
         'commandes': page_obj,
         'page_obj': page_obj,
@@ -2451,6 +2379,8 @@ def liste_commandes_gpv(request):
             'recherche_magasin': recherche_magasin,
         },
         'total': paginator.count,
+        'per_page': per_page,
+        'per_page_options': [30, 50, 100, 200],
     }
     
     return render(request, 'dashboard/liste_commandes_gpv.html', context)
@@ -2487,8 +2417,10 @@ def liste_commandes_legend(request):
 
     commandes = CommandeLegend.objects.filter(**filtres).order_by('-date_commande', 'numero_commande')
 
-    # Pagination pour améliorer les performances
-    paginator = Paginator(commandes, 50)
+    per_page = int(request.GET.get('per_page', 30))
+    if per_page not in [30, 50, 100, 200]:
+        per_page = 30
+    paginator = Paginator(commandes, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
@@ -2538,6 +2470,8 @@ def liste_commandes_legend(request):
             'exportee': exportee,
         },
         'total': paginator.count,
+        'per_page': per_page,
+        'per_page_options': [30, 50, 100, 200],
     }
 
     return render(request, 'dashboard/liste_commandes_legend.html', context)
@@ -2928,6 +2862,7 @@ def rapport_global(request):
     from django.http import HttpResponse
     from django.db.models import Count, Q
     from tickets.models import Ticket
+    from imports.models import FactureBackupCyrus, FactureSage, FactureEcartStatut, VersionAstenSnap
 
     today = date.today()
     periode = request.GET.get('periode', 'mois')
@@ -3002,6 +2937,33 @@ def rapport_global(request):
     br_par_jour = list(
         br_qs.values('date_br').annotate(total=Count('id')).order_by('date_br')
     )
+
+    # ---- FACTURES BACKUP CYRUS ----
+    backup_qs = FactureBackupCyrus.objects.filter(date_modif__date__gte=date_debut, date_modif__date__lte=date_fin)
+    backup_total = backup_qs.count()
+    backup_generales = backup_qs.filter(type_facture='general').count()
+    backup_promos = backup_qs.filter(type_facture='promo').count()
+    backup_par_magasin = list(
+        backup_qs.values('code_magasin')
+        .annotate(total=Count('id')).order_by('-total')[:10]
+    )
+
+    # ---- FACTURES ÉCARTS (statuts) ----
+    ecart_integre = FactureEcartStatut.objects.filter(statut='integre').count()
+    ecart_non_integre = FactureEcartStatut.objects.filter(statut='non_integre').count()
+    ecart_ignore = FactureEcartStatut.objects.filter(statut='ignore').count()
+    ecart_total = ecart_integre + ecart_non_integre + ecart_ignore
+
+    # ---- VERSIONS ASTEN ----
+    versions_qs = VersionAstenSnap.objects.filter(date__gte=date_debut, date__lte=date_fin)
+    versions_total = versions_qs.count()
+    versions_ok = versions_qs.filter(statut='ok').count()
+    versions_warning = versions_qs.filter(statut='warning').count()
+    versions_error = versions_qs.filter(statut='error').count()
+    versions_par_jour = list(
+        versions_qs.values('date').annotate(total=Count('id')).order_by('date')
+    )
+    versions_recentes = list(versions_qs.order_by('-date', '-heure')[:10])
 
     # ---- REMONTÉES ----
     tickets_qs = Ticket.objects.filter(
@@ -3138,6 +3100,23 @@ def rapport_global(request):
         'tickets_par_urgence': tickets_par_urgence,
         'tickets_par_magasin': tickets_par_magasin,
         'chart_tickets_json': json.dumps(chart_tickets),
+        # Factures Backup
+        'backup_total': backup_total,
+        'backup_generales': backup_generales,
+        'backup_promos': backup_promos,
+        'backup_par_magasin': backup_par_magasin,
+        # Factures Écarts
+        'ecart_total': ecart_total,
+        'ecart_integre': ecart_integre,
+        'ecart_non_integre': ecart_non_integre,
+        'ecart_ignore': ecart_ignore,
+        # Versions Asten
+        'versions_total': versions_total,
+        'versions_ok': versions_ok,
+        'versions_warning': versions_warning,
+        'versions_error': versions_error,
+        'versions_recentes': versions_recentes,
+        'chart_versions_json': json.dumps({'labels': [str(r['date']) for r in versions_par_jour], 'values': [r['total'] for r in versions_par_jour]}),
         'semaine_comparison': _get_semaine_comparison(request.GET.get('periode_cmp', 'semaine')),
         'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
         'top5': _get_top5_magasins(debut=date_debut, fin=date_fin, n=request.GET.get('top_n', 5)),
