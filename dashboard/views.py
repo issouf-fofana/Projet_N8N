@@ -1457,6 +1457,85 @@ def accueil(request):
 
 
 @require_http_methods(["POST"])
+def actualiser_stream(request):
+    """Vue JSON : exécute l'actualisation et retourne tous les logs."""
+    from core.permissions import user_has_perm
+    from django.http import JsonResponse
+    from pathlib import Path
+    from django.conf import settings
+    import traceback
+
+    if not user_has_perm(request.user, 'actualiser_importer'):
+        return JsonResponse({'ok': False, 'logs': [
+            {'msg': 'Accès non autorisé.', 'level': 'error'}
+        ]})
+
+    logs = []
+    def log(msg, level='info'):
+        logs.append({'msg': msg, 'level': level})
+
+    try:
+        dossiers = {
+            'Asten':    Path(settings.DOSSIER_COMMANDES_ASTEN_PATH),
+            'Cyrus':    Path(settings.DOSSIER_COMMANDES_CYRUS_PATH),
+            'GPV':      Path(settings.DOSSIER_COMMANDES_GPV_PATH),
+            'Legend':   Path(settings.DOSSIER_COMMANDES_LEGEND_PATH),
+            'BR Asten': Path(settings.DOSSIER_BR_ASTEN_PATH),
+            'BR IC':    Path(settings.DOSSIER_BR_IC_PATH),
+        }
+
+        log('=== Scan des dossiers ===', 'section')
+        total_csv = 0
+        for nom, chemin in dossiers.items():
+            if chemin.exists():
+                nb = len(list(chemin.glob('*.csv')) + list(chemin.glob('*.CSV')))
+                total_csv += nb
+                log(f'  {nom} : {nb} fichier(s) trouvé(s)', 'ok' if nb > 0 else 'warn')
+                log(f'    └─ {chemin}', 'path')
+            else:
+                log(f'  {nom} : dossier introuvable', 'error')
+                log(f'    └─ {chemin}', 'path')
+        log(f'  Total : {total_csv} fichier(s) CSV à traiter', 'info')
+        log('', 'info')
+
+        log('=== Import des fichiers ===', 'section')
+        fichiers_importes = scanner_et_importer_fichiers()
+        if fichiers_importes:
+            for f in fichiers_importes:
+                nom_f  = getattr(f, 'nom_fichier', str(f))
+                statut = getattr(f, 'statut', '?')
+                nb_lig = getattr(f, 'nombre_lignes', '?')
+                ok = statut == 'termine'
+                log(f"  {'[OK] ' if ok else '[ERR]'} {nom_f}  ({nb_lig} lignes)", 'ok' if ok else 'error')
+        else:
+            log('  Aucun nouveau fichier à importer', 'warn')
+        log(f'  → {len(fichiers_importes)} fichier(s) importé(s)', 'info')
+        log('', 'info')
+
+        log('=== Recalcul des écarts ===', 'section')
+        resultat_ecarts = recalculer_ecarts()
+        if isinstance(resultat_ecarts, dict):
+            crees   = resultat_ecarts.get('ecarts_crees', 0)
+            resolus = resultat_ecarts.get('ecarts_resolus', 0)
+        else:
+            crees   = resultat_ecarts if isinstance(resultat_ecarts, int) else 0
+            resolus = 0
+        log(f'  Nouveaux écarts : {crees}',  'warn' if crees > 0 else 'ok')
+        log(f'  Écarts résolus  : {resolus}', 'ok')
+        log('', 'info')
+        log('=== Actualisation terminée ✓ ===', 'ok')
+
+        return JsonResponse({'ok': True, 'logs': logs,
+                             'imported': len(fichiers_importes),
+                             'crees': crees, 'resolus': resolus})
+    except Exception as e:
+        log(f'ERREUR : {e}', 'error')
+        for line in traceback.format_exc().splitlines():
+            log(line, 'error')
+        return JsonResponse({'ok': False, 'logs': logs, 'error': str(e)})
+
+
+@require_http_methods(["POST"])
 def actualiser_donnees(request):
     """Actualise TOUTES les données globalement : importe les fichiers et recalcule les écarts pour tous les types"""
     from core.permissions import user_has_perm

@@ -1,7 +1,11 @@
+"""
+run_auto.py — Copie automatique : hier 00:00 → aujourd'hui 23:59
+Lance ce script sans argument, il calcule les dates tout seul.
+"""
 import os
 import shutil
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 
 SOURCE_BASE = "/mnt/partage-share"
@@ -28,12 +32,9 @@ EXTENSIONS = {
     "br_ic": (".csv", ".xlsx"),
 }
 
-# Patterns pour extraire (magasin, date, heure) selon le dossier
-# Chaque entrée : (regex, groupe_cle, groupe_date, groupe_heure)
-# groupe_cle = identifiant unique (magasin ou autre), None = pas de dédup
 DEDUP_PATTERNS = {
     "commande_asten":  re.compile(r'^export_commande_reassort_(\d+)_(\d{8})_(\d{6})'),
-    "commande_cyrus":  None,  # noms uniques (RUN...)
+    "commande_cyrus":  None,
     "commande_gpv":    None,
     "commande_legend": None,
     "br_ic":           re.compile(r'^(.+?)_(\d{8})_(\d{6})'),
@@ -41,15 +42,6 @@ DEDUP_PATTERNS = {
     "facture_asten":   re.compile(r'^(.+?)_(\d{8})_(\d{6})'),
     "facture_cyrus":   None,
 }
-
-
-def parse_date(date_str):
-    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
-        try:
-            return datetime.strptime(date_str.strip(), fmt)
-        except ValueError:
-            continue
-    raise ValueError(f"Format non reconnu : '{date_str}' (attendu : jj/mm/aaaa)")
 
 
 def format_date(timestamp):
@@ -71,15 +63,15 @@ def is_in_range(file_time, start, end):
     return True
 
 
-def copy_csv_files(source_dir, dest_dir, start_date, end_date, folder_name=""):
+def copy_files(source_dir, dest_dir, start_date, end_date, folder_name=""):
     if not os.path.exists(source_dir):
         print(f"  [ERREUR] chemin introuvable: {source_dir}")
         return
 
     extensions = EXTENSIONS.get(folder_name, (".csv",))
-
     copied = 0
     skipped = 0
+
     for root, dirs, files in os.walk(source_dir):
         for file in files:
             if not file.lower().endswith(extensions):
@@ -107,21 +99,18 @@ def copy_csv_files(source_dir, dest_dir, start_date, end_date, folder_name=""):
 
                 shutil.copy2(source_file, dest_file)
                 copied += 1
+                print(f"  [OK] {file}")
 
             except Exception as e:
                 print(f"  [ERREUR] {source_file} : {e}")
 
-    print(f"  → {copied} copié(s), {skipped} ignoré(s)")
+    print(f"  → {copied} copié(s), {skipped} déjà présent(s)")
 
 
 def deduplicate(dest_dir, folder_name):
-    """
-    Pour chaque dossier, garde uniquement le fichier le plus récent
-    par (identifiant, date). Supprime les anciens.
-    """
     pattern = DEDUP_PATTERNS.get(folder_name)
     if pattern is None:
-        return  # pas de dédup pour ce dossier
+        return
 
     groups = defaultdict(list)
     for f in os.listdir(dest_dir):
@@ -129,61 +118,41 @@ def deduplicate(dest_dir, folder_name):
             continue
         m = pattern.match(f)
         if m:
-            key   = (m.group(1), m.group(2))  # (identifiant, date_jour)
+            key   = (m.group(1), m.group(2))
             heure = m.group(3)
             groups[key].append((heure, f))
 
     deleted = 0
     for key, files in groups.items():
-        files.sort(reverse=True)  # plus récent en premier
+        files.sort(reverse=True)
         for _, f in files[1:]:
             os.remove(os.path.join(dest_dir, f))
             deleted += 1
 
     if deleted:
-        print(f"  → {deleted} doublon(s) supprimé(s) (1 fichier/magasin/jour conservé)")
-
-
-def ask_date(label, required=True):
-    while True:
-        val = input(f"  {label} (jj/mm/aaaa) : ").strip()
-        if not val:
-            if required:
-                print("  Date obligatoire, veuillez réessayer.")
-                continue
-            return None
-        try:
-            return parse_date(val)
-        except ValueError as e:
-            print(f"  {e}")
+        print(f"  → {deleted} doublon(s) supprimé(s)")
 
 
 def main():
-    print("=" * 50)
-    print("   Copie des fichiers CSV — Filtre par date")
-    print("=" * 50)
-    print()
+    aujourd_hui = datetime.now().replace(hour=23, minute=59, second=59, microsecond=0)
+    hier        = (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    start_date = ask_date("Date de début", required=True)
-    end_date   = ask_date("Date de fin   (Entrée = même jour)", required=False)
-    if end_date is None:
-        end_date = start_date
-    end_date = end_date.replace(hour=23, minute=59, second=59)
-
-    print()
-    print(f"  Période    : {start_date.strftime('%d/%m/%Y')} → {end_date.strftime('%d/%m/%Y')}")
+    print("=" * 55)
+    print("   Copie automatique — Hier → Aujourd'hui")
+    print("=" * 55)
+    print(f"  Période    : {hier.strftime('%d/%m/%Y')} → {aujourd_hui.strftime('%d/%m/%Y')}")
     print(f"  Destination: {DEST_BASE}")
     print()
 
     for source_path, dest_folder in SOURCES.items():
         dest_path = os.path.join(DEST_BASE, dest_folder)
         os.makedirs(dest_path, exist_ok=True)
-        print(f"=== {dest_folder} ===")
-        copy_csv_files(source_path, dest_path, start_date, end_date, dest_folder)
+        print(f"─── {dest_folder} ───")
+        copy_files(source_path, dest_path, hier, aujourd_hui, dest_folder)
         deduplicate(dest_path, dest_folder)
         print()
 
-    print("Terminé.")
+    print("✓ Terminé.")
 
 
 if __name__ == "__main__":

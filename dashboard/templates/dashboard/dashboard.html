@@ -538,13 +538,9 @@
             <i class="bi bi-ticket-perforated"></i> Voir les remontées
         </a>
         {% if request.user|has_perm:'actualiser_importer' %}
-        <form method="post" action="{% url 'dashboard:actualiser' %}" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="type_donnees" value="{{ filtres.type_donnees|default:'commandes_asten' }}">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-arrow-clockwise"></i> Actualiser / Importer
-            </button>
-        </form>
+        <button type="button" class="btn btn-primary" onclick="ouvrirModalActualiser()" data-no-loader>
+            <i class="bi bi-arrow-clockwise"></i> Actualiser / Importer
+        </button>
         {% endif %}
     </div>
 </div>
@@ -2699,5 +2695,203 @@ document.querySelectorAll('.va-conf-fill2[data-width]').forEach(function(el) {
         }
     });
 })();
+</script>
+
+<!-- ═══════════ MODAL ACTUALISER — LOGS ═══════════ -->
+<div id="modalActualiser" style="
+    display:none; position:fixed; inset:0; z-index:2000;
+    background:rgba(30,41,59,.45); backdrop-filter:blur(6px);
+    align-items:flex-start; justify-content:center; padding:40px 20px;">
+  <div style="
+      background:#ffffff; border-radius:16px; width:100%; max-width:860px;
+      box-shadow:0 20px 60px rgba(0,0,0,.15); border:1px solid #e2e8f0;
+      display:flex; flex-direction:column; height:80vh; overflow:hidden;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 22px;
+                border-bottom:1px solid #e2e8f0;flex-shrink:0;
+                background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);
+                border-radius:16px 16px 0 0;">
+      <div style="width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:9px;
+                  display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="bi bi-lightning-charge-fill" style="color:#fff;font-size:1rem;"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="color:#fff;font-weight:700;font-size:.95rem;">Journal d'actualisation</div>
+        <div id="actStatusLabel" style="color:rgba(255,255,255,.75);font-size:.72rem;margin-top:1px;">Démarrage…</div>
+      </div>
+      <span id="actSpinner" style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);
+            border-top-color:#fff;border-radius:50%;animation:actSpin .7s linear infinite;flex-shrink:0;display:none;"></span>
+      <button onclick="fermerModalActualiser()" id="actCloseBtn"
+              style="display:none;background:rgba(255,255,255,.2);border:none;color:#fff;cursor:pointer;
+                     font-size:.9rem;padding:6px 8px;border-radius:7px;line-height:1;flex-shrink:0;"
+              title="Fermer"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <!-- Logs -->
+    <div id="actLogs" style="
+         flex:1; overflow-y:auto; padding:18px 24px;
+         font-family:'Cascadia Code','Fira Code','Courier New',monospace;
+         font-size:.78rem; line-height:2; background:#f8fafc;
+         display:block;"></div>
+
+    <!-- Footer -->
+    <div style="padding:12px 22px;border-top:1px solid #e2e8f0;display:flex;
+                align-items:center;justify-content:space-between;gap:10px;
+                flex-shrink:0;background:#fff;border-radius:0 0 16px 16px;">
+      <div id="actSummary" style="font-size:.82rem;color:#475569;font-weight:500;"></div>
+      <div style="display:flex;gap:8px;">
+        <button id="actRefreshBtn" onclick="window.location.reload()" style="
+            display:none;background:#6366f1;color:#fff;border:none;
+            border-radius:8px;padding:8px 18px;font-size:.82rem;font-weight:600;cursor:pointer;
+            box-shadow:0 2px 8px rgba(99,102,241,.35);">
+          <i class="bi bi-arrow-clockwise"></i> Rafraîchir la page
+        </button>
+        <button onclick="fermerModalActualiser()" style="
+            background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;
+            border-radius:8px;padding:8px 18px;font-size:.82rem;font-weight:600;cursor:pointer;">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes actSpin { to { transform:rotate(360deg); } }
+</style>
+
+<script>
+var ACT_URL  = "{% url 'dashboard:actualiser_stream' %}";
+var ACT_CSRF = "{{ csrf_token }}";
+
+function ouvrirModalActualiser() {
+    console.log('[ACT] ouverture modal, URL=', ACT_URL);
+    var modal = document.getElementById('modalActualiser');
+    if (!modal) { alert('Modal introuvable !'); return; }
+    // Reset modal
+    modal.style.display = 'flex';
+    document.getElementById('actLogs').innerHTML = '';
+    document.getElementById('actStatusLabel').textContent = 'Exécution en cours…';
+    document.getElementById('actSummary').textContent = '';
+    document.getElementById('actSpinner').style.display = 'inline-block';
+    document.getElementById('actCloseBtn').style.display = 'none';
+    document.getElementById('actRefreshBtn').style.display = 'none';
+    document.getElementById('actCloseBtn').style.display = 'none';
+    document.getElementById('actRefreshBtn').style.display = 'none';
+
+    // Log initial
+    console.log('[ACT] actLogs element=', document.getElementById('actLogs'));
+    appendLog('$ actualiser_donnees --all', 'cmd');
+    appendLog('', 'info');
+
+    // Animation d'attente pendant la requête
+    var waitingDiv = document.createElement('div');
+    waitingDiv.id = 'actWaiting';
+    waitingDiv.style.cssText = 'color:#6366f1;font-style:italic;font-weight:500;';
+    waitingDiv.textContent = '⟳ Exécution en cours, veuillez patienter…';
+    document.getElementById('actLogs').appendChild(waitingDiv);
+
+    var dots = 0;
+    var waitInterval = setInterval(function() {
+        dots = (dots + 1) % 4;
+        if (document.getElementById('actWaiting'))
+            document.getElementById('actWaiting').textContent = '⟳ Exécution en cours' + '.'.repeat(dots);
+    }, 500);
+
+    // Fetch POST
+    fetch(ACT_URL, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': ACT_CSRF,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'type_donnees=commandes_asten',
+    })
+    .then(r => { console.log('[ACT] status HTTP=', r.status); return r.json(); })
+    .then(data => {
+        clearInterval(waitInterval);
+        var w = document.getElementById('actWaiting');
+        if (w) w.remove();
+        document.getElementById('actLogs').innerHTML = '';
+        console.log('[ACT] réponse=', data);
+        return data;
+    })
+    .then(data => {
+        // Afficher les logs avec délai pour simuler un défilement progressif
+        let i = 0;
+        function nextLog() {
+            if (i < data.logs.length) {
+                appendLog(data.logs[i].msg, data.logs[i].level);
+                i++;
+                setTimeout(nextLog, 18);
+            } else {
+                // Fin
+                document.getElementById('actSpinner').style.display = 'none';
+                document.getElementById('actCloseBtn').style.display = 'inline-block';
+                document.getElementById('actRefreshBtn').style.display = 'inline-block';
+
+                if (data.ok) {
+                    document.getElementById('actStatusLabel').textContent = 'Terminé avec succès';
+                    document.getElementById('actSummary').innerHTML =
+                        '<span style="color:#22c55e;">✓</span> ' +
+                        data.imported + ' fichier(s) · ' +
+                        data.crees + ' écart(s) créé(s) · ' +
+                        data.resolus + ' résolu(s)';
+                } else {
+                    document.getElementById('actStatusLabel').textContent = 'Erreur';
+                    document.getElementById('actSummary').innerHTML =
+                        '<span style="color:#f87171;">✗</span> Une erreur est survenue';
+                }
+            }
+        }
+        nextLog();
+    })
+    .catch(err => {
+        clearInterval(waitInterval);
+        var w = document.getElementById('actWaiting');
+        if (w) w.remove();
+        document.getElementById('actSpinner').style.display = 'none';
+        document.getElementById('actCloseBtn').style.display = 'inline-block';
+        document.getElementById('actStatusLabel').textContent = 'Erreur réseau';
+        appendLog('Erreur réseau : ' + err, 'error');
+    });
+}
+
+function appendLog(msg, level) {
+    const el = document.getElementById('actLogs');
+    if (!el) { console.error('[ACT] actLogs introuvable !'); return; }
+    const line = document.createElement('div');
+    const colors = {
+        section: '#4f46e5',
+        cmd:     '#7c3aed',
+        ok:      '#16a34a',
+        warn:    '#d97706',
+        error:   '#dc2626',
+        path:    '#94a3b8',
+        info:    '#64748b',
+    };
+    line.style.color = colors[level] || '#64748b';
+    if (level === 'section') {
+        line.style.fontWeight = '700';
+        line.style.marginTop  = '8px';
+        line.style.paddingTop = '4px';
+        line.style.borderTop  = '1px solid #e2e8f0';
+    }
+    if (level === 'cmd') {
+        line.style.fontWeight = '600';
+    }
+    line.textContent = msg || '\u00A0';
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+}
+
+function fermerModalActualiser() {
+    document.getElementById('modalActualiser').style.display = 'none';
+}
+
+document.getElementById('modalActualiser').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalActualiser();
+});
 </script>
 {% endblock %}

@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.accueil, name='accueil'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('actualiser/', views.actualiser_donnees, name='actualiser'),
+    path('actualiser/stream/', views.actualiser_stream, name='actualiser_stream'),
     path('ecarts/', views.liste_ecarts, name='liste_ecarts'),
     path('ecarts/<int:ecart_id>/', views.detail_ecart, name='detail_ecart'),
     path('ecarts/gpv/<int:ecart_id>/', views.detail_ecart_gpv, name='detail_ecart_gpv'),
