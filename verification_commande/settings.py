@@ -143,6 +143,11 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
+# Session
+SESSION_COOKIE_AGE = 86400 * 7   # 7 jours
+SESSION_SAVE_EVERY_REQUEST = True  # évite les sessions périmées
+SESSION_COOKIE_HTTPONLY = True
+
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [

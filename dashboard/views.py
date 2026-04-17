@@ -2827,6 +2827,9 @@ def creer_utilisateur(request):
             profile = user.profile
             profile.role = new_role
             profile.save()
+            # Mettre à jour le hash de session de l'admin pour éviter son invalidation
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, request.user)
             messages.success(request, f"Utilisateur '{username}' créé.")
             return redirect('dashboard:permissions_utilisateur', user_id=user.pk)
 
@@ -2887,6 +2890,10 @@ def permissions_utilisateur(request, user_id):
             else:
                 u.set_password(nouveau_mdp)
                 u.save()
+                # Si l'admin change son propre mot de passe, garder sa session active
+                from django.contrib.auth import update_session_auth_hash
+                if u == request.user:
+                    update_session_auth_hash(request, u)
                 messages.success(request, f"Mot de passe de '{u.username}' réinitialisé.")
             return redirect('dashboard:permissions_utilisateur', user_id=user_id)
 
