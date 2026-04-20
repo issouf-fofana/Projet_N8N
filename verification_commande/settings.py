@@ -33,7 +33,7 @@ SECRET_KEY = 'django-insecure-#b64ydqegmz%*=qb%w_mw5ynh!k^=yiqd38xte&0&f%6gwu)n*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['10.10.9.1', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['10.10.9.1', 'localhost', '127.0.0.1', '10.0.70.27']
 
 
 # Application definition
@@ -217,3 +217,5 @@ DOSSIER_FACTURES_CYRUS = config('DOSSIER_FACTURES_CYRUS', default='facture_cyrus
 DOSSIER_FACTURES_ASTEN_CSV = config('DOSSIER_FACTURES_ASTEN', default='facture_asten')
 DOSSIER_FACTURES_CYRUS_PATH = get_dossier_path(DOSSIER_FACTURES_CYRUS)
 DOSSIER_FACTURES_ASTEN_CSV_PATH = get_dossier_path(DOSSIER_FACTURES_ASTEN_CSV)
+
+CSRF_TRUSTED_ORIGINS = ['http://10.0.70.27:1212']
