@@ -1639,12 +1639,12 @@
             <div class="d-flex flex-wrap gap-2">
                 {% if sage_days and sage_days|length > 0 %}
                     {% for d in sage_days %}
-                        {% if d.attendu and d.has_files %}
+                        {% if d.attendu %}
+                            {% if d.has_files %}
                             <span class="badge bg-success">{{ d.date|date:"d/m" }} ({{ d.count }})</span>
-                        {% elif d.attendu and not d.has_files %}
+                            {% else %}
                             <span class="badge bg-secondary">{{ d.date|date:"d/m" }} (0)</span>
-                        {% else %}
-                            <span class="badge bg-light text-muted">{{ d.date|date:"d/m" }} (Non attendu)</span>
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
                 {% else %}
@@ -1652,7 +1652,7 @@
                 {% endif %}
             </div>
             <!-- Modal détails fichier Sage -->
-            <div class="modal fade" id="sageFileModal" tabindex="-1" aria-hidden="true">
+            <div class="modal fade" id="sageFileModal" tabindex="-1" aria-hidden="true" style="z-index:3000;">
                 <div class="modal-dialog modal-lg modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -2759,6 +2759,8 @@ document.querySelectorAll('.va-conf-fill2[data-width]').forEach(function(el) {
 
 <style>
 @keyframes actSpin { to { transform:rotate(360deg); } }
+.modal-backdrop { z-index:2990 !important; }
+#sageFileModal { z-index:3000 !important; }
 </style>
 
 <script>

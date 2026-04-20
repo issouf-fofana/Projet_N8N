@@ -51,6 +51,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     permissions = models.ManyToManyField(AppPermission, blank=True, related_name='profiles')
+    must_change_password = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Profil utilisateur"

@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changer votre mot de passe</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: #f1f5f9;
+        }
+        .card {
+            background: #fff; border-radius: 20px; padding: 48px 52px;
+            width: 100%; max-width: 440px;
+            box-shadow: 0 20px 60px rgba(15,23,42,.12);
+            border: 1px solid #e2e8f0;
+        }
+        .icon-wrap {
+            width: 54px; height: 54px; background: #eff6ff; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px;
+        }
+        .icon-wrap i { font-size: 1.5rem; color: #2563eb; }
+        h1 { font-size: 1.4rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+        .sub { font-size: .85rem; color: #94a3b8; margin-bottom: 28px; line-height: 1.5; }
+        .notice {
+            background: #fef9c3; border: 1px solid #fde047; border-radius: 10px;
+            padding: 10px 14px; font-size: .8rem; color: #854d0e;
+            margin-bottom: 22px; display: flex; gap: 8px; align-items: flex-start;
+        }
+        label {
+            display: block; font-size: .68rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .09em;
+            color: #94a3b8; margin-bottom: 6px;
+        }
+        .input-wrap { position: relative; margin-bottom: 14px; }
+        .input-icon {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; font-size: .85rem; pointer-events: none;
+        }
+        .toggle-pwd {
+            position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; cursor: pointer; font-size: .85rem;
+            background: none; border: none; padding: 0;
+        }
+        input[type=password], input[type=text] {
+            width: 100%; padding: 12px 40px;
+            border: 1.5px solid #e2e8f0; border-radius: 50px;
+            font-size: .85rem; color: #0f172a; background: #f8fafc;
+            outline: none; transition: border-color .2s, box-shadow .2s;
+        }
+        input:focus { border-color: #94a3b8; background: #fff; box-shadow: 0 0 0 3px rgba(100,116,139,.1); }
+        .strength { height: 4px; border-radius: 4px; margin-top: -8px; margin-bottom: 14px; background: #e2e8f0; overflow: hidden; }
+        .strength-bar { height: 100%; width: 0; transition: width .3s, background .3s; border-radius: 4px; }
+        .btn {
+            width: 100%; padding: 13px; border: none; border-radius: 50px;
+            background: #0f172a; color: #fff; font-size: .85rem; font-weight: 700;
+            letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+            transition: background .2s, transform .15s;
+        }
+        .btn:hover { background: #1e293b; transform: translateY(-1px); }
+        .alert-error {
+            background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+            border-radius: 10px; padding: 8px 12px; font-size: .78rem;
+            margin-bottom: 16px; display: flex; align-items: center; gap: 6px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon-wrap"><i class="bi bi-shield-lock-fill"></i></div>
+    <h1>Changer votre mot de passe</h1>
+    <p class="sub">Pour votre sécurité, vous devez définir un nouveau mot de passe avant de continuer.</p>
+
+    <div class="notice">
+        <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:1px;"></i>
+        <span>Première connexion détectée. Veuillez choisir un mot de passe personnel (min. 6 caractères).</span>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert-error" {% if 'succès' in message.tags or 'success' in message.tags %}style="background:#f0fdf4;border-color:#bbf7d0;color:#166534;"{% endif %}>
+            <i class="bi bi-{% if 'error' in message.tags %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <label>Nouveau mot de passe</label>
+        <div class="input-wrap">
+            <i class="bi bi-lock input-icon"></i>
+            <input type="password" name="password1" id="pwd1" placeholder="Min. 6 caractères" required oninput="checkStrength(this.value)">
+            <button type="button" class="toggle-pwd" onclick="toggle('pwd1','icon1')">
+                <i class="bi bi-eye" id="icon1"></i>
+            </button>
+        </div>
+        <div class="strength"><div class="strength-bar" id="strengthBar"></div></div>
+
+        <label>Confirmer le mot de passe</label>
+        <div class="input-wrap">
+            <i class="bi bi-lock-fill input-icon"></i>
+            <input type="password" name="password2" id="pwd2" placeholder="Répétez le mot de passe" required>
+            <button type="button" class="toggle-pwd" onclick="toggle('pwd2','icon2')">
+                <i class="bi bi-eye" id="icon2"></i>
+            </button>
+        </div>
+
+        <button type="submit" class="btn"><i class="bi bi-check2-circle"></i> Enregistrer</button>
+    </form>
+</div>
+
+<script>
+function toggle(id, iconId) {
+    const f = document.getElementById(id);
+    const i = document.getElementById(iconId);
+    f.type = f.type === 'password' ? 'text' : 'password';
+    i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+function checkStrength(val) {
+    const bar = document.getElementById('strengthBar');
+    let score = 0;
+    if (val.length >= 6) score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^a-zA-Z0-9]/.test(val)) score++;
+    const pct = (score / 5) * 100;
+    const colors = ['#ef4444','#f97316','#eab308','#22c55e','#16a34a'];
+    bar.style.width = pct + '%';
+    bar.style.background = colors[Math.min(score - 1, 4)] || '#e2e8f0';
+}
+</script>
+</body>
+</html>

@@ -888,8 +888,11 @@
                 </h2>
                 <div id="collapseCommandes" class="accordion-collapse collapse {% if is_cmd == 'liste_ecarts' or is_cmd == 'detail_ecart' or is_cmd == 'detail_ecart_gpv' or is_cmd == 'detail_ecart_legend' or is_cmd == 'liste_commandes_asten' or is_cmd == 'detail_commande_asten' or is_cmd == 'liste_commandes_gpv' or is_cmd == 'detail_commande_gpv' or is_cmd == 'liste_commandes_legend' or is_cmd == 'detail_commande_legend' or is_cmd == 'liste_commandes_cyrus' or is_cmd == 'detail_commande_cyrus' %}show{% endif %}" data-bs-parent="#sidebarAccordion">
                     <div class="accordion-body">
-                        <a href="{% url 'dashboard:liste_ecarts' %}" class="{% if is_cmd == 'liste_ecarts' or is_cmd == 'detail_ecart' or is_cmd == 'detail_ecart_gpv' or is_cmd == 'detail_ecart_legend' %}active{% endif %}">
-                            <i class="bi bi-exclamation-triangle"></i> Écarts
+                        <a href="{% url 'dashboard:liste_ecarts' %}" class="{% if is_cmd == 'liste_ecarts' or is_cmd == 'detail_ecart' or is_cmd == 'detail_ecart_gpv' or is_cmd == 'detail_ecart_legend' %}active{% endif %}" style="display:flex;align-items:center;justify-content:space-between;">
+                            <span><i class="bi bi-exclamation-triangle"></i> Écarts</span>
+                            {% if nb_nouveaux_ecarts > 0 %}
+                            <span class="badge bg-danger rounded-pill" style="font-size:.65rem;min-width:18px;">{{ nb_nouveaux_ecarts }}</span>
+                            {% endif %}
                         </a>
                         <a href="{% url 'dashboard:liste_commandes_asten' %}" class="{% if is_cmd == 'liste_commandes_asten' or is_cmd == 'detail_commande_asten' %}active{% endif %}">
                             <i class="bi bi-list-ul"></i> Asten

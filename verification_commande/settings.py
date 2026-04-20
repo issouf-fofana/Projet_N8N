@@ -67,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.LoginRequiredMiddleware',
+    'core.middleware.ForcePasswordChangeMiddleware',
 ]
 
 ROOT_URLCONF = 'verification_commande.urls'
@@ -81,6 +82,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.ecarts_notification',
             ],
         },
     },
@@ -139,6 +141,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 # Authentification
+AUTHENTICATION_BACKENDS = [
+    'core.backends.CaseInsensitiveBackend',
+]
+
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'

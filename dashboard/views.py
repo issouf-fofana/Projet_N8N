@@ -127,10 +127,14 @@ def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
         fin = today
     n = max(1, min(int(n), 100))
 
-    want_asten  = source in (None, 'commandes_asten')
-    want_gpv    = source in (None, 'commandes_gpv')
-    want_legend = source in (None, 'commandes_legend')
-    want_br     = source in (None, 'br')
+    # source='remontees' ou sources factures/versions → pas de top commandes
+    if source in ('remontees', 'factures', 'versions'):
+        want_asten = want_gpv = want_legend = want_br = False
+    else:
+        want_asten  = source in (None, 'commandes_asten')
+        want_gpv    = source in (None, 'commandes_gpv')
+        want_legend = source in (None, 'commandes_legend')
+        want_br     = source in (None, 'br')
 
     try:
         asten = list(
@@ -171,7 +175,22 @@ def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
     except Exception:
         br = []
 
-    return {'asten': asten, 'gpv': gpv, 'legend': legend, 'br': br, 'debut': debut, 'fin': fin, 'n': n}
+    # Top remontées par magasin
+    remontees = []
+    if source == 'remontees':
+        try:
+            from tickets.models import Ticket
+            from django.db.models import Count
+            remontees = list(
+                Ticket.objects.filter(date_creation__date__gte=debut, date_creation__date__lte=fin)
+                .values('magasin__code', 'magasin__nom')
+                .annotate(total=Count('id')).order_by('-total')[:n]
+            )
+        except Exception:
+            remontees = []
+
+    return {'asten': asten, 'gpv': gpv, 'legend': legend, 'br': br,
+            'remontees': remontees, 'debut': debut, 'fin': fin, 'n': n}
 
 
 def dashboard(request):
@@ -195,7 +214,9 @@ def dashboard(request):
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
     periode = request.GET.get('periode', '')
-    show = request.GET.get('show', '')  # 'non_integres' pour afficher uniquement les écarts ouverts
+    # Pour GPV : défaut = non_integres (masquer les 61k résolus)
+    _default_show = 'non_integres' if type_donnees == 'commandes_gpv' else ''
+    show = request.GET.get('show', _default_show)  # 'non_integres' pour afficher uniquement les écarts ouverts
     
     # Nettoyer les valeurs "None" en string
     if date_debut == 'None' or date_debut == '':
@@ -1681,13 +1702,17 @@ def liste_ecarts(request):
         query = ('?' + '&'.join(params)) if params else ''
         return redirect(f"{reverse('dashboard:liste_ecarts')}{query}")
 
+    # Marquer la visite pour les notifications
+    from django.utils import timezone as _tz
+    request.session['ecarts_last_seen'] = _tz.now().isoformat()
+
     # Filtres
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
     code_magasin = request.GET.get('magasin')
     statut = request.GET.get('statut', '')  # Par défaut, afficher tous les statuts
     type_ecart = request.GET.get('type_ecart', '')  # Filtre par type : asten, gpv, legend, br, factures
-    
+
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
     
@@ -2681,15 +2706,80 @@ def historique_imports(request):
 
 
 def configuration_systeme(request):
-    """
-    Page de configuration générale de l'application (place‑holder).
-    Permettra plus tard de gérer les paramètres globaux (chemins, options, etc.).
-    """
-    from core.permissions import user_has_perm
-    if not user_has_perm(request.user, 'configurer_systeme'):
-        messages.error(request, "Accès non autorisé.")
+    from core.permissions import get_user_role
+    if get_user_role(request.user) != 'superadmin':
+        messages.error(request, "Accès réservé au Super-Administrateur.")
         return redirect('dashboard:dashboard')
-    return render(request, 'dashboard/configuration_systeme.html', {})
+
+    config_path = Path(settings.BASE_DIR) / 'config.env'
+
+    CHAMPS = [
+        ('MEDIA_ROOT',                  'Dossier média racine',             'folder'),
+        ('DOSSIER_COMMANDES_ASTEN',     'Commandes Asten',                  'folder'),
+        ('DOSSIER_COMMANDES_CYRUS',     'Commandes Cyrus',                  'folder'),
+        ('DOSSIER_COMMANDES_GPV',       'Commandes GPV',                    'folder'),
+        ('DOSSIER_COMMANDES_LEGEND',    'Commandes Legend',                 'folder'),
+        ('DOSSIER_BR_ASTEN',            'Bons de réception Asten',          'folder'),
+        ('DOSSIER_BR_IC',               'Bons de réception IC',             'folder'),
+        ('DOSSIER_FACTURES_ASTEN',      'Factures Asten (CSV)',             'folder'),
+        ('DOSSIER_FACTURES_ASTEN_BACKUP','Factures Asten (Backup SMB)',     'smb'),
+        ('DOSSIER_FACTURES_SAGE',       'Factures Sage (Archive)',          'smb'),
+        ('FACTURES_SAGE_PREFIX',        'Préfixe fichiers Sage',            'text'),
+        ('DOSSIER_VERSIONS_ASTEN',      'Versions Asten (Backup)',          'folder'),
+    ]
+
+    # Lire le fichier config.env
+    def read_config():
+        vals = {}
+        if config_path.exists():
+            for line in config_path.read_text(encoding='utf-8').splitlines():
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, _, v = line.partition('=')
+                    vals[k.strip()] = v.strip()
+        return vals
+
+    # Écrire une clé dans config.env
+    def update_config(key, value):
+        content = config_path.read_text(encoding='utf-8') if config_path.exists() else ''
+        lines = content.splitlines()
+        found = False
+        new_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith(f'{key}=') or stripped.startswith(f'{key} ='):
+                new_lines.append(f'{key}={value}')
+                found = True
+            else:
+                new_lines.append(line)
+        if not found:
+            new_lines.append(f'{key}={value}')
+        config_path.write_text('\n'.join(new_lines) + '\n', encoding='utf-8')
+
+    if request.method == 'POST':
+        vals = read_config()
+        changed = []
+        for key, label, _ in CHAMPS:
+            new_val = request.POST.get(key, '').strip()
+            if new_val != vals.get(key, ''):
+                update_config(key, new_val)
+                # Recharger en mémoire immédiatement
+                setattr(settings, key, new_val)
+                # Recalculer les _PATH si besoin
+                path_attr = key + '_PATH'
+                if hasattr(settings, path_attr):
+                    from verification_commande.settings import get_dossier_path
+                    setattr(settings, path_attr, get_dossier_path(new_val))
+                changed.append(label)
+        if changed:
+            messages.success(request, f"Enregistré : {', '.join(changed)}")
+        else:
+            messages.info(request, "Aucune modification détectée.")
+        return redirect('dashboard:configuration_systeme')
+
+    vals = read_config()
+    champs_ctx = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k, '')} for k, l, t in CHAMPS]
+    return render(request, 'dashboard/configuration_systeme.html', {'champs': champs_ctx})
 
 
 def gestion_magasins(request):
@@ -2779,6 +2869,22 @@ def gestion_utilisateurs(request):
 
     role = get_user_role(request.user)
 
+    # Désactiver / réactiver
+    if request.method == 'POST' and request.POST.get('action') == 'toggle_active' and role in ('admin', 'superadmin'):
+        user_id = request.POST.get('user_id')
+        try:
+            u = User.objects.get(pk=user_id)
+            if u == request.user:
+                messages.error(request, "Impossible de modifier votre propre compte.")
+            else:
+                u.is_active = not u.is_active
+                u.save()
+                etat = "réactivé" if u.is_active else "désactivé"
+                messages.success(request, f"Utilisateur '{u.username}' {etat}.")
+        except User.DoesNotExist:
+            messages.error(request, "Utilisateur introuvable.")
+        return redirect('dashboard:gestion_utilisateurs')
+
     # Suppression
     if request.method == 'POST' and request.POST.get('action') == 'delete' and role == 'superadmin':
         user_id = request.POST.get('user_id')
@@ -2826,6 +2932,7 @@ def creer_utilisateur(request):
             user = User.objects.create_user(username=username, password=password)
             profile = user.profile
             profile.role = new_role
+            profile.must_change_password = True
             profile.save()
             # Mettre à jour le hash de session de l'admin pour éviter son invalidation
             from django.contrib.auth import update_session_auth_hash
@@ -2938,6 +3045,17 @@ def preferences_utilisateur(request):
             messages.success(request, "Mot de passe modifié avec succès.")
             return redirect('dashboard:preferences_utilisateur')
     return render(request, 'dashboard/preferences_utilisateur.html', {})
+
+
+def _section_to_source(section):
+    """Convertit la section du rapport en source pour _get_top5_magasins."""
+    return {
+        'commandes': None,          # toutes les sources
+        'br':        'br',
+        'factures':  None,          # pas de top magasin pertinent
+        'versions':  None,
+        'remontees': 'remontees',   # top remontées par magasin
+    }.get(section, None)
 
 
 def rapport_global(request):
@@ -3205,7 +3323,8 @@ def rapport_global(request):
         'chart_versions_json': json.dumps({'labels': [str(r['date']) for r in versions_par_jour], 'values': [r['total'] for r in versions_par_jour]}),
         'semaine_comparison': _get_semaine_comparison(request.GET.get('periode_cmp', 'semaine')),
         'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
-        'top5': _get_top5_magasins(debut=date_debut, fin=date_fin, n=request.GET.get('top_n', 5)),
+        'top5': _get_top5_magasins(debut=date_debut, fin=date_fin, n=request.GET.get('top_n', 5),
+                                   source=_section_to_source(section)),
         'top_url_base': f"?section={section}&periode={periode}&date_debut={date_debut}&date_fin={date_fin}",
     }
     return render(request, 'dashboard/rapport_global.html', context)
@@ -3927,3 +4046,29 @@ def set_statut_facture_ecart(request):
         return JsonResponse({'ok': True, 'statut': statut, 'created': created})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+def changer_mot_de_passe(request):
+    """Vue forcée au premier login si must_change_password=True."""
+    from django.contrib.auth import update_session_auth_hash
+
+    if request.method == 'POST':
+        pwd1 = request.POST.get('password1', '').strip()
+        pwd2 = request.POST.get('password2', '').strip()
+        if not pwd1 or len(pwd1) < 6:
+            messages.error(request, "Le mot de passe doit contenir au moins 6 caractères.")
+        elif pwd1 != pwd2:
+            messages.error(request, "Les mots de passe ne correspondent pas.")
+        else:
+            request.user.set_password(pwd1)
+            request.user.save()
+            request.user.profile.must_change_password = False
+            request.user.profile.save()
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "Mot de passe mis à jour avec succès.")
+            return redirect('/')
+    return render(request, 'dashboard/changer_mot_de_passe.html')
+
+
+def configuration_chemins(request):
+    return configuration_systeme(request)

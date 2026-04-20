@@ -46,4 +46,6 @@ urlpatterns = [
     path('factures/cyrus/detail/', views.detail_facture_cyrus, name='detail_facture_cyrus'),
     path('factures/backup/', views.vue_factures_backup, name='vue_factures_backup'),
     path('factures/backup/set-statut/', views.set_statut_facture_ecart, name='set_statut_facture_ecart'),
+    path('changer-mot-de-passe/', views.changer_mot_de_passe, name='changer_mot_de_passe'),
+    path('configuration/chemins/', views.configuration_chemins, name='configuration_chemins'),
 ]

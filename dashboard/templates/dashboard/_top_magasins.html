@@ -1,4 +1,4 @@
-{% if top5 %}
+{% if top5 %}{% if top5.asten or top5.gpv or top5.legend or top5.br or top5.remontees %}
 <div class="tmw-outer mt-4 mb-3">
 <style>
 /* ═══ TOP N MAGASINS — Premium Card ═══ */
@@ -137,7 +137,7 @@
     <div class="tmw-grid">
 
         <!-- ASTEN -->
-        {% if not type_donnees or type_donnees == 'commandes_asten' %}
+        {% if top5.asten %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon asten"><i class="bi bi-box-seam"></i></div>
@@ -159,7 +159,7 @@
         {% endif %}
 
         <!-- GPV -->
-        {% if not type_donnees or type_donnees == 'commandes_gpv' %}
+        {% if top5.gpv %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon gpv"><i class="bi bi-truck"></i></div>
@@ -181,7 +181,7 @@
         {% endif %}
 
         <!-- LEGEND -->
-        {% if not type_donnees or type_donnees == 'commandes_legend' %}
+        {% if top5.legend %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon legend"><i class="bi bi-archive"></i></div>
@@ -203,7 +203,7 @@
         {% endif %}
 
         <!-- BR ASTEN -->
-        {% if not type_donnees or type_donnees == 'br' %}
+        {% if top5.br %}
         <div class="tmw-col">
             <div class="tmw-col-head">
                 <div class="tmw-col-icon br"><i class="bi bi-receipt"></i></div>
@@ -224,14 +224,36 @@
         </div>
         {% endif %}
 
+        <!-- REMONTÉES -->
+        {% if top5.remontees %}
+        <div class="tmw-col">
+            <div class="tmw-col-head">
+                <div class="tmw-col-icon" style="background:linear-gradient(135deg,#f43f5e,#e11d48);"><i class="bi bi-arrow-up-circle" style="color:#fff;"></i></div>
+                <span class="tmw-col-name" style="color:#e11d48;">Remontées</span>
+            </div>
+            {% for r in top5.remontees %}
+            <a href="/remontee-asten/?magasin={{ r.magasin__code }}" class="tmw-row">
+                <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+                <span class="tmw-name">{{ r.magasin__nom|default:r.magasin__code|default:"-" }}</span>
+                <div class="tmw-right">
+                    <span class="tmw-count" style="color:#e11d48;">{{ r.total }}</span>
+                    {% if top5.remontees.0.total %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar" style="background:#f43f5e;width:{% widthratio r.total top5.remontees.0.total 100 %}%;"></div></div>
+                    {% endif %}
+                </div>
+            </a>
+            {% empty %}<div class="tmw-empty">Aucune remontée</div>{% endfor %}
+        </div>
+        {% endif %}
+
     </div>
 
     <!-- Footer -->
     <div class="tmw-footer">
-        <a href="{% url 'dashboard:rapport_global' %}?section=commandes&periode=mois" class="tmw-link">
+        <a href="{% url 'dashboard:rapport_global' %}?section={{ section|default:'commandes' }}&periode=mois" class="tmw-link">
             Voir les rapports complets <i class="bi bi-arrow-right"></i>
         </a>
     </div>
 </div>
 </div>
-{% endif %}
+{% endif %}{% endif %}

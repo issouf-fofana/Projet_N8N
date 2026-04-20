@@ -28,16 +28,17 @@
             </thead>
             <tbody>
                 {% for u in users %}
-                <tr>
+                <tr {% if not u.is_active %}style="opacity:.55;"{% endif %}>
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width:36px;height:36px;background:#e5e7eb;">
-                                <i class="bi bi-person-fill text-muted"></i>
+                                 style="width:36px;height:36px;background:{% if u.is_active %}#e5e7eb{% else %}#fee2e2{% endif %};">
+                                <i class="bi bi-person{% if not u.is_active %}-slash{% else %}-fill{% endif %} text-muted"></i>
                             </div>
                             <div>
                                 <div class="fw-semibold">{{ u.username }}</div>
                                 {% if u == request.user %}<span class="badge bg-light text-muted border" style="font-size:0.65rem;">Vous</span>{% endif %}
+                                {% if not u.is_active %}<span class="badge bg-danger" style="font-size:0.65rem;">Désactivé</span>{% endif %}
                             </div>
                         </div>
                     </td>
@@ -69,8 +70,17 @@
                         {% if u.last_login %}{{ u.last_login|date:"d/m/Y H:i" }}{% else %}Jamais{% endif %}
                     </td>
                     <td class="text-end">
+                        {% if current_role == 'admin' or current_role == 'superadmin' %}
+                        {% if u != request.user %}
+                        <button class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} ms-1"
+                            onclick="confirmerToggle({{ u.pk }}, '{{ u.username }}', {{ u.is_active|yesno:'true,false' }})"
+                            title="{% if u.is_active %}Désactiver{% else %}Réactiver{% endif %}">
+                            <i class="bi bi-{% if u.is_active %}person-slash{% else %}person-check{% endif %}"></i>
+                        </button>
+                        {% endif %}
+                        {% endif %}
                         {% if current_role == 'superadmin' %}
-                        <a href="{% url 'dashboard:permissions_utilisateur' u.pk %}" class="btn btn-sm btn-outline-primary">
+                        <a href="{% url 'dashboard:permissions_utilisateur' u.pk %}" class="btn btn-sm btn-outline-primary ms-1">
                             <i class="bi bi-shield-lock"></i> Permissions
                         </a>
                         {% if u != request.user %}
@@ -90,14 +100,35 @@
     </div>
 </div>
 
-<!-- Formulaire suppression caché -->
+<!-- Formulaires cachés -->
 <form method="post" id="formSuppression" style="display:none;">
     {% csrf_token %}
     <input type="hidden" name="action" value="delete">
     <input type="hidden" name="user_id" id="suppUserId">
 </form>
+<form method="post" id="formToggle" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="toggle_active">
+    <input type="hidden" name="user_id" id="toggleUserId">
+</form>
 
 <script>
+function confirmerToggle(userId, username, isActive) {
+    const action = isActive ? 'désactiver' : 'réactiver';
+    const type = isActive ? 'warning' : 'success';
+    AppModal.confirm({
+        type: type,
+        title: (isActive ? 'Désactiver' : 'Réactiver') + ' l\'utilisateur',
+        message: `Voulez-vous vraiment ${action} <strong>${username}</strong> ?`,
+        confirmLabel: isActive ? 'Désactiver' : 'Réactiver',
+        cancelLabel: 'Annuler',
+        onConfirm: () => {
+            document.getElementById('toggleUserId').value = userId;
+            document.getElementById('formToggle').submit();
+        }
+    });
+}
+
 function confirmerSuppression(userId, username) {
     AppModal.confirm({
         type: 'danger',

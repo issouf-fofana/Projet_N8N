@@ -1,30 +1,122 @@
 {% extends 'core/base.html' %}
+{% load auth_extras %}
 
 {% block title %}Configuration système{% endblock %}
 
-{% block content %}
-<div class="page-header d-flex justify-content-between align-items-center">
-    <h1><i class="bi bi-sliders"></i> Configuration système</h1>
-</div>
-
-<div class="card dashboard-card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-gear"></i> Paramètres généraux</h5>
-    </div>
-    <div class="card-body">
-        <p class="text-muted mb-3">
-            Cette page servira à centraliser tous les paramètres globaux de l'application
-            (chemins d'import, options de sécurité, comportements par défaut, etc.).
-        </p>
-        <div class="alert alert-info mb-0">
-            <i class="bi bi-info-circle"></i>
-            Pour l'instant, cette section est une base visuelle. Nous pourrons y ajouter
-            des formulaires détaillés selon vos besoins.
-        </div>
-    </div>
-</div>
+{% block extra_css %}
+<style>
+.config-card {
+    background: #fff; border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    margin-bottom: 24px; overflow: hidden;
+}
+.config-card-header {
+    background: linear-gradient(135deg,#6366f1,#4f46e5);
+    padding: 16px 24px; display:flex; align-items:center; gap:12px;
+}
+.config-card-header i { color:#fff; font-size:1.1rem; }
+.config-card-header h5 { color:#fff; font-weight:700; margin:0; font-size:.95rem; }
+.config-card-header small { color:rgba(255,255,255,.7); font-size:.75rem; }
+.config-body { padding:20px 24px; }
+.config-row {
+    display:flex; align-items:center; gap:12px;
+    padding:11px 0; border-bottom:1px solid #f1f5f9;
+}
+.config-row:last-child { border-bottom:none; }
+.config-label { flex:0 0 210px; font-size:.82rem; font-weight:600; color:#374151; }
+.config-label small { display:block; font-weight:400; color:#94a3b8; font-size:.7rem; font-family:monospace; }
+.config-input-wrap { flex:1; position:relative; }
+.config-input {
+    width:100%; padding:9px 14px 9px 36px;
+    border:1.5px solid #e2e8f0; border-radius:8px;
+    font-size:.8rem; color:#0f172a; background:#f8fafc;
+    font-family:'Cascadia Code','Fira Code',monospace;
+    transition:border-color .2s,box-shadow .2s;
+}
+.config-input:focus {
+    outline:none; border-color:#6366f1;
+    box-shadow:0 0 0 3px rgba(99,102,241,.12); background:#fff;
+}
+.config-input-icon {
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    color:#94a3b8; font-size:.8rem; pointer-events:none;
+}
+.badge-type {
+    font-size:.62rem; font-weight:700; padding:2px 8px;
+    border-radius:20px; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap;
+}
+.badge-folder { background:#eff6ff; color:#1d4ed8; }
+.badge-smb    { background:#f0fdf4; color:#15803d; }
+.badge-text   { background:#fefce8; color:#92400e; }
+</style>
 {% endblock %}
 
+{% block content %}
+<div class="container-fluid py-4">
 
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-1" style="color:#0f172a;">
+                <i class="bi bi-gear-fill me-2" style="color:#6366f1;"></i>Configuration système
+            </h2>
+            <p class="text-muted mb-0" style="font-size:.85rem;">
+                Modifiez les chemins des dossiers. Les modifications sont appliquées immédiatement sans redémarrage.
+            </p>
+        </div>
+    </div>
 
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if 'error' in message.tags %}danger{% elif 'success' in message.tags %}success{% else %}info{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" style="border-radius:12px;font-size:.85rem;">
+        <i class="bi bi-{% if 'error' in message.tags %}exclamation-triangle-fill{% elif 'success' in message.tags %}check-circle-fill{% else %}info-circle-fill{% endif %}"></i>
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
 
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="config-card">
+            <div class="config-card-header">
+                <i class="bi bi-folder2-open"></i>
+                <div>
+                    <h5>Chemins des dossiers d'import</h5>
+                    <small>Chemins absolus (/mnt/...) ou relatifs (commande_asten) ou SMB (smb://...)</small>
+                </div>
+            </div>
+            <div class="config-body">
+                {% for champ in champs %}
+                <div class="config-row">
+                    <div class="config-label">
+                        {{ champ.label }}
+                        <small>{{ champ.key }}</small>
+                    </div>
+                    <div class="config-input-wrap">
+                        <i class="bi bi-{% if champ.type == 'smb' %}hdd-network{% elif champ.type == 'text' %}tag{% else %}folder{% endif %} config-input-icon"></i>
+                        <input type="text" name="{{ champ.key }}" value="{{ champ.value }}"
+                               class="config-input"
+                               placeholder="{% if champ.type == 'smb' %}/mnt/... ou smb://...{% elif champ.type == 'text' %}préfixe{% else %}/chemin ou relatif{% endif %}">
+                    </div>
+                    <span class="badge-type badge-{{ champ.type }}">
+                        {% if champ.type == 'smb' %}SMB{% elif champ.type == 'text' %}TXT{% else %}DIR{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 justify-content-end">
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-secondary" style="border-radius:10px;font-size:.85rem;">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+            <button type="submit" class="btn btn-primary" style="border-radius:10px;font-size:.85rem;font-weight:600;background:#6366f1;border:none;padding:9px 24px;">
+                <i class="bi bi-check2-circle"></i> Enregistrer les modifications
+            </button>
+        </div>
+    </form>
+
+</div>
+{% endblock %}
