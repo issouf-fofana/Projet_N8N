@@ -35,6 +35,17 @@ class BRAsten(models.Model):
     fichier_source = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fichier source")
     avis = models.TextField(null=True, blank=True, verbose_name="Avis/Commentaire")
 
+    # Champs anomalie (depuis le fichier Anomalies_BR_ASTEN_IC.csv)
+    en_anomalie = models.BooleanField(default=False, verbose_name="En anomalie")
+    nom_fichier_integ = models.CharField(max_length=255, null=True, blank=True, verbose_name="Nom fichier intégration")
+    type_mouvement = models.CharField(max_length=10, null=True, blank=True, verbose_name="Type (1=BR, 2=Retour)")
+    fournisseur_anomalie = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fournisseur (anomalie)")
+    montant_ht_anomalie = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True, verbose_name="Montant HT (anomalie)")
+    rejet_csm_entete = models.CharField(max_length=500, null=True, blank=True, verbose_name="Rejet CSM entête")
+    rejet_csm_detail = models.CharField(max_length=500, null=True, blank=True, verbose_name="Rejet CSM détail article")
+    rejet_ic_entete = models.CharField(max_length=500, null=True, blank=True, verbose_name="Rejet IC entête")
+    facture_anomalie = models.CharField(max_length=10, null=True, blank=True, verbose_name="Facture (OUI/NON)")
+
     class Meta:
         verbose_name = "BR Asten"
         verbose_name_plural = "BR Asten"

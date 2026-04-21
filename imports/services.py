@@ -852,6 +852,111 @@ def comparer_br_asten_ic():
     }
 
 
+def sync_anomalies_br():
+    """
+    Lit le fichier Anomalies_BR_ASTEN_IC.csv depuis DOSSIER_ANOMALIE_BR_PATH
+    et met à jour les champs anomalie sur les BRAsten correspondants.
+
+    Colonne CSV → champ BRAsten :
+      Nr bon reception  → numero_br  (clé de rapprochement)
+      Nr de site        → code_magasin (clé de rapprochement)
+      Nom de fichier integ → nom_fichier_integ
+      1=BR,2=RETOUR     → type_mouvement
+      Fournisseur       → fournisseur_anomalie
+      Montant HT Total  → montant_ht_anomalie
+      Rejet CSM entete  → rejet_csm_entete
+      Rejet CSM detail art → rejet_csm_detail
+      Rejet IC Entete   → rejet_ic_entete
+      Facture OUI/NON   → facture_anomalie
+    """
+    dossier = Path(settings.DOSSIER_ANOMALIE_BR_PATH)
+    if not dossier.exists():
+        return {'synced': 0, 'not_found': 0, 'error': 'dossier_introuvable'}
+
+    fichiers = list(dossier.glob('*.csv')) + list(dossier.glob('*.CSV'))
+    if not fichiers:
+        return {'synced': 0, 'not_found': 0, 'error': 'aucun_fichier'}
+
+    # Regrouper les anomalies par (numero_br, code_magasin)
+    anomalies = {}
+    for fichier in fichiers:
+        try:
+            import io as _io
+            content = None
+            for enc in ('utf-8-sig', 'cp850', 'latin-1', 'cp1252'):
+                try:
+                    with open(str(fichier), encoding=enc, errors='strict') as f:
+                        content = f.read()
+                    break
+                except (UnicodeDecodeError, LookupError):
+                    continue
+            if content is None:
+                with open(str(fichier), encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+            reader = csv.DictReader(_io.StringIO(content), delimiter=';')
+            for row in reader:
+                    numero_br = str(row.get('Nr bon reception', '') or '').strip()
+                    code_mag = str(row.get('Nr de site', '') or '').strip()
+                    if not numero_br or not code_mag:
+                        continue
+                    key = (numero_br, code_mag)
+                    anomalies[key] = {
+                        'nom_fichier_integ':   str(row.get('Nom de fichier integ', '') or '').strip() or None,
+                        'type_mouvement':      str(row.get('1=BR,2=RETOUR', '') or '').strip() or None,
+                        'fournisseur_anomalie':str(row.get('Fournisseur', '') or '').strip() or None,
+                        'montant_ht_raw':      str(row.get('Montant HT Total', '') or '').strip(),
+                        'rejet_csm_entete':    str(row.get('Rejet CSM entete', '') or '').strip() or None,
+                        'rejet_csm_detail':    str(row.get('Rejet CSM detail art', '') or '').strip() or None,
+                        'rejet_ic_entete':     str(row.get('Rejet IC Entete', '') or '').strip() or None,
+                        'facture_anomalie':    str(row.get('Facture OUI/NON', '') or '').strip() or None,
+                    }
+        except Exception as e:
+            print(f"Erreur lecture anomalies BR {fichier.name}: {e}")
+
+    if not anomalies:
+        return {'synced': 0, 'not_found': 0, 'error': 'aucune_anomalie'}
+
+    synced = 0
+    not_found = 0
+    # D'abord remettre tous les BR à non-anomalie (on recalcule depuis le fichier)
+    BRAsten.objects.filter(en_anomalie=True).update(
+        en_anomalie=False,
+        nom_fichier_integ=None, type_mouvement=None,
+        fournisseur_anomalie=None, montant_ht_anomalie=None,
+        rejet_csm_entete=None, rejet_csm_detail=None,
+        rejet_ic_entete=None, facture_anomalie=None,
+    )
+
+    for (numero_br, code_mag), data in anomalies.items():
+        montant = None
+        try:
+            val = data['montant_ht_raw'].replace(',', '.')
+            if val:
+                montant = float(val)
+        except (ValueError, AttributeError):
+            pass
+
+        qs = BRAsten.objects.filter(numero_br=numero_br, code_magasin__code=code_mag)
+        if not qs.exists():
+            not_found += 1
+            continue
+
+        updated = qs.update(
+            en_anomalie=True,
+            nom_fichier_integ=data['nom_fichier_integ'],
+            type_mouvement=data['type_mouvement'],
+            fournisseur_anomalie=data['fournisseur_anomalie'],
+            montant_ht_anomalie=montant,
+            rejet_csm_entete=data['rejet_csm_entete'],
+            rejet_csm_detail=data['rejet_csm_detail'],
+            rejet_ic_entete=data['rejet_ic_entete'],
+            facture_anomalie=data['facture_anomalie'],
+        )
+        synced += updated
+
+    return {'synced': synced, 'not_found': not_found, 'error': None}
+
+
 def importer_fichier_asten(chemin_fichier):
     """
     Importe un fichier CSV Asten dans la base de données
@@ -1329,6 +1434,12 @@ def scanner_et_importer_fichiers():
         comparer_br_asten_ic()
     except Exception as e:
         print(f"Erreur comparaison BR Asten/IC: {e}")
+
+    # Synchroniser les anomalies BR depuis le fichier CSV anomalie
+    try:
+        sync_anomalies_br()
+    except Exception as e:
+        print(f"Erreur sync anomalies BR: {e}")
 
     # Scanner les factures Sage (métadonnées uniquement, pas de suppression)
     try:

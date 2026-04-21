@@ -236,6 +236,95 @@
     </div>
 </div>
 
+<!-- Anomalies BR (depuis fichier Anomalies_BR_ASTEN_IC) -->
+{% if br.en_anomalie %}
+<div class="detail-card" style="border-left: 5px solid #dc3545;">
+    <div class="detail-header" style="background: #fff5f5; border-bottom: 1px solid #f5c6cb;">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-3"></i>
+            <div>
+                <h5 class="mb-0 text-danger">Anomalie d'intégration détectée</h5>
+                <small class="text-muted">Ce BR figure dans le fichier des anomalies ASTEN/IC</small>
+            </div>
+        </div>
+    </div>
+    <div class="detail-body">
+        <div class="row">
+            {% if br.rejet_ic_entete %}
+            <div class="col-md-6 mb-3">
+                <div class="info-label"><i class="bi bi-x-octagon text-danger"></i> Rejet IC Entête</div>
+                <div class="info-value">
+                    <span class="badge bg-danger fs-6">{{ br.rejet_ic_entete }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% if br.rejet_csm_entete %}
+            <div class="col-md-6 mb-3">
+                <div class="info-label"><i class="bi bi-x-octagon text-warning"></i> Rejet CSM Entête</div>
+                <div class="info-value">
+                    <span class="badge bg-warning text-dark fs-6">{{ br.rejet_csm_entete }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% if br.rejet_csm_detail %}
+            <div class="col-md-6 mb-3">
+                <div class="info-label"><i class="bi bi-x-circle text-warning"></i> Rejet CSM Détail Article</div>
+                <div class="info-value">
+                    <span class="badge bg-warning text-dark">{{ br.rejet_csm_detail }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% if br.fournisseur_anomalie %}
+            <div class="col-md-6 mb-3">
+                <div class="info-label"><i class="bi bi-building"></i> Fournisseur</div>
+                <div class="info-value">{{ br.fournisseur_anomalie }}</div>
+            </div>
+            {% endif %}
+            {% if br.montant_ht_anomalie is not None %}
+            <div class="col-md-6 mb-3">
+                <div class="info-label"><i class="bi bi-currency-euro"></i> Montant HT</div>
+                <div class="info-value"><strong>{{ br.montant_ht_anomalie }}</strong></div>
+            </div>
+            {% endif %}
+            {% if br.type_mouvement %}
+            <div class="col-md-6 mb-3">
+                <div class="info-label"><i class="bi bi-arrow-left-right"></i> Type mouvement</div>
+                <div class="info-value">
+                    {% if br.type_mouvement == '1' %}
+                        <span class="badge bg-primary">1 — Bon de réception</span>
+                    {% elif br.type_mouvement == '2' %}
+                        <span class="badge bg-secondary">2 — Retour</span>
+                    {% else %}
+                        {{ br.type_mouvement }}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% if br.facture_anomalie %}
+            <div class="col-md-6 mb-3">
+                <div class="info-label"><i class="bi bi-receipt"></i> Facture</div>
+                <div class="info-value">
+                    {% if br.facture_anomalie == 'OUI' %}
+                        <span class="badge bg-success">OUI</span>
+                    {% elif br.facture_anomalie == 'NON' %}
+                        <span class="badge bg-danger">NON</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ br.facture_anomalie }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% if br.nom_fichier_integ %}
+            <div class="col-12 mb-3">
+                <div class="info-label"><i class="bi bi-file-earmark-text"></i> Nom fichier intégration</div>
+                <div class="info-value"><code>{{ br.nom_fichier_integ }}</code></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Informations supplémentaires -->
 <div class="row">
     <div class="col-md-12">
@@ -249,8 +338,8 @@
                         <div class="info-label">Clé de Rapprochement</div>
                         <div class="info-value">
                             <code class="text-primary">
-                                Date: {{ br.date_br|date:"Y-m-d" }} | 
-                                N°: {{ br.numero_br }} | 
+                                Date: {{ br.date_br|date:"Y-m-d" }} |
+                                N°: {{ br.numero_br }} |
                                 Magasin: {{ br.code_magasin.code }}
                             </code>
                         </div>

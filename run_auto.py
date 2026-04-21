@@ -22,6 +22,7 @@ SOURCES = {
 
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Vérification_BRS/BRS/BRS_IC": "br_ic",
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Vérification_BRS/BRS/ASTEN/Receptions": "br_asten",
+    f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Vérification_BRS/Anomalies_BR_ASTEN": "anomalie_br",
 
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Verification_Factures_ASTEN/Fact_ASTEN": "facture_asten",
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Verification_Factures_ASTEN/Fac_cyrus": "facture_cyrus",
@@ -32,6 +33,9 @@ EXTENSIONS = {
     "br_ic": (".csv", ".xlsx"),
 }
 
+# Dossiers dont le fichier doit être copié sans filtre de date (toujours à jour)
+COPY_ALWAYS = {"anomalie_br"}
+
 DEDUP_PATTERNS = {
     "commande_asten":  re.compile(r'^export_commande_reassort_(\d+)_(\d{8})_(\d{6})'),
     "commande_cyrus":  None,
@@ -41,6 +45,7 @@ DEDUP_PATTERNS = {
     "br_asten":        re.compile(r'^(.+?)_(\d{8})_(\d{6})'),
     "facture_asten":   re.compile(r'^(.+?)_(\d{8})_(\d{6})'),
     "facture_cyrus":   None,
+    "anomalie_br":     None,
 }
 
 
@@ -69,6 +74,7 @@ def copy_files(source_dir, dest_dir, start_date, end_date, folder_name=""):
         return
 
     extensions = EXTENSIONS.get(folder_name, (".csv",))
+    always = folder_name in COPY_ALWAYS
     copied = 0
     skipped = 0
 
@@ -78,6 +84,14 @@ def copy_files(source_dir, dest_dir, start_date, end_date, folder_name=""):
                 continue
             source_file = os.path.join(root, file)
             try:
+                if always:
+                    # Copier sans filtre de date, écraser l'existant
+                    dest_file = os.path.join(dest_dir, file)
+                    shutil.copy2(source_file, dest_file)
+                    copied += 1
+                    print(f"  [OK] {file}")
+                    continue
+
                 file_date = extract_date_from_filename(file)
                 if file_date:
                     mtime = file_date.timestamp()
