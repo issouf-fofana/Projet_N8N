@@ -1304,73 +1304,28 @@ def accueil(request):
     except:
         stats_br = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
     
-    # FACTURES (Facture Sage)
+    # FACTURES (Cyrus/Asten — jointure)
     try:
-        if FactureSage.objects.count() == 0:
-            scanner_factures_sage()
-    except Exception:
-        pass
-
-    try:
-        factures_qs = FactureSage.objects.all()
-        prefixes = get_factures_sage_prefixes()
-        if prefixes != ['']:
-            prefix_filter = Q()
-            for prefix in prefixes:
-                prefix_filter |= Q(nom_fichier__startswith=prefix)
-            factures_qs = factures_qs.filter(prefix_filter)
-        if date_debut:
-            factures_qs = factures_qs.filter(date_depot__gte=date_debut)
-        if date_fin:
-            factures_qs = factures_qs.filter(date_depot__lte=date_fin)
-
-        depots = {
-            item['date_depot']: item['count']
-            for item in factures_qs.values('date_depot').annotate(count=Count('id'))
-        }
-
-        if date_debut and date_fin:
-            start_date = date_debut
-            end_date = date_fin
-        elif date_debut and not date_fin:
-            start_date = date_debut
-            end_date = date_debut
-        elif date_fin and not date_debut:
-            start_date = date_fin
-            end_date = date_fin
-        else:
-            if depots:
-                start_date = min(depots.keys())
-                end_date = max(depots.keys())
-            else:
-                start_date = None
-                end_date = None
-
-        expected_days = 0
-        days_with_depot = 0
-        days_without_depot = 0
-        if start_date and end_date:
-            current = start_date
-            while current <= end_date:
-                attendu = current.weekday() in {1, 2, 3, 4, 5}  # Mardi à samedi
-                count = depots.get(current, 0)
-                if attendu:
-                    expected_days += 1
-                    if count > 0:
-                        days_with_depot += 1
-                    else:
-                        days_without_depot += 1
-                current += timedelta(days=1)
-
-        taux_integration = round((days_with_depot / expected_days * 100) if expected_days > 0 else 0, 2)
-        taux_non_integration = round((days_without_depot / expected_days * 100) if expected_days > 0 else 0, 2)
-
+        from imports.services import get_factures_verification
+        from core.models import Magasin as MagasinModel
+        fv = get_factures_verification()
+        fv_stats = fv['stats']
+        full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
+        nb_int_acc  = fv_stats.get('integrees', 0)
+        nb_vide_acc = fv_stats.get('integrees_vide', 0)
+        nb_eca_acc  = fv_stats.get('ecarts', 0)
+        nb_tot_acc  = fv_stats.get('total', 0)
+        # Si Full Asten configurés, ne compter que les écarts Full Asten
+        if full_asten_codes:
+            pm = fv_stats.get('par_magasin', {})
+            nb_eca_acc = sum(s.get('ecarts', 0) for k, s in pm.items() if k in full_asten_codes)
+        taux_int = round((nb_int_acc + nb_vide_acc) / nb_tot_acc * 100, 2) if nb_tot_acc else 0
         stats_factures = {
-            'total': factures_qs.count(),
-            'integres': days_with_depot,
-            'non_integres': days_without_depot,
-            'taux_integration': taux_integration,
-            'taux_non_integration': taux_non_integration,
+            'total':               nb_tot_acc,
+            'integres':            nb_int_acc + nb_vide_acc,
+            'non_integres':        nb_eca_acc,
+            'taux_integration':    taux_int,
+            'taux_non_integration': round(100 - taux_int, 2),
         }
     except Exception:
         stats_factures = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}

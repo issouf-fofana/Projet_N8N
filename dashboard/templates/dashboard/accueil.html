@@ -197,7 +197,7 @@ body { background: #f0f2f8 !important; }
         </a>
         {% endif %}
         {% if non_fact %}
-        <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-alert warning">
+        <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures_backup&statut_fv=non_integre{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-alert warning">
             <i class="bi bi-file-earmark-x-fill"></i>
             <span>Factures non intégrées</span>
             <span class="acc-alert-count">{{ non_fact }} non intégrée{{ non_fact|pluralize }}</span>
@@ -426,7 +426,7 @@ body { background: #f0f2f8 !important; }
                         <div class="acc-stats-row">
                             <i class="bi bi-exclamation-triangle-fill sr-icon" style="color:#dc2626;"></i>
                             <span class="sr-label">Non intégrées</span>
-                            <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures&show=non_integres{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="sr-val red" style="text-decoration:none;">{{ stats_factures.non_integres|default:0 }}</a>
+                            <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures_backup&statut_fv=non_integre{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="sr-val red" style="text-decoration:none;">{{ stats_factures.non_integres|default:0 }}</a>
                         </div>
                     </div>
                     <div class="acc-card-chart">
@@ -440,7 +440,7 @@ body { background: #f0f2f8 !important; }
                     </div>
                     <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_factures.taux_integration|default:0 }}">0</span>% intégrées</div>
                 </div>
-                <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les factures <i class="bi bi-arrow-right ms-1"></i></a>
+                <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures_backup{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les factures <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
         </div>
 
