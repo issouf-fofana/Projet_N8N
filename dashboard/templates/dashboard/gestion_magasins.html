@@ -2,12 +2,31 @@
 
 {% block title %}Gestion des magasins{% endblock %}
 
+{% block extra_css %}
+<style>
+.toggle-fa {
+    width: 38px; height: 22px; border-radius: 11px; border: none; cursor: pointer;
+    position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle-fa.on  { background: #10b981; }
+.toggle-fa.off { background: #d1d5db; }
+.toggle-fa::after {
+    content: ''; position: absolute; top: 3px; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff; transition: left 0.2s;
+}
+.toggle-fa.on::after  { left: 19px; }
+.toggle-fa.off::after { left: 3px; }
+.badge-fa     { background:#d1fae5; color:#065f46; font-size:0.72rem; font-weight:700; border-radius:20px; padding:2px 9px; }
+.badge-non-fa { background:#f3f4f6; color:#6b7280; font-size:0.72rem; font-weight:600; border-radius:20px; padding:2px 9px; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1><i class="bi bi-shop"></i> Gestion des magasins</h1>
 </div>
 
-<!-- Formulaire d'ajout / modification de magasin -->
+<!-- Formulaire ajout / modification -->
 <div class="card dashboard-card mb-4">
     <div class="card-header">
         <h5 class="mb-0">
@@ -21,30 +40,29 @@
     <div class="card-body">
         <form method="post" class="row g-3 align-items-end">
             {% csrf_token %}
-            <div class="col-md-3">
-                <label for="code" class="form-label fw-semibold small text-uppercase">Code magasin</label>
-                <input
-                    type="text"
-                    name="code"
-                    id="code"
-                    maxlength="10"
-                    class="form-control"
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small text-uppercase">Code magasin</label>
+                <input type="text" name="code" maxlength="10" class="form-control"
                     placeholder="Ex : 332"
                     value="{% if magasin_edit %}{{ magasin_edit.code }}{% endif %}"
-                    {% if magasin_edit %}readonly{% else %}required{% endif %}
-                >
+                    {% if magasin_edit %}readonly{% else %}required{% endif %}>
             </div>
-            <div class="col-md-6">
-                <label for="nom" class="form-label fw-semibold small text-uppercase">Nom du magasin</label>
-                <input
-                    type="text"
-                    name="nom"
-                    id="nom"
-                    class="form-control"
+            <div class="col-md-5">
+                <label class="form-label fw-semibold small text-uppercase">Nom du magasin</label>
+                <input type="text" name="nom" class="form-control"
                     placeholder="Nom complet du magasin"
                     value="{% if magasin_edit %}{{ magasin_edit.nom }}{% endif %}"
-                    required
-                >
+                    required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small text-uppercase">Full Asten</label>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <input type="checkbox" name="full_asten" id="full_asten_input" value="1" class="form-check-input" style="width:20px;height:20px;cursor:pointer"
+                        {% if magasin_edit and magasin_edit.full_asten %}checked{% endif %}>
+                    <label for="full_asten_input" class="form-check-label fw-semibold" style="cursor:pointer">Oui</label>
+                </div>
+                <!-- converti checkbox → champ hidden pour submit -->
+                <input type="hidden" name="full_asten" id="full_asten_hidden" value="{% if magasin_edit and magasin_edit.full_asten %}1{% else %}0{% endif %}">
             </div>
             <div class="col-md-3 d-flex align-items-end">
                 {% if magasin_edit %}
@@ -61,17 +79,39 @@
                 {% endif %}
             </div>
         </form>
-        <p class="text-muted mt-2 mb-0" style="font-size: 0.8rem;">
-            Une fois créé, le magasin sera automatiquement disponible dans tous les filtres et écrans
-            (Dashboard, BR, commandes, remontées, etc.).
+        <p class="text-muted mt-2 mb-0" style="font-size:0.8rem">
+            Une fois créé, le magasin sera automatiquement disponible dans tous les filtres et écrans (Dashboard, BR, commandes, remontées, etc.).
         </p>
     </div>
 </div>
 
 <!-- Liste des magasins -->
 <div class="card dashboard-card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Liste des magasins</h5>
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Liste des magasins
+            <span class="text-muted fw-normal" style="font-size:0.85rem">
+                — {{ magasins|length }} magasin{{ magasins|length|pluralize }}
+                · <span style="color:#10b981;font-weight:700">{{ nb_full_asten }}</span> Full Asten
+            </span>
+        </h5>
+        <div class="d-flex gap-2">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_full_asten">
+                <input type="hidden" name="full_asten_val" value="1">
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-check-all me-1"></i>Tout cocher Full Asten
+                </button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_full_asten">
+                <input type="hidden" name="full_asten_val" value="0">
+                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-square me-1"></i>Tout décocher
+                </button>
+            </form>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -80,33 +120,46 @@
                     <tr>
                         <th>Code</th>
                         <th>Nom</th>
+                        <th class="text-center">Full Asten</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if magasins %}
-                        {% for magasin in magasins %}
-                            <tr>
-                                <td class="fw-semibold">{{ magasin.code }}</td>
-                                <td>{{ magasin.nom }}</td>
-                                <td class="text-end">
-                                    <a href="{% url 'dashboard:gestion_magasins' %}?edit={{ magasin.code }}" class="btn btn-sm btn-outline-primary me-1">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <form method="post" action="{% url 'dashboard:gestion_magasins' %}" class="d-inline" onsubmit="return confirm('Supprimer le magasin {{ magasin.code }} - {{ magasin.nom }} ?');">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="code" value="{{ magasin.code }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
+                        {% for mag in magasins %}
+                        <tr id="row-{{ mag.code }}">
+                            <td class="fw-semibold">{{ mag.code }}</td>
+                            <td>{{ mag.nom }}</td>
+                            <td class="text-center">
+                                <button type="button"
+                                    class="toggle-fa {% if mag.full_asten %}on{% else %}off{% endif %}"
+                                    data-code="{{ mag.code }}"
+                                    title="{% if mag.full_asten %}Full Asten — cliquer pour désactiver{% else %}Pas Full Asten — cliquer pour activer{% endif %}">
+                                </button>
+                                <span id="badge-{{ mag.code }}" class="ms-2 {% if mag.full_asten %}badge-fa{% else %}badge-non-fa{% endif %}">
+                                    {% if mag.full_asten %}Full Asten{% else %}Non{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'dashboard:gestion_magasins' %}?edit={{ mag.code }}"
+                                   class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" action="{% url 'dashboard:gestion_magasins' %}" class="d-inline"
+                                    onsubmit="return confirm('Supprimer le magasin {{ mag.code }} - {{ mag.nom }} ?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="code" value="{{ mag.code }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="2" class="text-center py-4 text-muted">
+                            <td colspan="4" class="text-center py-4 text-muted">
                                 <i class="bi bi-inbox"></i> Aucun magasin trouvé.
                             </td>
                         </tr>
@@ -118,3 +171,35 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+const CSRF = "{{ csrf_token }}";
+const URL_TOGGLE = "{% url 'dashboard:gestion_magasins' %}";
+
+// Synchronise checkbox Full Asten avec le hidden field dans le formulaire
+document.getElementById('full_asten_input')?.addEventListener('change', function() {
+    document.getElementById('full_asten_hidden').value = this.checked ? '1' : '0';
+});
+
+// Toggle individuel via AJAX
+document.querySelectorAll('.toggle-fa').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const code = this.dataset.code;
+        const res = await fetch(URL_TOGGLE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
+            body: `action=toggle_one&code=${encodeURIComponent(code)}`
+        });
+        const data = await res.json();
+        if (data.ok) {
+            const isOn = data.full_asten;
+            this.className = 'toggle-fa ' + (isOn ? 'on' : 'off');
+            this.title = isOn ? 'Full Asten — cliquer pour désactiver' : 'Pas Full Asten — cliquer pour activer';
+            const badge = document.getElementById('badge-' + code);
+            badge.className = 'ms-2 ' + (isOn ? 'badge-fa' : 'badge-non-fa');
+            badge.textContent = isOn ? 'Full Asten' : 'Non';
+        }
+    });
+});
+</script>
+{% endblock %}

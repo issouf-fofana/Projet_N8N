@@ -678,7 +678,7 @@
         <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres de recherche</h5>
     </div>
     <div class="card-body">
-        <form method="get" class="row g-3" id="filterForm">
+        <form method="get" class="row g-3" id="filterFormVersion">
             <input type="hidden" name="type_donnees" value="version">
             <input type="hidden" name="periode" id="periodeInput" value="{{ periode|default:'tous' }}">
             <div class="col-md-12 mb-1">
@@ -1139,11 +1139,28 @@
                 </select>
             </div>
             {% endif %}
+            {% if type_donnees == 'factures_backup' %}
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                    <i class="bi bi-funnel-fill"></i> Filtrer
+                </button>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <input type="hidden" name="full_asten" id="fullAstenInput" value="{% if filtres.full_asten %}1{% else %}0{% endif %}">
+                <button type="button" id="btnFullAsten"
+                    class="btn btn-lg w-100 {% if filtres.full_asten %}btn-success{% else %}btn-outline-success{% endif %}"
+                    onclick="toggleFullAsten()">
+                    <i class="bi bi-stars me-1"></i>
+                    {% if filtres.full_asten %}Full Asten ✓ ({{ full_asten_codes|length }}){% else %}Full Asten ({{ full_asten_codes|length }}){% endif %}
+                </button>
+            </div>
+            {% else %}
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100 btn-lg">
                     <i class="bi bi-funnel-fill"></i> Filtrer
                 </button>
             </div>
+            {% endif %}
         </form>
     </div>
 </div>
@@ -1225,21 +1242,21 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card {% if filtres.type_donnees == 'factures_backup' %}info{% else %}warning{% endif %}">
+        <div class="stat-card {% if filtres.type_donnees == 'factures_backup' %}warning{% else %}warning{% endif %}">
             <div class="sc-orb"></div><div class="sc-orb2"></div>
             <div class="d-flex justify-content-between align-items-center position-relative">
                 <div>
                     <div class="stat-label">
                         {% if filtres.type_donnees == 'factures' %}Jours sans dépôt
-                        {% elif filtres.type_donnees == 'factures_backup' %}Total factures actives
+                        {% elif filtres.type_donnees == 'factures_backup' %}Intégrées à vide
                         {% elif filtres.type_donnees == 'br' %}BR Non Trouvées
                         {% else %}Commandes Non Intégrées{% endif %}
                     </div>
                     {% if filtres.type_donnees == 'factures_backup' %}
                         <div class="stat-value" id="val_integrees_vide"
-                            data-server="{{ stats.total_source|default:0 }}">{{ stats.total_source|default:0 }}</div>
-                        <div class="stat-label mt-1" id="pct_integrees_vide" style="font-size:0.9rem;font-weight:600;">
-                            <i class="bi bi-collection"></i> factures uniques
+                            data-server="{{ stats.integres_vide|default:0 }}">{{ stats.integres_vide|default:0 }}</div>
+                        <div class="stat-label mt-1" style="font-size:0.9rem;font-weight:600;color:#d97706;">
+                            <i class="bi bi-exclamation-circle"></i> quantité = 0
                         </div>
                     {% else %}
                         <div class="stat-value" data-value="{{ stats.non_integres|default:0 }}">0</div>
@@ -1250,17 +1267,20 @@
                         {% endif %}
                     {% endif %}
                 </div>
-                <i class="bi bi-{% if filtres.type_donnees == 'factures_backup' %}collection{% else %}exclamation-triangle{% endif %} stat-icon"></i>
+                <i class="bi bi-{% if filtres.type_donnees == 'factures_backup' %}exclamation-circle{% else %}exclamation-triangle{% endif %} stat-icon"></i>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stat-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; padding: 12px 14px;">
             {% if filtres.type_donnees == 'factures_backup' %}
-            <div class="stat-label mb-2" style="font-size:0.78rem;color:#64748b;text-align:center">
+            <div class="stat-label mb-1" style="font-size:0.75rem;color:#64748b;text-align:center">
                 <i class="bi bi-bar-chart-fill"></i> Intégration par magasin
             </div>
-            <div style="position:relative;height:110px">
+            <div style="font-size:0.7rem;text-align:center;color:#64748b;margin-bottom:4px;">
+                Total : <strong style="color:#1e3a8a">{{ stats.total_source|default:0 }}</strong> factures
+            </div>
+            <div style="position:relative;height:95px">
                 <canvas id="barMagasin"></canvas>
             </div>
             {% else %}
@@ -1278,7 +1298,7 @@
 {% if filtres.type_donnees == 'factures_backup' %}
 <!-- Données stats par magasin pour JS -->
 <script id="backupStatsMagasin" type="application/json">
-{{ stats.par_magasin|default:"{}"|safe }}
+{{ backup_stats_magasin_json|default:"{}"|safe }}
 </script>
 {% endif %}
 
@@ -1303,7 +1323,8 @@
                 </div>
                 <div class="ms-3" style="font-size:0.78rem">
                     <div class="mb-2"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#059669;margin-right:5px"></span>Intégrées : <strong id="lgd_int">—</strong></div>
-                    <div class="mb-2"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:5px"></span>En écart : <strong id="lgd_eca">—</strong></div>
+                    <div class="mb-2"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:5px"></span>À vide : <strong id="lgd_vide">—</strong></div>
+                    <div class="mb-2"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:5px"></span>Non intégrées : <strong id="lgd_eca">—</strong></div>
                     <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#9ca3af;margin-right:5px"></span>Ignorées : <strong id="lgd_ign">—</strong></div>
                 </div>
             </div>
@@ -1311,11 +1332,11 @@
     </div>
     <!-- Barre par magasin -->
     <div class="col-md-8">
-        <div class="card h-100">
+        <div class="card">
             <div class="card-header py-2" style="font-size:0.82rem;font-weight:600">
                 <i class="bi bi-bar-chart-fill me-1" style="color:#1e3a8a"></i> Intégration par magasin
             </div>
-            <div class="card-body" style="min-height:180px;position:relative">
+            <div class="card-body p-2" style="height:230px;position:relative">
                 <canvas id="barMagasinFull"></canvas>
             </div>
         </div>
@@ -1373,11 +1394,12 @@
 (function() {
     const LS_KEY = 'backup_integration_vals_v2';
     const SERVER = {
-        integrees:    parseInt('{{ stats.integres|default:0 }}')    || 0,
-        non_integrees:parseInt('{{ stats.non_integres|default:0 }}')|| 0,
-        total:        parseInt('{{ stats.total_source|default:0 }}') || 0,
-        ignores:      parseInt('{{ stats.ignores|default:0 }}')      || 0,
-        taux:         parseFloat('{{ stats.taux_integration|default:0 }}') || 0,
+        integrees:      parseInt('{{ stats.integres|default:0 }}')       || 0,
+        integrees_vide: parseInt('{{ stats.integres_vide|default:0 }}')  || 0,
+        non_integrees:  parseInt('{{ stats.non_integres|default:0 }}')   || 0,
+        total:          parseInt('{{ stats.total_source|default:0 }}')   || 0,
+        ignores:        parseInt('{{ stats.ignores|default:0 }}')        || 0,
+        taux:           parseFloat('{{ stats.taux_integration|default:0 }}') || 0,
     };
 
     // Données par magasin
@@ -1402,7 +1424,7 @@
             const tot = parseInt(saved.total)         || (int + eca);
             return { int, eca, tot, ign: SERVER.ignores, isManuel: true };
         }
-        return { int: SERVER.integrees, eca: SERVER.non_integrees, tot: SERVER.total, ign: SERVER.ignores, isManuel: false };
+        return { int: SERVER.integrees, vide: SERVER.integrees_vide, eca: SERVER.non_integrees, tot: SERVER.total, ign: SERVER.ignores, isManuel: false };
     }
 
     function updateCards(eff) {
@@ -1414,7 +1436,7 @@
         const vv = document.getElementById('val_integrees_vide');
         if (vi) vi.textContent = fmt(eff.int);
         if (vn) vn.textContent = fmt(eff.eca);
-        if (vv) vv.textContent = fmt(eff.tot);
+        if (vv) vv.textContent = fmt(eff.vide || 0);
 
         const pi = document.getElementById('pct_integrees');
         const pn = document.getElementById('pct_non_integrees');
@@ -1437,10 +1459,10 @@
         window._donutGlobal = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Intégrées','En écart','Ignorées'],
+                labels: ['Intégrées','À vide','Non intégrées','Ignorées'],
                 datasets: [{
-                    data: [eff.int, eff.eca, eff.ign],
-                    backgroundColor: ['#059669','#ef4444','#d1d5db'],
+                    data: [eff.int, eff.vide || 0, eff.eca, eff.ign],
+                    backgroundColor: ['#059669','#f59e0b','#ef4444','#d1d5db'],
                     borderWidth: 2, borderColor: '#fff',
                 }]
             },
@@ -1451,15 +1473,17 @@
                 animation: { duration: 600 },
             }
         });
-        const taux = eff.tot > 0 ? Math.round(eff.int / eff.tot * 100) : 0;
+        const taux = eff.tot > 0 ? Math.round((eff.int + (eff.vide||0)) / eff.tot * 100) : 0;
         const dc = document.getElementById('donutCenterPct');
         if (dc) dc.textContent = taux + '%';
-        const li = document.getElementById('lgd_int');
-        const le = document.getElementById('lgd_eca');
-        const lg = document.getElementById('lgd_ign');
-        if (li) li.textContent = fmt(eff.int);
-        if (le) le.textContent = fmt(eff.eca);
-        if (lg) lg.textContent = fmt(eff.ign);
+        const li   = document.getElementById('lgd_int');
+        const lv   = document.getElementById('lgd_vide');
+        const le   = document.getElementById('lgd_eca');
+        const lg   = document.getElementById('lgd_ign');
+        if (li)  li.textContent  = fmt(eff.int);
+        if (lv)  lv.textContent  = fmt(eff.vide || 0);
+        if (le)  le.textContent  = fmt(eff.eca);
+        if (lg)  lg.textContent  = fmt(eff.ign);
     }
 
     function buildBarMagasin() {
@@ -1468,16 +1492,18 @@
         if (window._barMagFull) window._barMagFull.destroy();
 
         const labels = Object.keys(statsMag).sort();
-        const dataInt = labels.map(k => statsMag[k].integrees || 0);
-        const dataEca = labels.map(k => statsMag[k].ecarts   || 0);
+        const dataInt  = labels.map(k => statsMag[k].integrees       || 0);
+        const dataVide = labels.map(k => statsMag[k].integrees_vide  || 0);
+        const dataEca  = labels.map(k => statsMag[k].ecarts          || 0);
 
         window._barMagFull = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels,
                 datasets: [
-                    { label: 'Intégrées', data: dataInt, backgroundColor: '#059669', borderRadius: 4 },
-                    { label: 'En écart',  data: dataEca, backgroundColor: '#ef4444', borderRadius: 4 },
+                    { label: 'Intégrées',  data: dataInt,  backgroundColor: '#059669', borderRadius: 4 },
+                    { label: 'À vide',     data: dataVide, backgroundColor: '#f59e0b', borderRadius: 4 },
+                    { label: 'Non intégrées', data: dataEca, backgroundColor: '#ef4444', borderRadius: 4 },
                 ]
             },
             options: {
@@ -1576,10 +1602,17 @@
     }
 
     // Initialiser tous les graphiques au chargement
-    if (typeof Chart !== 'undefined') {
-        refreshAll();
+    function tryInit() {
+        if (typeof Chart !== 'undefined') {
+            refreshAll();
+        } else {
+            setTimeout(tryInit, 100);
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryInit);
     } else {
-        document.addEventListener('DOMContentLoaded', refreshAll);
+        tryInit();
     }
     window.updatePieChart = refreshAll;
 })();
@@ -1695,45 +1728,94 @@
             {% if backup_error %}
                 <div class="alert alert-warning mb-3">{{ backup_error }}</div>
             {% endif %}
-            <h6 class="mb-3"><i class="bi bi-receipt"></i> Factures Backup (Cyrus)</h6>
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <h6 class="mb-0"><i class="bi bi-receipt"></i> Factures Backup (Cyrus)
+                    <span class="text-muted fw-normal" style="font-size:0.82rem">— {{ page_obj.paginator.count|default:0 }} ligne(s)</span>
+                </h6>
+                <!-- Filtres par statut -->
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="?type_donnees=factures_backup&periode={{ periode }}&date_debut={{ filtres.date_debut }}&date_fin={{ filtres.date_fin }}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% if filtres.full_asten %}&full_asten=1{% endif %}&statut_fv=" class="btn {% if filtres.statut_fv == '' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">Toutes</a>
+                    <a href="?type_donnees=factures_backup&periode={{ periode }}&date_debut={{ filtres.date_debut }}&date_fin={{ filtres.date_fin }}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% if filtres.full_asten %}&full_asten=1{% endif %}&statut_fv=non_integre" class="btn {% if filtres.statut_fv == 'non_integre' %}btn-danger{% else %}btn-outline-danger{% endif %}"><i class="bi bi-x-circle me-1"></i>Non intégrées</a>
+                    <a href="?type_donnees=factures_backup&periode={{ periode }}&date_debut={{ filtres.date_debut }}&date_fin={{ filtres.date_fin }}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% if filtres.full_asten %}&full_asten=1{% endif %}&statut_fv=integre_vide" class="btn {% if filtres.statut_fv == 'integre_vide' %}btn-warning text-dark{% else %}btn-outline-warning{% endif %}"><i class="bi bi-exclamation-circle me-1"></i>À vide</a>
+                    <a href="?type_donnees=factures_backup&periode={{ periode }}&date_debut={{ filtres.date_debut }}&date_fin={{ filtres.date_fin }}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% if filtres.full_asten %}&full_asten=1{% endif %}&statut_fv=integre" class="btn {% if filtres.statut_fv == 'integre' %}btn-success{% else %}btn-outline-success{% endif %}"><i class="bi bi-check-circle me-1"></i>Intégrées</a>
+                    <a href="?type_donnees=factures_backup&periode={{ periode }}&date_debut={{ filtres.date_debut }}&date_fin={{ filtres.date_fin }}{% for m in filtres.magasin %}&magasin={{ m }}{% endfor %}{% if filtres.full_asten %}&full_asten=1{% endif %}&statut_fv=ecart_valo" class="btn {% if filtres.statut_fv == 'ecart_valo' %}btn-primary{% else %}btn-outline-primary{% endif %}"><i class="bi bi-arrows-angle-expand me-1"></i>Écart valo</a>
+                </div>
+            </div>
             <div class="table-responsive mb-4">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
-                            <th class="border-0"><i class="bi bi-hash"></i> N° Facture</th>
-                            <th class="border-0"><i class="bi bi-tag"></i> Type</th>
-                            <th class="border-0"><i class="bi bi-stars"></i> Thème promo</th>
-                            <th class="border-0"><i class="bi bi-file-earmark"></i> Fichier</th>
-                            <th class="border-0"><i class="bi bi-clock"></i> Modifié</th>
+                            <th><i class="bi bi-shop"></i> Magasin</th>
+                            <th><i class="bi bi-hash"></i> N° Facture</th>
+                            <th><i class="bi bi-calendar"></i> Date</th>
+                            <th class="text-center">Statut</th>
+                            <th class="text-end">Qté Asten</th>
+                            <th class="text-end">Valo Cyrus (TTC)</th>
+                            <th class="text-end">Valo Asten (TTC)</th>
+                            <th class="text-end">Écart valo</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% if backup_files and backup_files|length > 0 %}
-                            {% for f in backup_files %}
-                            <tr class="align-middle">
-                                <td><span class="badge bg-secondary">{{ f.code_magasin }}</span></td>
-                                <td><strong class="text-primary">{{ f.numero_facture }}</strong></td>
+                        {% if page_obj %}
+                            {% for r in page_obj %}
+                            <tr class="align-middle {% if r.statut_effectif == 'non_integre' or r.statut_effectif == 'non_full_asten' %}table-danger{% elif r.statut_effectif == 'integre_vide' %}table-warning{% endif %}">
+                                <td><span class="badge bg-secondary">{{ r.cidc }}</span></td>
                                 <td>
-                                    {% if f.type_facture == 'promo' %}
-                                        <span class="badge bg-warning text-dark">Promo</span>
-                                    {% else %}
-                                        <span class="badge bg-success">Générale</span>
+                                    <a href="{% url 'dashboard:detail_facture_cyrus' %}?cle={{ r.cle_facture }}&cidc={{ r.cidc }}&dfac={{ r.dfac_str }}" class="fw-semibold text-decoration-none">
+                                        {{ r.nfac }}
+                                    </a>
+                                </td>
+                                <td><small class="text-muted">{{ r.dfac_str|default:"-" }}</small></td>
+                                <td class="text-center">
+                                    {% if r.statut_effectif == 'integre' %}
+                                        <span class="badge bg-success">Intégrée ✓</span>
+                                    {% elif r.statut_effectif == 'integre_vide' %}
+                                        <span class="badge bg-warning text-dark">À vide ⚠</span>
+                                    {% elif r.statut_effectif == 'non_integre' %}
+                                        <span class="badge bg-danger">Non intégrée ✗</span>
+                                    {% elif r.statut_effectif == 'non_full_asten' %}
+                                        <span class="badge bg-secondary">Hors périmètre</span>
+                                    {% endif %}
+                                    {% if r.has_ecart_valo %}
+                                        <span class="badge bg-primary ms-1">Écart valo</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ f.theme_promo|default:"-" }}</td>
-                                <td><small class="text-muted">{{ f.nom_fichier }}</small></td>
-                                <td><small class="text-muted">{{ f.date_modif|date:"d/m/Y H:i" }}</small></td>
+                                <td class="text-end {% if r.qt_asten == 0 and r.statut_effectif == 'integre_vide' %}text-warning fw-bold{% endif %}">
+                                    {{ r.qt_asten|default:"-" }}
+                                </td>
+                                <td class="text-end"><small>{{ r.pfth|floatformat:2|default:"-" }}</small></td>
+                                <td class="text-end"><small>{{ r.valo_asten|floatformat:2|default:"-" }}</small></td>
+                                <td class="text-end">
+                                    {% if r.ecart_valo and r.ecart_valo > 0 %}
+                                        <span class="text-danger fw-bold">{{ r.ecart_valo|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-muted">Aucune facture backup trouvée pour la période sélectionnée.</td>
+                                <td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-inbox me-2"></i>Aucune facture trouvée.</td>
                             </tr>
                         {% endif %}
                     </tbody>
                 </table>
             </div>
+            <!-- Pagination -->
+            {% if page_obj and page_obj.has_other_pages %}
+            <nav class="d-flex justify-content-center mt-2">
+                <ul class="pagination pagination-sm">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode|cut:'page='|cut:page_obj.number }}&page={{ page_obj.previous_page_number }}">«</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">»</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
         {% elif type_donnees == 'br' %}
         <div class="p-3">
@@ -2204,6 +2286,53 @@ function updateMagasinText() {
         selectAll.checked = visibleChecked.length === visibleItems.length && visibleItems.length > 0;
     }
 }
+
+// ── Bouton Full Asten ──
+const FULL_ASTEN_CODES = [{% for code in full_asten_codes %}"{{ code }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+
+function toggleFullAsten() {
+    const btn   = document.getElementById('btnFullAsten');
+    const input = document.getElementById('fullAstenInput');
+    const isOn  = input.value === '1';
+
+    if (isOn) {
+        // Désactiver : décocher les magasins Full Asten, remettre "off"
+        input.value = '0';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-success');
+        // Décocher uniquement les magasins Full Asten
+        FULL_ASTEN_CODES.forEach(code => {
+            const cb = document.getElementById('magasin_' + code);
+            if (cb) cb.checked = false;
+        });
+    } else {
+        // Activer : décocher tout, cocher seulement les Full Asten
+        input.value = '1';
+        btn.classList.remove('btn-outline-success');
+        btn.classList.add('btn-success');
+        document.querySelectorAll('input[name="magasin"]').forEach(cb => cb.checked = false);
+        FULL_ASTEN_CODES.forEach(code => {
+            const cb = document.getElementById('magasin_' + code);
+            if (cb) cb.checked = true;
+        });
+    }
+    updateMagasinText();
+    // Soumettre le formulaire pour recalculer les stats
+    document.getElementById('filterForm')?.submit() || btn.closest('form')?.submit();
+}
+
+// Au chargement : si full_asten=1 dans l'URL, cocher les magasins Full Asten
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('full_asten') === '1') {
+        document.querySelectorAll('input[name="magasin"]').forEach(cb => cb.checked = false);
+        FULL_ASTEN_CODES.forEach(code => {
+            const cb = document.getElementById('magasin_' + code);
+            if (cb) cb.checked = true;
+        });
+        updateMagasinText();
+    }
+})();
 
 function setDateFilter(periode, event) {
     const aujourdhui = new Date();

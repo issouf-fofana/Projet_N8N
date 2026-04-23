@@ -17,9 +17,10 @@
 .stat-card .stat-num { font-size:1.9rem; font-weight:700; line-height:1; }
 .stat-card .stat-label { font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280; margin-top:4px; }
 .stat-ok     { border-top:3px solid #10b981; }
+.stat-vide   { border-top:3px solid #f59e0b; }
 .stat-ecart  { border-top:3px solid #ef4444; }
 .stat-total  { border-top:3px solid #1e3a8a; }
-.stat-taux   { border-top:3px solid #f59e0b; }
+.stat-taux   { border-top:3px solid #6366f1; }
 .stat-ignore { border-top:3px solid #9ca3af; }
 .filter-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
 .table-container { background:#fff; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
@@ -149,32 +150,33 @@ tr.clickable-row { cursor:pointer; }
     <!-- Stats -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg">
-            <div class="stat-card stat-total">
+            <div class="stat-card stat-total" style="cursor:pointer" onclick="window.location='?statut=tous'">
                 <div class="stat-num" style="color:#1e3a8a">{{ stats.total }}</div>
-                <div class="stat-label">Total actives</div>
+                <div class="stat-label">Total factures</div>
             </div>
         </div>
         <div class="col-6 col-lg">
-            <div class="stat-card stat-ok">
+            <div class="stat-card stat-ok" style="cursor:pointer" onclick="window.location='?statut=integree'">
                 <div class="stat-num" style="color:#059669">{{ stats.integrees }}</div>
-                <div class="stat-label">Intégrées</div>
+                <div class="stat-label">Intégrées ✓</div>
             </div>
         </div>
         <div class="col-6 col-lg">
-            <div class="stat-card stat-ecart">
+            <div class="stat-card stat-vide" style="cursor:pointer" onclick="window.location='?statut=integree_vide'">
+                <div class="stat-num" style="color:#d97706">{{ stats.integrees_vide }}</div>
+                <div class="stat-label">À vide ⚠</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="stat-card stat-ecart" style="cursor:pointer" onclick="window.location='?statut=non_integree'">
                 <div class="stat-num" style="color:#dc2626">{{ stats.ecarts }}</div>
-                <div class="stat-label">En écart</div>
+                <div class="stat-label">Non intégrées ✗</div>
             </div>
         </div>
         <div class="col-6 col-lg">
-            <div class="stat-card stat-taux">
-                {% if stats.total %}
-                    {% widthratio stats.integrees stats.total 100 as taux %}
-                    <div class="stat-num" style="color:#d97706">{{ taux }}%</div>
-                {% else %}
-                    <div class="stat-num" style="color:#d97706">—</div>
-                {% endif %}
-                <div class="stat-label">Taux intégration</div>
+            <div class="stat-card stat-taux" style="cursor:pointer" onclick="window.location='?statut=ecart_valo'">
+                <div class="stat-num" style="color:#6366f1">{{ stats.ecarts_valo }}</div>
+                <div class="stat-label">Écarts valo</div>
             </div>
         </div>
         <div class="col-6 col-lg">
@@ -191,10 +193,13 @@ tr.clickable-row { cursor:pointer; }
             <div class="col-auto">
                 <label class="form-label small fw-semibold mb-1">Affichage</label>
                 <select name="statut" class="form-select form-select-sm">
-                    <option value="ecart"          {% if f_statut == 'ecart' %}selected{% endif %}>Écarts seulement</option>
-                    <option value="integree"       {% if f_statut == 'integree' %}selected{% endif %}>Intégrées</option>
-                    <option value="manuel_integre" {% if f_statut == 'manuel_integre' %}selected{% endif %}>Intégrées manuellement</option>
+                    <option value="non_integree"   {% if f_statut == 'non_integree' %}selected{% endif %}>❌ Non intégrées</option>
+                    <option value="integree_vide"  {% if f_statut == 'integree_vide' %}selected{% endif %}>⚠️ À vide</option>
+                    <option value="ecart_valo"     {% if f_statut == 'ecart_valo' %}selected{% endif %}>⚡ Écarts valo</option>
+                    <option value="integree"       {% if f_statut == 'integree' %}selected{% endif %}>✅ Intégrées</option>
                     <option value="tous"           {% if f_statut == 'tous' %}selected{% endif %}>Toutes (sauf ignorées)</option>
+                    <option value="manuel_integre" {% if f_statut == 'manuel_integre' %}selected{% endif %}>Intégrées manuellement</option>
+                    <option value="ecart"          {% if f_statut == 'ecart' %}selected{% endif %}>Non intégrées CSV (ancien)</option>
                 </select>
             </div>
             <div class="col-auto">
@@ -266,7 +271,8 @@ tr.clickable-row { cursor:pointer; }
                         <th>NFAC</th>
                         <th>Date Cyrus</th>
                         <th>Magasin</th>
-                        <th>Articles</th>
+                        <th>Articles Cyrus</th>
+                        <th>Qté Asten</th>
                         <th>Date Asten</th>
                         <th>Fournisseur Asten</th>
                         <th class="text-end">Val. TTC Asten</th>
@@ -275,16 +281,16 @@ tr.clickable-row { cursor:pointer; }
                 <tbody>
                 {% if rows %}
                     {% for r in rows %}
-                    <tr class="clickable-row {% if r.integree_csv %}row-integre-csv{% elif r.statut_manuel == 'integre' %}row-integre-man{% else %}row-ecart{% endif %}"
+                    <tr class="clickable-row {% if r.statut_effectif == 'integre' %}row-integre-csv{% elif r.statut_effectif == 'integre_vide' %}row-integre-man{% else %}row-ecart{% endif %}"
                         data-cle="{{ r.cle_facture }}"
                         data-dfac="{{ r.dfac_str }}"
                         data-cidc="{{ r.cidc }}"
-                        data-statut="{% if r.integree_csv %}integre_csv{% elif r.statut_manuel %}{{ r.statut_manuel }}{% else %}non_integre{% endif %}"
+                        data-statut="{{ r.statut_effectif }}"
                         onclick="handleRowClick(event, this)">
 
                         <!-- Checkbox (stoppe la navigation) -->
                         <td onclick="event.stopPropagation()">
-                            {% if not r.integree_csv %}
+                            {% if r.statut_effectif == 'non_integre' %}
                             <input type="checkbox" class="row-check row-cb"
                                 data-cle="{{ r.cle_facture }}"
                                 data-dfac="{{ r.dfac_str }}"
@@ -295,16 +301,16 @@ tr.clickable-row { cursor:pointer; }
 
                         <!-- Statut + bouton édition -->
                         <td onclick="event.stopPropagation()">
-                            {% if r.integree_csv %}
+                            {% if r.statut_effectif == 'integre' %}
+                                {% if r.has_ecart_valo %}
+                                <span style="background:#fef3c7;color:#92400e;font-weight:600;border-radius:6px;padding:3px 10px;font-size:0.78rem;white-space:nowrap"><i class="bi bi-exclamation-triangle-fill me-1"></i>Écart valo</span>
+                                {% else %}
                                 <span class="badge-integre-csv"><i class="bi bi-check-circle-fill me-1"></i>Intégrée</span>
-                            {% elif r.statut_manuel == 'integre' %}
-                                <span class="badge-integre"><i class="bi bi-check-circle-fill me-1"></i>Intégré</span>
-                                <button class="btn-edit-statut ms-1" title="Modifier"
-                                    onclick="ouvrirModal('{{ r.cle_facture }}','{{ r.dfac_str }}','{{ r.cidc }}','integre')">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
+                                {% endif %}
+                            {% elif r.statut_effectif == 'integre_vide' %}
+                                <span style="background:#fef3c7;color:#d97706;font-weight:600;border-radius:6px;padding:3px 10px;font-size:0.78rem;white-space:nowrap"><i class="bi bi-exclamation-circle-fill me-1"></i>À vide</span>
                             {% else %}
-                                <span class="badge-ecart"><i class="bi bi-x-circle-fill me-1"></i>En écart</span>
+                                <span class="badge-ecart"><i class="bi bi-x-circle-fill me-1"></i>Non intégrée</span>
                                 <button class="btn-edit-statut ms-1" title="Modifier"
                                     onclick="ouvrirModal('{{ r.cle_facture }}','{{ r.dfac_str }}','{{ r.cidc }}','non_integre')">
                                     <i class="bi bi-pencil-fill"></i>
@@ -320,14 +326,22 @@ tr.clickable-row { cursor:pointer; }
                         <td>
                             <small class="text-muted">
                                 {% if r.nb_articles == 1 %}{{ r.articles.0.lart|default:"—" }}
-                                {% else %}<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:700;border-radius:10px;padding:1px 7px">{{ r.nb_articles }}</span> articles{% endif %}
+                                {% else %}<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:700;border-radius:10px;padding:1px 7px">{{ r.nb_articles }}</span> art.{% endif %}
                             </small>
                         </td>
                         {% if r.asten %}
+                        <td class="text-end font-monospace" style="font-size:0.8rem">
+                            {% if r.asten.quantite_totale == "0.000" or r.asten.quantite_totale == "0" %}
+                            <span style="color:#d97706;font-weight:700">0</span>
+                            {% else %}
+                            {{ r.asten.quantite_totale|default:"—" }}
+                            {% endif %}
+                        </td>
                         <td class="text-nowrap">{{ r.asten.date_reception_str }}</td>
                         <td><small>{{ r.asten.fournisseur|default:"—" }}</small></td>
                         <td class="text-end amount">{{ r.asten.valorisation_ttc|default:"—" }}</td>
                         {% else %}
+                        <td class="text-muted">—</td>
                         <td class="text-muted">—</td>
                         <td class="text-muted">—</td>
                         <td class="text-muted text-end">—</td>
@@ -335,7 +349,7 @@ tr.clickable-row { cursor:pointer; }
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <tr><td colspan="11" class="text-center text-muted py-5">
+                    <tr><td colspan="12" class="text-center text-muted py-5">
                         <i class="bi bi-inbox fs-3 d-block mb-2"></i>Aucune facture trouvée
                     </td></tr>
                 {% endif %}

@@ -28,10 +28,10 @@ if config_file.exists():
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#b64ydqegmz%*=qb%w_mw5ynh!k^=yiqd38xte&0&f%6gwu)n*'
+SECRET_KEY = config('SECRET_KEY', default='yz#z7*wk(1isj_m(emr4im=tp^!q2pva6=!xx4&0^t6u7m$2nu')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['10.10.9.1', 'localhost', '127.0.0.1', '10.0.70.27', 'proserv-suivi.lan']
 
@@ -93,6 +93,13 @@ WSGI_APPLICATION = 'verification_commande.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': BASE_DIR / '.cache',
+    }
+}
 
 DATABASES = {
     'default': {

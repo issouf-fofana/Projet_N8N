@@ -1,0 +1,16 @@
+[Unit]
+Description=Watcher SMB — import automatique fichiers
+After=network.target
+
+[Service]
+Type=simple
+User=ifofana
+WorkingDirectory=/opt/Projet_N8N
+ExecStart=/opt/Projet_N8N/env/bin/python /opt/Projet_N8N/watcher.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

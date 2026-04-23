@@ -112,9 +112,10 @@
                         <th>NFAC</th>
                         <th>Clé facture</th>
                         <th>Date (DFAC)</th>
-                        <th>Magasin (CIDC)</th>
-                        <th>Articles</th>
-                        <th>Statut Asten</th>
+                        <th>Magasin</th>
+                        <th>Valo Cyrus (TTC)</th>
+                        <th>Valo Asten (TTC)</th>
+                        <th>Statut</th>
                         <th>Fichier</th>
                     </tr>
                 </thead>
@@ -127,26 +128,39 @@
                         <td><span class="cle-badge">{{ r.cle_facture }}</span></td>
                         <td class="text-nowrap">{{ r.dfac_date|default:r.dfac_str }}</td>
                         <td><span class="badge-mag">{{ r.cidc }}</span></td>
-                        <td>
-                            {% if r.nb_articles == 1 %}
-                                <small>{{ r.lart|default:"—" }}</small>
+                        <td class="font-monospace text-end" style="font-size:0.8rem">
+                            {{ r.pfth_cyrus|floatformat:0 }}
+                        </td>
+                        <td class="font-monospace text-end" style="font-size:0.8rem">
+                            {% if r.integree_csv %}
+                                {% if r.has_ecart_valo %}
+                                    <span style="color:#dc2626;font-weight:700">{{ r.valo_asten|floatformat:0 }}</span>
+                                    <small style="color:#dc2626"> (Δ {{ r.ecart_valo|floatformat:0 }})</small>
+                                {% else %}
+                                    {{ r.valo_asten|floatformat:0 }}
+                                {% endif %}
                             {% else %}
-                                <span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:700;border-radius:10px;padding:1px 7px">{{ r.nb_articles }}</span>
-                                <small class="text-muted"> articles</small>
+                                <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if r.integree %}
-                            <span style="color:#059669;font-weight:600;font-size:0.82rem"><i class="bi bi-check-circle-fill me-1"></i>Intégrée</span>
+                            {% if r.statut_effectif == 'integre' %}
+                                {% if r.has_ecart_valo %}
+                                <span style="color:#d97706;font-weight:600;font-size:0.82rem"><i class="bi bi-exclamation-triangle-fill me-1"></i>Écart valo</span>
+                                {% else %}
+                                <span style="color:#059669;font-weight:600;font-size:0.82rem"><i class="bi bi-check-circle-fill me-1"></i>Intégrée</span>
+                                {% endif %}
+                            {% elif r.statut_effectif == 'integre_vide' %}
+                            <span style="color:#d97706;font-weight:600;font-size:0.82rem"><i class="bi bi-exclamation-circle-fill me-1"></i>À vide</span>
                             {% else %}
-                            <span style="color:#dc2626;font-weight:600;font-size:0.82rem"><i class="bi bi-x-circle-fill me-1"></i>Manquante</span>
+                            <span style="color:#dc2626;font-weight:600;font-size:0.82rem"><i class="bi bi-x-circle-fill me-1"></i>Non intégrée</span>
                             {% endif %}
                         </td>
                         <td><small class="text-muted">{{ r.fichier }}</small></td>
                     </tr>
                     {% endfor %}
                 {% else %}
-                    <tr><td colspan="8" class="text-center text-muted py-5">
+                    <tr><td colspan="9" class="text-center text-muted py-5">
                         <i class="bi bi-inbox fs-3 d-block mb-2"></i>Aucune ligne trouvée
                     </td></tr>
                 {% endif %}

@@ -802,38 +802,75 @@ def dashboard(request):
         # Vraies stats depuis la jointure Cyrus/Asten
         try:
             from imports.services import get_factures_verification
+            from core.models import Magasin as MagasinModel
             fv = get_factures_verification()
             fv_stats = fv['stats']
-            # Filtrer par magasin si demandé
-            if code_magasin:
-                joined_filtre = [r for r in fv['joined'] if r['cidc'] in code_magasin]
-                nb_int  = sum(1 for r in joined_filtre if r['integree'])
-                nb_eca  = sum(1 for r in joined_filtre if not r['integree'])
-                nb_tot  = len(joined_filtre)
-            else:
-                nb_int  = fv_stats['integrees']
-                nb_eca  = fv_stats['ecarts']
-                nb_tot  = fv_stats['total']
-            taux = round(nb_int / nb_tot * 100, 1) if nb_tot else 0
+
+            # Codes magasins Full Asten
+            full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
+
+            # Filtre Full Asten activé via bouton ?
+            filtre_full_asten = request.GET.get('full_asten') == '1'
+
+            # Appliquer filtre magasin sélectionné (+ Full Asten si bouton activé)
+            def _filtre_joined(rows):
+                result = []
+                for r in rows:
+                    if filtre_full_asten and full_asten_codes and r['cidc'] not in full_asten_codes:
+                        continue
+                    if code_magasin and r['cidc'] not in code_magasin:
+                        continue
+                    result.append(r)
+                return result
+
+            joined_filtre = _filtre_joined(fv['joined'])
+            nb_int  = sum(1 for r in joined_filtre if r.get('statut_effectif') in ('integre',))
+            nb_vide = sum(1 for r in joined_filtre if r.get('statut_effectif') == 'integre_vide')
+            nb_eca  = sum(1 for r in joined_filtre if r.get('statut_effectif') in ('non_integre', 'non_full_asten'))
+            nb_tot  = len(joined_filtre)
+            taux = round((nb_int + nb_vide) / nb_tot * 100, 1) if nb_tot else 0
+
             # Stats par magasin pour le graphique
             stats_par_magasin = {}
             for cidc, s in fv_stats['par_magasin'].items():
-                if not code_magasin or cidc in code_magasin:
-                    stats_par_magasin[cidc] = s
+                if filtre_full_asten and full_asten_codes and cidc not in full_asten_codes:
+                    continue
+                if code_magasin and cidc not in code_magasin:
+                    continue
+                stats_par_magasin[cidc] = s
         except Exception:
-            nb_int = nb_eca = nb_tot = 0
+            nb_int = nb_eca = nb_vide = nb_tot = 0
             taux = 0
             stats_par_magasin = {}
+            joined_filtre = []
 
         stats = {
             'total_source':        nb_tot,
             'total_target':        nb_tot,
             'integres':            nb_int,
+            'integres_vide':       nb_vide,
             'non_integres':        nb_eca,
             'taux_integration':    taux,
             'taux_non_integration': round(100 - taux, 1) if nb_tot else 0,
             'par_magasin':         stats_par_magasin,
         }
+
+        # Filtre statut depuis GET — par défaut : non intégrées
+        filtre_statut = request.GET.get('statut_fv', 'non_integre')
+        if filtre_statut == 'integre':
+            joined_filtre = [r for r in joined_filtre if r.get('statut_effectif') == 'integre']
+        elif filtre_statut == 'integre_vide':
+            joined_filtre = [r for r in joined_filtre if r.get('statut_effectif') == 'integre_vide']
+        elif filtre_statut == 'non_integre':
+            joined_filtre = [r for r in joined_filtre if r.get('statut_effectif') == 'non_integre']
+        elif filtre_statut == 'ecart_valo':
+            joined_filtre = [r for r in joined_filtre if r.get('ecart_valo', 0) > 0]
+
+        # Trier : non intégrés en premier, puis à vide, puis intégrés
+        ordre = {'non_integre': 0, 'non_full_asten': 0, 'integre_vide': 1, 'integre': 2}
+        joined_filtre.sort(key=lambda r: ordre.get(r.get('statut_effectif', ''), 3))
+
+        _dashboard_page_obj = _paginate(request, joined_filtre, per_page=_dashboard_per_page)[0]
         titre_tableau = "Factures Backup (Cyrus)"
         
     elif type_donnees == 'br':
@@ -965,6 +1002,8 @@ def dashboard(request):
         'sage_error': sage_error if type_donnees == 'factures' else None,
         'backup_files': backup_files if type_donnees == 'factures_backup' else None,
         'backup_error': backup_error if type_donnees == 'factures_backup' else None,
+        'backup_stats_magasin_json': __import__('json').dumps(locals().get('stats_par_magasin', {})) if type_donnees == 'factures_backup' else '{}',
+        'full_asten_codes': sorted(locals().get('full_asten_codes', [])),
         'magasins': magasins,
         'type_donnees': type_donnees,
         'titre_tableau': titre_tableau,
@@ -976,6 +1015,8 @@ def dashboard(request):
             'magasin': code_magasin if code_magasin else [],
             'type_donnees': type_donnees,
             'statut_ic': statut_ic if type_donnees == 'br' else '',
+            'full_asten': request.GET.get('full_asten') == '1',
+            'statut_fv': request.GET.get('statut_fv', ''),
         },
         'periode': periode,
         'show': show,
@@ -2721,6 +2762,7 @@ def configuration_systeme(request):
         ('DOSSIER_COMMANDES_LEGEND',    'Commandes Legend',                 'folder'),
         ('DOSSIER_BR_ASTEN',            'Bons de réception Asten',          'folder'),
         ('DOSSIER_BR_IC',               'Bons de réception IC',             'folder'),
+        ('DOSSIER_ANOMALIE_BR',         'Anomalies BR ASTEN/IC',            'folder'),
         ('DOSSIER_FACTURES_ASTEN',      'Factures Asten (CSV)',             'folder'),
         ('DOSSIER_FACTURES_ASTEN_BACKUP','Factures Asten (Backup SMB)',     'smb'),
         ('DOSSIER_FACTURES_SAGE',       'Factures Sage (Archive)',          'smb'),
@@ -2778,7 +2820,13 @@ def configuration_systeme(request):
         return redirect('dashboard:configuration_systeme')
 
     vals = read_config()
-    champs_ctx = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k, '')} for k, l, t in CHAMPS]
+    def get_default(key):
+        # Fallback sur la valeur settings si pas dans config.env
+        val = getattr(settings, key, None)
+        if val is not None:
+            return str(val)
+        return ''
+    champs_ctx = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k) or get_default(k)} for k, l, t in CHAMPS]
     return render(request, 'dashboard/configuration_systeme.html', {'champs': champs_ctx})
 
 
@@ -2804,7 +2852,6 @@ def gestion_magasins(request):
         nom = (request.POST.get('nom') or '').strip()
 
         if action == 'delete':
-            # Suppression d'un magasin
             if not code:
                 messages.error(request, "Code magasin manquant pour la suppression.")
             else:
@@ -2820,7 +2867,6 @@ def gestion_magasins(request):
                         "Impossible de supprimer ce magasin car il est déjà utilisé dans des commandes, BR ou tickets."
                     )
         elif action == 'update':
-            # Mise à jour du nom du magasin (on ne touche pas au code car il est utilisé comme clé)
             original_code = (request.POST.get('original_code') or '').strip()
             if not original_code or not nom:
                 messages.error(request, "Le nom du magasin est obligatoire pour la modification.")
@@ -2828,11 +2874,31 @@ def gestion_magasins(request):
                 try:
                     magasin = Magasin.objects.get(code=original_code)
                     magasin.nom = nom
+                    magasin.full_asten = request.POST.get('full_asten') == '1'
                     magasin.save()
                     messages.success(request, f"Magasin {original_code} mis à jour avec succès.")
                     return redirect('dashboard:gestion_magasins')
                 except Magasin.DoesNotExist:
                     messages.error(request, "Magasin introuvable pour la modification.")
+        elif action == 'toggle_full_asten':
+            # Cocher ou décocher tous les magasins d'un coup
+            val = request.POST.get('full_asten_val') == '1'
+            Magasin.objects.all().update(full_asten=val)
+            label = "cochés" if val else "décochés"
+            messages.success(request, f"Tous les magasins ont été {label} (Full Asten).")
+            return redirect('dashboard:gestion_magasins')
+        elif action == 'toggle_one':
+            # Basculer Full Asten d'un seul magasin (appel AJAX)
+            if code:
+                try:
+                    magasin = Magasin.objects.get(code=code)
+                    magasin.full_asten = not magasin.full_asten
+                    magasin.save()
+                    from django.http import JsonResponse
+                    return JsonResponse({'ok': True, 'full_asten': magasin.full_asten})
+                except Magasin.DoesNotExist:
+                    from django.http import JsonResponse
+                    return JsonResponse({'ok': False}, status=404)
         else:
             # Création d'un nouveau magasin
             if not code or not nom:
@@ -2841,7 +2907,8 @@ def gestion_magasins(request):
                 messages.error(request, "Le code du magasin ne doit pas dépasser 10 caractères.")
             else:
                 try:
-                    Magasin.objects.create(code=code, nom=nom)
+                    full_asten = request.POST.get('full_asten') == '1'
+                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten)
                     messages.success(request, f"Magasin {code} - {nom} ajouté avec succès.")
                     return redirect('dashboard:gestion_magasins')
                 except IntegrityError:
@@ -2852,8 +2919,9 @@ def gestion_magasins(request):
         request,
         'dashboard/gestion_magasins.html',
         {
-            'magasins': magasins,
-            'magasin_edit': magasin_edit,
+            'magasins':      magasins,
+            'magasin_edit':  magasin_edit,
+            'nb_full_asten': magasins.filter(full_asten=True).count(),
         },
     )
 
@@ -3917,13 +3985,31 @@ def vue_factures_cyrus(request):
 
 def vue_factures_backup(request):
     from imports.services import get_factures_verification
+    from core.models import Magasin as MagasinModel
     result = get_factures_verification()
     rows   = result['joined']
     stats  = result['stats']
     error  = result['error']
 
+    # Codes magasins Full Asten
+    full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
+
+    # Exclure les factures hors périmètre Full Asten (non_full_asten) si des magasins sont configurés
+    if full_asten_codes:
+        rows = [r for r in rows if r.get('statut_effectif') != 'non_full_asten']
+
+    # Recalculer les stats après exclusion
+    stats = {
+        'total':          len(rows),
+        'integrees':      sum(1 for r in rows if r.get('statut_effectif') == 'integre'),
+        'integrees_vide': sum(1 for r in rows if r.get('statut_effectif') == 'integre_vide'),
+        'ecarts':         sum(1 for r in rows if r.get('statut_effectif') == 'non_integre'),
+        'ecarts_valo':    sum(1 for r in rows if r.get('has_ecart_valo')),
+        'ignores':        result['stats'].get('ignores', 0),
+    }
+
     # Filtres
-    f_statut     = request.GET.get('statut', 'ecart').strip()  # défaut = écarts seulement
+    f_statut     = request.GET.get('statut', 'non_integree').strip()
     f_magasin    = request.GET.get('magasin', '').strip()
     f_nsee       = request.GET.get('nsee', '').strip()
     f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
@@ -3933,9 +4019,15 @@ def vue_factures_backup(request):
     nsee_list     = sorted({r['nsee'] for r in rows if r['nsee']})
 
     if f_statut == 'integree':
-        rows = [r for r in rows if r['integree']]
+        rows = [r for r in rows if r.get('statut_effectif') == 'integre']
+    elif f_statut == 'integree_vide':
+        rows = [r for r in rows if r.get('statut_effectif') == 'integre_vide']
+    elif f_statut == 'non_integree':
+        rows = [r for r in rows if r.get('statut_effectif') == 'non_integre']
+    elif f_statut == 'ecart_valo':
+        rows = [r for r in rows if r.get('has_ecart_valo')]
     elif f_statut == 'ecart':
-        rows = [r for r in rows if not r['integree']]
+        rows = [r for r in rows if not r.get('integree_csv')]
     elif f_statut == 'manuel_integre':
         rows = [r for r in rows if r.get('statut_manuel') == 'integre']
     # 'tous' → pas de filtre

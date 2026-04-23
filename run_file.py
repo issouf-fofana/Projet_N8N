@@ -21,7 +21,7 @@ SOURCES = {
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Vérification_BRS/Anomalies_BR_ASTEN": "anomalie_br",
 
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Verification_Factures_ASTEN/Fact_ASTEN": "facture_asten",
-    f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Verification_Factures_ASTEN/Fac_cyrus": "facture_cyrus",
+    f"{SOURCE_BASE}/ASTEN/SALAMI/Mme_Jeannette/Vérification_Factures_GPV/Fact-CYRUS": "facture_cyrus",
 }
 
 # Extensions acceptées par dossier (par défaut : csv uniquement)
@@ -86,7 +86,7 @@ def copy_csv_files(source_dir, dest_dir, start_date, end_date, folder_name=""):
 
     copied = 0
     skipped = 0
-    for root, dirs, files in os.walk(source_dir):
+    for root, _, files in os.walk(source_dir):
         for file in files:
             if not file.lower().endswith(extensions):
                 continue
@@ -136,9 +136,10 @@ def deduplicate(dest_dir, folder_name):
     if pattern is None:
         return  # pas de dédup pour ce dossier
 
+    extensions = EXTENSIONS.get(folder_name, (".csv",))
     groups = defaultdict(list)
     for f in os.listdir(dest_dir):
-        if not f.lower().endswith(".csv"):
+        if not f.lower().endswith(extensions):
             continue
         m = pattern.match(f)
         if m:

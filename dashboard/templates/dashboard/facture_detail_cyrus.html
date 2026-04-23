@@ -116,7 +116,7 @@
     </div>
 
     <!-- Statut Asten -->
-    {% if facture.integree %}
+    {% if facture.statut_effectif == 'integre' %}
     <div class="asten-card">
         <div class="d-flex align-items-center gap-3 flex-wrap">
             <span class="status-ok fs-6"><i class="bi bi-check-circle-fill me-1"></i>Intégrée dans Asten</span>
@@ -134,16 +134,43 @@
                     <span>{{ facture.asten.fournisseur|default:"—" }}</span>
                 </div>
                 <div class="info-item">
-                    <label>Type réception</label>
-                    <span class="text-muted">{{ facture.asten.type_reception|default:"—" }}</span>
+                    <label>Valo TTC Cyrus</label>
+                    <span class="amount">{{ facture.pfth_cyrus|floatformat:0 }}</span>
                 </div>
                 <div class="info-item">
-                    <label>Valeur HT</label>
+                    <label>Valo TTC Asten</label>
+                    {% if facture.has_ecart_valo %}
+                    <span class="amount fw-bold" style="color:#dc2626">{{ facture.valo_asten|floatformat:0 }}
+                        <small> (Δ {{ facture.ecart_valo|floatformat:0 }})</small>
+                    </span>
+                    {% else %}
+                    <span class="amount fw-bold">{{ facture.valo_asten|floatformat:0 }}</span>
+                    {% endif %}
+                </div>
+                <div class="info-item">
+                    <label>Valo HT Asten</label>
                     <span class="amount">{{ facture.asten.valorisation_ht|default:"—" }}</span>
                 </div>
+            </div>
+        </div>
+    </div>
+    {% elif facture.statut_effectif == 'integre_vide' %}
+    <div class="asten-card" style="background:#fffbeb;border-color:#fcd34d;">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span style="color:#d97706;font-weight:700;font-size:1rem"><i class="bi bi-exclamation-circle-fill me-1"></i>Intégrée à vide dans Asten</span>
+            <small class="text-muted">La réception existe mais la quantité est 0 — aucun article réceptionné</small>
+            <div class="info-row ms-3">
                 <div class="info-item">
-                    <label>Valeur TTC</label>
-                    <span class="amount fw-bold">{{ facture.asten.valorisation_ttc|default:"—" }}</span>
+                    <label>Date réception</label>
+                    <span>{{ facture.asten.date_reception_str }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Magasin Asten</label>
+                    <span class="badge-mag">{{ facture.asten.magasin }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Quantité totale</label>
+                    <span style="color:#d97706;font-weight:700;">0</span>
                 </div>
             </div>
         </div>
@@ -155,6 +182,13 @@
     {% endif %}
 
     <!-- Articles -->
+    {% if facture.statut_effectif == 'integre_vide' %}
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:18px 22px;color:#92400e;">
+        <i class="bi bi-info-circle-fill me-2" style="color:#d97706"></i>
+        <strong>Aucun article réceptionné dans Asten.</strong>
+        La réception existe mais la quantité totale est 0 — les {{ facture.nb_articles }} article{{ facture.nb_articles|pluralize }} du fichier Cyrus n'ont pas été réceptionnés.
+    </div>
+    {% else %}
     <h5 class="fw-bold mb-3" style="color:#1f2937">
         <i class="bi bi-list-ul me-2" style="color:#1e3a8a"></i>Articles ({{ facture.nb_articles }})
     </h5>
@@ -184,6 +218,7 @@
             </table>
         </div>
     </div>
+    {% endif %}
 
     {% endif %}
 </div>

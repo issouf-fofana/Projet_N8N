@@ -144,6 +144,48 @@ class AssortimentVersionSnap(models.Model):
         return f"{self.version.nom} / {self.code}"
 
 
+class FactureCyrusLigne(models.Model):
+    """Une ligne article du fichier CSV Cyrus (RUN58489…csv)."""
+    cle_facture = models.CharField(max_length=50, db_index=True)
+    nsee        = models.CharField(max_length=10)
+    nfac        = models.CharField(max_length=20)
+    dfac_str    = models.CharField(max_length=10)
+    dfac_date   = models.DateField(null=True, blank=True)
+    cidc        = models.CharField(max_length=10, db_index=True)
+    lart        = models.CharField(max_length=255, blank=True, default='')
+    nart        = models.CharField(max_length=50, blank=True, default='')
+    qlvu        = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True)
+    pvtc        = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True)
+    ptvc        = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True)
+    pfth        = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True)
+    fichier     = models.CharField(max_length=255)
+    date_import = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Ligne facture Cyrus"
+        indexes = [models.Index(fields=['cle_facture', 'cidc'])]
+
+
+class FactureAstenLigne(models.Model):
+    """Une ligne du CSV Asten (receptions_centrales…csv)."""
+    n_bon_livraison     = models.CharField(max_length=50, db_index=True)
+    magasin             = models.CharField(max_length=20, db_index=True)
+    fournisseur         = models.CharField(max_length=255, blank=True, default='')
+    statut_commande     = models.CharField(max_length=100, blank=True, default='')
+    date_reception_str  = models.CharField(max_length=30, blank=True, default='')
+    date_reception_date = models.DateField(null=True, blank=True)
+    quantite_totale     = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True)
+    valorisation_ht     = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True)
+    valorisation_ttc    = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True)
+    type_reception      = models.CharField(max_length=50, blank=True, default='')
+    fichier             = models.CharField(max_length=255)
+    date_import         = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Ligne facture Asten"
+        indexes = [models.Index(fields=['n_bon_livraison', 'magasin'])]
+
+
 class FactureEcartStatut(models.Model):
     """
     Statut manuel pour les factures Cyrus en écart (non trouvées dans Asten).
