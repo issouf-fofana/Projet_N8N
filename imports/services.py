@@ -1552,6 +1552,18 @@ def scanner_et_importer_fichiers():
     except Exception as e:
         print(f"Erreur import factures Asten en base: {e}")
 
+    # Rafraîchir la vue matérialisée + vider le cache factures
+    try:
+        from django.db import connection as _conn
+        from django.core.cache import cache as _cache
+        with _conn.cursor() as _cur:
+            _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
+        _cache.delete('factures_verification_v1')
+        _cache.delete('factures_stats_sql_v1')
+        print("[MV] mv_factures_joined rafraîchie, cache vidé")
+    except Exception as e:
+        print(f"Erreur refresh vue matérialisée: {e}")
+
     return fichiers_importes
 
 
