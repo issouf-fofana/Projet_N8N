@@ -93,41 +93,85 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="info-row">
-                    <div class="info-label"><i class="bi bi-calendar"></i> Date de Commande</div>
+                    <div class="info-label"><i class="bi bi-calendar"></i> Date de commande</div>
                     <div class="info-value">{{ commande.date_commande|date:"d/m/Y" }}</div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label"><i class="bi bi-hash"></i> Numéro de Commande</div>
+                    <div class="info-label"><i class="bi bi-calendar-check"></i> Date de validation</div>
+                    <div class="info-value">
+                        {% if commande.date_validation %}
+                            <strong class="text-success">{{ commande.date_validation|date:"d/m/Y" }}</strong>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-truck"></i> Date de livraison</div>
+                    <div class="info-value">
+                        {% if commande.date_livraison %}{{ commande.date_livraison|date:"d/m/Y" }}{% else %}<span class="text-muted">—</span>{% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-hash"></i> Numéro de commande</div>
                     <div class="info-value"><strong class="text-primary">{{ commande.numero_commande }}</strong></div>
                 </div>
+                {% if commande.reference_externe %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-upc"></i> Référence externe</div>
+                    <div class="info-value"><code>{{ commande.reference_externe }}</code></div>
+                </div>
+                {% endif %}
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-shop"></i> Magasin</div>
                     <div class="info-value">
                         <span class="badge bg-secondary fs-6">{{ commande.code_magasin.code }}</span>
-                        <div class="mt-2">{{ commande.code_magasin.nom }}</div>
+                        <div class="mt-1">{{ commande.code_magasin.nom }}</div>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="info-row">
-                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
-                    <div class="info-value">
-                        <code>{{ commande.fichier_source|default:"Non renseigné" }}</code>
-                    </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"><i class="bi bi-clock"></i> Date d'Import</div>
-                    <div class="info-value">{{ commande.date_import|date:"d/m/Y à H:i" }}</div>
-                </div>
-                <div class="info-row">
                     <div class="info-label"><i class="bi bi-info-circle"></i> Statut</div>
                     <div class="info-value">
                         {% if commande.statut %}
-                            <span class="badge bg-info rounded-pill fs-6">{{ commande.statut }}</span>
+                            <span class="badge bg-info rounded-pill">{{ commande.statut }}</span>
                         {% else %}
-                            <span class="text-muted">Non renseigné</span>
+                            <span class="text-muted">—</span>
                         {% endif %}
                     </div>
+                </div>
+                {% if commande.fournisseur %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-building"></i> Fournisseur</div>
+                    <div class="info-value"><strong>{{ commande.fournisseur }}</strong></div>
+                </div>
+                {% endif %}
+                {% if commande.validee_par %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-person-check"></i> Validée par</div>
+                    <div class="info-value">{{ commande.validee_par }}</div>
+                </div>
+                {% endif %}
+                {% if commande.cree_par %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-person"></i> Créée par</div>
+                    <div class="info-value">{{ commande.cree_par }}</div>
+                </div>
+                {% endif %}
+                {% if commande.montant %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-currency-euro"></i> Montant</div>
+                    <div class="info-value"><strong>{{ commande.montant|floatformat:0 }} FCFA</strong></div>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier source</div>
+                    <div class="info-value"><code style="font-size:0.75rem">{{ commande.fichier_source|default:"—" }}</code></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-clock"></i> Date d'import</div>
+                    <div class="info-value">{{ commande.date_import|date:"d/m/Y à H:i" }}</div>
                 </div>
             </div>
         </div>

@@ -1072,17 +1072,40 @@ def importer_fichier_asten(chemin_fichier):
                             except (ValueError, TypeError):
                                 pass
                     
-                    # Créer ou récupérer la commande (évite les doublons)
+                    date_livraison = parse_date_asten(date_livraison_str) if date_livraison_str else None
+                    date_validation = parse_date_asten(date_validation_str) if date_validation_str else None
+
+                    # Créer ou mettre à jour la commande
                     commande, created = CommandeAsten.objects.get_or_create(
                         date_commande=date_commande,
                         numero_commande=numero_commande,
                         code_magasin=magasin,
                         defaults={
-                            'montant': montant,
-                            'statut': statut,
-                            'fichier_source': nom_fichier,
+                            'montant':           montant,
+                            'statut':            statut,
+                            'date_validation':   date_validation,
+                            'date_livraison':    date_livraison,
+                            'reference_externe': reference_externe,
+                            'fournisseur':       fournisseur,
+                            'cree_par':          cree_par,
+                            'validee_par':       validee_par,
+                            'fichier_source':    nom_fichier,
                         }
                     )
+                    if not created:
+                        # Mettre à jour les champs si la commande existe déjà
+                        updated = False
+                        for field, val in [
+                            ('statut', statut), ('date_validation', date_validation),
+                            ('date_livraison', date_livraison), ('fournisseur', fournisseur),
+                            ('validee_par', validee_par), ('cree_par', cree_par),
+                            ('reference_externe', reference_externe),
+                        ]:
+                            if val and getattr(commande, field) != val:
+                                setattr(commande, field, val)
+                                updated = True
+                        if updated:
+                            commande.save()
                     
                     if created:
                         nombre_nouveaux += 1

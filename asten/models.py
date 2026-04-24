@@ -14,12 +14,17 @@ class CommandeAsten(models.Model):
         verbose_name="Code magasin"
     )
     
-    # Champs additionnels possibles (à adapter selon le format CSV réel)
-    montant = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Montant")
-    statut = models.CharField(max_length=50, null=True, blank=True, verbose_name="Statut")
-    
-    date_import = models.DateTimeField(auto_now_add=True, verbose_name="Date d'import")
-    fichier_source = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fichier source")
+    montant              = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Montant")
+    statut               = models.CharField(max_length=50, null=True, blank=True, verbose_name="Statut")
+    date_validation      = models.DateField(null=True, blank=True, verbose_name="Date de validation")
+    date_livraison       = models.DateField(null=True, blank=True, verbose_name="Date de livraison")
+    reference_externe    = models.CharField(max_length=100, null=True, blank=True, verbose_name="Référence externe")
+    fournisseur          = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fournisseur")
+    cree_par             = models.CharField(max_length=100, null=True, blank=True, verbose_name="Créée par")
+    validee_par          = models.CharField(max_length=100, null=True, blank=True, verbose_name="Validée par")
+
+    date_import          = models.DateTimeField(auto_now_add=True, verbose_name="Date d'import")
+    fichier_source       = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fichier source")
 
     class Meta:
         verbose_name = "Commande Asten"
