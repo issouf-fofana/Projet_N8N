@@ -71,14 +71,15 @@ def parse_date_asten(date_str):
 def parse_date_gpv(date_str):
     """
     Parse la date GPV au format DD/MM/YYYY HH:MM (ex: 14/01/2026 14:06)
+    Retourne un datetime (avec heure) pour conserver les heures.
     """
     if not date_str:
         return None
+    date_str = date_str.strip()
     try:
-        # Extraire juste la partie date (avant l'espace)
-        date_part = date_str.split()[0] if ' ' in date_str else date_str
-        # Format DD/MM/YYYY
-        return datetime.strptime(date_part, '%d/%m/%Y').date()
+        if ' ' in date_str:
+            return datetime.strptime(date_str, '%d/%m/%Y %H:%M')
+        return datetime.strptime(date_str, '%d/%m/%Y')
     except (ValueError, AttributeError):
         return None
 
@@ -1208,19 +1209,33 @@ def importer_fichier_cyrus(chemin_fichier):
                     except (ValueError, TypeError):
                         pass
 
-                # Utiliser TYCM comme statut
-                statut = tycm or None
+                date_reception = parse_date_cyrus(dcre_str) if dcre_str else None
+                type_commande = tycm or None
+                statut = None  # TYCM est maintenant stocké dans type_commande
 
                 commande, created = CommandeCyrus.objects.get_or_create(
                     date_commande=date_commande,
                     numero_commande=numero_commande,
                     code_magasin=magasin,
                     defaults={
+                        'date_reception': date_reception,
+                        'nom_magasin': nom_magasin,
+                        'type_commande': type_commande,
                         'montant': montant,
                         'statut': statut,
                         'fichier_source': nom_fichier,
                     }
                 )
+                if not created:
+                    updated = False
+                    if date_reception and not commande.date_reception:
+                        commande.date_reception = date_reception; updated = True
+                    if nom_magasin and not commande.nom_magasin:
+                        commande.nom_magasin = nom_magasin; updated = True
+                    if type_commande and not commande.type_commande:
+                        commande.type_commande = type_commande; updated = True
+                    if updated:
+                        commande.save(update_fields=['date_reception', 'nom_magasin', 'type_commande'])
                 if created:
                     nombre_nouveaux += 1
                 else:

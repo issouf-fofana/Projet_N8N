@@ -93,6 +93,16 @@
                     <div class="info-value">{{ commande.date_commande|date:"d/m/Y" }}</div>
                 </div>
                 <div class="info-row">
+                    <div class="info-label"><i class="bi bi-calendar-check"></i> Date de Réception</div>
+                    <div class="info-value">
+                        {% if commande.date_reception %}
+                            <strong class="text-success">{{ commande.date_reception|date:"d/m/Y" }}</strong>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
                     <div class="info-label"><i class="bi bi-hash"></i> Numéro de Commande</div>
                     <div class="info-value"><strong class="text-success">{{ commande.numero_commande }}</strong></div>
                 </div>
@@ -103,17 +113,23 @@
                         <div class="mt-2">{{ commande.code_magasin.nom }}</div>
                     </div>
                 </div>
+                {% if commande.nom_magasin %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-building"></i> Nom Magasin (Cyrus)</div>
+                    <div class="info-value">{{ commande.nom_magasin }}</div>
+                </div>
+                {% endif %}
             </div>
             <div class="col-md-6">
                 <div class="info-row">
-                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
+                    <div class="info-label"><i class="bi bi-tag"></i> Type Commande</div>
                     <div class="info-value">
-                        <code>{{ commande.fichier_source|default:"Non renseigné" }}</code>
+                        {% if commande.type_commande %}
+                            <span class="badge bg-warning text-dark rounded-pill fs-6">{{ commande.type_commande }}</span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
                     </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"><i class="bi bi-clock"></i> Date d'Import</div>
-                    <div class="info-value">{{ commande.date_import|date:"d/m/Y à H:i" }}</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-info-circle"></i> Statut</div>
@@ -121,9 +137,25 @@
                         {% if commande.statut %}
                             <span class="badge bg-success rounded-pill fs-6">{{ commande.statut }}</span>
                         {% else %}
-                            <span class="text-muted">Non renseigné</span>
+                            <span class="text-muted">—</span>
                         {% endif %}
                     </div>
+                </div>
+                {% if commande.montant %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-currency-euro"></i> Montant</div>
+                    <div class="info-value"><strong>{{ commande.montant|floatformat:0 }} FCFA</strong></div>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
+                    <div class="info-value">
+                        <code style="font-size:0.75rem">{{ commande.fichier_source|default:"—" }}</code>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-clock"></i> Date d'Import</div>
+                    <div class="info-value">{{ commande.date_import|date:"d/m/Y à H:i" }}</div>
                 </div>
             </div>
         </div>

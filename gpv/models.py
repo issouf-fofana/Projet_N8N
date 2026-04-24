@@ -14,10 +14,10 @@ class CommandeGPV(models.Model):
     )
     nom_magasin = models.CharField(max_length=255, null=True, blank=True, verbose_name="Nom magasin")
     
-    # Dates
-    date_creation = models.DateField(verbose_name="Date de création")
-    date_validation = models.DateField(null=True, blank=True, verbose_name="Date de validation")
-    date_transfert = models.DateField(null=True, blank=True, verbose_name="Date de transfert")
+    # Dates (avec heure)
+    date_creation   = models.DateTimeField(verbose_name="Date de création")
+    date_validation = models.DateTimeField(null=True, blank=True, verbose_name="Date de validation")
+    date_transfert  = models.DateTimeField(null=True, blank=True, verbose_name="Date de transfert")
     
     # Utiliser date_creation comme date_commande pour la comparaison avec Cyrus
     # (on peut aussi créer un champ date_commande dérivé si nécessaire)

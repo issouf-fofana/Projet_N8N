@@ -94,7 +94,27 @@
             <div class="col-md-6">
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-calendar"></i> Date de Création</div>
-                    <div class="info-value">{{ commande.date_creation|date:"d/m/Y" }}</div>
+                    <div class="info-value"><strong>{{ commande.date_creation|date:"d/m/Y à H:i" }}</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-calendar-check"></i> Date de Validation</div>
+                    <div class="info-value">
+                        {% if commande.date_validation %}
+                            <strong class="text-success">{{ commande.date_validation|date:"d/m/Y à H:i" }}</strong>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-arrow-right-circle"></i> Date de Transfert</div>
+                    <div class="info-value">
+                        {% if commande.date_transfert %}
+                            {{ commande.date_transfert|date:"d/m/Y à H:i" }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-hash"></i> Numéro de Commande</div>
@@ -107,46 +127,28 @@
                         <div class="mt-2">{{ commande.code_magasin.nom }}</div>
                     </div>
                 </div>
+                {% if commande.nom_magasin %}
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-building"></i> Nom Magasin</div>
-                    <div class="info-value">{{ commande.nom_magasin|default:"-" }}</div>
+                    <div class="info-value">{{ commande.nom_magasin }}</div>
                 </div>
+                {% endif %}
             </div>
             <div class="col-md-6">
-                <div class="info-row">
-                    <div class="info-label"><i class="bi bi-calendar-check"></i> Date de Validation</div>
-                    <div class="info-value">
-                        {% if commande.date_validation %}
-                            {{ commande.date_validation|date:"d/m/Y" }}
-                        {% else %}
-                            <span class="text-muted">-</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"><i class="bi bi-arrow-right-circle"></i> Date de Transfert</div>
-                    <div class="info-value">
-                        {% if commande.date_transfert %}
-                            {{ commande.date_transfert|date:"d/m/Y" }}
-                        {% else %}
-                            <span class="text-muted">-</span>
-                        {% endif %}
-                    </div>
-                </div>
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-info-circle"></i> Statut</div>
                     <div class="info-value">
                         {% if commande.statut %}
                             <span class="badge bg-info rounded-pill fs-6">{{ commande.statut }}</span>
                         {% else %}
-                            <span class="text-muted">Non renseigné</span>
+                            <span class="text-muted">—</span>
                         {% endif %}
                     </div>
                 </div>
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
                     <div class="info-value">
-                        <code>{{ commande.fichier_source|default:"Non renseigné" }}</code>
+                        <code style="font-size:0.75rem">{{ commande.fichier_source|default:"—" }}</code>
                     </div>
                 </div>
                 <div class="info-row">
@@ -221,7 +223,7 @@
                         <h6><i class="bi bi-info-circle"></i> Commande similaire trouvée</h6>
                         <p class="mb-2">Une commande avec le même numéro et magasin existe dans Cyrus mais avec une date différente :</p>
                         <ul class="mb-0">
-                            <li><strong>Date GPV:</strong> {{ commande.date_creation|date:"d/m/Y" }}</li>
+                            <li><strong>Date GPV:</strong> {{ commande.date_creation|date:"d/m/Y à H:i" }}</li>
                             <li><strong>Date Cyrus:</strong> {{ commande_cyrus_alt.date_commande|date:"d/m/Y" }}</li>
                             <li><strong>Numéro:</strong> {{ commande.numero_commande }}</li>
                             <li><strong>Magasin:</strong> {{ commande.code_magasin.code }}</li>
@@ -257,7 +259,7 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="info-label">Date de création</div>
-                                <div class="info-value">{{ commande.date_creation|date:"d/m/Y" }}</div>
+                                <div class="info-value">{{ commande.date_creation|date:"d/m/Y à H:i" }}</div>
                             </div>
                             <div class="col-md-4">
                                 <div class="info-label">Magasin</div>
@@ -277,7 +279,7 @@
                             {% if commande.date_validation %}
                             <div class="col-md-4">
                                 <div class="info-label">Date de validation</div>
-                                <div class="info-value">{{ commande.date_validation|date:"d/m/Y" }}</div>
+                                <div class="info-value">{{ commande.date_validation|date:"d/m/Y à H:i" }}</div>
                             </div>
                             {% endif %}
                         </div>

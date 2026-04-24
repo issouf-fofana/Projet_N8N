@@ -141,30 +141,22 @@
                         {% endif %}
                     </div>
                 </div>
-                {% if commande.fournisseur %}
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-building"></i> Fournisseur</div>
-                    <div class="info-value"><strong>{{ commande.fournisseur }}</strong></div>
+                    <div class="info-value">{% if commande.fournisseur %}<strong>{{ commande.fournisseur }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}</div>
                 </div>
-                {% endif %}
-                {% if commande.validee_par %}
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-person-check"></i> Validée par</div>
-                    <div class="info-value">{{ commande.validee_par }}</div>
+                    <div class="info-value">{{ commande.validee_par|default:"—" }}</div>
                 </div>
-                {% endif %}
-                {% if commande.cree_par %}
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-person"></i> Créée par</div>
-                    <div class="info-value">{{ commande.cree_par }}</div>
+                    <div class="info-value">{{ commande.cree_par|default:"—" }}</div>
                 </div>
-                {% endif %}
-                {% if commande.montant %}
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-currency-euro"></i> Montant</div>
-                    <div class="info-value"><strong>{{ commande.montant|floatformat:0 }} FCFA</strong></div>
+                    <div class="info-value">{% if commande.montant %}<strong>{{ commande.montant|floatformat:0 }} FCFA</strong>{% else %}<span class="text-muted">—</span>{% endif %}</div>
                 </div>
-                {% endif %}
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier source</div>
                     <div class="info-value"><code style="font-size:0.75rem">{{ commande.fichier_source|default:"—" }}</code></div>
