@@ -2617,6 +2617,8 @@ function switchType(value) {
 
             container.querySelectorAll('script').forEach(old => {
                 const s = document.createElement('script');
+                if (old.type) s.type = old.type;
+                if (old.id)   s.id   = old.id;
                 s.textContent = old.textContent;
                 old.parentNode.replaceChild(s, old);
             });
