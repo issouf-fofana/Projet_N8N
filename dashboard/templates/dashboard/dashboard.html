@@ -1936,11 +1936,11 @@
             <nav class="d-flex justify-content-center mt-2">
                 <ul class="pagination pagination-sm">
                     {% if page_obj.has_previous %}
-                    <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode|cut:'page='|cut:page_obj.number }}&page={{ page_obj.previous_page_number }}">«</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ qs_sans_page }}&page={{ page_obj.previous_page_number }}">«</a></li>
                     {% endif %}
                     <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
                     {% if page_obj.has_next %}
-                    <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">»</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ qs_sans_page }}&page={{ page_obj.next_page_number }}">»</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -3025,11 +3025,13 @@ document.querySelectorAll('.va-conf-fill2[data-width]').forEach(function(el) {
 var ACT_URL  = "{% url 'dashboard:actualiser_stream' %}";
 var ACT_CSRF = "{{ csrf_token }}";
 
+var _actController = null;
+
 function ouvrirModalActualiser() {
-    console.log('[ACT] ouverture modal, URL=', ACT_URL);
     var modal = document.getElementById('modalActualiser');
-    if (!modal) { alert('Modal introuvable !'); return; }
-    // Reset modal
+    if (!modal) return;
+
+    // Reset
     modal.style.display = 'flex';
     document.getElementById('actLogs').innerHTML = '';
     document.getElementById('actStatusLabel').textContent = 'Exécution en cours…';
@@ -3037,84 +3039,68 @@ function ouvrirModalActualiser() {
     document.getElementById('actSpinner').style.display = 'inline-block';
     document.getElementById('actCloseBtn').style.display = 'none';
     document.getElementById('actRefreshBtn').style.display = 'none';
-    document.getElementById('actCloseBtn').style.display = 'none';
-    document.getElementById('actRefreshBtn').style.display = 'none';
 
-    // Log initial
-    console.log('[ACT] actLogs element=', document.getElementById('actLogs'));
     appendLog('$ actualiser_donnees --all', 'cmd');
     appendLog('', 'info');
 
-    // Animation d'attente pendant la requête
-    var waitingDiv = document.createElement('div');
-    waitingDiv.id = 'actWaiting';
-    waitingDiv.style.cssText = 'color:#6366f1;font-style:italic;font-weight:500;';
-    waitingDiv.textContent = '⟳ Exécution en cours, veuillez patienter…';
-    document.getElementById('actLogs').appendChild(waitingDiv);
+    // Annuler un stream précédent
+    if (_actController) { _actController.abort(); _actController = null; }
+    _actController = new AbortController();
 
-    var dots = 0;
-    var waitInterval = setInterval(function() {
-        dots = (dots + 1) % 4;
-        if (document.getElementById('actWaiting'))
-            document.getElementById('actWaiting').textContent = '⟳ Exécution en cours' + '.'.repeat(dots);
-    }, 500);
-
-    // Fetch POST
     fetch(ACT_URL, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': ACT_CSRF,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'type_donnees=commandes_asten',
+        method: 'GET',
+        signal: _actController.signal,
+        headers: { 'X-CSRFToken': ACT_CSRF },
     })
-    .then(r => { console.log('[ACT] status HTTP=', r.status); return r.json(); })
-    .then(data => {
-        clearInterval(waitInterval);
-        var w = document.getElementById('actWaiting');
-        if (w) w.remove();
-        document.getElementById('actLogs').innerHTML = '';
-        console.log('[ACT] réponse=', data);
-        return data;
-    })
-    .then(data => {
-        // Afficher les logs avec délai pour simuler un défilement progressif
-        let i = 0;
-        function nextLog() {
-            if (i < data.logs.length) {
-                appendLog(data.logs[i].msg, data.logs[i].level);
-                i++;
-                setTimeout(nextLog, 18);
-            } else {
-                // Fin
-                document.getElementById('actSpinner').style.display = 'none';
-                document.getElementById('actCloseBtn').style.display = 'inline-block';
-                document.getElementById('actRefreshBtn').style.display = 'inline-block';
+    .then(function(resp) {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var reader = resp.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
 
-                if (data.ok) {
-                    document.getElementById('actStatusLabel').textContent = 'Terminé avec succès';
-                    document.getElementById('actSummary').innerHTML =
-                        '<span style="color:#22c55e;">✓</span> ' +
-                        data.imported + ' fichier(s) · ' +
-                        data.crees + ' écart(s) créé(s) · ' +
-                        data.resolus + ' résolu(s)';
+        function processChunk(result) {
+            if (result.done) return;
+            buffer += decoder.decode(result.value, { stream: true });
+            // Découper sur les lignes SSE "data: ...\n\n"
+            var parts = buffer.split('\n\n');
+            buffer = parts.pop(); // garder le fragment incomplet
+            parts.forEach(function(part) {
+                part = part.trim();
+                if (!part.startsWith('data:')) return;
+                var json_str = part.slice(5).trim();
+                var data;
+                try { data = JSON.parse(json_str); } catch(_) { return; }
+                if (data.done) {
+                    _actController = null;
+                    document.getElementById('actSpinner').style.display = 'none';
+                    document.getElementById('actCloseBtn').style.display = 'inline-block';
+                    document.getElementById('actRefreshBtn').style.display = 'inline-block';
+                    if (data.ok) {
+                        document.getElementById('actStatusLabel').textContent = 'Terminé avec succès';
+                        document.getElementById('actSummary').innerHTML =
+                            '<span style="color:#22c55e;">✓</span> ' +
+                            data.imported + ' fichier(s) · ' +
+                            data.crees + ' écart(s) créé(s) · ' +
+                            data.resolus + ' résolu(s)';
+                    } else {
+                        document.getElementById('actStatusLabel').textContent = 'Erreur';
+                        document.getElementById('actSummary').innerHTML =
+                            '<span style="color:#f87171;">✗</span> Une erreur est survenue';
+                    }
                 } else {
-                    document.getElementById('actStatusLabel').textContent = 'Erreur';
-                    document.getElementById('actSummary').innerHTML =
-                        '<span style="color:#f87171;">✗</span> Une erreur est survenue';
+                    appendLog(data.msg, data.level);
                 }
-            }
+            });
+            return reader.read().then(processChunk);
         }
-        nextLog();
+        return reader.read().then(processChunk);
     })
-    .catch(err => {
-        clearInterval(waitInterval);
-        var w = document.getElementById('actWaiting');
-        if (w) w.remove();
+    .catch(function(err) {
+        if (err.name === 'AbortError') return;
         document.getElementById('actSpinner').style.display = 'none';
         document.getElementById('actCloseBtn').style.display = 'inline-block';
         document.getElementById('actStatusLabel').textContent = 'Erreur réseau';
-        appendLog('Erreur réseau : ' + err, 'error');
+        appendLog('Erreur : ' + err, 'error');
     });
 }
 

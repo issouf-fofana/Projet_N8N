@@ -1112,6 +1112,7 @@ def dashboard(request):
         'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
         'top5': _get_top5_magasins(debut=date_debut_parsed, fin=date_fin_parsed, n=request.GET.get('top_n', 5), source=type_donnees) if type_donnees not in ('factures', 'factures_backup', 'version') else None,
         'top_url_base': f"?type_donnees={request.GET.get('type_donnees','commandes_asten')}&periode={periode}&date_debut={date_debut or ''}&date_fin={date_fin or ''}",
+        'qs_sans_page': '&'.join(f"{k}={v}" for k, v in request.GET.items() if k != 'page'),
     }
 
     # Widget / données Version Asten
@@ -1553,83 +1554,135 @@ def accueil(request):
     return render(request, 'dashboard/accueil.html', context)
 
 
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
 def actualiser_stream(request):
-    """Vue JSON : exécute l'actualisation et retourne tous les logs."""
+    """
+    Vue SSE : stream les logs d'import en temps réel vers le navigateur.
+    Chaque message : data: {"msg": "...", "level": "..."}
+    Dernier message : data: {"done": true, "ok": bool, "imported": N, ...}
+    """
     from core.permissions import user_has_perm
-    from django.http import JsonResponse
-    from pathlib import Path
-    from django.conf import settings
-    import traceback
+    from django.http import StreamingHttpResponse
+    import sys, io, json, traceback, threading
 
     if not user_has_perm(request.user, 'actualiser_importer'):
-        return JsonResponse({'ok': False, 'logs': [
-            {'msg': 'Accès non autorisé.', 'level': 'error'}
-        ]})
+        def _denied():
+            yield 'data: ' + json.dumps({'msg': 'Accès non autorisé.', 'level': 'error'}) + '\n\n'
+            yield 'data: ' + json.dumps({'done': True, 'ok': False, 'imported': 0, 'crees': 0, 'resolus': 0}) + '\n\n'
+        return StreamingHttpResponse(_denied(), content_type='text/event-stream')
 
-    logs = []
-    def log(msg, level='info'):
-        logs.append({'msg': msg, 'level': level})
+    def _generate():
+        def sse_line(msg, level='info'):
+            return 'data: ' + json.dumps({'msg': msg, 'level': level}) + '\n\n'
 
-    try:
-        dossiers = {
-            'Asten':    Path(settings.DOSSIER_COMMANDES_ASTEN_PATH),
-            'Cyrus':    Path(settings.DOSSIER_COMMANDES_CYRUS_PATH),
-            'GPV':      Path(settings.DOSSIER_COMMANDES_GPV_PATH),
-            'Legend':   Path(settings.DOSSIER_COMMANDES_LEGEND_PATH),
-            'BR Asten': Path(settings.DOSSIER_BR_ASTEN_PATH),
-            'BR IC':    Path(settings.DOSSIER_BR_IC_PATH),
-        }
+        # Capturer les print() de services.py
+        captured = []
+        class PrintCapture(io.TextIOBase):
+            def write(self, s):
+                for line in s.splitlines():
+                    line = line.strip()
+                    if line:
+                        captured.append(line)
+                return len(s)
+            def flush(self):
+                pass
 
-        log('=== Scan des dossiers ===', 'section')
-        total_csv = 0
-        for nom, chemin in dossiers.items():
-            if chemin.exists():
-                nb = len(list(chemin.glob('*.csv')) + list(chemin.glob('*.CSV')))
-                total_csv += nb
-                log(f'  {nom} : {nb} fichier(s) trouvé(s)', 'ok' if nb > 0 else 'warn')
-                log(f'    └─ {chemin}', 'path')
+        def flush_captured():
+            while captured:
+                line = captured.pop(0)
+                level = ('error' if any(w in line for w in ('Erreur', 'ERROR', 'ERREUR')) else
+                         'warn'  if any(w in line for w in ('Attention', 'WARNING', 'warn')) else
+                         'ok'    if any(w in line for w in ('→', 'importé', 'lignes en base', '[OK]', 'synced', 'Terminé')) else
+                         'info')
+                yield 'data: ' + json.dumps({'msg': line, 'level': level}) + '\n\n'
+
+        old_stdout = sys.stdout
+        sys.stdout = PrintCapture()
+
+        try:
+            yield sse_line('=== Scan des dossiers ===', 'section')
+            dossiers = {
+                'Asten':       settings.DOSSIER_COMMANDES_ASTEN_PATH,
+                'Cyrus':       settings.DOSSIER_COMMANDES_CYRUS_PATH,
+                'GPV':         settings.DOSSIER_COMMANDES_GPV_PATH,
+                'Legend':      settings.DOSSIER_COMMANDES_LEGEND_PATH,
+                'BR Asten':    settings.DOSSIER_BR_ASTEN_PATH,
+                'BR IC':       settings.DOSSIER_BR_IC_PATH,
+                'Anomalie BR': settings.DOSSIER_ANOMALIE_BR_PATH,
+            }
+            total_fichiers = 0
+            for nom, chemin_str in dossiers.items():
+                chemin = Path(chemin_str)
+                if chemin.exists():
+                    nb = len(list(chemin.glob('*.csv')) + list(chemin.glob('*.CSV')) +
+                             list(chemin.glob('*.xlsx')) + list(chemin.glob('*.XLSX')) +
+                             list(chemin.glob('*.xls'))  + list(chemin.glob('*.XLS')))
+                    total_fichiers += nb
+                    yield sse_line(f'  {nom} : {nb} fichier(s)', 'ok' if nb > 0 else 'warn')
+                else:
+                    yield sse_line(f'  {nom} : dossier introuvable', 'error')
+            yield sse_line(f'  Total : {total_fichiers} fichier(s) à traiter', 'info')
+            yield sse_line('', 'info')
+
+            yield sse_line('=== Import des fichiers ===', 'section')
+
+            # Lancer l'import dans un thread pour pouvoir streamer les print() en temps réel
+            fichiers_importes = []
+            done_event = threading.Event()
+
+            def run_import():
+                nonlocal fichiers_importes
+                try:
+                    fichiers_importes = scanner_et_importer_fichiers()
+                except Exception as _e:
+                    captured.append(f'Erreur import : {_e}')
+                finally:
+                    done_event.set()
+
+            t = threading.Thread(target=run_import, daemon=True)
+            t.start()
+
+            while not done_event.wait(timeout=0.15):
+                chunks = list(flush_captured())
+                if chunks:
+                    yield from chunks
+                else:
+                    yield ': ping\n\n'  # SSE keepalive — force le flush TCP
+            yield from flush_captured()  # vider ce qui reste après done
+
+            if not fichiers_importes:
+                yield sse_line('  Aucun nouveau fichier à importer.', 'warn')
+            yield sse_line(f'  → {len(fichiers_importes)} fichier(s) importé(s)', 'info')
+            yield sse_line('', 'info')
+
+            yield sse_line('=== Recalcul des écarts ===', 'section')
+            resultat_ecarts = recalculer_ecarts()
+            yield from flush_captured()
+            if isinstance(resultat_ecarts, dict):
+                crees   = resultat_ecarts.get('ecarts_crees', 0)
+                resolus = resultat_ecarts.get('ecarts_resolus', 0)
             else:
-                log(f'  {nom} : dossier introuvable', 'error')
-                log(f'    └─ {chemin}', 'path')
-        log(f'  Total : {total_csv} fichier(s) CSV à traiter', 'info')
-        log('', 'info')
+                crees, resolus = (resultat_ecarts if isinstance(resultat_ecarts, int) else 0), 0
+            yield sse_line(f'  Nouveaux écarts : {crees}',  'warn' if crees > 0 else 'ok')
+            yield sse_line(f'  Écarts résolus  : {resolus}', 'ok')
+            yield sse_line('', 'info')
+            yield sse_line('=== Actualisation terminée ✓ ===', 'ok')
+            yield 'data: ' + json.dumps({'done': True, 'ok': True,
+                'imported': len(fichiers_importes), 'crees': crees, 'resolus': resolus}) + '\n\n'
 
-        log('=== Import des fichiers ===', 'section')
-        fichiers_importes = scanner_et_importer_fichiers()
-        if fichiers_importes:
-            for f in fichiers_importes:
-                nom_f  = getattr(f, 'nom_fichier', str(f))
-                statut = getattr(f, 'statut', '?')
-                nb_lig = getattr(f, 'nombre_lignes', '?')
-                ok = statut == 'termine'
-                log(f"  {'[OK] ' if ok else '[ERR]'} {nom_f}  ({nb_lig} lignes)", 'ok' if ok else 'error')
-        else:
-            log('  Aucun nouveau fichier à importer', 'warn')
-        log(f'  → {len(fichiers_importes)} fichier(s) importé(s)', 'info')
-        log('', 'info')
+        except Exception as e:
+            yield from flush_captured()
+            yield sse_line(f'ERREUR : {e}', 'error')
+            for line in traceback.format_exc().splitlines():
+                yield sse_line(line, 'error')
+            yield 'data: ' + json.dumps({'done': True, 'ok': False, 'imported': 0, 'crees': 0, 'resolus': 0}) + '\n\n'
+        finally:
+            sys.stdout = old_stdout
 
-        log('=== Recalcul des écarts ===', 'section')
-        resultat_ecarts = recalculer_ecarts()
-        if isinstance(resultat_ecarts, dict):
-            crees   = resultat_ecarts.get('ecarts_crees', 0)
-            resolus = resultat_ecarts.get('ecarts_resolus', 0)
-        else:
-            crees   = resultat_ecarts if isinstance(resultat_ecarts, int) else 0
-            resolus = 0
-        log(f'  Nouveaux écarts : {crees}',  'warn' if crees > 0 else 'ok')
-        log(f'  Écarts résolus  : {resolus}', 'ok')
-        log('', 'info')
-        log('=== Actualisation terminée ✓ ===', 'ok')
-
-        return JsonResponse({'ok': True, 'logs': logs,
-                             'imported': len(fichiers_importes),
-                             'crees': crees, 'resolus': resolus})
-    except Exception as e:
-        log(f'ERREUR : {e}', 'error')
-        for line in traceback.format_exc().splitlines():
-            log(line, 'error')
-        return JsonResponse({'ok': False, 'logs': logs, 'error': str(e)})
+    resp = StreamingHttpResponse(_generate(), content_type='text/event-stream')
+    resp['Cache-Control'] = 'no-cache'
+    resp['X-Accel-Buffering'] = 'no'
+    return resp
 
 
 @require_http_methods(["POST"])
@@ -3929,37 +3982,30 @@ def _paginate(request, rows, per_page=200):
 
 
 def vue_factures_asten(request):
-    from imports.services import get_factures_verification
-    result = get_factures_verification()
-    rows   = result['asten']
-    error  = result['error']
-
-    # Dédoublonner Asten sur (n_bon_livraison, date, magasin)
-    seen = set()
-    dedup = []
-    for r in rows:
-        key = (r['n_bon_livraison'], r['date_reception_date'], r['magasin'])
-        if key not in seen:
-            seen.add(key)
-            dedup.append(r)
-    rows = dedup
+    from imports.models import FactureAstenLigne
+    error = None
 
     # Filtres
     f_magasin    = request.GET.get('magasin', '').strip()
     f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
     f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
 
-    magasins_list = sorted({r['magasin'] for r in rows if r['magasin']})
+    try:
+        qs = FactureAstenLigne.objects.order_by('magasin', '-date_reception_date')
+        magasins_list = sorted(FactureAstenLigne.objects.values_list('magasin', flat=True).distinct())
 
-    if f_magasin:
-        rows = [r for r in rows if r['magasin'] == f_magasin]
-    if f_date_debut:
-        rows = [r for r in rows if r['date_reception_date'] and r['date_reception_date'] >= f_date_debut]
-    if f_date_fin:
-        rows = [r for r in rows if r['date_reception_date'] and r['date_reception_date'] <= f_date_fin]
+        if f_magasin:
+            qs = qs.filter(magasin=f_magasin)
+        if f_date_debut:
+            qs = qs.filter(date_reception_date__gte=f_date_debut)
+        if f_date_fin:
+            qs = qs.filter(date_reception_date__lte=f_date_fin)
 
-    total    = len(rows)
-    page_obj, paginator = _paginate(request, rows)
+        total = qs.count()
+        page_obj, paginator = _paginate(request, list(qs.values()))
+    except Exception as e:
+        error = str(e)
+        page_obj, paginator, total, magasins_list = None, None, 0, []
 
     return render(request, 'dashboard/factures_asten.html', {
         'rows':          page_obj,

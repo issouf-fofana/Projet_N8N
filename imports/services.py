@@ -865,73 +865,97 @@ def comparer_br_asten_ic():
     }
 
 
+def importer_anomalies_br_en_base(fichier_path):
+    """
+    Lit un fichier CSV Anomalies BR et insère les nouvelles lignes dans BRAnomalie.
+    Pas de doublon grâce à unique_together (numero_br, code_magasin, date_reception).
+    Retourne le nombre de nouvelles lignes insérées.
+    """
+    from br.models import BRAnomalie
+    import io as _io
+    from datetime import datetime
+
+    fichier_path = Path(fichier_path)
+    nom_fichier = fichier_path.name
+
+    content = None
+    for enc in ('utf-8-sig', 'cp850', 'latin-1', 'cp1252'):
+        try:
+            with open(str(fichier_path), encoding=enc, errors='strict') as f:
+                content = f.read()
+            break
+        except (UnicodeDecodeError, LookupError):
+            continue
+    if content is None:
+        with open(str(fichier_path), encoding='utf-8', errors='replace') as f:
+            content = f.read()
+
+    reader = csv.DictReader(_io.StringIO(content), delimiter=';')
+    nouvelles = []
+    seen = set()
+
+    for row in reader:
+        numero_br  = str(row.get('Nr bon reception', '') or '').strip()
+        code_mag   = str(row.get('Nr de site', '') or '').strip()
+        if not numero_br or not code_mag:
+            continue
+
+        # Parser la date
+        date_rec = None
+        date_raw = str(row.get('Date recept/retour', '') or '').strip()
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y'):
+            try:
+                date_rec = datetime.strptime(date_raw, fmt).date()
+                break
+            except (ValueError, TypeError):
+                continue
+
+        key = (numero_br, code_mag, date_rec)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        # Montant
+        montant = None
+        montant_raw = str(row.get('Montant HT Total', '') or '').strip().replace(',', '.')
+        try:
+            if montant_raw:
+                montant = float(montant_raw)
+        except ValueError:
+            pass
+
+        nouvelles.append(BRAnomalie(
+            numero_br         = numero_br,
+            code_magasin      = code_mag,
+            date_reception    = date_rec,
+            nom_fichier_integ = str(row.get('Nom de fichier integ', '') or '').strip() or None,
+            type_mouvement    = str(row.get('1=BR,2=RETOUR', '') or '').strip() or None,
+            fournisseur       = str(row.get('Fournisseur', '') or '').strip() or None,
+            montant_ht        = montant,
+            rejet_csm_entete  = str(row.get('Rejet CSM entete', '') or '').strip() or None,
+            rejet_csm_detail  = str(row.get('Rejet CSM detail art', '') or '').strip() or None,
+            rejet_ic_entete   = str(row.get('Rejet IC Entete', '') or '').strip() or None,
+            facture           = str(row.get('Facture OUI/NON', '') or '').strip() or None,
+            fichier_source    = nom_fichier,
+        ))
+
+    if not nouvelles:
+        return 0
+
+    avant = BRAnomalie.objects.count()
+    BRAnomalie.objects.bulk_create(nouvelles, ignore_conflicts=True)
+    return BRAnomalie.objects.count() - avant
+
+
 def sync_anomalies_br():
     """
-    Lit le fichier Anomalies_BR_ASTEN_IC.csv depuis DOSSIER_ANOMALIE_BR_PATH
-    et met à jour les champs anomalie sur les BRAsten correspondants.
-
-    Colonne CSV → champ BRAsten :
-      Nr bon reception  → numero_br  (clé de rapprochement)
-      Nr de site        → code_magasin (clé de rapprochement)
-      Nom de fichier integ → nom_fichier_integ
-      1=BR,2=RETOUR     → type_mouvement
-      Fournisseur       → fournisseur_anomalie
-      Montant HT Total  → montant_ht_anomalie
-      Rejet CSM entete  → rejet_csm_entete
-      Rejet CSM detail art → rejet_csm_detail
-      Rejet IC Entete   → rejet_ic_entete
-      Facture OUI/NON   → facture_anomalie
+    Rapproche BRAnomalie (table DB) avec BRAsten :
+    met à jour les champs anomalie sur les BRAsten correspondants.
+    Source : BRAnomalie en base (plus de lecture fichier ici).
     """
-    dossier = Path(settings.DOSSIER_ANOMALIE_BR_PATH)
-    if not dossier.exists():
-        return {'synced': 0, 'not_found': 0, 'error': 'dossier_introuvable'}
+    from br.models import BRAnomalie
 
-    fichiers = list(dossier.glob('*.csv')) + list(dossier.glob('*.CSV'))
-    if not fichiers:
-        return {'synced': 0, 'not_found': 0, 'error': 'aucun_fichier'}
-
-    # Regrouper les anomalies par (numero_br, code_magasin)
-    anomalies = {}
-    for fichier in fichiers:
-        try:
-            import io as _io
-            content = None
-            for enc in ('utf-8-sig', 'cp850', 'latin-1', 'cp1252'):
-                try:
-                    with open(str(fichier), encoding=enc, errors='strict') as f:
-                        content = f.read()
-                    break
-                except (UnicodeDecodeError, LookupError):
-                    continue
-            if content is None:
-                with open(str(fichier), encoding='utf-8', errors='replace') as f:
-                    content = f.read()
-            reader = csv.DictReader(_io.StringIO(content), delimiter=';')
-            for row in reader:
-                    numero_br = str(row.get('Nr bon reception', '') or '').strip()
-                    code_mag = str(row.get('Nr de site', '') or '').strip()
-                    if not numero_br or not code_mag:
-                        continue
-                    key = (numero_br, code_mag)
-                    anomalies[key] = {
-                        'nom_fichier_integ':   str(row.get('Nom de fichier integ', '') or '').strip() or None,
-                        'type_mouvement':      str(row.get('1=BR,2=RETOUR', '') or '').strip() or None,
-                        'fournisseur_anomalie':str(row.get('Fournisseur', '') or '').strip() or None,
-                        'montant_ht_raw':      str(row.get('Montant HT Total', '') or '').strip(),
-                        'rejet_csm_entete':    str(row.get('Rejet CSM entete', '') or '').strip() or None,
-                        'rejet_csm_detail':    str(row.get('Rejet CSM detail art', '') or '').strip() or None,
-                        'rejet_ic_entete':     str(row.get('Rejet IC Entete', '') or '').strip() or None,
-                        'facture_anomalie':    str(row.get('Facture OUI/NON', '') or '').strip() or None,
-                    }
-        except Exception as e:
-            print(f"Erreur lecture anomalies BR {fichier.name}: {e}")
-
-    if not anomalies:
-        return {'synced': 0, 'not_found': 0, 'error': 'aucune_anomalie'}
-
-    synced = 0
-    not_found = 0
-    # D'abord remettre tous les BR à non-anomalie (on recalcule depuis le fichier)
+    # Réinitialiser les BR qui étaient en anomalie
     BRAsten.objects.filter(en_anomalie=True).update(
         en_anomalie=False,
         nom_fichier_integ=None, type_mouvement=None,
@@ -940,30 +964,33 @@ def sync_anomalies_br():
         rejet_ic_entete=None, facture_anomalie=None,
     )
 
-    for (numero_br, code_mag), data in anomalies.items():
-        montant = None
-        try:
-            val = data['montant_ht_raw'].replace(',', '.')
-            if val:
-                montant = float(val)
-        except (ValueError, AttributeError):
-            pass
+    anomalies = BRAnomalie.objects.values(
+        'numero_br', 'code_magasin', 'nom_fichier_integ', 'type_mouvement',
+        'fournisseur', 'montant_ht', 'rejet_csm_entete', 'rejet_csm_detail',
+        'rejet_ic_entete', 'facture',
+    )
 
-        qs = BRAsten.objects.filter(numero_br=numero_br, code_magasin__code=code_mag)
+    if not anomalies:
+        return {'synced': 0, 'not_found': 0, 'error': 'aucune_anomalie_en_base'}
+
+    synced = 0
+    not_found = 0
+
+    for a in anomalies:
+        qs = BRAsten.objects.filter(numero_br=a['numero_br'], code_magasin__code=a['code_magasin'])
         if not qs.exists():
             not_found += 1
             continue
-
         updated = qs.update(
             en_anomalie=True,
-            nom_fichier_integ=data['nom_fichier_integ'],
-            type_mouvement=data['type_mouvement'],
-            fournisseur_anomalie=data['fournisseur_anomalie'],
-            montant_ht_anomalie=montant,
-            rejet_csm_entete=data['rejet_csm_entete'],
-            rejet_csm_detail=data['rejet_csm_detail'],
-            rejet_ic_entete=data['rejet_ic_entete'],
-            facture_anomalie=data['facture_anomalie'],
+            nom_fichier_integ    = a['nom_fichier_integ'],
+            type_mouvement       = a['type_mouvement'],
+            fournisseur_anomalie = a['fournisseur'],
+            montant_ht_anomalie  = a['montant_ht'],
+            rejet_csm_entete     = a['rejet_csm_entete'],
+            rejet_csm_detail     = a['rejet_csm_detail'],
+            rejet_ic_entete      = a['rejet_ic_entete'],
+            facture_anomalie     = a['facture'],
         )
         synced += updated
 
@@ -1298,13 +1325,18 @@ def scanner_et_importer_fichiers():
                 import_obj = importer_fichier_asten(str(fichier))
                 fichiers_importes.append(import_obj)
                 if import_obj and import_obj.statut == 'termine':
+                    if import_obj.nombre_nouveaux > 0:
+                        print(f"[Asten] {fichier.name} → {import_obj.nombre_nouveaux} nouvelles lignes importées")
+                    else:
+                        print(f"[Asten] {fichier.name} → 0 nouvelles lignes (déjà en base), fichier supprimé.")
                     supprimer_fichier_source(fichier)
+                elif import_obj:
+                    print(f"[Asten] {fichier.name} → Erreur : {import_obj.statut}")
             elif import_existant and import_existant.statut == 'termine':
-                # Fichier déjà importé avec succès : nettoyer le dossier
                 supprimer_fichier_source(fichier)
         except Exception as e:
-            print(f"Erreur import fichier {fichier.name}: {e}")
-    
+            print(f"Erreur import fichier Asten {fichier.name}: {e}")
+
     # Importer les fichiers Cyrus
     fichiers_cyrus = list(dossier_cyrus.glob('*.csv')) + list(dossier_cyrus.glob('*.CSV'))
     for fichier in fichiers_cyrus:
@@ -1329,16 +1361,18 @@ def scanner_et_importer_fichiers():
                 
                 import_obj = importer_fichier_cyrus(str(fichier))
                 fichiers_importes.append(import_obj)
-                # Ne supprimer le fichier que si l'import a réussi ET qu'au moins une ligne a été importée
-                if import_obj and import_obj.statut == 'termine' and import_obj.nombre_nouveaux > 0:
+                if import_obj and import_obj.statut == 'termine':
+                    if import_obj.nombre_nouveaux > 0:
+                        print(f"[Cyrus] {fichier.name} → {import_obj.nombre_nouveaux} nouvelles lignes importées")
+                    else:
+                        print(f"[Cyrus] {fichier.name} → 0 nouvelles lignes (déjà en base), fichier supprimé.")
                     supprimer_fichier_source(fichier)
-                elif import_obj and import_obj.statut == 'termine' and import_obj.nombre_nouveaux == 0:
-                    print(f"Attention: Fichier Cyrus {fichier.name} importé avec 0 nouvelles lignes. Fichier conservé pour investigation.")
+                elif import_obj:
+                    print(f"[Cyrus] {fichier.name} → Erreur : {import_obj.statut}")
             elif import_existant and import_existant.statut == 'termine':
-                # Fichier déjà importé avec succès : nettoyer le dossier
                 supprimer_fichier_source(fichier)
         except Exception as e:
-            print(f"Erreur import fichier {fichier.name}: {e}")
+            print(f"Erreur import fichier Cyrus {fichier.name}: {e}")
     
     # Importer les fichiers GPV
     fichiers_gpv = list(dossier_gpv.glob('*.csv')) + list(dossier_gpv.glob('*.CSV'))
@@ -1365,12 +1399,17 @@ def scanner_et_importer_fichiers():
                 import_obj = importer_fichier_gpv(str(fichier))
                 fichiers_importes.append(import_obj)
                 if import_obj and import_obj.statut == 'termine':
+                    if import_obj.nombre_nouveaux > 0:
+                        print(f"[GPV] {fichier.name} → {import_obj.nombre_nouveaux} nouvelles lignes importées")
+                    else:
+                        print(f"[GPV] {fichier.name} → 0 nouvelles lignes (déjà en base), fichier supprimé.")
                     supprimer_fichier_source(fichier)
+                elif import_obj:
+                    print(f"[GPV] {fichier.name} → Erreur : {import_obj.statut}")
             elif import_existant and import_existant.statut == 'termine':
-                # Fichier déjà importé avec succès : nettoyer le dossier
                 supprimer_fichier_source(fichier)
         except Exception as e:
-            print(f"Erreur import fichier {fichier.name}: {e}")
+            print(f"Erreur import fichier GPV {fichier.name}: {e}")
 
     # Importer les fichiers Legend
     fichiers_legend = list(dossier_legend.glob('*.csv')) + list(dossier_legend.glob('*.CSV'))
@@ -1392,9 +1431,14 @@ def scanner_et_importer_fichiers():
                 import_obj = importer_fichier_legend(str(fichier))
                 fichiers_importes.append(import_obj)
                 if import_obj and import_obj.statut == 'termine':
+                    if import_obj.nombre_nouveaux > 0:
+                        print(f"[Legend] {fichier.name} → {import_obj.nombre_nouveaux} nouvelles lignes importées")
+                    else:
+                        print(f"[Legend] {fichier.name} → 0 nouvelles lignes (déjà en base), fichier supprimé.")
                     supprimer_fichier_source(fichier)
+                elif import_obj:
+                    print(f"[Legend] {fichier.name} → Erreur : {import_obj.statut}")
             elif import_existant and import_existant.statut == 'termine':
-                # Fichier déjà importé avec succès : nettoyer le dossier
                 supprimer_fichier_source(fichier)
         except Exception as e:
             print(f"Erreur import fichier Legend {fichier.name}: {e}")
@@ -1423,13 +1467,15 @@ def scanner_et_importer_fichiers():
 
                 import_obj = importer_fichier_br_asten(str(fichier))
                 fichiers_importes.append(import_obj)
-                # Ne supprimer le fichier que si l'import a réussi ET qu'au moins une ligne a été importée
-                if import_obj and import_obj.statut == 'termine' and import_obj.nombre_lignes > 0:
+                if import_obj and import_obj.statut == 'termine':
+                    if import_obj.nombre_lignes > 0:
+                        print(f"[BR Asten] {fichier.name} → {import_obj.nombre_lignes} lignes importées")
+                    else:
+                        print(f"[BR Asten] {fichier.name} → 0 nouvelles lignes (déjà en base), fichier supprimé.")
                     supprimer_fichier_source(fichier)
-                elif import_obj and import_obj.statut == 'termine' and import_obj.nombre_lignes == 0:
-                    print(f"Attention: Fichier {fichier.name} importé avec 0 lignes. Fichier conservé pour investigation.")
+                elif import_obj:
+                    print(f"[BR Asten] {fichier.name} → Erreur : {import_obj.statut}")
             elif import_existant and import_existant.statut == 'termine':
-                # Fichier déjà importé avec succès : nettoyer le dossier
                 supprimer_fichier_source(fichier)
         except Exception as e:
             print(f"Erreur import fichier BR Asten {fichier.name}: {e}")
@@ -1460,11 +1506,22 @@ def scanner_et_importer_fichiers():
     except Exception as e:
         print(f"Erreur traitement BR IC: {e}")
 
-    # Synchroniser les anomalies BR depuis le fichier CSV anomalie
+    # Importer les anomalies BR en base puis synchroniser avec BRAsten
     try:
+        dossier_anomalie = Path(settings.DOSSIER_ANOMALIE_BR_PATH)
+        fichiers_anomalie = (
+            list(dossier_anomalie.glob('*.csv')) + list(dossier_anomalie.glob('*.CSV'))
+        ) if dossier_anomalie.exists() else []
+        for f_anom in fichiers_anomalie:
+            try:
+                nb = importer_anomalies_br_en_base(str(f_anom))
+                print(f"[BR Anomalie] {f_anom.name} → {nb} nouvelles lignes en base")
+                supprimer_fichier_source(f_anom)
+            except Exception as e:
+                print(f"Erreur import BR Anomalie {f_anom.name}: {e}")
         sync_anomalies_br()
     except Exception as e:
-        print(f"Erreur sync anomalies BR: {e}")
+        print(f"Erreur traitement anomalies BR: {e}")
 
     # Scanner les factures Sage (métadonnées uniquement, pas de suppression)
     try:

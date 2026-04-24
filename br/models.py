@@ -83,3 +83,34 @@ class BRICLigne(models.Model):
     def __str__(self):
         return f"BR IC - {self.numero_br} - {self.date_reception}"
 
+
+class BRAnomalie(models.Model):
+    """Une ligne du fichier Anomalies_BR_ASTEN_IC.csv stockée en base.
+    Clé unique : (numero_br, code_magasin, date_reception) — pas de doublon."""
+    numero_br            = models.CharField(max_length=50, verbose_name="N° BR")
+    code_magasin         = models.CharField(max_length=20, verbose_name="Code magasin")
+    date_reception       = models.DateField(null=True, blank=True, verbose_name="Date réception/retour")
+    nom_fichier_integ    = models.CharField(max_length=255, null=True, blank=True, verbose_name="Nom fichier intégration")
+    type_mouvement       = models.CharField(max_length=10, null=True, blank=True, verbose_name="Type (1=BR, 2=Retour)")
+    fournisseur          = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fournisseur")
+    montant_ht           = models.DecimalField(max_digits=15, decimal_places=3, null=True, blank=True, verbose_name="Montant HT")
+    rejet_csm_entete     = models.CharField(max_length=500, null=True, blank=True, verbose_name="Rejet CSM entête")
+    rejet_csm_detail     = models.CharField(max_length=500, null=True, blank=True, verbose_name="Rejet CSM détail")
+    rejet_ic_entete      = models.CharField(max_length=500, null=True, blank=True, verbose_name="Rejet IC entête")
+    facture              = models.CharField(max_length=10, null=True, blank=True, verbose_name="Facture (OUI/NON)")
+    fichier_source       = models.CharField(max_length=255, verbose_name="Fichier source")
+    date_import          = models.DateTimeField(auto_now_add=True, verbose_name="Date d'import")
+
+    class Meta:
+        verbose_name = "BR Anomalie"
+        verbose_name_plural = "BR Anomalies"
+        unique_together = [['numero_br', 'code_magasin', 'date_reception']]
+        indexes = [
+            models.Index(fields=['numero_br', 'code_magasin']),
+            models.Index(fields=['date_reception']),
+        ]
+        ordering = ['-date_reception', 'numero_br']
+
+    def __str__(self):
+        return f"Anomalie BR {self.numero_br} - {self.code_magasin} - {self.date_reception}"
+
