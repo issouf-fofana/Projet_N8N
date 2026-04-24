@@ -279,31 +279,31 @@
         <div class="rem-stat-icon"><i class="bi bi-ticket-perforated-fill"></i></div>
         <div class="rem-stat-info">
             <div class="rem-stat-label">Total remontées</div>
-            <div class="rem-stat-val" data-value="{{ stats.total }}">0</div>
+            <div class="rem-stat-val" data-value="{{ stats.total }}">{{ stats.total }}</div>
         </div>
     </div>
     <div class="rem-stat resolu">
         <div class="rem-stat-icon"><i class="bi bi-check-circle-fill"></i></div>
         <div class="rem-stat-info">
             <div class="rem-stat-label">Résolus</div>
-            <div class="rem-stat-val" data-value="{{ stats.resolu }}">0</div>
-            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_resolu }}">0</span>%</div>
+            <div class="rem-stat-val" data-value="{{ stats.resolu }}">{{ stats.resolu }}</div>
+            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_resolu }}">{{ stats.taux_resolu }}</span>%</div>
         </div>
     </div>
     <div class="rem-stat cours">
         <div class="rem-stat-icon"><i class="bi bi-arrow-repeat"></i></div>
         <div class="rem-stat-info">
             <div class="rem-stat-label">En cours</div>
-            <div class="rem-stat-val" data-value="{{ stats.en_cours }}">0</div>
-            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_en_cours }}">0</span>%</div>
+            <div class="rem-stat-val" data-value="{{ stats.en_cours }}">{{ stats.en_cours }}</div>
+            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_en_cours }}">{{ stats.taux_en_cours }}</span>%</div>
         </div>
     </div>
     <div class="rem-stat attente">
         <div class="rem-stat-icon"><i class="bi bi-clock-fill"></i></div>
         <div class="rem-stat-info">
             <div class="rem-stat-label">En attente</div>
-            <div class="rem-stat-val" data-value="{{ stats.en_attente }}">0</div>
-            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_en_attente }}">0</span>%</div>
+            <div class="rem-stat-val" data-value="{{ stats.en_attente }}">{{ stats.en_attente }}</div>
+            <div class="rem-stat-pct"><span class="stat-percentage" data-value="{{ stats.taux_en_attente }}">{{ stats.taux_en_attente }}</span>%</div>
         </div>
     </div>
 </div>
