@@ -29,6 +29,7 @@ class CommandeCyrus(models.Model):
             models.Index(fields=['date_commande', 'numero_commande', 'code_magasin']),
             models.Index(fields=['date_commande']),
             models.Index(fields=['code_magasin']),
+            models.Index(fields=['numero_commande']),
         ]
         ordering = ['-date_commande', 'numero_commande']
 

@@ -658,12 +658,14 @@ def dashboard(request):
         _pag_legend = _Pag(commandes_legend_qs, _per_page_legend)
         _page_legend = _pag_legend.get_page(request.GET.get('page', 1))
 
-        # Lookup Cyrus sur la page uniquement
+        # Lookup Cyrus uniquement sur les numéros de la page courante
         cyrus_lookup = set()
         cyrus_numero_lookup = set()
         page_legend_cmds = list(_page_legend)
         if page_legend_cmds:
-            filtres_cyrus_lookup = {}
+            numeros_page = [normalize_numero(cmd.numero_commande) for cmd in page_legend_cmds]
+            # Filtrer Cyrus sur les numéros exacts de la page + période optionnelle
+            filtres_cyrus_lookup = {'numero_commande__in': numeros_page}
             if date_debut_parsed:
                 filtres_cyrus_lookup['date_commande__gte'] = date_debut_parsed
             if date_fin_parsed:
