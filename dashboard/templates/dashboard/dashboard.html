@@ -1192,10 +1192,10 @@
                             <i class="bi bi-percent"></i> {{ stats.taux_integration|default:0 }}%
                         </div>
                     {% else %}
-                        <div class="stat-value" data-value="{{ stats.total_source|default:0 }}">0</div>
+                        <div class="stat-value" data-value="{{ stats.total_source|default:0 }}">{{ stats.total_source|default:0 }}</div>
                         {% if filtres.type_donnees == 'factures' %}
                             <div class="stat-label mt-1" style="font-size: 0.95rem; font-weight: 600;">
-                                <i class="bi bi-list-ul"></i> Lignes: <span class="stat-value" data-value="{{ stats.total_target|default:0 }}">0</span>
+                                <i class="bi bi-list-ul"></i> Lignes: <span class="stat-value" data-value="{{ stats.total_target|default:0 }}">{{ stats.total_target|default:0 }}</span>
                             </div>
                         {% endif %}
                     {% endif %}
@@ -1229,10 +1229,10 @@
                             <i class="bi bi-percent"></i> {{ stats.taux_non_integration|default:0 }}%
                         </div>
                     {% else %}
-                        <div class="stat-value" data-value="{{ stats.integres|default:0 }}">0</div>
+                        <div class="stat-value" data-value="{{ stats.integres|default:0 }}">{{ stats.integres|default:0 }}</div>
                         {% if filtres.type_donnees != 'factures' %}
                             <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_integration|default:0|unlocalize }}">0</span>%
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_integration|default:0|unlocalize }}">{{ stats.taux_integration|default:0 }}</span>%
                             </div>
                         {% endif %}
                     {% endif %}
@@ -1259,10 +1259,10 @@
                             <i class="bi bi-exclamation-circle"></i> quantité = 0
                         </div>
                     {% else %}
-                        <div class="stat-value" data-value="{{ stats.non_integres|default:0 }}">0</div>
+                        <div class="stat-value" data-value="{{ stats.non_integres|default:0 }}">{{ stats.non_integres|default:0 }}</div>
                         {% if filtres.type_donnees != 'factures' %}
                             <div class="stat-label mt-1" style="font-size: 1rem; font-weight: 600;">
-                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_non_integration|default:0|unlocalize }}">0</span>%
+                                <i class="bi bi-percent"></i> <span class="stat-percentage" data-value="{{ stats.taux_non_integration|default:0|unlocalize }}">{{ stats.taux_non_integration|default:0 }}</span>%
                             </div>
                         {% endif %}
                     {% endif %}

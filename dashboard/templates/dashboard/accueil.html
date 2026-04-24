@@ -274,7 +274,7 @@ body { background: #f0f2f8 !important; }
                         <div class="acc-progress-bar green" style="width:{{ stats_asten.taux_integration|default:0 }}%;" data-w="{{ stats_asten.taux_integration|default:0 }}"></div>
                         <div class="acc-progress-bar red"   style="width:{{ stats_asten.taux_non_integration|default:0 }}%;--left:{{ stats_asten.taux_integration|default:0 }}%;" data-w="{{ stats_asten.taux_non_integration|default:0 }}" data-left="{{ stats_asten.taux_integration|default:0 }}"></div>
                     </div>
-                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_asten.taux_integration|default:0 }}">0</span>% intégrées</div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_asten.taux_integration|default:0 }}">{{ stats_asten.taux_integration|default:0 }}</span>% intégrées</div>
                 </div>
                 <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_asten{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les commandes <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
@@ -315,7 +315,7 @@ body { background: #f0f2f8 !important; }
                         <div class="acc-progress-bar green" data-w="{{ stats_gpv.taux_integration|default:0 }}" style="width:0%"></div>
                         <div class="acc-progress-bar red"   data-w="{{ stats_gpv.taux_non_integration|default:0 }}" data-left="{{ stats_gpv.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
                     </div>
-                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_gpv.taux_integration|default:0 }}">0</span>% intégrées</div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_gpv.taux_integration|default:0 }}">{{ stats_gpv.taux_integration|default:0 }}</span>% intégrées</div>
                 </div>
                 <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_gpv{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les commandes <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
@@ -356,7 +356,7 @@ body { background: #f0f2f8 !important; }
                         <div class="acc-progress-bar green" data-w="{{ stats_legend.taux_integration|default:0 }}" style="width:0%"></div>
                         <div class="acc-progress-bar red"   data-w="{{ stats_legend.taux_non_integration|default:0 }}" data-left="{{ stats_legend.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
                     </div>
-                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_legend.taux_integration|default:0 }}">0</span>% intégrées</div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_legend.taux_integration|default:0 }}">{{ stats_legend.taux_integration|default:0 }}</span>% intégrées</div>
                 </div>
                 <a href="{% url 'dashboard:dashboard' %}?type_donnees=commandes_legend{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les commandes <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
@@ -397,7 +397,7 @@ body { background: #f0f2f8 !important; }
                         <div class="acc-progress-bar green" data-w="{{ stats_br.taux_integration|default:0 }}" style="width:0%"></div>
                         <div class="acc-progress-bar red"   data-w="{{ stats_br.taux_non_integration|default:0 }}" data-left="{{ stats_br.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
                     </div>
-                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_br.taux_integration|default:0 }}">0</span>% trouvées</div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_br.taux_integration|default:0 }}">{{ stats_br.taux_integration|default:0 }}</span>% trouvées</div>
                 </div>
                 <a href="{% url 'dashboard:dashboard' %}?type_donnees=br{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les BR <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
@@ -438,7 +438,7 @@ body { background: #f0f2f8 !important; }
                         <div class="acc-progress-bar green" data-w="{{ stats_factures.taux_integration|default:0 }}" style="width:0%"></div>
                         <div class="acc-progress-bar red"   data-w="{{ stats_factures.taux_non_integration|default:0 }}" data-left="{{ stats_factures.taux_integration|default:0 }}" style="width:0%;left:0%"></div>
                     </div>
-                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_factures.taux_integration|default:0 }}">0</span>% intégrées</div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_factures.taux_integration|default:0 }}">{{ stats_factures.taux_integration|default:0 }}</span>% intégrées</div>
                 </div>
                 <a href="{% url 'dashboard:dashboard' %}?type_donnees=factures_backup{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les factures <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
@@ -479,7 +479,7 @@ body { background: #f0f2f8 !important; }
                         <div class="acc-progress-bar green" data-w="{{ stats_remontees.taux_resolu|default:0 }}" style="width:0%"></div>
                         <div class="acc-progress-bar red"   data-w="{{ stats_remontees.taux_non_resolu|default:0 }}" data-left="{{ stats_remontees.taux_resolu|default:0 }}" style="width:0%;left:0%"></div>
                     </div>
-                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_remontees.taux_resolu|default:0 }}">0</span>% résolues</div>
+                    <div class="acc-pct"><span class="stat-percentage" data-value="{{ stats_remontees.taux_resolu|default:0 }}">{{ stats_remontees.taux_resolu|default:0 }}</span>% résolues</div>
                 </div>
                 <a href="{% url 'tickets:liste' %}{% if date_debut %}?date_debut={{ date_debut }}{% endif %}{% if date_fin %}{% if date_debut %}&{% else %}?{% endif %}date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir les remontées <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
