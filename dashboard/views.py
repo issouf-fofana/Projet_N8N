@@ -792,7 +792,7 @@ def dashboard(request):
         # Codes Full Asten
         from core.models import Magasin as MagasinModel
         full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
-        filtre_full_asten = request.GET.get('full_asten') == '1'
+        filtre_full_asten = request.GET.get('full_asten') == '1' and type_donnees == 'factures_backup'
         filtre_statut     = request.GET.get('statut_fv', 'non_integre')
 
         # ── Stats globales (via cache) ──────────────────────────────────────
@@ -1103,7 +1103,7 @@ def dashboard(request):
             'magasin': code_magasin if code_magasin else [],
             'type_donnees': type_donnees,
             'statut_ic': statut_ic if type_donnees == 'br' else '',
-            'full_asten': request.GET.get('full_asten') == '1',
+            'full_asten': request.GET.get('full_asten') == '1' and type_donnees == 'factures_backup',
             'statut_fv': request.GET.get('statut_fv', ''),
         },
         'periode': periode,

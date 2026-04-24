@@ -2586,6 +2586,11 @@ function switchType(value) {
     const url = new URL(window.location.href);
     url.searchParams.set('type_donnees', value);
 
+    // Le filtre full_asten ne s'applique qu'aux factures_backup
+    if (value !== 'factures_backup') {
+        url.searchParams.delete('full_asten');
+    }
+
     // Pour 'version' (et retour depuis 'version'), rechargement complet
     const currentType = '{{ filtres.type_donnees|default:"commandes_asten" }}';
     if (value === 'version' || currentType === 'version') {
