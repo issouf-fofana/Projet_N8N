@@ -2632,6 +2632,18 @@ def importer_factures_cyrus_en_base():
             csv_path.unlink(missing_ok=True)
         except Exception as e:
             print(f"  [Facture Cyrus] ERREUR {fichier}: {e}")
+    # Rafraîchir la vue matérialisée
+    try:
+        from django.db import connection
+        with connection.cursor() as cur:
+            cur.execute('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_factures_joined')
+    except Exception:
+        try:
+            from django.db import connection
+            with connection.cursor() as cur:
+                cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
+        except Exception as e:
+            print(f"  [Vue] Impossible de rafraîchir mv_factures_joined: {e}")
 
 
 def importer_factures_asten_en_base():
@@ -2687,6 +2699,18 @@ def importer_factures_asten_en_base():
             csv_path.unlink(missing_ok=True)
         except Exception as e:
             print(f"  [Facture Asten] ERREUR {fichier}: {e}")
+    # Rafraîchir la vue matérialisée
+    try:
+        from django.db import connection
+        with connection.cursor() as cur:
+            cur.execute('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_factures_joined')
+    except Exception:
+        try:
+            from django.db import connection
+            with connection.cursor() as cur:
+                cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
+        except Exception as e:
+            print(f"  [Vue] Impossible de rafraîchir mv_factures_joined: {e}")
 
 
 def _lire_asten_factures(dossier_path):
@@ -2852,13 +2876,9 @@ def get_factures_stats_sql():
 
 def get_factures_verification():
     """
-    Jointure Cyrus ↔ Asten sur (cle_facture, date, magasin).
-    Déduplique : une entrée par facture unique (cle_facture, dfac_date, cidc).
-    Intègre les statuts manuels (FactureEcartStatut) :
-      - ignore    → exclut de joined et des stats
-      - integre   → compte comme intégrée (même si absente d'Asten)
-      - non_integre → compte comme manquante (défaut pour les écarts)
-    Retourne dict avec clés : cyrus, asten, joined, stats, error.
+    Lit mv_factures_joined (vue matérialisée PostgreSQL) pour éviter de charger
+    600k+ lignes Cyrus + 400k+ lignes Asten en Python.
+    Applique les statuts manuels (FactureEcartStatut) par-dessus.
     Résultat mis en cache 30 min — invalidé automatiquement après import.
     """
     from django.core.cache import cache
@@ -2866,182 +2886,139 @@ def get_factures_verification():
     cached = cache.get(CACHE_KEY)
     if cached is not None:
         return cached
-    from imports.models import FactureEcartStatut, FactureCyrusLigne, FactureAstenLigne
+    from django.db import connection
+    from imports.models import FactureEcartStatut, FactureCyrusLigne
     from core.models import Magasin
     try:
-        # Codes magasins Full Asten (pour qualifier les vrais écarts)
         full_asten_codes = set(Magasin.objects.filter(full_asten=True).values_list('code', flat=True))
 
-        # ── Lecture depuis la base si données disponibles, sinon fallback CSV ──
-        use_db = FactureCyrusLigne.objects.exists()
-
-        if use_db:
-            cyrus_rows = []
-            # Filtres : exclure série 19 (factures LD) et QLVU < 0 (avoirs/retours)
-            qs_cyrus = FactureCyrusLigne.objects.exclude(nsee='19').exclude(qlvu__lt=0)
-            for obj in qs_cyrus.values(
-                'cle_facture', 'nsee', 'nfac', 'dfac_str', 'dfac_date', 'cidc',
-                'lart', 'nart', 'qlvu', 'pvtc', 'ptvc', 'pfth', 'fichier'
-            ):
-                cyrus_rows.append({
-                    'cle_facture': obj['cle_facture'],
-                    'nsee':        obj['nsee'],
-                    'nfac':        obj['nfac'],
-                    'dfac_str':    obj['dfac_str'],
-                    'dfac_date':   obj['dfac_date'],
-                    'cidc':        obj['cidc'],
-                    'lart':        obj['lart'],
-                    'NART':        obj['nart'],
-                    'QLVU':        float(obj['qlvu'] or 0),
-                    'PVTC':        str(obj['pvtc'] or ''),
-                    'PTVC':        str(obj['ptvc'] or ''),
-                    'pfth':        float(obj['pfth'] or 0),
-                    'fichier':     obj['fichier'],
-                })
-            asten_rows = []
-            for obj in FactureAstenLigne.objects.all().values(
-                'n_bon_livraison', 'magasin', 'fournisseur', 'statut_commande',
-                'date_reception_str', 'date_reception_date',
-                'quantite_totale', 'valorisation_ht', 'valorisation_ttc',
-                'type_reception', 'fichier'
-            ):
-                asten_rows.append({
-                    'n_bon_livraison':     obj['n_bon_livraison'],
-                    'magasin':             str(obj['magasin']),
-                    'fournisseur':         obj['fournisseur'],
-                    'statut_commande':     obj['statut_commande'],
-                    'date_reception_str':  obj['date_reception_str'],
-                    'date_reception_date': obj['date_reception_date'],
-                    'quantite_totale':     str(obj['quantite_totale'] or ''),
-                    'valorisation_ht':     str(obj['valorisation_ht'] or ''),
-                    'valorisation_ttc':    str(obj['valorisation_ttc'] or ''),
-                    'type_reception':      obj['type_reception'],
-                    'fichier':             obj['fichier'],
-                })
-        else:
-            cyrus_path = settings.DOSSIER_FACTURES_CYRUS_PATH
-            asten_path = settings.DOSSIER_FACTURES_ASTEN_CSV_PATH
-            cyrus_rows, _ = _lire_cyrus_factures(cyrus_path)
-            asten_rows    = _lire_asten_factures(asten_path)
-
-        # Charger tous les statuts manuels en mémoire : (cle, dfac, cidc) → statut
+        # Statuts manuels : (cle_facture, dfac_str, cidc) → statut
         statuts_db = {
             (s.cle_facture, s.dfac_str, s.cidc): s.statut
             for s in FactureEcartStatut.objects.all()
         }
 
-        # Index Asten : cle_facture (N° bon livraison) → row (dédupliqué, par magasin)
-        asten_index = {}
-        for ar in asten_rows:
-            key = (ar['n_bon_livraison'], str(ar['magasin']))
-            if key not in asten_index:
-                asten_index[key] = ar
+        # Vérifier si la vue matérialisée existe
+        use_mv = False
+        with connection.cursor() as cur:
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_matviews WHERE matviewname = 'mv_factures_joined'
+                )
+            """)
+            use_mv = cur.fetchone()[0]
 
-        # Dédoublonner Cyrus : une facture unique = (cle_facture, dfac_date, cidc)
-        # Sommer PFTH (valorisation TTC) par facture
-        factures_dict     = {}
-        factures_articles = {}
-        factures_pfth     = {}  # somme PFTH Cyrus par facture
+        if use_mv:
+            with connection.cursor() as cur:
+                cur.execute("""
+                    SELECT cle_facture, nfac, nsee, dfac_str, dfac_date, cidc,
+                           pfth_total, nb_articles, qt_asten, valo_ttc, integree
+                    FROM mv_factures_joined
+                    ORDER BY cidc, dfac_date
+                """)
+                cols = [d[0] for d in cur.description]
+                mv_rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        else:
+            # Fallback : construire depuis les tables (lent mais fiable)
+            from imports.models import FactureAstenLigne
+            qs_cyrus = FactureCyrusLigne.objects.exclude(nsee='19').exclude(qlvu__lt=0)
+            factures_dict = {}
+            factures_pfth = {}
+            factures_nb   = {}
+            for obj in qs_cyrus.values('cle_facture', 'nsee', 'nfac', 'dfac_str', 'dfac_date', 'cidc', 'lart', 'pfth'):
+                key = (obj['cle_facture'], obj['dfac_date'], obj['cidc'])
+                if key not in factures_dict:
+                    factures_dict[key] = obj
+                    factures_pfth[key] = 0.0
+                    factures_nb[key]   = 0
+                factures_pfth[key] += float(obj['pfth'] or 0)
+                factures_nb[key]   += 1
+            asten_index = {}
+            for obj in FactureAstenLigne.objects.all().values('n_bon_livraison', 'magasin', 'quantite_totale', 'valorisation_ttc'):
+                k = (obj['n_bon_livraison'], str(obj['magasin']))
+                if k not in asten_index:
+                    asten_index[k] = obj
+            mv_rows = []
+            for key, cr in factures_dict.items():
+                am = asten_index.get((cr['cle_facture'], cr['cidc']))
+                qt = float(str(am.get('quantite_totale') or '0').replace(',', '.')) if am else 0.0
+                valo = None
+                if am:
+                    raw = str(am.get('valorisation_ttc') or '').strip()
+                    if raw:
+                        try:
+                            valo = float(raw.replace(',', '.'))
+                        except (ValueError, TypeError):
+                            pass
+                mv_rows.append({
+                    'cle_facture': cr['cle_facture'],
+                    'nfac':        cr['nfac'],
+                    'nsee':        cr['nsee'],
+                    'dfac_str':    cr['dfac_str'],
+                    'dfac_date':   cr['dfac_date'],
+                    'cidc':        cr['cidc'],
+                    'pfth_total':  factures_pfth[key],
+                    'nb_articles': factures_nb[key],
+                    'qt_asten':    qt,
+                    'valo_ttc':    valo,
+                    'integree':    am is not None,
+                })
 
-        for cr in cyrus_rows:
-            cidc = cr['cidc']
-            key  = (cr['cle_facture'], cr['dfac_date'], cidc)
-            if key not in factures_dict:
-                factures_dict[key]     = cr
-                factures_articles[key] = []
-                factures_pfth[key]     = 0.0
-            factures_articles[key].append({
-                'lart': cr.get('lart', ''),
-                'NART': cr.get('NART', ''),
-                'PVTC': cr.get('PVTC', ''),
-                'PTVC': cr.get('PTVC', ''),
-                'PFTH': cr.get('pfth', 0.0),
-            })
-            factures_pfth[key] += cr.get('pfth', 0.0)
-
-        joined       = []
-        stats_mag    = {}
+        joined            = []
+        stats_mag         = {}
         nb_integrees      = 0
         nb_integrees_vide = 0
         nb_ignores        = 0
 
-        for key, cr in factures_dict.items():
-            cidc     = cr['cidc']
-            dfac_str = cr.get('dfac_str', '')
+        for row in mv_rows:
+            cidc         = row['cidc']
+            cle          = row['cle_facture']
+            dfac_str     = row['dfac_str']
+            integree_csv = bool(row['integree'])
+            qt_asten     = float(row['qt_asten'] or 0)
+            pfth_cyrus   = float(row['pfth_total'] or 0)
+            valo_ttc     = row['valo_ttc']
+            valo_asten   = float(valo_ttc) if valo_ttc is not None else 0.0
+            valo_dispo   = valo_ttc is not None
 
-            # Recherche dans Asten par (cle_facture, magasin) — sans date car formats différents
-            asten_match  = asten_index.get((cr['cle_facture'], cidc))
-            integree_csv = asten_match is not None
-
-            # Valorisation TTC Asten
-            valo_asten     = 0.0
-            valo_asten_dispo = False  # True seulement si la colonne est renseignée
-            qt_asten       = 0.0
-            if asten_match:
-                raw_valo = str(asten_match.get('valorisation_ttc', '') or '').strip()
-                if raw_valo:
-                    try:
-                        valo_asten = float(raw_valo.replace(',', '.'))
-                        valo_asten_dispo = True
-                    except (ValueError, TypeError):
-                        pass
-                try:
-                    qt_asten = float(str(asten_match.get('quantite_totale', '0') or '0').replace(',', '.'))
-                except (ValueError, TypeError):
-                    qt_asten = 0.0
-
-            # Somme PFTH Cyrus pour cette facture
-            pfth_cyrus = factures_pfth[key]
-
-            # Écart de valorisation : uniquement si Asten a une valo renseignée et qt > 0
-            ecart_valo = abs(round(valo_asten - pfth_cyrus, 2)) if integree_csv and valo_asten_dispo and qt_asten > 0 else 0.0
+            ecart_valo     = abs(round(valo_asten - pfth_cyrus, 2)) if integree_csv and valo_dispo and qt_asten > 0 else 0.0
             has_ecart_valo = ecart_valo > 1
 
-            # Clé DB pour statut manuel
-            db_key        = (cr['cle_facture'], dfac_str, cidc)
-            statut_manuel = statuts_db.get(db_key)
-
-            # Résolution du statut effectif
-            # À vide = réception existe dans Asten mais quantité totale = 0
+            statut_manuel = statuts_db.get((cle, dfac_str, cidc))
             is_full_asten = cidc in full_asten_codes
+
             if integree_csv:
-                if qt_asten > 0:
-                    statut_effectif = 'integre'       # intégré avec articles ✅
-                else:
-                    statut_effectif = 'integre_vide'  # intégré à vide ⚠️
+                statut_effectif = 'integre' if qt_asten > 0 else 'integre_vide'
             elif statut_manuel == 'ignore':
                 nb_ignores += 1
                 continue
             elif statut_manuel == 'integre':
                 statut_effectif = 'integre'
             elif not is_full_asten:
-                statut_effectif = 'non_full_asten'    # magasin hors périmètre Asten
+                statut_effectif = 'non_full_asten'
             else:
-                statut_effectif = 'non_integre'       # vrai écart ❌
+                statut_effectif = 'non_integre'
 
             integree_effective = statut_effectif in ('integre', 'integre_vide')
-            nb_articles = len(factures_articles[key])
 
             if statut_effectif == 'integre':
                 nb_integrees += 1
             elif statut_effectif == 'integre_vide':
                 nb_integrees_vide += 1
-            elif statut_effectif == 'non_full_asten':
-                pass  # hors périmètre → ne compte pas
 
             joined.append({
-                'cle_facture':     cr['cle_facture'],
-                'nfac':            cr['nfac'],
-                'nsee':            cr['nsee'],
-                'dfac_str':        cr['dfac_str'],
-                'dfac_date':       cr['dfac_date'],
-                'cidc':            cr['cidc'],
-                'pfth':            cr.get('pfth', 0),
+                'cle_facture':     cle,
+                'nfac':            row['nfac'],
+                'nsee':            row['nsee'],
+                'dfac_str':        dfac_str,
+                'dfac_date':       row['dfac_date'],
+                'cidc':            cidc,
+                'pfth':            pfth_cyrus,
                 'integree':        integree_effective,
                 'integree_csv':    integree_csv,
                 'statut_manuel':   statut_manuel,
                 'statut_effectif': statut_effectif,
-                'nb_articles':     nb_articles,
+                'nb_articles':     int(row['nb_articles'] or 0),
                 'pfth_cyrus':      pfth_cyrus,
                 'valo_asten':      valo_asten,
                 'qt_asten':        qt_asten,
@@ -3063,32 +3040,27 @@ def get_factures_verification():
             if has_ecart_valo:
                 stats_mag[cidc]['ecarts_valo'] += 1
 
-        nb_non_integrees  = sum(1 for r in joined if r.get('statut_effectif') == 'non_integre')
-        nb_non_full_asten = sum(1 for r in joined if r.get('statut_effectif') == 'non_full_asten')
-        nb_ecarts_valo    = sum(1 for r in joined if r.get('has_ecart_valo'))
-        total_actif       = len(joined)
+        nb_non_integrees  = sum(1 for r in joined if r['statut_effectif'] == 'non_integre')
+        nb_non_full_asten = sum(1 for r in joined if r['statut_effectif'] == 'non_full_asten')
+        nb_ecarts_valo    = sum(1 for r in joined if r['has_ecart_valo'])
         result = {
-            'cyrus':  cyrus_rows,
-            'asten':  asten_rows,
             'joined': joined,
             'stats':  {
-                'total':            total_actif,
-                'integrees':        nb_integrees,
-                'integrees_vide':   nb_integrees_vide,
-                'ecarts':           nb_non_integrees,
-                'ecarts_valo':      nb_ecarts_valo,
-                'non_full_asten':   nb_non_full_asten,
-                'ignores':          nb_ignores,
-                'par_magasin':      dict(sorted(stats_mag.items())),
+                'total':          len(joined),
+                'integrees':      nb_integrees,
+                'integrees_vide': nb_integrees_vide,
+                'ecarts':         nb_non_integrees,
+                'ecarts_valo':    nb_ecarts_valo,
+                'non_full_asten': nb_non_full_asten,
+                'ignores':        nb_ignores,
+                'par_magasin':    dict(sorted(stats_mag.items())),
             },
             'error': None,
         }
-        cache.set(CACHE_KEY, result, 60 * 30)  # 30 minutes
+        cache.set(CACHE_KEY, result, 60 * 30)
         return result
     except Exception as e:
         return {
-            'cyrus':  [],
-            'asten':  [],
             'joined': [],
             'stats':  {'total': 0, 'integrees': 0, 'integrees_vide': 0, 'ecarts': 0, 'ecarts_valo': 0, 'ignores': 0, 'par_magasin': {}},
             'error':  str(e),
