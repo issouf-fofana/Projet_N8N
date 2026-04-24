@@ -61,3 +61,25 @@ class BRAsten(models.Model):
         return f"BR Asten - {self.numero_br} - {self.code_magasin} - {self.date_br}"
 
 
+class BRICLigne(models.Model):
+    """Une ligne de réception/retour provenant du fichier BR IC (Sage IC).
+    Importée en base jour par jour — remplace la lecture fichier à la volée."""
+    numero_br = models.CharField(max_length=50, verbose_name="N° Réc./Ret.")
+    commande_fournisseur = models.CharField(max_length=100, verbose_name="N° Cde fournisseur")
+    date_reception = models.DateField(verbose_name="Date réception")
+    fichier_source = models.CharField(max_length=255, verbose_name="Fichier source")
+    date_import = models.DateTimeField(auto_now_add=True, verbose_name="Date d'import")
+
+    class Meta:
+        verbose_name = "BR IC Ligne"
+        verbose_name_plural = "BR IC Lignes"
+        unique_together = [['numero_br', 'commande_fournisseur', 'date_reception']]
+        indexes = [
+            models.Index(fields=['numero_br', 'commande_fournisseur', 'date_reception']),
+            models.Index(fields=['date_reception']),
+        ]
+        ordering = ['-date_reception', 'numero_br']
+
+    def __str__(self):
+        return f"BR IC - {self.numero_br} - {self.date_reception}"
+

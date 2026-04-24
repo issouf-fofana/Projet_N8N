@@ -748,63 +748,78 @@ def _iter_excel_rows(chemin_fichier):
             yield {str(k).lstrip('\ufeff').strip(): v for k, v in row.items()}
 
 
+def importer_br_ic_en_base(fichier_path):
+    """
+    Lit un fichier BR IC (CSV ou Excel) et insère les nouvelles lignes dans BRICLigne.
+    Dédoublonne sur (numero_br, commande_fournisseur, date_reception).
+    Un même fichier peut être déposé plusieurs fois sans créer de doublons.
+    Retourne le nombre de lignes nouvellement insérées.
+    """
+    from br.models import BRICLigne
+    fichier = Path(fichier_path)
+    if not fichier.exists():
+        return 0
+
+    if fichier.suffix.lower() in ('.xlsx', '.xls'):
+        row_iter = _iter_excel_rows(str(fichier))
+    else:
+        row_iter = _iter_csv_rows(str(fichier))
+
+    nouvelles = []
+    cles_vues = set()
+
+    for row in row_iter:
+        try:
+            row_n = {str(k).lstrip('\ufeff').strip(): v for k, v in row.items()}
+            numero_br = normalize_numero_br(get_valeur_premiere_normalized(
+                row_n,
+                ['N° Réc./Ret.', 'N° Réc./Ret', 'N° Rec./Ret.', 'N° Rec./Ret',
+                 'N° Réception', 'N° Rec/Ret', 'N° Rec/Ret.',
+                 'N° Reception', 'N° Reception/Retours', 'N° Receptions Retours',
+                 'N° Réceptions/Retours', 'N° Réceptions Retours', 'N° Rec. Ret.']
+            ))
+            commande_fournisseur = normalize_commande_fournisseur(get_valeur_premiere_normalized(
+                row_n,
+                ['N° Cde', 'N° Cde.', 'N° Cde fournisseur', 'Commande fournisseur', 'N° Commande']
+            ))
+            date_rec_str = get_valeur_premiere_normalized(
+                row_n,
+                ['Date Réc./Ret.', 'Date Réc./Ret', 'Date Rec./Ret.', 'Date Rec./Ret',
+                 'Date Réception', 'Date Rec/Ret', 'Date creation', 'Date création',
+                 'Date Réceptions/Retours', 'Date Receptions Retours']
+            )
+            date_rec = parse_date_br(date_rec_str)
+            if not (numero_br and commande_fournisseur and date_rec):
+                continue
+            cle = (numero_br, commande_fournisseur, date_rec)
+            if cle in cles_vues:
+                continue
+            cles_vues.add(cle)
+            nouvelles.append(BRICLigne(
+                numero_br=numero_br,
+                commande_fournisseur=commande_fournisseur,
+                date_reception=date_rec,
+                fichier_source=fichier.name,
+            ))
+        except Exception as e:
+            print(f"[BR IC] Erreur ligne {fichier.name}: {e}")
+            continue
+
+    created = BRICLigne.objects.bulk_create(nouvelles, ignore_conflicts=True)
+    return len(created)
+
+
 def comparer_br_asten_ic():
     """
-    Compare les BR Asten avec les BR IC (CSV) sur :
-    - N° bon livraison = N° Réc./Ret.
-    - Commande fournisseur = N° Cde
-    - Date création = Date Réc./Ret. (date sans heure)
+    Compare les BRAsten avec les BRICLigne stockées en base.
     Met à jour ic_integre/statut_ic sur BRAsten.
+    Plus besoin de lire un fichier — tout est en base.
     """
-    dossier_br_ic = Path(settings.DOSSIER_BR_IC_PATH)
-    if not dossier_br_ic.exists():
-        print(f"Dossier BR IC introuvable: {dossier_br_ic}")
-        return {'updated_integre': 0, 'updated_non_integre': 0, 'error': 'dossier_introuvable'}
+    from br.models import BRICLigne
 
-    fichiers_ic = (
-        list(dossier_br_ic.glob('*.csv')) + list(dossier_br_ic.glob('*.CSV')) +
-        list(dossier_br_ic.glob('*.xlsx')) + list(dossier_br_ic.glob('*.XLSX')) +
-        list(dossier_br_ic.glob('*.xls')) + list(dossier_br_ic.glob('*.XLS'))
+    ic_keys = set(
+        BRICLigne.objects.values_list('numero_br', 'commande_fournisseur', 'date_reception')
     )
-    if not fichiers_ic:
-        return {'updated_integre': 0, 'updated_non_integre': 0, 'error': 'aucun_fichier'}
-
-    ic_keys = set()
-    for fichier in fichiers_ic:
-        if fichier.suffix.lower() in ('.xlsx', '.xls'):
-            row_iter = _iter_excel_rows(str(fichier))
-        else:
-            row_iter = _iter_csv_rows(str(fichier))
-        for row in row_iter:
-            try:
-                row_normalized = {str(k).lstrip('\ufeff').strip(): v for k, v in row.items()}
-                numero_br = normalize_numero_br(get_valeur_premiere_normalized(
-                    row_normalized,
-                    [
-                        'N° Réc./Ret.', 'N° Réc./Ret', 'N° Rec./Ret.', 'N° Rec./Ret',
-                        'N° Réception', 'N° Rec/Ret', 'N° Rec/Ret.',
-                        'N° Reception', 'N° Reception/Retours', 'N° Receptions Retours',
-                        'N° Réceptions/Retours', 'N° Réceptions Retours', 'N° Rec. Ret.'
-                    ]
-                ))
-                commande_fournisseur = normalize_commande_fournisseur(get_valeur_premiere_normalized(
-                    row_normalized,
-                    ['N° Cde', 'N° Cde.', 'N° Cde fournisseur', 'Commande fournisseur', 'N° Commande']
-                ))
-                date_rec_str = get_valeur_premiere_normalized(
-                    row_normalized,
-                    [
-                        'Date Réc./Ret.', 'Date Réc./Ret', 'Date Rec./Ret.', 'Date Rec./Ret',
-                        'Date Réception', 'Date Rec/Ret', 'Date creation', 'Date création',
-                        'Date Réceptions/Retours', 'Date Receptions Retours'
-                    ]
-                )
-                date_rec = parse_date_br(date_rec_str)
-                if numero_br and commande_fournisseur and date_rec:
-                    ic_keys.add((numero_br, commande_fournisseur, date_rec))
-            except Exception as e:
-                print(f"Erreur lecture BR IC {fichier.name}: {e}")
-                continue
 
     if not ic_keys:
         return {'updated_integre': 0, 'updated_non_integre': 0, 'error': 'aucune_cle'}
@@ -836,13 +851,11 @@ def comparer_br_asten_ic():
     updated_non_integre = 0
     if ids_integres:
         updated_integre = BRAsten.objects.filter(id__in=ids_integres).update(
-            ic_integre=True,
-            statut_ic='Intégré'
+            ic_integre=True, statut_ic='Intégré'
         )
     if ids_non_integres:
         updated_non_integre = BRAsten.objects.filter(id__in=ids_non_integres).update(
-            ic_integre=False,
-            statut_ic='Non intégré'
+            ic_integre=False, statut_ic='Non intégré'
         )
 
     return {
@@ -1429,22 +1442,23 @@ def scanner_et_importer_fichiers():
             except Exception:
                 pass
 
-    # Comparer BR Asten vs BR IC puis garder uniquement le fichier le plus récent
+    # Importer les fichiers BR IC en base puis comparer avec BRAsten
     try:
-        comparer_br_asten_ic()
-        # Garder uniquement le fichier BR IC le plus récent, supprimer les anciens
         fichiers_ic = (
             list(dossier_br_ic.glob('*.csv')) + list(dossier_br_ic.glob('*.CSV')) +
             list(dossier_br_ic.glob('*.xlsx')) + list(dossier_br_ic.glob('*.XLSX')) +
             list(dossier_br_ic.glob('*.xls')) + list(dossier_br_ic.glob('*.XLS'))
         )
-        if len(fichiers_ic) > 1:
-            # Trier par date de modification : le plus récent en premier
-            fichiers_ic.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-            for f in fichiers_ic[1:]:  # supprimer tout sauf le plus récent
-                supprimer_fichier_source(f)
+        for f_ic in fichiers_ic:
+            try:
+                nb = importer_br_ic_en_base(str(f_ic))
+                print(f"[BR IC] {f_ic.name} → {nb} nouvelles lignes en base")
+                supprimer_fichier_source(f_ic)
+            except Exception as e:
+                print(f"Erreur import BR IC {f_ic.name}: {e}")
+        comparer_br_asten_ic()
     except Exception as e:
-        print(f"Erreur comparaison BR Asten/IC: {e}")
+        print(f"Erreur traitement BR IC: {e}")
 
     # Synchroniser les anomalies BR depuis le fichier CSV anomalie
     try:
