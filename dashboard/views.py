@@ -799,6 +799,13 @@ def dashboard(request):
 
         backup_files = factures_qs.order_by('-date_modif', 'nom_fichier')[:1000]
 
+        # Stats rapides SQL (top 10, semaines)
+        try:
+            from imports.services import get_factures_stats_sql
+            fv_sql = get_factures_stats_sql()
+        except Exception:
+            fv_sql = {}
+
         # Vraies stats depuis la jointure Cyrus/Asten
         try:
             from imports.services import get_factures_verification
@@ -1003,6 +1010,14 @@ def dashboard(request):
         'backup_files': backup_files if type_donnees == 'factures_backup' else None,
         'backup_error': backup_error if type_donnees == 'factures_backup' else None,
         'backup_stats_magasin_json': __import__('json').dumps(locals().get('stats_par_magasin', {})) if type_donnees == 'factures_backup' else '{}',
+        'backup_top10_json': __import__('json').dumps(
+            [{'cidc': c, **s} for c, s in locals().get('fv_sql', {}).get('top10_ecarts', [])]
+            if type_donnees == 'factures_backup' else []
+        ) if type_donnees == 'factures_backup' else '[]',
+        'backup_semaines_json': __import__('json').dumps({
+            'courante': locals().get('fv_sql', {}).get('semaine_courante', {}),
+            'precedente': locals().get('fv_sql', {}).get('semaine_precedente', {}),
+        }) if type_donnees == 'factures_backup' else '{}',
         'full_asten_codes': sorted(locals().get('full_asten_codes', [])),
         'magasins': magasins,
         'type_donnees': type_donnees,
@@ -1304,25 +1319,17 @@ def accueil(request):
     except:
         stats_br = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
     
-    # FACTURES (Cyrus/Asten — jointure)
+    # FACTURES (Cyrus/Asten — stats SQL rapides)
     try:
-        from imports.services import get_factures_verification
-        from core.models import Magasin as MagasinModel
-        fv = get_factures_verification()
-        fv_stats = fv['stats']
-        full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
-        nb_int_acc  = fv_stats.get('integrees', 0)
-        nb_vide_acc = fv_stats.get('integrees_vide', 0)
-        nb_eca_acc  = fv_stats.get('ecarts', 0)
-        nb_tot_acc  = fv_stats.get('total', 0)
-        # Si Full Asten configurés, ne compter que les écarts Full Asten
-        if full_asten_codes:
-            pm = fv_stats.get('par_magasin', {})
-            nb_eca_acc = sum(s.get('ecarts', 0) for k, s in pm.items() if k in full_asten_codes)
-        taux_int = round((nb_int_acc + nb_vide_acc) / nb_tot_acc * 100, 2) if nb_tot_acc else 0
+        from imports.services import get_factures_stats_sql
+        fv_sql = get_factures_stats_sql()
+        nb_int_acc  = fv_sql.get('integrees', 0) + fv_sql.get('integrees_vide', 0)
+        nb_eca_acc  = fv_sql.get('ecarts', 0)
+        nb_tot_acc  = fv_sql.get('total', 0)
+        taux_int = round(nb_int_acc / nb_tot_acc * 100, 2) if nb_tot_acc else 0
         stats_factures = {
             'total':               nb_tot_acc,
-            'integres':            nb_int_acc + nb_vide_acc,
+            'integres':            nb_int_acc,
             'non_integres':        nb_eca_acc,
             'taux_integration':    taux_int,
             'taux_non_integration': round(100 - taux_int, 2),

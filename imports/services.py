@@ -2572,6 +2572,7 @@ def importer_factures_cyrus_en_base():
     """
     from django.core.cache import cache
     cache.delete('factures_verification_v1')
+    cache.delete('factures_stats_sql_v1')
     from imports.models import FactureCyrusLigne
     dossier = Path(settings.DOSSIER_FACTURES_CYRUS_PATH)
     if not dossier.exists():
@@ -2640,6 +2641,7 @@ def importer_factures_asten_en_base():
     """
     from django.core.cache import cache
     cache.delete('factures_verification_v1')
+    cache.delete('factures_stats_sql_v1')
     from imports.models import FactureAstenLigne
     dossier = Path(settings.DOSSIER_FACTURES_ASTEN_CSV_PATH)
     if not dossier.exists():
@@ -2719,6 +2721,133 @@ def _lire_asten_factures(dossier_path):
                 'fichier':             csv_path.name,
             })
     return rows
+
+
+def get_factures_stats_sql():
+    """
+    Stats rapides Cyrus/Asten calculées en SQL — utilisé pour l'accueil et les cards.
+    Ne charge pas les 38 000 lignes en mémoire.
+    Retourne dict : total, integrees, integrees_vide, ecarts, par_magasin (top 10), semaine_courante, semaine_precedente.
+    """
+    from django.core.cache import cache
+    from django.db import connection
+    CACHE_KEY = 'factures_stats_sql_v1'
+    cached = cache.get(CACHE_KEY)
+    if cached is not None:
+        return cached
+
+    from imports.models import FactureCyrusLigne, FactureAstenLigne
+    from core.models import Magasin
+    from datetime import date, timedelta
+
+    try:
+        full_asten_codes = set(Magasin.objects.filter(full_asten=True).values_list('code', flat=True))
+
+        # Factures Cyrus uniques (hors série 19 et qlvu < 0), groupées par (cle_facture, cidc)
+        cyrus_qs = (
+            FactureCyrusLigne.objects
+            .exclude(nsee='19').exclude(qlvu__lt=0)
+            .values('cle_facture', 'cidc', 'dfac_date')
+            .distinct()
+        )
+        cyrus_keys = {(r['cle_facture'], r['cidc']): r['dfac_date'] for r in cyrus_qs}
+
+        # Factures Asten (BL intégrés)
+        asten_keys = set(
+            FactureAstenLigne.objects
+            .values_list('n_bon_livraison', 'magasin')
+        )
+        asten_qt = {
+            (r['n_bon_livraison'], r['magasin']): r['quantite_totale']
+            for r in FactureAstenLigne.objects.values('n_bon_livraison', 'magasin', 'quantite_totale')
+        }
+
+        nb_integrees = nb_integrees_vide = nb_non_integrees = nb_non_full_asten = 0
+        par_magasin = {}
+
+        # Dates semaine courante et précédente
+        today = date.today()
+        debut_sem = today - timedelta(days=today.weekday())
+        debut_sem_prec = debut_sem - timedelta(weeks=1)
+        fin_sem_prec = debut_sem - timedelta(days=1)
+
+        sem_courante = {'integrees': 0, 'non_integrees': 0}
+        sem_precedente = {'integrees': 0, 'non_integrees': 0}
+
+        for (cle, cidc), dfac in cyrus_keys.items():
+            integre = (cle, cidc) in asten_keys or (cle, str(cidc)) in asten_keys
+            qt = float(asten_qt.get((cle, cidc), asten_qt.get((cle, str(cidc)), 0)) or 0)
+            is_full_asten = cidc in full_asten_codes
+
+            if integre and qt == 0:
+                statut = 'integre_vide'
+            elif integre:
+                statut = 'integre'
+            elif not is_full_asten:
+                statut = 'non_full_asten'
+            else:
+                statut = 'non_integre'
+
+            if statut == 'integre':
+                nb_integrees += 1
+            elif statut == 'integre_vide':
+                nb_integrees_vide += 1
+            elif statut == 'non_integre':
+                nb_non_integrees += 1
+            elif statut == 'non_full_asten':
+                nb_non_full_asten += 1
+
+            if cidc not in par_magasin:
+                par_magasin[cidc] = {'integrees': 0, 'integrees_vide': 0, 'ecarts': 0, 'full_asten': is_full_asten}
+            if statut == 'integre':
+                par_magasin[cidc]['integrees'] += 1
+            elif statut == 'integre_vide':
+                par_magasin[cidc]['integrees_vide'] += 1
+            elif statut == 'non_integre':
+                par_magasin[cidc]['ecarts'] += 1
+
+            # Stats semaines
+            if dfac:
+                if debut_sem <= dfac <= today:
+                    if statut in ('integre', 'integre_vide'):
+                        sem_courante['integrees'] += 1
+                    elif statut == 'non_integre':
+                        sem_courante['non_integrees'] += 1
+                elif debut_sem_prec <= dfac <= fin_sem_prec:
+                    if statut in ('integre', 'integre_vide'):
+                        sem_precedente['integrees'] += 1
+                    elif statut == 'non_integre':
+                        sem_precedente['non_integrees'] += 1
+
+        total = nb_integrees + nb_integrees_vide + nb_non_integrees + nb_non_full_asten
+        taux = round((nb_integrees + nb_integrees_vide) / total * 100, 1) if total else 0
+
+        # Top 10 magasins avec le plus d'écarts
+        top10 = sorted(
+            [(cidc, s) for cidc, s in par_magasin.items() if s['ecarts'] > 0],
+            key=lambda x: x[1]['ecarts'], reverse=True
+        )[:10]
+
+        result = {
+            'total': total,
+            'integrees': nb_integrees,
+            'integrees_vide': nb_integrees_vide,
+            'ecarts': nb_non_integrees,
+            'non_full_asten': nb_non_full_asten,
+            'taux': taux,
+            'par_magasin': par_magasin,
+            'top10_ecarts': top10,
+            'semaine_courante': sem_courante,
+            'semaine_precedente': sem_precedente,
+        }
+        cache.set(CACHE_KEY, result, 60 * 20)  # 20 min
+        return result
+    except Exception as e:
+        return {
+            'total': 0, 'integrees': 0, 'integrees_vide': 0, 'ecarts': 0,
+            'non_full_asten': 0, 'taux': 0, 'par_magasin': {},
+            'top10_ecarts': [], 'semaine_courante': {}, 'semaine_precedente': {},
+        }
 
 
 def get_factures_verification():

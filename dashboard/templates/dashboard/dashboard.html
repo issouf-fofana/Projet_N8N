@@ -604,7 +604,7 @@
                            {% if filtres.type_donnees == 'factures_backup' %}checked{% endif %}
                            onchange="switchType(this.value)">
                     <label class="btn btn-outline-primary" for="type_factures_backup">
-                        <i class="bi bi-receipt"></i> Facture Backup
+                        <i class="bi bi-receipt"></i> Facture Asten
                     </label>
                     
                     <input type="radio" class="btn-check" name="type_donnees" id="type_br" value="br"
@@ -1296,10 +1296,10 @@
 </div>
 
 {% if filtres.type_donnees == 'factures_backup' %}
-<!-- Données stats par magasin pour JS -->
-<script id="backupStatsMagasin" type="application/json">
-{{ backup_stats_magasin_json|default:"{}"|safe }}
-</script>
+<!-- Données stats pour JS -->
+<script id="backupStatsMagasin" type="application/json">{{ backup_stats_magasin_json|default:"{}"|safe }}</script>
+<script id="backupTop10" type="application/json">{{ backup_top10_json|default:"[]"|safe }}</script>
+<script id="backupSemaines" type="application/json">{{ backup_semaines_json|default:"{}"|safe }}</script>
 {% endif %}
 
 {% if filtres.type_donnees == 'factures_backup' %}
@@ -1338,6 +1338,79 @@
             </div>
             <div class="card-body p-2" style="height:230px;position:relative">
                 <canvas id="barMagasinFull"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top 10 + Comparaison semaines -->
+<div class="row g-3 mb-3">
+    <!-- Top 10 magasins avec le plus d'écarts -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header py-2" style="font-size:0.82rem;font-weight:600">
+                <i class="bi bi-trophy-fill me-1" style="color:#ef4444"></i> Top magasins — Non intégrées
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0" id="top10Table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="font-size:0.75rem">#</th>
+                            <th style="font-size:0.75rem">Magasin</th>
+                            <th class="text-end" style="font-size:0.75rem">Non intégrées</th>
+                            <th class="text-end" style="font-size:0.75rem">Intégrées</th>
+                            <th class="text-end" style="font-size:0.75rem">Taux</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top10Body">
+                        <tr><td colspan="5" class="text-center text-muted py-3" style="font-size:0.8rem">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Comparaison semaines -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header py-2" style="font-size:0.82rem;font-weight:600">
+                <i class="bi bi-calendar-week me-1" style="color:#1e3a8a"></i> Comparaison semaines
+            </div>
+            <div class="card-body">
+                <div class="row g-3" id="semComp">
+                    <!-- Rempli par JS -->
+                    <div class="col-6">
+                        <div class="p-3 rounded" style="background:#f0fdf4;border:1.5px solid #bbf7d0">
+                            <div style="font-size:0.72rem;color:#065f46;font-weight:700;text-transform:uppercase">Cette semaine</div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <div class="text-center">
+                                    <div style="font-size:1.4rem;font-weight:700;color:#059669" id="sem_cur_int">—</div>
+                                    <div style="font-size:0.68rem;color:#6b7280">Intégrées</div>
+                                </div>
+                                <div class="text-center">
+                                    <div style="font-size:1.4rem;font-weight:700;color:#ef4444" id="sem_cur_eca">—</div>
+                                    <div style="font-size:0.68rem;color:#6b7280">Non intégrées</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded" style="background:#fafafa;border:1.5px solid #e5e7eb">
+                            <div style="font-size:0.72rem;color:#374151;font-weight:700;text-transform:uppercase">Semaine précédente</div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <div class="text-center">
+                                    <div style="font-size:1.4rem;font-weight:700;color:#059669" id="sem_prev_int">—</div>
+                                    <div style="font-size:0.68rem;color:#6b7280">Intégrées</div>
+                                </div>
+                                <div class="text-center">
+                                    <div style="font-size:1.4rem;font-weight:700;color:#ef4444" id="sem_prev_eca">—</div>
+                                    <div style="font-size:0.68rem;color:#6b7280">Non intégrées</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Évolution -->
+                    <div class="col-12" id="semEvo"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1559,15 +1632,6 @@
         });
     }
 
-    function refreshAll() {
-        const eff = getEffective();
-        updateCards(eff);
-        buildDonutGlobal(eff);
-        buildMiniDonut(eff);
-        buildBarMagasin();
-        buildBarMiniCard();
-    }
-
     window.applyBackupValues = function() {
         saveCurrent({
             integrees:    document.getElementById('inp_integrees').value,
@@ -1615,9 +1679,72 @@
         tryInit();
     }
     window.updatePieChart = refreshAll;
-})();
-</script>
-{% endif %}
+
+    // ── Top 10 magasins ──
+    function buildTop10() {
+        let top10 = [];
+        try { top10 = JSON.parse(document.getElementById('backupTop10').textContent) || []; } catch(e) {}
+        const tbody = document.getElementById('top10Body');
+        if (!tbody || !top10.length) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3" style="font-size:0.8rem">Aucun écart</td></tr>';
+            return;
+        }
+        tbody.innerHTML = top10.map((r, i) => {
+            const tot = (r.integrees||0) + (r.integrees_vide||0) + (r.ecarts||0);
+            const taux = tot > 0 ? Math.round(((r.integrees||0)+(r.integrees_vide||0))/tot*100) : 0;
+            const fa = r.full_asten ? '<span style="font-size:0.65rem;background:#d1fae5;color:#065f46;border-radius:10px;padding:1px 6px;font-weight:700">FA</span>' : '';
+            return `<tr>
+                <td style="font-size:0.75rem;color:#9ca3af">${i+1}</td>
+                <td style="font-size:0.78rem"><strong>${r.cidc}</strong> ${fa}</td>
+                <td class="text-end"><span style="font-size:0.82rem;font-weight:700;color:#ef4444">${r.ecarts||0}</span></td>
+                <td class="text-end" style="font-size:0.78rem;color:#059669">${(r.integrees||0)+(r.integrees_vide||0)}</td>
+                <td class="text-end">
+                    <span style="font-size:0.75rem;font-weight:600;color:${taux>=95?'#059669':taux>=80?'#f59e0b':'#ef4444'}">${taux}%</span>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ── Comparaison semaines ──
+    function buildSemaines() {
+        let sems = {};
+        try { sems = JSON.parse(document.getElementById('backupSemaines').textContent) || {}; } catch(e) {}
+        const cur = sems.courante || {}, prev = sems.precedente || {};
+        const fmt = n => Number(n||0).toLocaleString('fr-FR');
+        const si = document.getElementById('sem_cur_int');
+        const se = document.getElementById('sem_cur_eca');
+        const pi = document.getElementById('sem_prev_int');
+        const pe = document.getElementById('sem_prev_eca');
+        if (si) si.textContent = fmt(cur.integrees);
+        if (se) se.textContent = fmt(cur.non_integrees);
+        if (pi) pi.textContent = fmt(prev.integrees);
+        if (pe) pe.textContent = fmt(prev.non_integrees);
+
+        // Évolution écarts
+        const evo = document.getElementById('semEvo');
+        if (evo) {
+            const diff = (cur.non_integrees||0) - (prev.non_integrees||0);
+            const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '=';
+            const col = diff > 0 ? '#ef4444' : diff < 0 ? '#059669' : '#6b7280';
+            const txt = diff > 0 ? `+${diff} écart(s) de plus que la semaine dernière` :
+                        diff < 0 ? `${Math.abs(diff)} écart(s) de moins que la semaine dernière` :
+                        'Même nombre d\'écarts que la semaine dernière';
+            evo.innerHTML = `<div class="p-2 rounded text-center" style="background:#f8fafc;border:1px solid #e2e8f0;font-size:0.78rem">
+                <span style="font-size:1.1rem;font-weight:700;color:${col}">${arrow} ${txt}</span>
+            </div>`;
+        }
+    }
+
+    function refreshAll() {
+        const eff = getEffective();
+        updateCards(eff);
+        buildDonutGlobal(eff);
+        buildMiniDonut(eff);
+        buildBarMagasin();
+        buildBarMiniCard();
+        buildTop10();
+        buildSemaines();
+    }
 
 <!-- TOP N MAGASINS -->
 {% include "dashboard/_top_magasins.html" %}
