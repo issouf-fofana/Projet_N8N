@@ -342,10 +342,15 @@ def get_integration_asten(run_date=None):
         magasin = {}
 
     # Grouper les entrées par pos_id → shop_reference → type
+    # grouped_requis : uniquement les 4+1 types Asten (conformité)
+    # grouped_extra  : autres types (delivery, supplier, department...) pour les erreurs
     grouped = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    grouped_extra = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     for e in qs:
         if e.entry_type_detail_type in TYPES_REQUIS:
             grouped[e.pos_id][e.shop_reference][e.entry_type_detail_type].append(e)
+        else:
+            grouped_extra[e.pos_id][e.shop_reference][e.entry_type_detail_type].append(e)
 
     # Construire le rapport par POS
     rapport_pos = {}
@@ -454,6 +459,35 @@ def get_integration_asten(run_date=None):
             else:
                 statut_global = "absent"
 
+            # Erreurs dans les types extra (delivery, supplier, department...)
+            extra_types_detail = {}
+            nb_erreurs_extra = 0
+            for extra_type, extra_entries in grouped_extra[pos_id][ref].items():
+                entrees_list_extra = []
+                for e in sorted(extra_entries, key=lambda x: x.created_at, reverse=True):
+                    parsed = _parse_report(e.report)
+                    entrees_list_extra.append({
+                        "created_at":      e.created_at.strftime("%d/%m/%Y %H:%M"),
+                        "status_value":    e.status_value,
+                        "status_label":    e.status_label or STATUS_LABELS.get(e.status_value, "?"),
+                        "username":        e.username,
+                        "type_detail":     e.entry_type_detail_text,
+                        "report":          e.report,
+                        "report_summary":  parsed["summary"],
+                        "report_errors":   parsed["errors"],
+                        "report_warnings": parsed["warnings"],
+                        "report_logs":     parsed["logs"],
+                    })
+                nb_err = sum(len(e["report_errors"]) for e in entrees_list_extra)
+                nb_erreurs_extra += nb_err
+                extra_types_detail[extra_type] = {
+                    "label":       e.entry_type_detail_text if extra_entries else extra_type,
+                    "nb_total":    len(entrees_list_extra),
+                    "nb_succes":   sum(1 for e in extra_entries if e.status_value == 2),
+                    "nb_erreurs":  nb_err,
+                    "entrees":     entrees_list_extra,
+                }
+
             shops_result[ref] = {
                 "reference":    ref,
                 "name":         sname,
@@ -462,9 +496,16 @@ def get_integration_asten(run_date=None):
                 "nb_total":     nb_obligatoires,
                 "nb_erreurs_articles": sum(
                     t["nb_erreurs"] for t in types_detail.values()
-                ),
+                ) + nb_erreurs_extra,
+                "nb_erreurs_extra": nb_erreurs_extra,
                 "types":        types_detail,
+                "types_extra":  extra_types_detail,
             }
+
+            # Si erreurs extra (delivery...) → forcer ok_erreurs
+            if statut_global == "ok" and nb_erreurs_extra > 0:
+                statut_global = "ok_erreurs"
+                shops_result[ref]["statut"] = statut_global
 
             total_shops += 1
             if statut_global in ("ok", "ok_erreurs"):
@@ -489,18 +530,29 @@ def get_integration_asten(run_date=None):
         else:
             pos_statut = "absent" if has_any_data else "no_data"
 
+        pos_nb_erreurs = sum(s["nb_erreurs_articles"] for s in shops_list)
+        # Si le POS a des erreurs extra mais tous les shops sont "ok" → ok_erreurs
+        if pos_statut == "ok" and pos_nb_erreurs > 0:
+            pos_statut = "ok_erreurs"
+
         rapport_pos[pos_id] = {
-            "pos_id":       pos_id,
-            "name":         pos_name,
-            "has_data":     has_any_data,
-            "shops":        shops_result,
-            "statut":       pos_statut,
-            "nb_ok":        pos_nb_ok,
-            "nb_partial":   pos_nb_partial,
-            "nb_absent":    pos_nb_absent,
+            "pos_id":           pos_id,
+            "name":             pos_name,
+            "has_data":         has_any_data,
+            "shops":            shops_result,
+            "statut":           pos_statut,
+            "nb_ok":            pos_nb_ok,
+            "nb_partial":       pos_nb_partial,
+            "nb_absent":        pos_nb_absent,
+            "nb_erreurs":       pos_nb_erreurs,
         }
 
     conformite = round(total_ok / total_shops * 100, 1) if total_shops else 0
+    total_erreurs_articles = sum(
+        s["nb_erreurs_articles"]
+        for pos in rapport_pos.values()
+        for s in pos["shops"].values()
+    )
 
     return {
         "disponible":      qs.exists(),
@@ -509,12 +561,13 @@ def get_integration_asten(run_date=None):
         "fenetre":         f"{j1} 20h00 → {run_date} 01h40",
         "pos":             rapport_pos,
         "summary": {
-            "total_shops":    total_shops,
-            "ok":             total_ok,
-            "partial":        total_partial,
-            "absent":         total_absent,
-            "no_data":        total_no_data,
-            "conformite_pct": conformite,
+            "total_shops":          total_shops,
+            "ok":                   total_ok,
+            "partial":              total_partial,
+            "absent":               total_absent,
+            "no_data":              total_no_data,
+            "conformite_pct":       conformite,
+            "nb_erreurs_articles":  total_erreurs_articles,
         },
         "nb_entrees_total": qs.count(),
     }
