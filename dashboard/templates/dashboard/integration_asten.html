@@ -432,6 +432,31 @@
     {% if t.entrees %}</a>{% else %}</div>{% endif %}
     {% endwith %}
     {% endfor %}
+    {% for type_key, t in shop.types_extra.items %}
+    {% if t.nb_total > 0 %}
+    <a class="ia-type-row {% if t.nb_erreurs > 0 %}has-err{% endif %}"
+       href="{% url 'dashboard:integration_asten_detail_type' pos_id ref type_key %}?date={{ date_str }}"
+       style="text-decoration:none;color:inherit;">
+        <span class="ia-type-icon {% if t.nb_erreurs == 0 %}ok{% else %}erreur{% endif %}">
+            {% if t.nb_erreurs == 0 %}<i class="bi bi-check-circle-fill"></i>
+            {% else %}<i class="bi bi-exclamation-circle-fill"></i>{% endif %}
+        </span>
+        <span class="ia-type-name">
+            {{ t.label }}
+            <small style="color:#94a3b8;">{{ type_key }}</small>
+        </span>
+        <div class="ia-type-right">
+            {% if t.nb_succes > 0 %}
+                <span class="ia-nbpill ok">{{ t.nb_total }} ✓</span>
+            {% endif %}
+            {% if t.nb_erreurs > 0 %}
+                <span class="ia-nbpill err">{{ t.nb_erreurs }} art. ✗</span>
+            {% endif %}
+            <i class="bi bi-chevron-right ia-det-arrow" style="color:#94a3b8;font-size:.75rem;"></i>
+        </div>
+    </a>
+    {% endif %}
+    {% endfor %}
     </div>
 </div>
 {% endfor %}

@@ -3631,7 +3631,7 @@ def integration_asten_detail_type(request, pos_id, shop_ref, type_key):
     shop = pos['shops'].get(shop_ref)
     if not shop:
         raise Http404("Magasin introuvable")
-    type_data = shop['types'].get(type_key)
+    type_data = shop['types'].get(type_key) or shop.get('types_extra', {}).get(type_key)
     if not type_data:
         raise Http404("Type introuvable")
     return render(request, 'dashboard/integration_asten_detail_type.html', {
