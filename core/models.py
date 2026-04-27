@@ -22,12 +22,13 @@ class Magasin(models.Model):
 class AppPermission(models.Model):
     """Permissions disponibles dans l'application."""
     PERMISSIONS = [
-        ('actualiser_importer',  'Actualiser / Importer des fichiers'),
-        ('modifier_statuts',     'Modifier les statuts des écarts et factures'),
-        ('gerer_magasins',       'Gérer les magasins'),
-        ('configurer_systeme',   'Configurer le système'),
-        ('gerer_utilisateurs',   'Gérer les utilisateurs'),
-        ('supprimer_donnees',    'Supprimer des données'),
+        ('actualiser_importer',   'Actualiser / Importer des fichiers'),
+        ('modifier_statuts',      'Modifier les statuts des écarts et factures'),
+        ('gerer_magasins',        'Gérer les magasins'),
+        ('configurer_systeme',    'Configurer le système'),
+        ('configurer_integration','Configurer l\'intégration RPOS'),
+        ('gerer_utilisateurs',    'Gérer les utilisateurs'),
+        ('supprimer_donnees',     'Supprimer des données'),
     ]
     code = models.CharField(max_length=50, unique=True)
     label = models.CharField(max_length=200)

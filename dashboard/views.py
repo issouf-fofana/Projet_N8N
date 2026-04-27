@@ -1180,9 +1180,19 @@ def dashboard(request):
                         else:
                             _ia_stats_type[_tk]['nb_absent'] += 1
                         _ia_stats_type[_tk]['nb_total_errors'] += _nb_err
+            # Inclure aussi les erreurs des types optionnels (supplier_pre_order) + extra (delivery...)
+            _ia_nb_extra_erreurs = sum(
+                1
+                for _pos in ia_data.get('pos', {}).values()
+                for _shop in _pos.get('shops', {}).values()
+                if _shop.get('nb_erreurs_articles', 0) > sum(
+                    _shop.get('types', {}).get(_tk, {}).get('nb_erreurs', 0)
+                    for _tk in TYPES_OBLIGATOIRES
+                )
+            )
             context['ia_stats_type'] = _ia_stats_type
             context['ia_nb_fichiers_ok']      = sum(v['nb_ok']          for v in _ia_stats_type.values())
-            context['ia_nb_fichiers_erreurs'] = sum(v['nb_ok_erreurs']  for v in _ia_stats_type.values())
+            context['ia_nb_fichiers_erreurs'] = sum(v['nb_ok_erreurs']  for v in _ia_stats_type.values()) + _ia_nb_extra_erreurs
             context['ia_nb_fichiers_absents'] = sum(v['nb_absent']      for v in _ia_stats_type.values())
         except Exception as _e:
             context['integration_asten_data'] = None
@@ -2835,9 +2845,13 @@ def historique_imports(request):
 
 
 def configuration_systeme(request):
-    from core.permissions import get_user_role
-    if get_user_role(request.user) != 'superadmin':
-        messages.error(request, "Accès réservé au Super-Administrateur.")
+    from core.permissions import get_user_role, user_has_perm
+    role = get_user_role(request.user)
+    peut_configurer_systeme    = role == 'superadmin'
+    peut_configurer_integration = role == 'superadmin' or user_has_perm(request.user, 'configurer_integration')
+
+    if not peut_configurer_systeme and not peut_configurer_integration:
+        messages.error(request, "Accès non autorisé.")
         return redirect('dashboard:dashboard')
 
     config_path = Path(settings.BASE_DIR) / 'config.env'
@@ -2886,7 +2900,38 @@ def configuration_systeme(request):
             new_lines.append(f'{key}={value}')
         config_path.write_text('\n'.join(new_lines) + '\n', encoding='utf-8')
 
+    from entree_journal.models import TypeFichierConfig, TYPES_CONNUS, ErreurIgnoreeConfig, PATTERNS_IGNORES_CONNUS
+
     if request.method == 'POST':
+        action = request.POST.get('action', 'config')
+
+        if action == 'types_fichiers':
+            if not peut_configurer_integration:
+                messages.error(request, "Permission insuffisante.")
+                return redirect('dashboard:configuration_systeme')
+            TypeFichierConfig.get_types_actifs()
+            for key in TYPES_CONNUS:
+                actif = request.POST.get(f'type_{key}') == '1'
+                TypeFichierConfig.objects.filter(type_key=key).update(actif=actif)
+            messages.success(request, "Configuration des types de fichiers enregistrée.")
+            return redirect('dashboard:configuration_systeme')
+
+        if action == 'erreurs_ignorees':
+            if not peut_configurer_integration:
+                messages.error(request, "Permission insuffisante.")
+                return redirect('dashboard:configuration_systeme')
+            ErreurIgnoreeConfig.get_patterns_ignores()
+            for pattern in PATTERNS_IGNORES_CONNUS:
+                comptabilise = request.POST.get(f'pattern_{pattern}') == '1'
+                ErreurIgnoreeConfig.objects.filter(pattern=pattern).update(ignorer=not comptabilise)
+            # Mettre à jour aussi les patterns découverts automatiquement
+            for e in ErreurIgnoreeConfig.objects.exclude(pattern__in=list(PATTERNS_IGNORES_CONNUS.keys())):
+                comptabilise = request.POST.get(f'pattern_{e.pattern}') == '1'
+                e.ignorer = not comptabilise
+                e.save()
+            messages.success(request, "Configuration des erreurs enregistrée.")
+            return redirect('dashboard:configuration_systeme')
+
         vals = read_config()
         changed = []
         for key, label, _ in CHAMPS:
@@ -2909,13 +2954,28 @@ def configuration_systeme(request):
 
     vals = read_config()
     def get_default(key):
-        # Fallback sur la valeur settings si pas dans config.env
         val = getattr(settings, key, None)
         if val is not None:
             return str(val)
         return ''
     champs_ctx = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k) or get_default(k)} for k, l, t in CHAMPS]
-    return render(request, 'dashboard/configuration_systeme.html', {'champs': champs_ctx})
+
+    # Charger config types fichiers (initialise si besoin)
+    TypeFichierConfig.get_types_actifs()
+    types_fichiers_ctx = list(TypeFichierConfig.objects.order_by('type_key'))
+
+    # Charger config erreurs ignorées + découvrir nouveaux patterns automatiquement
+    ErreurIgnoreeConfig.get_patterns_ignores()
+    ErreurIgnoreeConfig.decouvrir_nouveaux_patterns()
+    erreurs_ignorees_ctx = list(ErreurIgnoreeConfig.objects.order_by('ignorer', 'pattern'))
+
+    return render(request, 'dashboard/configuration_systeme.html', {
+        'champs': champs_ctx,
+        'types_fichiers': types_fichiers_ctx,
+        'erreurs_ignorees': erreurs_ignorees_ctx,
+        'peut_configurer_systeme':    peut_configurer_systeme,
+        'peut_configurer_integration': peut_configurer_integration,
+    })
 
 
 def gestion_magasins(request):

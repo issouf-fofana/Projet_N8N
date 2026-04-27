@@ -24,12 +24,12 @@ TYPES_OBLIGATOIRES = {
     "product_suppliers": "Product Suppliers",
 }
 
-# 1 type optionnel — présence affichée mais n'influence pas la conformité
+# Types supplémentaires affichés avec les obligatoires (conformité incluse si actifs)
 TYPES_OPTIONNELS = {
     "supplier_pre_order": "Pre-order",
 }
 
-# Tous les types à afficher (obligatoires + optionnels)
+# Tous les types REQUIS à afficher dans la section principale (obligatoires + optionnels)
 TYPES_REQUIS = {**TYPES_OPTIONNELS, **TYPES_OBLIGATOIRES}
 
 STATUS_LABELS = {0: "erreur", 1: "en cours", 2: "succès", 3: "indéfini"}
@@ -63,18 +63,23 @@ def get_error_explanation(message):
     return ("question-circle", "Erreur inconnue — vérifier le rapport complet")
 
 
-# Messages qui sont des avertissements (pas de vraies erreurs bloquantes)
-_WARNING_PATTERNS = [
-    "mutex",
-    "fichier ignoré",
-    "existe déjà",
-    "import déjà en cours",
-    "already in progress",
-]
+# Cache en mémoire des patterns ignorés (rechargé à chaque appel get_integration_asten)
+_warning_patterns_cache = None
+
+def _load_warning_patterns():
+    """Charge les patterns ignorés depuis la DB (avec fallback sur les valeurs par défaut)."""
+    global _warning_patterns_cache
+    try:
+        from .models import ErreurIgnoreeConfig
+        _warning_patterns_cache = ErreurIgnoreeConfig.get_patterns_ignores()
+    except Exception:
+        _warning_patterns_cache = ["mutex", "fichier ignoré", "existe déjà", "import déjà en cours", "already in progress"]
+    return _warning_patterns_cache
 
 def _is_warning_message(message):
+    patterns = _warning_patterns_cache or _load_warning_patterns()
     m = message.lower()
-    return any(p in m for p in _WARNING_PATTERNS)
+    return any(p in m for p in patterns)
 
 
 def _parse_report(report_text):
@@ -326,11 +331,19 @@ def get_integration_asten(run_date=None):
     debut = timezone.make_aware(datetime(j1.year, j1.month, j1.day, 20, 0, 0))
     fin   = timezone.make_aware(datetime(run_date.year, run_date.month, run_date.day, 1, 40, 0))
 
-    # Requête DB : entry_type=30, fenêtre horaire
+    # Recharger les patterns ignorés depuis la DB à chaque appel
+    _load_warning_patterns()
+
+    # Types actifs selon la configuration (paramètres)
+    from .models import TypeFichierConfig
+    types_actifs = TypeFichierConfig.get_types_actifs()
+
+    # Requête DB : entry_type=30, fenêtre horaire, types actifs uniquement
     qs = EntreeJournal.objects.filter(
         entry_type_value=30,
         created_at__gte=debut,
         created_at__lte=fin,
+        entry_type_detail_type__in=types_actifs,
     ).order_by('created_at')
 
     # Charger magasin.json pour la cartographie POS → shops
@@ -343,7 +356,7 @@ def get_integration_asten(run_date=None):
 
     # Grouper les entrées par pos_id → shop_reference → type
     # grouped_requis : uniquement les 4+1 types Asten (conformité)
-    # grouped_extra  : autres types (delivery, supplier, department...) pour les erreurs
+    # grouped_extra  : autres types actifs (delivery, supplier, department...) pour les erreurs
     grouped = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     grouped_extra = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     for e in qs:
@@ -412,7 +425,9 @@ def get_integration_asten(run_date=None):
                     nb_avertissements = sum(len(e["report_warnings"]) for e in entrees_list)
 
                     integre       = nb_total > 0
-                    est_optionnel = type_key in TYPES_OPTIONNELS
+                    # Optionnel = dans TYPES_OPTIONNELS ET pas dans TYPES_OBLIGATOIRES
+                    # Le badge "optionnel" est purement visuel, les erreurs comptent toujours
+                    est_optionnel = type_key in TYPES_OPTIONNELS and type_key not in TYPES_OBLIGATOIRES
 
                     if integre and nb_erreurs == 0:
                         statut = "ok"           # intégré sans vraie erreur article
@@ -445,9 +460,10 @@ def get_integration_asten(run_date=None):
                 1 for k, t in types_detail.items()
                 if k in TYPES_OBLIGATOIRES and t["integre"]
             )
+            # Erreurs sur TOUS les types présents (obligatoires + optionnels)
             nb_oblig_avec_erreurs = sum(
                 1 for k, t in types_detail.items()
-                if k in TYPES_OBLIGATOIRES and t["integre"] and t["nb_erreurs"] > 0
+                if t["integre"] and t["nb_erreurs"] > 0
             )
             nb_obligatoires = len(TYPES_OBLIGATOIRES)  # 4
 
@@ -520,20 +536,19 @@ def get_integration_asten(run_date=None):
 
         # Statut agrégé du POS
         shops_list = list(shops_result.values())
+        pos_nb_ok_total = sum(1 for s in shops_list if s["statut"] in ("ok", "ok_erreurs"))
         pos_nb_ok       = sum(1 for s in shops_list if s["statut"] == "ok")
         pos_nb_partial  = sum(1 for s in shops_list if s["statut"] == "partial")
         pos_nb_absent   = sum(1 for s in shops_list if s["statut"] == "absent")
-        if pos_nb_ok == len(shops_list):
-            pos_statut = "ok"
-        elif pos_nb_ok > 0 or pos_nb_partial > 0:
+
+        pos_nb_erreurs = sum(s["nb_erreurs_articles"] for s in shops_list)
+
+        if pos_nb_ok_total == len(shops_list):
+            pos_statut = "ok_erreurs" if pos_nb_erreurs > 0 else "ok"
+        elif pos_nb_ok_total > 0 or pos_nb_partial > 0:
             pos_statut = "partial"
         else:
             pos_statut = "absent" if has_any_data else "no_data"
-
-        pos_nb_erreurs = sum(s["nb_erreurs_articles"] for s in shops_list)
-        # Si le POS a des erreurs extra mais tous les shops sont "ok" → ok_erreurs
-        if pos_statut == "ok" and pos_nb_erreurs > 0:
-            pos_statut = "ok_erreurs"
 
         rapport_pos[pos_id] = {
             "pos_id":           pos_id,

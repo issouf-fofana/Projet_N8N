@@ -239,7 +239,7 @@
             <button type="submit" class="ia-btn"><i class="bi bi-search"></i> Vérifier</button>
             <button type="button" class="ia-btn"
                     style="background:#0f766e;white-space:nowrap;"
-                    onclick="document.getElementById('iaDateInput').value='{{ yesterday }}';document.getElementById('iaDateForm').submit();">
+                    onclick="document.getElementById('iaDateInput').value='{{ today }}';document.getElementById('iaDateForm').submit();">
                 <i class="bi bi-moon-stars-fill"></i> Nuit dernière
             </button>
         </form>
@@ -363,6 +363,9 @@
     <div class="ia-pos-badges">
         {% if pos.statut == 'ok' %}
             <span class="ia-pos-badge ok"><i class="bi bi-check-circle-fill"></i> Tout intégré</span>
+        {% elif pos.statut == 'ok_erreurs' %}
+            <span class="ia-pos-badge ok"><i class="bi bi-check-circle-fill"></i> Tout intégré</span>
+            {% if pos.nb_erreurs > 0 %}<span class="ia-pos-badge warn"><i class="bi bi-exclamation-triangle-fill"></i> {{ pos.nb_erreurs }} art. err.</span>{% endif %}
         {% elif pos.statut == 'no_data' %}
             <span class="ia-pos-badge muted"><i class="bi bi-dash-circle"></i> Pas de données</span>
         {% else %}
@@ -412,7 +415,7 @@
         </span>
         <span class="ia-type-name">
             {{ t.detail_text }}
-            {% if t.detail_text != t.label %}<small>{{ t.label }}{% if t.optionnel %} <em style="color:#d97706;">(optionnel)</em>{% endif %}</small>{% endif %}
+            {% if t.detail_text != t.label %}<small>{{ t.label }}{% if t.optionnel and t.nb_erreurs == 0 and t.statut == 'absent' %} <em style="color:#d97706;">(optionnel)</em>{% endif %}</small>{% endif %}
         </span>
         <div class="ia-type-right">
             {% if t.integre %}
@@ -423,7 +426,8 @@
             {% endif %}
             {% if t.statut == 'absent' %}
                 {% if t.optionnel %}<span class="ia-nbpill muted" style="font-style:italic;">optionnel</span>
-                {% else %}<span class="ia-nbpill muted">—</span>{% endif %}
+                {% else %}<span class="ia-nbpill muted">—</span>
+                {% endif %}
             {% endif %}
             {% if t.entrees %}
                 <i class="bi bi-chevron-right ia-det-arrow" style="color:#94a3b8;font-size:.75rem;"></i>

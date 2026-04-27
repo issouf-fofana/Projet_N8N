@@ -3,19 +3,22 @@ from django.contrib.auth.models import User
 from core.models import AppPermission, UserProfile
 
 PERMISSIONS = [
-    ('actualiser_importer',  'Actualiser / Importer des fichiers',     'Déclencher l\'import des nouveaux fichiers CSV/Excel',          1),
-    ('modifier_statuts',     'Modifier les statuts',                   'Changer le statut des écarts commandes, BR et factures',        2),
-    ('gerer_magasins',       'Gérer les magasins',                     'Ajouter, modifier ou supprimer des magasins',                   3),
-    ('configurer_systeme',   'Configurer le système',                  'Accéder aux paramètres de configuration',                       4),
-    ('gerer_utilisateurs',   'Gérer les utilisateurs',                 'Créer, modifier et supprimer des comptes utilisateurs',         5),
-    ('supprimer_donnees',    'Supprimer des données',                  'Supprimer des enregistrements de la base de données',           6),
+    ('actualiser_importer',   'Actualiser / Importer des fichiers',     'Déclencher l\'import des nouveaux fichiers CSV/Excel',                      1),
+    ('modifier_statuts',      'Modifier les statuts',                   'Changer le statut des écarts commandes, BR et factures',                    2),
+    ('gerer_magasins',        'Gérer les magasins',                     'Ajouter, modifier ou supprimer des magasins',                               3),
+    ('configurer_systeme',    'Configurer le système',                  'Accéder aux paramètres de configuration (chemins dossiers)',                4),
+    ('configurer_integration','Configurer l\'intégration RPOS',         'Gérer les types de fichiers et les erreurs ignorées de l\'intégration POS', 5),
+    ('gerer_utilisateurs',    'Gérer les utilisateurs',                 'Créer, modifier et supprimer des comptes utilisateurs',                     6),
+    ('supprimer_donnees',     'Supprimer des données',                  'Supprimer des enregistrements de la base de données',                       7),
 ]
 
 # Permissions par défaut selon le rôle
 ROLE_DEFAULTS = {
     'superadmin': ['actualiser_importer', 'modifier_statuts', 'gerer_magasins',
-                   'configurer_systeme', 'gerer_utilisateurs', 'supprimer_donnees'],
-    'admin':      ['actualiser_importer', 'modifier_statuts', 'gerer_magasins'],
+                   'configurer_systeme', 'configurer_integration',
+                   'gerer_utilisateurs', 'supprimer_donnees'],
+    'admin':      ['actualiser_importer', 'modifier_statuts', 'gerer_magasins',
+                   'configurer_integration'],
     'user':       [],
 }
 
