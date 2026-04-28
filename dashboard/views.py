@@ -2830,7 +2830,7 @@ def historique_imports(request):
     
     # Derniers imports par type
     derniers_imports = {}
-    for type_f in ['asten', 'cyrus', 'gpv', 'legend', 'br_asten']:
+    for type_f in ['asten', 'cyrus', 'gpv', 'legend', 'br_asten', 'br_ic']:
         dernier = ImportFichier.objects.filter(type_fichier=type_f).first()
         if dernier:
             derniers_imports[type_f] = dernier

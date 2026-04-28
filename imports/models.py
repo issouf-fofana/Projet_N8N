@@ -10,6 +10,7 @@ class ImportFichier(models.Model):
         ('gpv', 'GPV'),
         ('legend', 'Legend'),
         ('br_asten', 'BR Asten'),
+        ('br_ic', 'BR IC'),
         ('facture_backup', 'Facture Backup'),
     ]
     

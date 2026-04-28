@@ -1562,10 +1562,23 @@ def scanner_et_importer_fichiers():
         )
         for f_ic in fichiers_ic:
             try:
+                import_obj = ImportFichier.objects.create(
+                    type_fichier='br_ic',
+                    nom_fichier=f_ic.name,
+                    chemin_fichier=str(f_ic),
+                    statut='en_cours',
+                )
                 nb = importer_br_ic_en_base(str(f_ic))
+                import_obj.nombre_lignes = nb
+                import_obj.nombre_nouveaux = nb
+                import_obj.statut = 'termine'
+                import_obj.save(update_fields=['nombre_lignes', 'nombre_nouveaux', 'statut'])
                 print(f"[BR IC] {f_ic.name} → {nb} nouvelles lignes en base")
                 supprimer_fichier_source(f_ic)
             except Exception as e:
+                if 'import_obj' in dir():
+                    import_obj.statut = 'erreur'
+                    import_obj.save(update_fields=['statut'])
                 print(f"Erreur import BR IC {f_ic.name}: {e}")
         comparer_br_asten_ic()
     except Exception as e:
