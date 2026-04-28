@@ -842,25 +842,29 @@ def comparer_br_asten_ic():
         'override_statut_ic', 'numero_br_corrige'
     )
     for br in br_qs.iterator():
-        if getattr(br, 'override_statut_ic', False):
-            continue
         if not br.numero_br or not br.commande_fournisseur:
             continue
         nb = normalize_numero_br(br.numero_br)
         cf = normalize_commande_fournisseur(br.commande_fournisseur)
         key = (nb, cf)
 
+        # Override respecté seulement si déjà intégré manuellement —
+        # si IC prouve que c'est intégré, on écrase toujours le statut manuel "Non intégré"
+        override = getattr(br, 'override_statut_ic', False)
+
         if key in ic_keys:
-            # Étape 1 — match exact (commande + BR)
+            # Étape 1 — match exact : IC a raison, on écrase même l'override
             if not br.ic_integre or br.statut_ic != 'Intégré':
                 ids_integres.append(br.id)
         elif cf in ic_commande_to_br:
-            # Étape 2 — même commande, BR différent = numéro BR corrigé
+            # Étape 2 — même commande, BR différent : IC a raison, on écrase même l'override
             nouveau_br = ic_commande_to_br[cf]
             if not br.ic_integre or br.statut_ic != 'Intégré (corrigé)' or br.numero_br_corrige != nouveau_br:
                 ids_integres_corriges.append((br.id, nouveau_br))
         else:
-            # Étape 3 — commande absente dans IC = non intégré
+            # Étape 3 — absent de IC : on respecte l'override si présent
+            if override:
+                continue
             if br.ic_integre or br.statut_ic != 'Non intégré':
                 ids_non_integres.append(br.id)
 
