@@ -102,7 +102,7 @@
 <!-- Filtres -->
 <div class="filters-card">
     <form method="get" class="row g-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <label for="type_fichier" class="form-label">Type de fichier</label>
             <select name="type_fichier" id="type_fichier" class="form-select">
                 <option value="">Tous les types</option>
@@ -111,7 +111,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-2">
             <label for="statut" class="form-label">Statut</label>
             <select name="statut" id="statut" class="form-select">
                 <option value="">Tous les statuts</option>
@@ -120,7 +120,15 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-4 d-flex align-items-end">
+        <div class="col-md-2">
+            <label for="date_debut" class="form-label">Date début</label>
+            <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_fin" class="form-label">Date fin</label>
+            <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
             <button type="submit" class="btn btn-primary me-2">
                 <i class="bi bi-funnel"></i> Filtrer
             </button>

@@ -2807,16 +2807,29 @@ def historique_imports(request):
     if not user_has_perm(request.user, 'configurer_systeme'):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard:dashboard')
-    # Filtrer par type de fichier si demandé
     type_fichier = request.GET.get('type_fichier', '')
     statut = request.GET.get('statut', '')
-    
+    date_debut = request.GET.get('date_debut', '')
+    date_fin = request.GET.get('date_fin', '')
+
     queryset = ImportFichier.objects.all()
-    
+
     if type_fichier:
         queryset = queryset.filter(type_fichier=type_fichier)
     if statut:
         queryset = queryset.filter(statut=statut)
+    if date_debut:
+        try:
+            from datetime import datetime
+            queryset = queryset.filter(date_import__date__gte=datetime.strptime(date_debut, '%Y-%m-%d').date())
+        except ValueError:
+            pass
+    if date_fin:
+        try:
+            from datetime import datetime
+            queryset = queryset.filter(date_import__date__lte=datetime.strptime(date_fin, '%Y-%m-%d').date())
+        except ValueError:
+            pass
     
     # Pagination
     paginator = Paginator(queryset, 50)
@@ -2839,6 +2852,8 @@ def historique_imports(request):
         'page_obj': page_obj,
         'type_fichier': type_fichier,
         'statut': statut,
+        'date_debut': date_debut,
+        'date_fin': date_fin,
         'stats': {
             'total': total_imports,
             'termines': imports_termines,
