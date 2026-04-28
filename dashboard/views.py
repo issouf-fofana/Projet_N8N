@@ -4162,9 +4162,10 @@ def vue_factures_backup(request):
     # Codes magasins Full Asten
     full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
 
-    # Exclure les factures hors périmètre Full Asten (non_full_asten) si des magasins sont configurés
-    if full_asten_codes:
-        rows = [r for r in rows if r.get('statut_effectif') != 'non_full_asten']
+    # Filtre Full Asten optionnel — activé uniquement si demandé explicitement
+    f_full_asten = request.GET.get('full_asten', '').strip()
+    if f_full_asten == '1' and full_asten_codes:
+        rows = [r for r in rows if r['cidc'] in full_asten_codes]
 
     # Recalculer les stats après exclusion
     stats = {
@@ -4212,19 +4213,21 @@ def vue_factures_backup(request):
     page_obj, paginator = _paginate(request, rows, per_page=100)
 
     return render(request, 'dashboard/factures_backup.html', {
-        'rows':          page_obj,
-        'page_obj':      page_obj,
-        'paginator':     paginator,
-        'stats':         stats,
-        'error':         error,
-        'magasins_list': magasins_list,
-        'nsee_list':     nsee_list,
-        'f_statut':      f_statut,
-        'f_magasin':     f_magasin,
-        'f_nsee':        f_nsee,
-        'f_date_debut':  request.GET.get('date_debut', ''),
-        'f_date_fin':    request.GET.get('date_fin', ''),
-        'total':         total,
+        'rows':            page_obj,
+        'page_obj':        page_obj,
+        'paginator':       paginator,
+        'stats':           stats,
+        'error':           error,
+        'magasins_list':   magasins_list,
+        'nsee_list':       nsee_list,
+        'f_statut':        f_statut,
+        'f_magasin':       f_magasin,
+        'f_nsee':          f_nsee,
+        'f_date_debut':    request.GET.get('date_debut', ''),
+        'f_date_fin':      request.GET.get('date_fin', ''),
+        'f_full_asten':    f_full_asten,
+        'full_asten_codes': full_asten_codes,
+        'total':           total,
     })
 
 

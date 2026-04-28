@@ -228,7 +228,24 @@ tr.clickable-row { cursor:pointer; }
                 <label class="form-label small fw-semibold mb-1">Date fin</label>
                 <input type="date" name="date_fin" class="form-control form-control-sm" value="{{ f_date_fin }}">
             </div>
-            <div class="col-auto d-flex gap-2">
+            <div class="col-auto d-flex gap-2 align-items-end">
+                <div>
+                    <label class="form-label small fw-semibold mb-1">Full Asten</label>
+                    <div>
+                        <input type="hidden" name="full_asten" value="">
+                        {% if f_full_asten == '1' %}
+                            <a href="?statut={{ f_statut }}&magasin={{ f_magasin }}&nsee={{ f_nsee }}&date_debut={{ f_date_debut }}&date_fin={{ f_date_fin }}&full_asten=0"
+                               class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle me-1"></i>Full Asten ✓ ({{ full_asten_codes|length }})
+                            </a>
+                        {% else %}
+                            <a href="?statut={{ f_statut }}&magasin={{ f_magasin }}&nsee={{ f_nsee }}&date_debut={{ f_date_debut }}&date_fin={{ f_date_fin }}&full_asten=1"
+                               class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-circle me-1"></i>Full Asten
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
                 <button type="submit" class="btn btn-sm btn-primary" style="background:#1e3a8a;border-color:#1e3a8a">
                     <i class="bi bi-funnel me-1"></i>Filtrer
                 </button>
