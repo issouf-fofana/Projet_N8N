@@ -2320,8 +2320,20 @@ def detail_br_asten(request, br_id):
             
             return redirect(redirect_url)
         
+        from br.models import BRICLigne
+        # Lignes IC : match exact (numero_br + commande) ou par commande seule
+        lignes_ic_exactes = BRICLigne.objects.filter(
+            numero_br=br.numero_br,
+            commande_fournisseur=br.commande_fournisseur
+        ).order_by('-date_reception') if br.commande_fournisseur else BRICLigne.objects.none()
+        lignes_ic_commande = BRICLigne.objects.filter(
+            commande_fournisseur=br.commande_fournisseur
+        ).exclude(numero_br=br.numero_br).order_by('-date_reception') if br.commande_fournisseur else BRICLigne.objects.none()
+
         context = {
             'br': br,
+            'lignes_ic_exactes': lignes_ic_exactes,
+            'lignes_ic_commande': lignes_ic_commande,
         }
         return render(request, 'dashboard/detail_br_asten.html', context)
     except BRAsten.DoesNotExist:

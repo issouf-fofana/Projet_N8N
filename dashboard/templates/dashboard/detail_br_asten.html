@@ -111,7 +111,17 @@
     </div>
     <div class="detail-body">
         <div class="row">
+            <!-- Colonne ASTEN -->
             <div class="col-md-6">
+                <h6 class="text-uppercase text-muted mb-3"><span class="badge bg-primary">ASTEN</span></h6>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-hash"></i> N° Bon de livraison</div>
+                    <div class="info-value"><strong class="text-primary">{{ br.numero_br }}</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-cart"></i> Commande fournisseur</div>
+                    <div class="info-value"><strong>{{ br.commande_fournisseur|default:"Non renseigné" }}</strong></div>
+                </div>
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-calendar"></i> Date BR</div>
                     <div class="info-value">{{ br.date_br|date:"d/m/Y" }}</div>
@@ -121,18 +131,24 @@
                     <div class="info-value">{{ br.date_validation|date:"d/m/Y"|default:"Non renseignée" }}</div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label"><i class="bi bi-hash"></i> Numéro BR</div>
-                    <div class="info-value"><strong class="text-primary">{{ br.numero_br }}</strong></div>
-                </div>
-                <div class="info-row">
                     <div class="info-label"><i class="bi bi-shop"></i> Magasin</div>
                     <div class="info-value">
                         <span class="badge bg-secondary fs-6">{{ br.code_magasin.code }}</span>
-                        <div class="mt-2">{{ br.code_magasin.nom }}</div>
+                        <span class="ms-2">{{ br.code_magasin.nom }}</span>
                     </div>
                 </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier source</div>
+                    <div class="info-value"><code class="small">{{ br.fichier_source|default:"Non renseigné" }}</code></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="bi bi-clock"></i> Date d'import</div>
+                    <div class="info-value">{{ br.date_import|date:"d/m/Y à H:i" }}</div>
+                </div>
             </div>
+            <!-- Colonne IC -->
             <div class="col-md-6">
+                <h6 class="text-uppercase text-muted mb-3"><span class="badge bg-success">IC</span></h6>
                 <div class="info-row">
                     <div class="info-label"><i class="bi bi-check2-circle"></i> Statut IC</div>
                     <div class="info-value">
@@ -146,20 +162,57 @@
                                 <span class="badge bg-success rounded-pill fs-6">{{ br.statut_ic|default:"Intégré" }}</span>
                             {% endif %}
                         {% else %}
-                            <span class="badge bg-danger rounded-pill fs-6">{{ br.statut_ic|default:"Non intégré" }}</span>
+                            <span class="badge bg-danger rounded-pill fs-6">Non intégré</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="info-row">
-                    <div class="info-label"><i class="bi bi-file-earmark"></i> Fichier Source</div>
-                    <div class="info-value">
-                        <code>{{ br.fichier_source|default:"Non renseigné" }}</code>
+                {% if lignes_ic_exactes %}
+                    <div class="info-row">
+                        <div class="info-label"><i class="bi bi-receipt"></i> Lignes IC — match exact</div>
+                        <div class="info-value">
+                            <table class="table table-sm table-bordered mt-1 mb-0">
+                                <thead class="table-success">
+                                    <tr><th>N° Réc./Ret.</th><th>N° Cde</th><th>Date réception</th></tr>
+                                </thead>
+                                <tbody>
+                                {% for ligne in lignes_ic_exactes %}
+                                    <tr>
+                                        <td><strong>{{ ligne.numero_br }}</strong></td>
+                                        <td>{{ ligne.commande_fournisseur }}</td>
+                                        <td>{{ ligne.date_reception|date:"d/m/Y" }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label"><i class="bi bi-clock"></i> Date d'Import</div>
-                    <div class="info-value">{{ br.date_import|date:"d/m/Y à H:i" }}</div>
-                </div>
+                {% endif %}
+                {% if lignes_ic_commande %}
+                    <div class="info-row">
+                        <div class="info-label"><i class="bi bi-arrow-repeat"></i> Lignes IC — même commande, N° BR différent</div>
+                        <div class="info-value">
+                            <table class="table table-sm table-bordered mt-1 mb-0">
+                                <thead class="table-warning">
+                                    <tr><th>N° Réc./Ret.</th><th>N° Cde</th><th>Date réception</th></tr>
+                                </thead>
+                                <tbody>
+                                {% for ligne in lignes_ic_commande %}
+                                    <tr>
+                                        <td><strong>{{ ligne.numero_br }}</strong></td>
+                                        <td>{{ ligne.commande_fournisseur }}</td>
+                                        <td>{{ ligne.date_reception|date:"d/m/Y" }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if not lignes_ic_exactes and not lignes_ic_commande %}
+                    <div class="info-row">
+                        <div class="info-value text-muted"><i class="bi bi-inbox"></i> Aucune ligne IC trouvée pour cette commande.</div>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -332,48 +385,4 @@
 </div>
 {% endif %}
 
-<!-- Informations supplémentaires -->
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations Complémentaires</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="info-label">Clé de Rapprochement</div>
-                        <div class="info-value">
-                            <code class="text-primary">
-                                Date: {{ br.date_br|date:"Y-m-d" }} |
-                                N°: {{ br.numero_br }} |
-                                Magasin: {{ br.code_magasin.code }}
-                            </code>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="info-label">Système Source</div>
-                        <div class="info-value">
-                            <span class="badge bg-primary fs-6">ASTEN</span>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="info-label">Statut d'Intégration</div>
-                        <div class="info-value">
-                            {% if br.ic_integre %}
-                                <span class="badge bg-success fs-6">
-                                    <i class="bi bi-check-circle"></i> Intégré
-                                </span>
-                            {% else %}
-                                <span class="badge bg-danger fs-6">
-                                    <i class="bi bi-x-circle"></i> Non Intégré
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
