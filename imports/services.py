@@ -60,12 +60,28 @@ def parse_date_asten(date_str):
     if not date_str:
         return None
     try:
-        # Extraire juste la partie date (avant l'espace)
         date_part = date_str.split()[0] if ' ' in date_str else date_str
-        # Format DD/MM/YYYY
         return datetime.strptime(date_part, '%d/%m/%Y').date()
     except (ValueError, AttributeError):
         return None
+
+
+def parse_heure_asten(date_str):
+    """
+    Extrait l'heure d'une chaîne Asten au format DD/MM/YYYY HH:MM:SS
+    Retourne un time ou None si absent.
+    """
+    if not date_str or ' ' not in date_str:
+        return None
+    try:
+        heure_part = date_str.split()[1]
+        return datetime.strptime(heure_part, '%H:%M:%S').time()
+    except (ValueError, AttributeError, IndexError):
+        try:
+            heure_part = date_str.split()[1]
+            return datetime.strptime(heure_part, '%H:%M').time()
+        except Exception:
+            return None
 
 
 def parse_date_gpv(date_str):
@@ -1102,6 +1118,7 @@ def importer_fichier_asten(chemin_fichier):
                     
                     date_livraison = parse_date_asten(date_livraison_str) if date_livraison_str else None
                     date_validation = parse_date_asten(date_validation_str) if date_validation_str else None
+                    heure_validation = parse_heure_asten(date_validation_str) if date_validation_str else None
 
                     # Créer ou mettre à jour la commande
                     commande, created = CommandeAsten.objects.get_or_create(
@@ -1112,6 +1129,7 @@ def importer_fichier_asten(chemin_fichier):
                             'montant':           montant,
                             'statut':            statut,
                             'date_validation':   date_validation,
+                            'heure_validation':  heure_validation,
                             'date_livraison':    date_livraison,
                             'reference_externe': reference_externe,
                             'fournisseur':       fournisseur,
@@ -1125,6 +1143,7 @@ def importer_fichier_asten(chemin_fichier):
                         updated = False
                         for field, val in [
                             ('statut', statut), ('date_validation', date_validation),
+                            ('heure_validation', heure_validation),
                             ('date_livraison', date_livraison), ('fournisseur', fournisseur),
                             ('validee_par', validee_par), ('cree_par', cree_par),
                             ('reference_externe', reference_externe),

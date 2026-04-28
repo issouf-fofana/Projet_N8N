@@ -101,6 +101,9 @@
                     <div class="info-value">
                         {% if commande.date_validation %}
                             <strong class="text-success">{{ commande.date_validation|date:"d/m/Y" }}</strong>
+                            {% if commande.heure_validation %}
+                                <span class="text-muted ms-1">{{ commande.heure_validation|time:"H:i:s" }}</span>
+                            {% endif %}
                         {% else %}
                             <span class="text-muted">—</span>
                         {% endif %}

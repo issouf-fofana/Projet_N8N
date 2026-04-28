@@ -17,6 +17,7 @@ class CommandeAsten(models.Model):
     montant              = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Montant")
     statut               = models.CharField(max_length=50, null=True, blank=True, verbose_name="Statut")
     date_validation      = models.DateField(null=True, blank=True, verbose_name="Date de validation")
+    heure_validation     = models.TimeField(null=True, blank=True, verbose_name="Heure de validation")
     date_livraison       = models.DateField(null=True, blank=True, verbose_name="Date de livraison")
     reference_externe    = models.CharField(max_length=100, null=True, blank=True, verbose_name="Référence externe")
     fournisseur          = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fournisseur")
