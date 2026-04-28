@@ -19,6 +19,10 @@ class BRAsten(models.Model):
     )
     statut_ic = models.CharField(max_length=50, null=True, blank=True, verbose_name="Statut IC")
     ic_integre = models.BooleanField(default=False, verbose_name="Intégré IC")
+    numero_br_corrige = models.CharField(
+        max_length=50, null=True, blank=True,
+        verbose_name="N° BR corrigé (nouveau numéro IC)"
+    )
     override_statut_ic = models.BooleanField(
         default=False,
         verbose_name="Statut IC modifié manuellement"

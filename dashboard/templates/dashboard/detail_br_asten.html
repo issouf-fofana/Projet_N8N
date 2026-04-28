@@ -137,7 +137,14 @@
                     <div class="info-label"><i class="bi bi-check2-circle"></i> Statut IC</div>
                     <div class="info-value">
                         {% if br.ic_integre %}
-                            <span class="badge bg-success rounded-pill fs-6">{{ br.statut_ic|default:"Intégré" }}</span>
+                            {% if br.statut_ic == "Intégré (corrigé)" %}
+                                <span class="badge bg-warning text-dark rounded-pill fs-6">Intégré (corrigé)</span>
+                                {% if br.numero_br_corrige %}
+                                    <div class="mt-1 small text-muted">Nouveau N° BR IC : <strong>{{ br.numero_br_corrige }}</strong></div>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-success rounded-pill fs-6">{{ br.statut_ic|default:"Intégré" }}</span>
+                            {% endif %}
                         {% else %}
                             <span class="badge bg-danger rounded-pill fs-6">{{ br.statut_ic|default:"Non intégré" }}</span>
                         {% endif %}

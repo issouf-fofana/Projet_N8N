@@ -813,38 +813,54 @@ def importer_br_ic_en_base(fichier_path):
 def comparer_br_asten_ic():
     """
     Compare les BRAsten avec les BRICLigne stockées en base.
+    Clé de jointure : (commande_fournisseur + numero_br)
+    La date n'est pas utilisée pour le matching — elle peut différer entre Asten et IC.
     Met à jour ic_integre/statut_ic sur BRAsten.
-    Plus besoin de lire un fichier — tout est en base.
     """
     from br.models import BRICLigne
 
-    ic_keys = set(
-        BRICLigne.objects.values_list('numero_br', 'commande_fournisseur', 'date_reception')
-    )
+    # Clé principale : (numero_br, commande_fournisseur) — sans date
+    ic_keys = set()
+    # Clé fallback : commande_fournisseur → nouveau numero_br IC (BR corrigé)
+    ic_commande_to_br: dict = {}
+
+    for numero_br, commande_fournisseur in BRICLigne.objects.values_list('numero_br', 'commande_fournisseur'):
+        cf = normalize_commande_fournisseur(commande_fournisseur)
+        nb = normalize_numero_br(numero_br)
+        if cf and nb and cf.upper() != 'NAN':
+            ic_keys.add((nb, cf))
+            ic_commande_to_br[cf] = nb  # dernier numero_br IC pour cette commande
 
     if not ic_keys:
         return {'updated_integre': 0, 'updated_non_integre': 0, 'error': 'aucune_cle'}
 
     ids_integres = []
+    ids_integres_corriges = []  # list of (id, nouveau_numero_br)
     ids_non_integres = []
     br_qs = BRAsten.objects.only(
-        'id', 'numero_br', 'date_br', 'commande_fournisseur', 'ic_integre', 'statut_ic', 'override_statut_ic'
+        'id', 'numero_br', 'commande_fournisseur', 'ic_integre', 'statut_ic',
+        'override_statut_ic', 'numero_br_corrige'
     )
     for br in br_qs.iterator():
         if getattr(br, 'override_statut_ic', False):
             continue
-        if not br.numero_br or not br.date_br or not br.commande_fournisseur:
+        if not br.numero_br or not br.commande_fournisseur:
             continue
-        key = (
-            normalize_numero_br(br.numero_br),
-            normalize_commande_fournisseur(br.commande_fournisseur),
-            br.date_br
-        )
-        is_integre = key in ic_keys
-        if is_integre:
+        nb = normalize_numero_br(br.numero_br)
+        cf = normalize_commande_fournisseur(br.commande_fournisseur)
+        key = (nb, cf)
+
+        if key in ic_keys:
+            # Étape 1 — match exact (commande + BR)
             if not br.ic_integre or br.statut_ic != 'Intégré':
                 ids_integres.append(br.id)
+        elif cf in ic_commande_to_br:
+            # Étape 2 — même commande, BR différent = numéro BR corrigé
+            nouveau_br = ic_commande_to_br[cf]
+            if not br.ic_integre or br.statut_ic != 'Intégré (corrigé)' or br.numero_br_corrige != nouveau_br:
+                ids_integres_corriges.append((br.id, nouveau_br))
         else:
+            # Étape 3 — commande absente dans IC = non intégré
             if br.ic_integre or br.statut_ic != 'Non intégré':
                 ids_non_integres.append(br.id)
 
@@ -852,16 +868,23 @@ def comparer_br_asten_ic():
     updated_non_integre = 0
     if ids_integres:
         updated_integre = BRAsten.objects.filter(id__in=ids_integres).update(
-            ic_integre=True, statut_ic='Intégré'
+            ic_integre=True, statut_ic='Intégré', numero_br_corrige=None
         )
+    if ids_integres_corriges:
+        for br_id, nouveau_br in ids_integres_corriges:
+            BRAsten.objects.filter(id=br_id).update(
+                ic_integre=True, statut_ic='Intégré (corrigé)', numero_br_corrige=nouveau_br
+            )
+        updated_integre += len(ids_integres_corriges)
     if ids_non_integres:
         updated_non_integre = BRAsten.objects.filter(id__in=ids_non_integres).update(
-            ic_integre=False, statut_ic='Non intégré'
+            ic_integre=False, statut_ic='Non intégré', numero_br_corrige=None
         )
 
     return {
         'updated_integre': updated_integre,
         'updated_non_integre': updated_non_integre,
+        'nb_corriges': len(ids_integres_corriges),
         'error': None
     }
 

@@ -2018,7 +2018,12 @@
                                     <small class="text-muted">{{ br.code_magasin.nom }}</small>
                                 </td>
                                 <td>
-                                    <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                    {% if br.statut_ic == "Intégré (corrigé)" %}
+                                        <span class="badge bg-warning text-dark">Intégré (corrigé)</span>
+                                        {% if br.numero_br_corrige %}<br><small class="text-muted">→ {{ br.numero_br_corrige }}</small>{% endif %}
+                                    {% else %}
+                                        <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

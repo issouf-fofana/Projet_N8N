@@ -202,7 +202,14 @@
                                 </td>
                                 <td>
                                     {% if br.ic_integre %}
-                                        <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                        {% if br.statut_ic == "Intégré (corrigé)" %}
+                                            <span class="badge bg-warning text-dark">Intégré (corrigé)</span>
+                                            {% if br.numero_br_corrige %}
+                                                <br><small class="text-muted">→ N° IC : {{ br.numero_br_corrige }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-success">{{ br.statut_ic|default:"Intégré" }}</span>
+                                        {% endif %}
                                     {% else %}
                                         <span class="badge bg-danger">{{ br.statut_ic|default:"Non intégré" }}</span>
                                     {% endif %}
