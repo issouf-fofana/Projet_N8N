@@ -3145,8 +3145,6 @@ def get_factures_verification():
                 continue
             elif statut_manuel == 'integre':
                 statut_effectif = 'integre'
-            elif not is_full_asten:
-                statut_effectif = 'non_full_asten'
             else:
                 statut_effectif = 'non_integre'
 
