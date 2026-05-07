@@ -4439,16 +4439,28 @@ def assistant_ia(request):
         from django.contrib import messages as _msg
         _msg.error(request, "Vous n'avez pas accès à l'Assistant IA.")
         return redirect('dashboard:accueil')
-    result = None
-    question = ''
+
+    SESSION_KEY = 'ai_conversation'
+
+    # Effacer l'historique si demandé
+    if request.method == 'GET' and request.GET.get('clear') == '1':
+        request.session.pop(SESSION_KEY, None)
+        return redirect('dashboard:assistant_ia')
+
+    conversation = request.session.get(SESSION_KEY, [])
 
     if request.method == 'POST':
         question = request.POST.get('question', '').strip()
         if question:
             from dashboard.ai_service import query_with_gemini
             result = query_with_gemini(question)
+            # Ajouter à l'historique (max 20 échanges)
+            conversation.append({'question': question, 'result': result})
+            if len(conversation) > 20:
+                conversation = conversation[-20:]
+            request.session[SESSION_KEY] = conversation
+            request.session.modified = True
 
     return render(request, 'dashboard/assistant_ia.html', {
-        'question': question,
-        'result': result,
+        'conversation': conversation,
     })

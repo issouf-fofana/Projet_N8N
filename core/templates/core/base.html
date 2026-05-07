@@ -175,7 +175,45 @@
             margin-left: var(--sidebar-width);
             padding: 40px;
             min-height: 100vh;
-            background: #e5e7eb;  /* Gris clair uniforme comme dans la capture */
+            background: #e5e7eb;
+            transition: margin-left .25s ease;
+        }
+
+        /* ── Sidebar collapsed ── */
+        body.sidebar-collapsed .sidebar {
+            transform: translateX(-100%);
+        }
+        body.sidebar-collapsed .main-content {
+            margin-left: 0;
+        }
+
+        /* ── Bouton toggle sidebar ── */
+        #sidebar-toggle {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 1100;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(30,58,138,.85);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,.25);
+            transition: background .15s, left .25s ease;
+            backdrop-filter: blur(4px);
+        }
+        #sidebar-toggle:hover { background: #1e40af; }
+        body.sidebar-collapsed #sidebar-toggle {
+            left: 14px;
+            background: rgba(30,58,138,.95);
+        }
+        body:not(.sidebar-collapsed) #sidebar-toggle {
+            left: calc(var(--sidebar-width) + 8px);
         }
         
         .page-header {
@@ -852,6 +890,11 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Bouton toggle sidebar -->
+    <button id="sidebar-toggle" title="Masquer/afficher le menu">
+        <i class="bi bi-layout-sidebar" id="sidebar-toggle-icon" style="font-size:1rem;"></i>
+    </button>
+
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
@@ -860,6 +903,15 @@
                 Vérification
             </h4>
         </div>
+         <!-- Assistant IA -->
+        {% if request.user|has_perm:'assistant_ia' %}
+        <a href="{% url 'dashboard:assistant_ia' %}"
+           style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:10px;text-decoration:none;font-size:.82rem;font-weight:600;margin:0 8px 4px;transition:background .15s;{% if request.resolver_match.url_name == 'assistant_ia' %}background:rgba(99,102,241,.18);color:#a5b4fc;{% else %}color:rgba(255,255,255,.75);{% endif %}">
+            <i class="bi bi-stars" style="font-size:.95rem;{% if request.resolver_match.url_name == 'assistant_ia' %}color:#818cf8;{% endif %}"></i>
+            Assistant IA
+        </a>
+        {% endif %}
+
         <ul class="sidebar-menu">
             <li>
                 <a href="{% url 'dashboard:accueil' %}" class="{% if request.resolver_match.url_name == 'accueil' %}active{% endif %}">
@@ -1013,15 +1065,6 @@
             </div>
             {% endwith %}
         </div>
-
-        <!-- Assistant IA -->
-        {% if request.user|has_perm:'assistant_ia' %}
-        <a href="{% url 'dashboard:assistant_ia' %}"
-           style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:10px;text-decoration:none;font-size:.82rem;font-weight:600;margin:0 8px 4px;transition:background .15s;{% if request.resolver_match.url_name == 'assistant_ia' %}background:rgba(99,102,241,.18);color:#a5b4fc;{% else %}color:rgba(255,255,255,.75);{% endif %}">
-            <i class="bi bi-stars" style="font-size:.95rem;{% if request.resolver_match.url_name == 'assistant_ia' %}color:#818cf8;{% endif %}"></i>
-            Assistant IA
-        </a>
-        {% endif %}
 
         <!-- Séparateur section Analyse -->
         <div style="padding: 0 16px; margin: 8px 0 4px;">
@@ -1555,6 +1598,34 @@
             poll();
             setInterval(poll, POLL_INTERVAL);
         }, 5000);
+    })();
+    </script>
+
+    <script>
+    // ── Toggle sidebar ──────────────────────────────────────────────
+    (function() {
+        var btn  = document.getElementById('sidebar-toggle');
+        var icon = document.getElementById('sidebar-toggle-icon');
+        var STORAGE_KEY = 'sidebar_collapsed';
+
+        function apply(collapsed) {
+            if (collapsed) {
+                document.body.classList.add('sidebar-collapsed');
+                icon.className = 'bi bi-layout-sidebar-reverse';
+            } else {
+                document.body.classList.remove('sidebar-collapsed');
+                icon.className = 'bi bi-layout-sidebar';
+            }
+        }
+
+        // Restaurer l'état depuis localStorage
+        apply(localStorage.getItem(STORAGE_KEY) === '1');
+
+        btn.addEventListener('click', function() {
+            var now = document.body.classList.contains('sidebar-collapsed');
+            apply(!now);
+            localStorage.setItem(STORAGE_KEY, (!now) ? '1' : '0');
+        });
     })();
     </script>
 </body>

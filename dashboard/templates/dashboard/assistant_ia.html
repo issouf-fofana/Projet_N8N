@@ -5,24 +5,23 @@
 
 {% block content %}
 <style>
-/* ═══ ASSISTANT IA — Layout fixe : conversation haut / barre bas ═══ */
+/* ═══ ASSISTANT IA ═══ */
 .aia-shell {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 56px); /* hauteur totale moins la topbar */
+    height: calc(100vh - 56px);
     background: #f8f9ff;
     overflow: hidden;
 }
 
-/* ── Zone de conversation (scroll) ── */
+/* ── Zone conversation ── */
 .aia-conv {
     flex: 1;
     overflow-y: auto;
-    padding: 32px 16px 24px;
+    padding: 28px 16px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
     scroll-behavior: smooth;
 }
 .aia-conv-inner {
@@ -30,50 +29,43 @@
     max-width: 760px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    flex: 1;
+    gap: 18px;
 }
 
-/* Titre accueil (masqué si résultat) */
-.aia-welcome-title {
+/* Accueil */
+.aia-welcome {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 40px 0 10px;
+    gap: 20px;
+    padding: 48px 0 20px;
     text-align: center;
 }
-.aia-welcome-title h1 {
-    font-size: 1.9rem;
+.aia-welcome h1 {
+    font-size: 1.85rem;
     font-weight: 800;
     color: #1e2a45;
     letter-spacing: -.03em;
     margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    display: flex; align-items: center; gap: 12px;
 }
-.aia-logo { width: 46px; height: 46px; }
+.aia-logo { width: 44px; height: 44px; }
 
-/* Suggestions */
-.aia-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-}
+/* Chips suggestions */
+.aia-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 680px; }
 .aia-chip {
-    font-size: .78rem;
-    padding: 7px 15px;
-    border-radius: 22px;
-    background: #fff;
-    color: #475569;
-    border: 1.5px solid #e2e8f0;
-    cursor: pointer;
-    transition: all .15s;
-    user-select: none;
+    font-size: .77rem; padding: 6px 14px; border-radius: 22px;
+    background: #fff; color: #475569; border: 1.5px solid #e2e8f0;
+    cursor: pointer; transition: all .15s; user-select: none;
 }
 .aia-chip:hover { background: #ede9fe; color: #6366f1; border-color: #c4b5fd; }
+
+/* Séparateur de session */
+.aia-sep {
+    display: flex; align-items: center; gap: 10px;
+    font-size: .68rem; font-weight: 700; color: #c4cdd8; text-transform: uppercase; letter-spacing: .07em;
+}
+.aia-sep::before, .aia-sep::after { content: ''; flex: 1; height: 1px; background: #e4e8f5; }
 
 /* Bulle utilisateur */
 .aia-bubble-user {
@@ -82,167 +74,148 @@
     color: #fff;
     border-radius: 18px 18px 4px 18px;
     padding: 12px 18px;
-    font-size: .9rem;
-    max-width: 80%;
-    line-height: 1.5;
+    font-size: .9rem; max-width: 80%; line-height: 1.5;
     box-shadow: 0 2px 12px rgba(99,102,241,.3);
 }
 
 /* Bulle IA */
 .aia-bubble-ai {
     align-self: flex-start;
-    background: #fff;
-    border: 1px solid #e4e8f5;
+    background: #fff; border: 1px solid #e4e8f5;
     border-radius: 4px 18px 18px 18px;
-    padding: 18px 22px;
-    max-width: 95%;
+    padding: 16px 20px; max-width: 95%;
     box-shadow: 0 2px 16px rgba(30,42,69,.07);
 }
-.aia-bubble-ai-header {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 12px;
-}
-.aia-bubble-ai-icon {
-    width: 28px; height: 28px; border-radius: 9px;
+.aia-bhead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.aia-bicon {
+    width: 26px; height: 26px; border-radius: 8px;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.aia-bubble-ai-name { font-size: .75rem; font-weight: 700; color: #6366f1; }
-.aia-bubble-ai-expl { font-size: .7rem; color: #94a3b8; margin-left: auto; }
+.aia-bname { font-size: .73rem; font-weight: 700; color: #6366f1; }
+.aia-bexpl { font-size: .68rem; color: #94a3b8; margin-left: auto; }
 .aia-badge {
     display: inline-flex; align-items: center;
     background: #ede9fe; color: #6366f1;
-    border-radius: 20px; padding: 2px 10px;
-    font-size: .7rem; font-weight: 700;
+    border-radius: 20px; padding: 2px 9px;
+    font-size: .68rem; font-weight: 700;
 }
-.aia-reponse { font-size: .9rem; color: #1e2a45; line-height: 1.75; white-space: pre-wrap; }
+.aia-reponse { font-size: .88rem; color: #1e2a45; line-height: 1.75; white-space: pre-wrap; }
 .aia-hyp {
-    margin-top: 10px; padding: 9px 14px;
+    margin-top: 10px; padding: 8px 12px;
     background: #fffbeb; border-left: 3px solid #f59e0b;
-    border-radius: 0 8px 8px 0; font-size: .77rem; color: #92400e;
+    border-radius: 0 8px 8px 0; font-size: .75rem; color: #92400e;
 }
 .aia-error {
-    padding: 12px 16px; background: #fef2f2;
+    padding: 10px 14px; background: #fef2f2;
     border-left: 3px solid #ef4444; border-radius: 0 8px 8px 0;
-    font-size: .85rem; color: #b91c1c; display: flex; gap: 8px; align-items: flex-start;
+    font-size: .83rem; color: #b91c1c; display: flex; gap: 8px; align-items: flex-start;
 }
 .aia-sql-toggle {
-    margin-top: 12px; display: flex; align-items: center; gap: 6px;
-    font-size: .72rem; font-weight: 600; color: #64748b;
-    cursor: pointer; user-select: none; padding: 6px 0;
-    border-top: 1px solid #eef0f8;
+    margin-top: 10px; display: flex; align-items: center; gap: 6px;
+    font-size: .7rem; font-weight: 600; color: #64748b;
+    cursor: pointer; user-select: none; padding: 5px 0;
+    border-top: 1px solid #eef0f8; transition: color .15s;
 }
 .aia-sql-toggle:hover { color: #6366f1; }
 .aia-sql-code {
     display: none; background: #0f172a; color: #e2e8f0; border-radius: 10px;
-    padding: 14px 16px; font-family: 'Courier New', monospace;
-    font-size: .76rem; line-height: 1.6; overflow-x: auto; white-space: pre; margin-top: 8px;
+    padding: 12px 14px; font-family: 'Courier New', monospace;
+    font-size: .74rem; line-height: 1.6; overflow-x: auto; white-space: pre; margin-top: 6px;
 }
 .aia-sql-code.open { display: block; }
-.aia-table-wrap {
-    margin-top: 14px; overflow-x: auto;
-    border-radius: 10px; border: 1px solid #e4e8f5;
-}
-.aia-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.aia-table-wrap { margin-top: 12px; overflow-x: auto; border-radius: 10px; border: 1px solid #e4e8f5; }
+.aia-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
 .aia-table th {
     background: #f8fafc; color: #64748b; font-weight: 700;
-    font-size: .67rem; text-transform: uppercase; letter-spacing: .06em;
-    padding: 8px 12px; text-align: left; border-bottom: 2px solid #e4e8f5; white-space: nowrap;
+    font-size: .65rem; text-transform: uppercase; letter-spacing: .06em;
+    padding: 7px 11px; text-align: left; border-bottom: 2px solid #e4e8f5; white-space: nowrap;
 }
-.aia-table td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; color: #374151; }
+.aia-table td { padding: 6px 11px; border-bottom: 1px solid #f1f5f9; color: #374151; }
 .aia-table tr:last-child td { border-bottom: none; }
 .aia-table tr:hover td { background: #f8fafc; }
 
-/* ── Spinner alien (réflexion) ── */
+/* Spinner alien réflexion */
 .aia-thinking {
-    display: none;
-    align-items: center;
-    gap: 14px;
+    display: none; align-items: center; gap: 12px;
     align-self: flex-start;
-    padding: 14px 18px;
-    background: #fff;
-    border: 1px solid #e4e8f5;
-    border-radius: 4px 18px 18px 18px;
-    box-shadow: 0 2px 16px rgba(30,42,69,.07);
+    padding: 12px 16px;
+    background: #fff; border: 1px solid #e4e8f5;
+    border-radius: 4px 16px 16px 16px;
+    box-shadow: 0 2px 12px rgba(30,42,69,.07);
 }
 .aia-thinking.show { display: flex; }
-.aia-ring {
-    position: relative;
-    width: 52px; height: 52px;
-    flex-shrink: 0;
-}
+.aia-ring { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
 .aia-ring-seg {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    margin: -3.5px 0 0 -3.5px;
+    position: absolute; top: 50%; left: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
+    margin: -3px 0 0 -3px;
     animation: aiaSegPulse 1.6s ease-in-out infinite;
 }
 @keyframes aiaSegPulse {
-    0%, 100% { transform: var(--seg-t) scale(.65); opacity: .3; }
-    50%       { transform: var(--seg-t) scale(1.2); opacity: 1; }
+    0%,100% { transform: var(--seg-t) scale(.6); opacity: .25; }
+    50%      { transform: var(--seg-t) scale(1.25); opacity: 1; }
 }
 .aia-alien-sm {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 28px; height: 30px;
-    transform: translate(-50%, -50%);
+    position: absolute; top: 50%; left: 50%;
+    width: 26px; height: 28px;
+    transform: translate(-50%,-50%);
     animation: aiaAlienBob 2.4s ease-in-out infinite;
 }
 @keyframes aiaAlienBob {
-    0%, 100% { transform: translate(-50%,-50%) translateY(0); }
-    50%       { transform: translate(-50%,-50%) translateY(-2px); }
+    0%,100% { transform: translate(-50%,-50%) translateY(0); }
+    50%      { transform: translate(-50%,-50%) translateY(-2px); }
 }
 .aia-thinking-text {
-    font-size: .78rem; font-weight: 600; color: #6366f1;
+    font-size: .76rem; font-weight: 600; color: #6366f1;
     font-family: 'Courier New', monospace; min-height: 20px;
 }
 .aia-thinking-cursor {
-    display: inline-block; width: 2px; height: 13px;
+    display: inline-block; width: 2px; height: 12px;
     background: #6366f1; margin-left: 2px; vertical-align: middle;
     animation: aiaBlink .7s step-end infinite;
 }
 @keyframes aiaBlink { 50% { opacity: 0; } }
 
-/* ── Barre de saisie fixe en bas ── */
+/* ── Barre basse fixe ── */
 .aia-bar {
     border-top: 1px solid #e4e8f5;
     background: #fff;
-    padding: 14px 16px 18px;
+    padding: 12px 16px 16px;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
 }
+.aia-bar-row { width: 100%; max-width: 760px; display: flex; align-items: center; gap: 8px; }
 .aia-input-box {
-    width: 100%;
-    max-width: 760px;
+    flex: 1;
     background: #f8fafc;
-    border-radius: 16px;
+    border-radius: 14px;
     border: 1.5px solid #e2e8f0;
-    box-shadow: 0 2px 12px rgba(30,42,69,.06);
+    box-shadow: 0 2px 10px rgba(30,42,69,.05);
     overflow: hidden;
     transition: border-color .2s, box-shadow .2s;
 }
 .aia-input-box:focus-within {
     border-color: #818cf8; background: #fff;
-    box-shadow: 0 0 0 3px rgba(99,102,241,.10), 0 2px 12px rgba(30,42,69,.06);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.10);
 }
 .aia-textarea {
     width: 100%; border: none; outline: none; resize: none;
-    min-height: 52px; max-height: 200px;
-    padding: 14px 16px 6px;
-    font-size: .92rem; color: #1e2a45;
-    background: transparent; font-family: inherit; line-height: 1.55;
+    min-height: 46px; max-height: 180px;
+    padding: 12px 14px 4px;
+    font-size: .9rem; color: #1e2a45;
+    background: transparent; font-family: inherit; line-height: 1.5;
     overflow-y: auto;
 }
 .aia-textarea::placeholder { color: #c4cdd8; }
-.aia-input-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 4px 10px 10px;
+.aia-input-foot {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 2px 8px 8px;
 }
-.aia-input-hint { font-size: .69rem; color: #c4cdd8; }
 .aia-send-btn {
-    width: 36px; height: 36px; border-radius: 50%; border: none;
+    width: 34px; height: 34px; border-radius: 50%; border: none;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: #fff; display: flex; align-items: center; justify-content: center;
     cursor: pointer; box-shadow: 0 2px 8px rgba(99,102,241,.4);
@@ -250,6 +223,16 @@
 }
 .aia-send-btn:hover { opacity: .9; transform: scale(1.07); }
 .aia-send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+.aia-clear-btn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: .7rem; font-weight: 600; color: #94a3b8;
+    border: 1.5px solid #e2e8f0; background: #fff;
+    border-radius: 20px; padding: 5px 12px;
+    cursor: pointer; text-decoration: none; transition: all .15s; white-space: nowrap;
+    flex-shrink: 0;
+}
+.aia-clear-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fff5f5; }
+.aia-hint { font-size: .67rem; color: #d1d5db; align-self: flex-start; }
 </style>
 
 <div class="aia-shell">
@@ -258,9 +241,9 @@
     <div class="aia-conv" id="aia-conv">
         <div class="aia-conv-inner" id="aia-conv-inner">
 
-            {% if not result %}
+            {% if not conversation %}
             <!-- Accueil -->
-            <div class="aia-welcome-title">
+            <div class="aia-welcome">
                 <svg class="aia-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110">
                     <defs><linearGradient id="aiaG" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" style="stop-color:#6366f1"/><stop offset="100%" style="stop-color:#8b5cf6"/>
@@ -279,81 +262,73 @@
                     <circle cx="72" cy="7" r="4.5" fill="#a5b4fc"/>
                 </svg>
                 <h1>Bonjour, que puis-je analyser ?</h1>
+                <div class="aia-chips" id="aia-chips">
+                    <span class="aia-chip">Combien de commandes GPV aujourd'hui ?</span>
+                    <span class="aia-chip">Top 5 magasins par nombre de BR ce mois</span>
+                    <span class="aia-chip">Quels magasins ont des écarts Asten non résolus ?</span>
+                    <span class="aia-chip">Nombre de factures Sage importées cette semaine</span>
+                    <span class="aia-chip">Magasins avec le plus de remontées en cours</span>
+                    <span class="aia-chip">Commandes Asten non validées depuis plus de 7 jours</span>
+                    <span class="aia-chip">Quel magasin a le plus de BR non intégrés ?</span>
+                    <span class="aia-chip">Évolution des imports cette semaine par type</span>
+                </div>
             </div>
-            <div class="aia-chips" id="aia-chips">
-                <span class="aia-chip">Combien de commandes GPV aujourd'hui ?</span>
-                <span class="aia-chip">Top 5 magasins par nombre de BR ce mois</span>
-                <span class="aia-chip">Quels magasins ont des écarts Asten non résolus ?</span>
-                <span class="aia-chip">Nombre de factures Sage importées cette semaine</span>
-                <span class="aia-chip">Magasins avec le plus de remontées en cours</span>
-                <span class="aia-chip">Commandes Asten non validées depuis plus de 7 jours</span>
-                <span class="aia-chip">Quel magasin a le plus de BR non intégrés ?</span>
-                <span class="aia-chip">Évolution des imports cette semaine par type</span>
-            </div>
+            {% else %}
+            <div class="aia-sep">Conversation en cours</div>
             {% endif %}
 
-            {% if result %}
-            <!-- Bulle utilisateur -->
-            {% if question %}
-            <div class="aia-bubble-user">{{ question }}</div>
-            {% endif %}
-
-            <!-- Spinner (masqué quand résultat présent) -->
-
-            <!-- Bulle IA -->
+            <!-- Historique -->
+            {% for turn in conversation %}
+            <div class="aia-bubble-user">{{ turn.question }}</div>
             <div class="aia-bubble-ai">
-                <div class="aia-bubble-ai-header">
-                    <div class="aia-bubble-ai-icon">
-                        <svg width="16" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110">
+                <div class="aia-bhead">
+                    <div class="aia-bicon">
+                        <svg width="14" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110">
                             <ellipse cx="50" cy="58" rx="28" ry="34" fill="#fff" opacity=".9"/>
                             <ellipse cx="38" cy="50" rx="10" ry="7" fill="#818cf8" opacity=".95"/>
                             <ellipse cx="62" cy="50" rx="10" ry="7" fill="#818cf8" opacity=".95"/>
                         </svg>
                     </div>
-                    <span class="aia-bubble-ai-name">Assistant IA</span>
-                    {% if result.nombre is not None %}
-                    <span class="aia-badge" style="margin-left:8px;">{{ result.nombre }} résultat{% if result.nombre > 1 %}s{% endif %}</span>
+                    <span class="aia-bname">Assistant IA</span>
+                    {% if turn.result.nombre is not None %}
+                    <span class="aia-badge" style="margin-left:6px;">{{ turn.result.nombre }} résultat{% if turn.result.nombre > 1 %}s{% endif %}</span>
                     {% endif %}
-                    {% if result.explication %}
-                    <span class="aia-bubble-ai-expl">{{ result.explication }}</span>
+                    {% if turn.result.explication %}
+                    <span class="aia-bexpl">{{ turn.result.explication }}</span>
                     {% endif %}
                 </div>
 
-                {% if result.erreur %}
+                {% if turn.result.erreur %}
                 <div class="aia-error">
                     <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:2px;"></i>
-                    {{ result.erreur }}
+                    {{ turn.result.erreur }}
                 </div>
                 {% else %}
-                {% if result.hypothese %}
-                <div class="aia-hyp"><i class="bi bi-lightbulb-fill"></i> <strong>Hypothèse :</strong> {{ result.hypothese }}</div>
+                {% if turn.result.hypothese %}
+                <div class="aia-hyp"><i class="bi bi-lightbulb-fill"></i> <strong>Hypothèse :</strong> {{ turn.result.hypothese }}</div>
                 {% endif %}
-                <div class="aia-reponse">{{ result.reponse }}</div>
-                {% if result.sql %}
-                <div class="aia-sql-toggle" onclick="aiaToggleSQL(this)">
+                <div class="aia-reponse">{{ turn.result.reponse }}</div>
+                {% if turn.result.sql %}
+                <div class="aia-sql-toggle" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.bi-chevron-down').style.transform = this.nextElementSibling.classList.contains('open') ? 'rotate(180deg)' : '';">
                     <i class="bi bi-code-slash"></i> Voir la requête SQL
-                    <i class="bi bi-chevron-down" style="margin-left:auto;transition:transform .2s;" id="aia-chevron"></i>
+                    <i class="bi bi-chevron-down" style="margin-left:auto;transition:transform .2s;"></i>
                 </div>
-                <div class="aia-sql-code" id="aia-sql-block">{{ result.sql }}</div>
+                <div class="aia-sql-code">{{ turn.result.sql }}</div>
                 {% endif %}
-                {% if result.lignes %}
+                {% if turn.result.lignes %}
                 <div class="aia-table-wrap">
                     <table class="aia-table">
-                        <thead><tr>{% for col in result.colonnes %}<th>{{ col }}</th>{% endfor %}</tr></thead>
-                        <tbody>
-                            {% for row in result.lignes %}
-                            <tr>{% for cell in row %}<td>{{ cell|default:"—" }}</td>{% endfor %}</tr>
-                            {% endfor %}
-                        </tbody>
+                        <thead><tr>{% for col in turn.result.colonnes %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+                        <tbody>{% for row in turn.result.lignes %}<tr>{% for cell in row %}<td>{{ cell|default:"—" }}</td>{% endfor %}</tr>{% endfor %}</tbody>
                     </table>
-                    {% if result.nombre >= 200 %}<div style="padding:6px 12px;font-size:.68rem;color:#94a3b8;border-top:1px solid #f1f5f9;">Limité à 200 lignes</div>{% endif %}
+                    {% if turn.result.nombre >= 200 %}<div style="padding:5px 11px;font-size:.66rem;color:#94a3b8;border-top:1px solid #f1f5f9;">Limité à 200 lignes</div>{% endif %}
                 </div>
                 {% endif %}
                 {% endif %}
             </div>
-            {% endif %}
+            {% endfor %}
 
-            <!-- Spinner alien réflexion -->
+            <!-- Spinner réflexion -->
             <div class="aia-thinking" id="aia-thinking">
                 <div class="aia-ring" id="aia-ring">
                     <svg class="aia-alien-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110">
@@ -377,79 +352,84 @@
         </div>
     </div>
 
-    <!-- Barre fixe en bas -->
+    <!-- Barre basse -->
     <div class="aia-bar">
-        <form method="post" id="aia-form" style="width:100%;max-width:760px;" data-no-loader>
-            {% csrf_token %}
-            <div class="aia-input-box">
-                <textarea
-                    name="question"
-                    id="aia-question"
-                    class="aia-textarea"
-                    placeholder="Posez une question sur vos données… (Entrée pour envoyer)"
-                    rows="1"
-                    autofocus
-                >{{ question }}</textarea>
-                <div class="aia-input-footer">
-                    <span class="aia-input-hint">Maj+Entrée pour sauter une ligne</span>
-                    <button type="submit" class="aia-send-btn" id="aia-send" title="Envoyer">
-                        <i class="bi bi-send-fill" style="font-size:.8rem;"></i>
-                    </button>
+        <div class="aia-bar-row">
+            <form method="post" id="aia-form" style="flex:1;" data-no-loader>
+                {% csrf_token %}
+                <div class="aia-input-box">
+                    <textarea
+                        name="question"
+                        id="aia-question"
+                        class="aia-textarea"
+                        placeholder="Posez une question… (Entrée pour envoyer)"
+                        rows="1"
+                        autofocus
+                    ></textarea>
+                    <div class="aia-input-foot">
+                        <button type="submit" class="aia-send-btn" id="aia-send" title="Envoyer">
+                            <i class="bi bi-send-fill" style="font-size:.78rem;"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+            {% if conversation %}
+            <a href="?clear=1" class="aia-clear-btn" data-no-loader title="Effacer la conversation">
+                <i class="bi bi-trash3"></i> Effacer
+            </a>
+            {% endif %}
+        </div>
+        <span class="aia-hint">Maj+Entrée pour aller à la ligne</span>
     </div>
 
 </div>
 
 <script>
 (function() {
-    // ── Anneau de segments ────────────────────────────────────────────
+    // ── Anneau de segments ─────────────────────────────────────────
     var ring = document.getElementById('aia-ring');
     var colors = ['#6366f1','#818cf8','#a78bfa','#c4b5fd','#8b5cf6','#7c3aed',
                   '#6d28d9','#4f46e5','#4338ca','#3730a3','#312e81','#a5b4fc'];
-    var N = 12, R = 22;
+    var N = 12, R = 20;
     for (var i = 0; i < N; i++) {
         var angle = (i / N) * 2 * Math.PI - Math.PI / 2;
-        var x = 26 + R * Math.cos(angle);
-        var y = 26 + R * Math.sin(angle);
+        var x = 24 + R * Math.cos(angle);
+        var y = 24 + R * Math.sin(angle);
         var seg = document.createElement('span');
         seg.className = 'aia-ring-seg';
-        seg.style.setProperty('--seg-t', 'translate(' + (x-3.5) + 'px,' + (y-3.5) + 'px)');
+        seg.style.setProperty('--seg-t', 'translate(' + (x-3) + 'px,' + (y-3) + 'px)');
         seg.style.background = colors[i % colors.length];
         seg.style.animationDelay = (i * 0.13) + 's';
         ring.appendChild(seg);
     }
 
-    // ── Chips ─────────────────────────────────────────────────────────
+    // ── Chips ──────────────────────────────────────────────────────
     document.querySelectorAll('.aia-chip').forEach(function(el) {
         el.addEventListener('click', function() {
             var ta = document.getElementById('aia-question');
             ta.value = this.textContent.trim();
             ta.focus();
             ta.style.height = 'auto';
-            ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+            ta.style.height = Math.min(ta.scrollHeight, 180) + 'px';
         });
     });
 
-    // ── Auto-resize ───────────────────────────────────────────────────
+    // ── Auto-resize ────────────────────────────────────────────────
     var ta = document.getElementById('aia-question');
     ta.addEventListener('input', function() {
         this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        this.style.height = Math.min(this.scrollHeight, 180) + 'px';
     });
 
-    // ── Entrée = envoyer / Maj+Entrée = saut de ligne ────────────────
+    // ── Entrée = envoyer / Maj+Entrée = nouvelle ligne ─────────────
     ta.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            if (this.value.trim()) {
-                document.getElementById('aia-form').requestSubmit();
-            }
+            if (this.value.trim()) document.getElementById('aia-form').requestSubmit();
         }
     });
 
-    // ── Animation réflexion ───────────────────────────────────────────
+    // ── Animation réflexion ────────────────────────────────────────
     var phrases = [
         'Analyse de votre question…',
         'Identification des tables concernées…',
@@ -459,48 +439,36 @@
     ];
     var thinkIdx = 0, thinkTimer = null;
 
-    function startThinking() {
-        document.getElementById('aia-thinking').classList.add('show');
-        thinkIdx = 0;
-        typePhrase(phrases[0]);
-        thinkTimer = setInterval(function() {
-            thinkIdx = (thinkIdx + 1) % phrases.length;
-            typePhrase(phrases[thinkIdx]);
-        }, 2400);
-        // Scroll vers le bas
-        var conv = document.getElementById('aia-conv');
-        setTimeout(function(){ conv.scrollTop = conv.scrollHeight; }, 50);
-    }
-
     function typePhrase(phrase) {
         var el = document.getElementById('aia-thinking-text');
         el.innerHTML = '<span class="aia-thinking-cursor"></span>';
         var i = 0;
         var t = setInterval(function() {
-            if (i < phrase.length) {
-                el.innerHTML = phrase.slice(0, ++i) + '<span class="aia-thinking-cursor"></span>';
-            } else { clearInterval(t); }
+            if (i < phrase.length) el.innerHTML = phrase.slice(0,++i) + '<span class="aia-thinking-cursor"></span>';
+            else clearInterval(t);
         }, 22);
     }
 
-    // ── Soumission ────────────────────────────────────────────────────
+    function startThinking() {
+        document.getElementById('aia-thinking').classList.add('show');
+        thinkIdx = 0; typePhrase(phrases[0]);
+        thinkTimer = setInterval(function() {
+            thinkIdx = (thinkIdx + 1) % phrases.length;
+            typePhrase(phrases[thinkIdx]);
+        }, 2400);
+        setTimeout(function() { var c = document.getElementById('aia-conv'); c.scrollTop = c.scrollHeight; }, 50);
+    }
+
+    // ── Soumission ─────────────────────────────────────────────────
     document.getElementById('aia-form').addEventListener('submit', function(e) {
         if (!ta.value.trim()) { e.preventDefault(); return; }
         document.getElementById('aia-send').disabled = true;
         startThinking();
     });
 
-    // ── Scroll en bas au chargement si résultat ───────────────────────
+    // ── Scroll en bas à l'ouverture ────────────────────────────────
     var conv = document.getElementById('aia-conv');
     conv.scrollTop = conv.scrollHeight;
-
-    // ── Toggle SQL ────────────────────────────────────────────────────
-    window.aiaToggleSQL = function() {
-        var block = document.getElementById('aia-sql-block');
-        var chev  = document.getElementById('aia-chevron');
-        block.classList.toggle('open');
-        chev.style.transform = block.classList.contains('open') ? 'rotate(180deg)' : '';
-    };
 })();
 </script>
 {% endblock %}
