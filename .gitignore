@@ -20,7 +20,12 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+.env
+.venv
+config.env
+.env.*
+venv/
+ENV/
 # Django
 *.log
 local_settings.py
