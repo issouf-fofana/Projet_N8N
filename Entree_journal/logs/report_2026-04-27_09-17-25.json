@@ -1,0 +1,150 @@
+{
+  "started_at": "2026-04-27T09:17:25.906468",
+  "elapsed_s": 215.76,
+  "results": [
+    {
+      "pos_id": "pos1",
+      "pos_name": "POS 1",
+      "status": "ok",
+      "count": 226,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos1_2026-04-27_09-13-50.csv",
+      "collected_at": "2026-04-27T09:13:50.150859+00:00"
+    },
+    {
+      "pos_id": "pos2",
+      "pos_name": "POS 2",
+      "status": "ok",
+      "count": 432,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos2_2026-04-27_09-13-52.csv",
+      "collected_at": "2026-04-27T09:13:52.290257+00:00"
+    },
+    {
+      "pos_id": "pos3",
+      "pos_name": "POS 3",
+      "status": "ok",
+      "count": 139,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos3_2026-04-27_09-14-00.csv",
+      "collected_at": "2026-04-27T09:14:00.294133+00:00"
+    },
+    {
+      "pos_id": "pos4",
+      "pos_name": "POS 4",
+      "status": "ok",
+      "count": 204,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos4_2026-04-27_09-14-09.csv",
+      "collected_at": "2026-04-27T09:14:09.458690+00:00"
+    },
+    {
+      "pos_id": "pos5",
+      "pos_name": "POS 5",
+      "status": "ok",
+      "count": 155,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos5_2026-04-27_09-14-11.csv",
+      "collected_at": "2026-04-27T09:14:11.380177+00:00"
+    },
+    {
+      "pos_id": "pos6",
+      "pos_name": "POS 6",
+      "status": "ok",
+      "count": 145,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos6_2026-04-27_09-14-14.csv",
+      "collected_at": "2026-04-27T09:14:14.750545+00:00"
+    },
+    {
+      "pos_id": "pos7",
+      "pos_name": "POS 7",
+      "status": "ok",
+      "count": 162,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos7_2026-04-27_09-14-19.csv",
+      "collected_at": "2026-04-27T09:14:19.575812+00:00"
+    },
+    {
+      "pos_id": "pos8",
+      "pos_name": "POS 8",
+      "status": "ok",
+      "count": 421,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos8_2026-04-27_09-14-26.csv",
+      "collected_at": "2026-04-27T09:14:26.234190+00:00"
+    },
+    {
+      "pos_id": "pos9",
+      "pos_name": "POS 9",
+      "status": "ok",
+      "count": 500,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos9_2026-04-27_09-14-41.csv",
+      "collected_at": "2026-04-27T09:14:41.380727+00:00"
+    },
+    {
+      "pos_id": "pos10",
+      "pos_name": "POS 10",
+      "status": "ok",
+      "count": 126,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos10_2026-04-27_09-15-23.csv",
+      "collected_at": "2026-04-27T09:15:23.288941+00:00"
+    },
+    {
+      "pos_id": "pos11",
+      "pos_name": "POS 11",
+      "status": "ok",
+      "count": 186,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos11_2026-04-27_09-15-27.csv",
+      "collected_at": "2026-04-27T09:15:27.116891+00:00"
+    },
+    {
+      "pos_id": "pos12",
+      "pos_name": "POS 12",
+      "status": "ok",
+      "count": 411,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos12_2026-04-27_09-15-30.csv",
+      "collected_at": "2026-04-27T09:15:30.506851+00:00"
+    },
+    {
+      "pos_id": "pos13",
+      "pos_name": "POS 13",
+      "status": "ok",
+      "count": 153,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos13_2026-04-27_09-15-47.csv",
+      "collected_at": "2026-04-27T09:15:47.442723+00:00"
+    },
+    {
+      "pos_id": "pos14",
+      "pos_name": "POS 14",
+      "status": "ok",
+      "count": 300,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos14_2026-04-27_09-15-53.csv",
+      "collected_at": "2026-04-27T09:15:53.159150+00:00"
+    },
+    {
+      "pos_id": "pos15",
+      "pos_name": "POS 15",
+      "status": "ok",
+      "count": 395,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos15_2026-04-27_09-16-08.csv",
+      "collected_at": "2026-04-27T09:16:08.598340+00:00"
+    },
+    {
+      "pos_id": "pos16",
+      "pos_name": "POS 16",
+      "status": "ok",
+      "count": 500,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos16_2026-04-27_09-16-23.csv",
+      "collected_at": "2026-04-27T09:16:23.490003+00:00"
+    },
+    {
+      "pos_id": "pos17",
+      "pos_name": "POS 17",
+      "status": "ok",
+      "count": 500,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos17_2026-04-27_09-16-51.csv",
+      "collected_at": "2026-04-27T09:16:51.288576+00:00"
+    },
+    {
+      "pos_id": "pos18",
+      "pos_name": "POS 18",
+      "status": "ok",
+      "count": 500,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos18_2026-04-27_09-17-09.csv",
+      "collected_at": "2026-04-27T09:17:09.477884+00:00"
+    }
+  ]
+}

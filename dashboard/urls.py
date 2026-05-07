@@ -48,4 +48,5 @@ urlpatterns = [
     path('factures/backup/set-statut/', views.set_statut_facture_ecart, name='set_statut_facture_ecart'),
     path('changer-mot-de-passe/', views.changer_mot_de_passe, name='changer_mot_de_passe'),
     path('configuration/chemins/', views.configuration_chemins, name='configuration_chemins'),
+    path('api/last-import/', views.api_last_import, name='api_last_import'),
 ]

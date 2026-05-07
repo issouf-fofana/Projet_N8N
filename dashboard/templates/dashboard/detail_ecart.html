@@ -24,7 +24,7 @@
                     </tr>
                     <tr>
                         <th>Date Validation</th>
-                        <td>{% if ecart.commande_asten.date_validation %}<strong class="text-success">{{ ecart.commande_asten.date_validation|date:"d/m/Y" }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                        <td>{% if ecart.commande_asten.date_validation %}<strong class="text-success">{{ ecart.commande_asten.date_validation|date:"d/m/Y" }}{% if ecart.commande_asten.heure_validation %} {{ ecart.commande_asten.heure_validation|time:"H:i" }}{% endif %}</strong>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                     </tr>
                     <tr>
                         <th>Date Livraison</th>

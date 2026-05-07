@@ -171,7 +171,7 @@
                 <tbody>
                     {% for commande in commandes %}
                         <tr class="align-middle">
-                            <td class="fw-semibold">{{ commande.date_creation|date:"d/m/Y" }}</td>
+                            <td class="fw-semibold">{{ commande.date_creation|date:"d/m/Y H:i" }}</td>
                             <td><strong class="text-primary">{{ commande.numero_commande }}</strong></td>
                             <td>
                                 <span class="badge bg-secondary">{{ commande.code_magasin.code }}</span><br>

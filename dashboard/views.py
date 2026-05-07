@@ -78,9 +78,9 @@ def _get_semaine_comparison(periode='semaine'):
 
     def _gpv(d1, d2):
         try:
-            total = CommandeGPV.objects.filter(date_creation__gte=d1, date_creation__lte=d2, statut__iexact='Transmise').count()
-            ni = EcartGPV.objects.filter(commande_gpv__date_creation__gte=d1, commande_gpv__date_creation__lte=d2, statut='ouvert').count()
-            q0 = EcartGPV.objects.filter(commande_gpv__date_creation__gte=d1, commande_gpv__date_creation__lte=d2, statut='quantite_0').count()
+            total = CommandeGPV.objects.filter(date_creation__date__gte=d1, date_creation__date__lte=d2, statut__iexact='Transmise').count()
+            ni = EcartGPV.objects.filter(commande_gpv__date_creation__date__gte=d1, commande_gpv__date_creation__date__lte=d2, statut='ouvert').count()
+            q0 = EcartGPV.objects.filter(commande_gpv__date_creation__date__gte=d1, commande_gpv__date_creation__date__lte=d2, statut='quantite_0').count()
             t = max(0, total - q0)
             i = max(0, t - ni)
             return {'total': t, 'integres': i, 'non_integres': ni}
@@ -147,7 +147,7 @@ def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
 
     try:
         gpv = list(
-            CommandeGPV.objects.filter(date_creation__gte=debut, date_creation__lte=fin, statut__iexact='Transmise')
+            CommandeGPV.objects.filter(date_creation__date__gte=debut, date_creation__date__lte=fin, statut__iexact='Transmise')
             .values('code_magasin__code', 'code_magasin__nom')
             .annotate(total=Count('id')).order_by('-total')[:n]
         ) if want_gpv else []
@@ -415,10 +415,10 @@ def dashboard(request):
         filtres_gpv = {}
         filtres_cyrus = {}
         if date_debut_parsed:
-            filtres_gpv['date_creation__gte'] = date_debut_parsed
+            filtres_gpv['date_creation__date__gte'] = date_debut_parsed
             filtres_cyrus['date_commande__gte'] = date_debut_parsed
         if date_fin_parsed:
-            filtres_gpv['date_creation__lte'] = date_fin_parsed
+            filtres_gpv['date_creation__date__lte'] = date_fin_parsed
             filtres_cyrus['date_commande__lte'] = date_fin_parsed
         if code_magasin:
             # Gérer la sélection multiple de magasins
@@ -449,12 +449,12 @@ def dashboard(request):
         # Compter les écarts avec les filtres (seulement pour les "Transmise")
         filtres_ecarts = {}
         if date_debut_parsed:
-            filtres_ecarts['commande_gpv__date_creation__gte'] = date_debut_parsed
+            filtres_ecarts['commande_gpv__date_creation__date__gte'] = date_debut_parsed
         if date_fin_parsed:
-            filtres_ecarts['commande_gpv__date_creation__lte'] = date_fin_parsed
+            filtres_ecarts['commande_gpv__date_creation__date__lte'] = date_fin_parsed
         if code_magasin:
             filtres_ecarts['commande_gpv__code_magasin__code__in'] = code_magasin
-        
+
         # Compter les écarts par statut
         total_ecarts_ouverts = EcartGPV.objects.filter(**filtres_ecarts).filter(statut='ouvert').count()
         total_ecarts_resolus = EcartGPV.objects.filter(**filtres_ecarts).filter(statut='resolu').count()
@@ -1054,7 +1054,7 @@ def dashboard(request):
         labels_evo = [d.strftime('%d/%m') for d in dates_evo]
 
         asten_d  = {i['date_commande']: i['count'] for i in CommandeAsten.objects.filter(date_commande__gte=evo_debut, date_commande__lte=evo_fin).values('date_commande').annotate(count=Count('id'))}
-        gpv_d    = {i['date_creation']: i['count'] for i in CommandeGPV.objects.filter(date_creation__gte=evo_debut, date_creation__lte=evo_fin).values('date_creation').annotate(count=Count('id'))}
+        gpv_d    = {i['date_creation__date']: i['count'] for i in CommandeGPV.objects.filter(date_creation__date__gte=evo_debut, date_creation__date__lte=evo_fin).values('date_creation__date').annotate(count=Count('id'))}
         legend_d = {i['date_commande']: i['count'] for i in CommandeLegend.objects.filter(date_commande__gte=evo_debut, date_commande__lte=evo_fin).values('date_commande').annotate(count=Count('id'))}
         br_d     = {i['date_br']: i['count'] for i in BRAsten.objects.filter(date_br__gte=evo_debut, date_br__lte=evo_fin).values('date_br').annotate(count=Count('id'))}
 
@@ -1304,17 +1304,17 @@ def accueil(request):
     try:
         filtres_gpv = {'statut__iexact': 'Transmise'}
         if date_debut:
-            filtres_gpv['date_creation__gte'] = date_debut
+            filtres_gpv['date_creation__date__gte'] = date_debut
         if date_fin:
-            filtres_gpv['date_creation__lte'] = date_fin
-        
+            filtres_gpv['date_creation__date__lte'] = date_fin
+
         total_gpv_transmise = CommandeGPV.objects.filter(**filtres_gpv).count()
-        
+
         filtres_ecarts_gpv = {}
         if date_debut:
-            filtres_ecarts_gpv['commande_gpv__date_creation__gte'] = date_debut
+            filtres_ecarts_gpv['commande_gpv__date_creation__date__gte'] = date_debut
         if date_fin:
-            filtres_ecarts_gpv['commande_gpv__date_creation__lte'] = date_fin
+            filtres_ecarts_gpv['commande_gpv__date_creation__date__lte'] = date_fin
         
         total_ecarts_ouverts_gpv = EcartGPV.objects.filter(**filtres_ecarts_gpv).filter(statut='ouvert').count()
         total_ecarts_quantite_0_gpv = EcartGPV.objects.filter(**filtres_ecarts_gpv).filter(statut='quantite_0').count()
@@ -1473,10 +1473,10 @@ def accueil(request):
             .values('date_commande').annotate(count=Count('id'))
         }
         gpv_daily = {
-            item['date_creation']: item['count']
+            item['date_creation__date']: item['count']
             for item in CommandeGPV.objects
-            .filter(date_creation__gte=evo_debut, date_creation__lte=evo_fin)
-            .values('date_creation').annotate(count=Count('id'))
+            .filter(date_creation__date__gte=evo_debut, date_creation__date__lte=evo_fin)
+            .values('date_creation__date').annotate(count=Count('id'))
         }
         legend_daily = {
             item['date_commande']: item['count']
@@ -1868,15 +1868,17 @@ def liste_ecarts(request):
     
     if date_debut_parsed:
         filtres_asten['commande_asten__date_commande__gte'] = date_debut_parsed
-        filtres_gpv['commande_gpv__date_creation__gte'] = date_debut_parsed
+        filtres_gpv['commande_gpv__date_creation__date__gte'] = date_debut_parsed
         filtres_legend['commande_legend__date_commande__gte'] = date_debut_parsed
     if date_fin_parsed:
         filtres_asten['commande_asten__date_commande__lte'] = date_fin_parsed
-        filtres_gpv['commande_gpv__date_creation__lte'] = date_fin_parsed
+        filtres_gpv['commande_gpv__date_creation__date__lte'] = date_fin_parsed
         filtres_legend['commande_legend__date_commande__lte'] = date_fin_parsed
     if code_magasin:
         filtres_asten['commande_asten__code_magasin__code'] = code_magasin
         filtres_gpv['commande_gpv__code_magasin__code'] = code_magasin
+        # Legend utilise depot_destination (nom), pas un code magasin — on masque les écarts Legend si un code est filtré
+        filtres_legend['id__in'] = []
     
     # Récupérer les écarts Asten (exclure les résolus)
     filtres_asten_exclus = filtres_asten.copy()
@@ -2601,9 +2603,9 @@ def liste_commandes_gpv(request):
     
     filtres = {}
     if date_debut_parsed:
-        filtres['date_creation__gte'] = date_debut_parsed
+        filtres['date_creation__date__gte'] = date_debut_parsed
     if date_fin_parsed:
-        filtres['date_creation__lte'] = date_fin_parsed
+        filtres['date_creation__date__lte'] = date_fin_parsed
     if codes_magasins:
         filtres['code_magasin__code__in'] = codes_magasins
     if numero_commande:
@@ -3338,7 +3340,7 @@ def rapport_global(request):
     # ---- COMMANDES ----
     asten_qs = CommandeAsten.objects.filter(date_commande__gte=date_debut, date_commande__lte=date_fin)
     cyrus_qs = CommandeCyrus.objects.filter(date_commande__gte=date_debut, date_commande__lte=date_fin)
-    gpv_qs = CommandeGPV.objects.filter(date_creation__gte=date_debut, date_creation__lte=date_fin)
+    gpv_qs = CommandeGPV.objects.filter(date_creation__date__gte=date_debut, date_creation__date__lte=date_fin)
     legend_qs = CommandeLegend.objects.filter(date_commande__gte=date_debut, date_commande__lte=date_fin)
 
     cmd_totaux = {
@@ -4181,6 +4183,7 @@ def vue_factures_backup(request):
     f_statut     = request.GET.get('statut', 'non_integree').strip()
     f_magasin    = request.GET.get('magasin', '').strip()
     f_nsee       = request.GET.get('nsee', '').strip()
+    f_search     = request.GET.get('search', '').strip()
     f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
     f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
 
@@ -4208,6 +4211,9 @@ def vue_factures_backup(request):
         rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] >= f_date_debut]
     if f_date_fin:
         rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] <= f_date_fin]
+    if f_search:
+        s = f_search.upper()
+        rows = [r for r in rows if s in (r.get('cle_facture') or '').upper() or s in (r.get('nfac') or '').upper()]
 
     total    = len(rows)
     page_obj, paginator = _paginate(request, rows, per_page=100)
@@ -4223,6 +4229,7 @@ def vue_factures_backup(request):
         'f_statut':        f_statut,
         'f_magasin':       f_magasin,
         'f_nsee':          f_nsee,
+        'f_search':        f_search,
         'f_date_debut':    request.GET.get('date_debut', ''),
         'f_date_fin':      request.GET.get('date_fin', ''),
         'f_full_asten':    f_full_asten,
@@ -4309,6 +4316,14 @@ def set_statut_facture_ecart(request):
         return JsonResponse({'ok': True, 'statut': statut, 'created': created})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+def api_last_import(request):
+    """Retourne le timestamp du dernier import réussi — utilisé pour le polling auto-refresh."""
+    from imports.models import ImportFichier
+    last = ImportFichier.objects.filter(statut='termine').order_by('-date_import').values('date_import').first()
+    ts = last['date_import'].isoformat() if last else None
+    return JsonResponse({'last_import': ts})
 
 
 def changer_mot_de_passe(request):

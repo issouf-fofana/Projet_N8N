@@ -196,7 +196,7 @@
                                 <input class="form-check-input ecart-checkbox" type="checkbox" name="selected_ecarts"
                                        value="{{ item.type }}:{{ item.id }}">
                             </td>
-                            <td class="fw-semibold">{{ item.date_commande|date:"d/m/Y" }}</td>
+                            <td class="fw-semibold">{{ item.date_commande|date:"d/m/Y" }}{% if item.type == 'gpv' %} <small class="text-muted">{{ item.date_commande|date:"H:i" }}</small>{% endif %}</td>
                             <td>
                                 <strong class="text-primary">{{ item.numero_commande }}</strong>
                                 {% if item.type == 'gpv' %}

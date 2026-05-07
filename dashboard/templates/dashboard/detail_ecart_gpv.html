@@ -20,7 +20,7 @@
                 <table class="table table-bordered">
                     <tr>
                         <th width="40%">Date Création</th>
-                        <td>{{ ecart.commande_gpv.date_creation|date:"d/m/Y" }}</td>
+                        <td>{{ ecart.commande_gpv.date_creation|date:"d/m/Y H:i" }}</td>
                     </tr>
                     <tr>
                         <th>Numéro Commande</th>
@@ -41,7 +41,7 @@
                         <th>Date Validation</th>
                         <td>
                             {% if ecart.commande_gpv.date_validation %}
-                                {{ ecart.commande_gpv.date_validation|date:"d/m/Y" }}
+                                {{ ecart.commande_gpv.date_validation|date:"d/m/Y H:i" }}
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
@@ -126,7 +126,7 @@
             <h6><i class="bi bi-info-circle"></i> Explication de l'écart</h6>
             <p class="mb-0">
                 Cette commande GPV avec le statut "Transmise" n'a pas été trouvée dans le système Cyrus avec les mêmes critères :
-                <strong>Date: {{ ecart.commande_gpv.date_creation|date:"d/m/Y" }}</strong>,
+                <strong>Date: {{ ecart.commande_gpv.date_creation|date:"d/m/Y H:i" }}</strong>,
                 <strong>N°: {{ ecart.commande_gpv.numero_commande }}</strong>,
                 <strong>Magasin: {{ ecart.commande_gpv.code_magasin.code }}</strong>
             </p>
