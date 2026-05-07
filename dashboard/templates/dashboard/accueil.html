@@ -835,6 +835,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var a = e.target.closest('a.tmw-nbtn, a.tmw-src-btn');
         if (!a) return;
         e.preventDefault();
+        e.stopImmediatePropagation(); // empêche le loader global de base.html
 
         var u = new URL(a.href, window.location.href);
         u.searchParams.set('partial', 'top');
@@ -845,9 +846,14 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(u.toString())
             .then(function(r) { return r.text(); })
             .then(function(html) {
+                // Cacher le spinner global au cas où il se serait ouvert
+                var loader = document.getElementById('page-nav-loader');
+                if (loader) loader.style.display = 'none';
                 container.innerHTML = html;
             })
             .catch(function() {
+                var loader = document.getElementById('page-nav-loader');
+                if (loader) loader.style.display = 'none';
                 if (wrap) { wrap.style.opacity = ''; wrap.style.pointerEvents = ''; }
             });
     });
