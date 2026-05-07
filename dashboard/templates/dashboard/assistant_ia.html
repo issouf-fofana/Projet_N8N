@@ -1,0 +1,376 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Assistant IA — Vérification Commandes{% endblock %}
+
+{% block content %}
+<style>
+.ai-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+}
+.ai-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 28px;
+}
+.ai-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(99,102,241,.35); flex-shrink: 0;
+}
+.ai-title { font-size: 1.4rem; font-weight: 800; color: #1e2a45; letter-spacing: -.02em; }
+.ai-sub { font-size: .82rem; color: #94a3b8; margin-top: 2px; }
+
+/* Champ de saisie */
+.ai-form-card {
+    background: #fff; border-radius: 18px; border: 1px solid #e4e8f5;
+    box-shadow: 0 4px 24px rgba(30,58,138,.07); padding: 20px 24px;
+    margin-bottom: 24px;
+}
+.ai-textarea {
+    width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px;
+    padding: 14px 16px; font-size: .9rem; color: #1e2a45;
+    background: #f8fafc; outline: none; resize: vertical; min-height: 80px;
+    font-family: inherit; transition: border-color .2s, box-shadow .2s;
+}
+.ai-textarea:focus {
+    border-color: #818cf8; background: #fff;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+.ai-textarea::placeholder { color: #cbd5e1; }
+.ai-btn {
+    margin-top: 12px; padding: 12px 28px; border: none; border-radius: 50px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; font-size: .85rem; font-weight: 700; letter-spacing: .04em;
+    cursor: pointer; transition: opacity .2s, transform .15s;
+    display: flex; align-items: center; gap: 8px;
+}
+.ai-btn:hover { opacity: .92; transform: translateY(-1px); }
+.ai-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+/* Exemples */
+.ai-examples {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+}
+.ai-example {
+    font-size: .73rem; padding: 5px 12px; border-radius: 20px;
+    background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+    cursor: pointer; transition: all .15s; user-select: none;
+}
+.ai-example:hover { background: #ede9fe; color: #6366f1; border-color: #c4b5fd; }
+
+/* Résultat */
+.ai-result-card {
+    background: #fff; border-radius: 18px; border: 1px solid #e4e8f5;
+    box-shadow: 0 4px 24px rgba(30,58,138,.07); overflow: hidden;
+}
+.ai-result-header {
+    padding: 16px 24px; border-bottom: 1px solid #eef0f8;
+    display: flex; align-items: center; gap: 10px;
+}
+.ai-result-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ai-reponse {
+    padding: 20px 24px; font-size: .92rem; color: #1e2a45; line-height: 1.7;
+    border-bottom: 1px solid #eef0f8;
+    white-space: pre-wrap;
+}
+/* SQL pliable */
+.ai-sql-toggle {
+    padding: 10px 24px; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 8px;
+    font-size: .75rem; font-weight: 600; color: #64748b;
+    background: #f8fafc; border-bottom: 1px solid #eef0f8;
+    transition: background .15s;
+}
+.ai-sql-toggle:hover { background: #f1f5f9; }
+.ai-sql-block {
+    padding: 0 24px 20px; display: none;
+}
+.ai-sql-block.open { display: block; }
+.ai-sql-code {
+    background: #0f172a; color: #e2e8f0; border-radius: 10px;
+    padding: 14px 16px; font-family: 'Courier New', monospace;
+    font-size: .78rem; line-height: 1.6; overflow-x: auto;
+    margin-top: 12px; white-space: pre;
+}
+/* Tableau résultats */
+.ai-table-wrap {
+    padding: 0 24px 24px; overflow-x: auto;
+}
+.ai-table {
+    width: 100%; border-collapse: collapse; font-size: .8rem;
+    margin-top: 16px;
+}
+.ai-table th {
+    background: #f8fafc; color: #64748b; font-weight: 700;
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+    padding: 8px 12px; text-align: left; border-bottom: 2px solid #e4e8f5;
+}
+.ai-table td {
+    padding: 8px 12px; border-bottom: 1px solid #f1f5f9; color: #374151;
+}
+.ai-table tr:last-child td { border-bottom: none; }
+.ai-table tr:hover td { background: #f8fafc; }
+.ai-badge-count {
+    background: #ede9fe; color: #6366f1; border-radius: 20px;
+    padding: 2px 10px; font-size: .72rem; font-weight: 700;
+}
+/* Erreur */
+.ai-error {
+    padding: 16px 24px; background: #fef2f2; color: #b91c1c;
+    font-size: .85rem; display: flex; align-items: flex-start; gap: 10px;
+}
+/* Thinking animation */
+.ai-thinking {
+    display: none; flex-direction: column; gap: 0;
+    background: #faf8ff; border: 1px solid #e9d5ff; border-radius: 14px;
+    padding: 14px 18px; margin-top: 14px;
+}
+.ai-thinking.show { display: flex; }
+.ai-thinking-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .78rem; font-weight: 700; color: #7c3aed; margin-bottom: 10px;
+}
+.ai-thinking-dots {
+    display: flex; gap: 4px; align-items: center;
+}
+.ai-thinking-dots span {
+    width: 6px; height: 6px; border-radius: 50%; background: #a78bfa;
+    animation: tpulse 1.2s ease-in-out infinite;
+}
+.ai-thinking-dots span:nth-child(2) { animation-delay: .2s; }
+.ai-thinking-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes tpulse {
+    0%, 80%, 100% { transform: scale(.7); opacity: .4; }
+    40% { transform: scale(1.1); opacity: 1; }
+}
+.ai-thinking-text {
+    font-size: .78rem; color: #6d28d9; line-height: 1.6;
+    font-family: 'Courier New', monospace; min-height: 20px;
+}
+.ai-thinking-cursor {
+    display: inline-block; width: 2px; height: 14px;
+    background: #7c3aed; margin-left: 2px; vertical-align: middle;
+    animation: blink .7s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.ai-btn-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+
+/* Hypothèse */
+.ai-hypothese {
+    padding: 10px 24px; background: #fffbeb; border-bottom: 1px solid #fde68a;
+    font-size: .78rem; color: #92400e; display: flex; align-items: flex-start; gap: 8px;
+}
+</style>
+
+<div class="ai-wrap">
+    <!-- Header -->
+    <div class="ai-header">
+        <div class="ai-icon">
+            <i class="bi bi-stars" style="color:#fff;font-size:1.2rem;"></i>
+        </div>
+        <div>
+            <div class="ai-title">Assistant IA</div>
+            <div class="ai-sub">Posez une question en français — l'IA interroge la base de données et vous répond</div>
+        </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="ai-form-card">
+        <form method="post" id="ai-form">
+            {% csrf_token %}
+            <textarea
+                name="question"
+                id="ai-question"
+                class="ai-textarea"
+                placeholder="Ex: Combien de commandes Asten ont été passées cette semaine ?"
+                autofocus
+            >{{ question }}</textarea>
+
+            <div class="ai-btn-wrap">
+                <button type="submit" class="ai-btn" id="ai-submit">
+                    <i class="bi bi-send"></i> Envoyer
+                </button>
+            </div>
+            <!-- Thinking animation -->
+            <div class="ai-thinking" id="ai-thinking">
+                <div class="ai-thinking-header">
+                    <i class="bi bi-stars"></i>
+                    Gemini réfléchit…
+                    <div class="ai-thinking-dots"><span></span><span></span><span></span></div>
+                </div>
+                <div class="ai-thinking-text" id="ai-thinking-text"><span class="ai-thinking-cursor"></span></div>
+            </div>
+        </form>
+
+        <!-- Exemples cliquables -->
+        <div class="ai-examples" id="ai-examples">
+            <span class="ai-example">Combien de commandes GPV aujourd'hui ?</span>
+            <span class="ai-example">Top 5 magasins par nombre de BR ce mois</span>
+            <span class="ai-example">Quels magasins ont des écarts Asten non résolus ?</span>
+            <span class="ai-example">Nombre de factures Sage importées cette semaine</span>
+            <span class="ai-example">Magasins avec le plus de remontées en cours</span>
+            <span class="ai-example">Commandes Asten non validées depuis plus de 7 jours</span>
+            <span class="ai-example">Quel magasin a le plus de BR non intégrés ?</span>
+            <span class="ai-example">Evolution des imports cette semaine par type</span>
+        </div>
+    </div>
+
+    <!-- Résultat -->
+    {% if result %}
+    <div class="ai-result-card">
+        <div class="ai-result-header">
+            <div class="ai-result-icon">
+                <i class="bi bi-stars" style="color:#fff;font-size:.85rem;"></i>
+            </div>
+            <div>
+                <div style="font-weight:700;color:#1e2a45;font-size:.9rem;">Réponse</div>
+                {% if result.explication %}
+                <div style="font-size:.72rem;color:#94a3b8;margin-top:1px;">{{ result.explication }}</div>
+                {% endif %}
+            </div>
+            {% if result.nombre is not None %}
+            <div style="margin-left:auto;">
+                <span class="ai-badge-count">{{ result.nombre }} résultat{% if result.nombre > 1 %}s{% endif %}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if result.erreur %}
+        <div class="ai-error">
+            <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:1px;"></i>
+            {{ result.erreur }}
+        </div>
+        {% else %}
+
+        {% if result.hypothese %}
+        <div class="ai-hypothese">
+            <i class="bi bi-lightbulb-fill" style="flex-shrink:0;margin-top:1px;"></i>
+            <span><strong>Hypothèse :</strong> {{ result.hypothese }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Réponse en langage naturel -->
+        <div class="ai-reponse">{{ result.reponse }}</div>
+
+        <!-- SQL pliable -->
+        {% if result.sql %}
+        <div class="ai-sql-toggle" onclick="toggleSQL(this)">
+            <i class="bi bi-code-slash"></i>
+            Voir la requête SQL
+            <i class="bi bi-chevron-down" style="margin-left:auto;transition:transform .2s;" id="sql-chevron"></i>
+        </div>
+        <div class="ai-sql-block" id="sql-block">
+            <div class="ai-sql-code">{{ result.sql }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Tableau des résultats -->
+        {% if result.lignes %}
+        <div class="ai-table-wrap">
+            <div style="font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">
+                Données brutes {% if result.nombre >= 200 %}(limité à 200 lignes){% endif %}
+            </div>
+            <table class="ai-table">
+                <thead>
+                    <tr>
+                        {% for col in result.colonnes %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in result.lignes %}
+                    <tr>
+                        {% for cell in row %}
+                        <td>{{ cell|default:"—" }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Exemples cliquables
+document.querySelectorAll('.ai-example').forEach(function(el) {
+    el.addEventListener('click', function() {
+        document.getElementById('ai-question').value = this.textContent.trim();
+        document.getElementById('ai-question').focus();
+    });
+});
+
+// Ctrl+Enter pour envoyer
+document.getElementById('ai-question').addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        document.getElementById('ai-form').requestSubmit();
+    }
+});
+
+// Toggle SQL
+function toggleSQL(btn) {
+    var block = document.getElementById('sql-block');
+    var chevron = document.getElementById('sql-chevron');
+    block.classList.toggle('open');
+    chevron.style.transform = block.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// Animation de réflexion
+var thinkingPhrases = [
+    "Analyse de votre question…",
+    "Identification des tables concernées…",
+    "Construction de la requête SQL…",
+    "Interrogation de la base de données…",
+    "Formulation de la réponse…",
+];
+var thinkingInterval = null;
+var thinkingIdx = 0;
+
+function startThinking() {
+    var el = document.getElementById('ai-thinking');
+    var txt = document.getElementById('ai-thinking-text');
+    el.classList.add('show');
+    thinkingIdx = 0;
+    txt.innerHTML = thinkingPhrases[0] + '<span class="ai-thinking-cursor"></span>';
+
+    thinkingInterval = setInterval(function() {
+        thinkingIdx = (thinkingIdx + 1) % thinkingPhrases.length;
+        // Effet d'apparition lettre par lettre
+        var phrase = thinkingPhrases[thinkingIdx];
+        txt.innerHTML = '<span class="ai-thinking-cursor"></span>';
+        var i = 0;
+        var typeInterval = setInterval(function() {
+            if (i < phrase.length) {
+                txt.innerHTML = phrase.slice(0, ++i) + '<span class="ai-thinking-cursor"></span>';
+            } else {
+                clearInterval(typeInterval);
+            }
+        }, 22);
+    }, 2200);
+}
+
+function stopThinking() {
+    clearInterval(thinkingInterval);
+    document.getElementById('ai-thinking').classList.remove('show');
+}
+
+// Soumission avec animation
+document.getElementById('ai-form').addEventListener('submit', function() {
+    var q = document.getElementById('ai-question').value.trim();
+    if (!q) return;
+    document.getElementById('ai-submit').disabled = true;
+    startThinking();
+});
+</script>
+{% endblock %}

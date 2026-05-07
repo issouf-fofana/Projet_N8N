@@ -1014,6 +1014,15 @@
             {% endwith %}
         </div>
 
+        <!-- Assistant IA -->
+        {% if request.user|has_perm:'assistant_ia' %}
+        <a href="{% url 'dashboard:assistant_ia' %}"
+           style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:10px;text-decoration:none;font-size:.82rem;font-weight:600;margin:0 8px 4px;transition:background .15s;{% if request.resolver_match.url_name == 'assistant_ia' %}background:rgba(99,102,241,.18);color:#a5b4fc;{% else %}color:rgba(255,255,255,.75);{% endif %}">
+            <i class="bi bi-stars" style="font-size:.95rem;{% if request.resolver_match.url_name == 'assistant_ia' %}color:#818cf8;{% endif %}"></i>
+            Assistant IA
+        </a>
+        {% endif %}
+
         <!-- Séparateur section Analyse -->
         <div style="padding: 0 16px; margin: 8px 0 4px;">
             <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-transform:uppercase;">Analyse</span>

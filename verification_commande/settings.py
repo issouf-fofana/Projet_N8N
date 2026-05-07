@@ -230,3 +230,7 @@ DOSSIER_FACTURES_CYRUS_PATH = get_dossier_path(DOSSIER_FACTURES_CYRUS)
 DOSSIER_FACTURES_ASTEN_CSV_PATH = get_dossier_path(DOSSIER_FACTURES_ASTEN_CSV)
 
 CSRF_TRUSTED_ORIGINS = ['http://10.0.70.27:1212', 'http://proserv-suivi.lan', 'http://proserv-suivi.lan:1212']
+
+# Gemini AI
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_MODEL = config('GEMINI_MODEL_DEFAULT', default='gemini-2.5-flash')

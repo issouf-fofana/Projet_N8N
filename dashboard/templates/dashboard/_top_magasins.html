@@ -1,4 +1,4 @@
-{% if top5 %}{% if top5.asten or top5.gpv or top5.legend or top5.br or top5.remontees %}
+{% if top5 %}{% if top5.asten or top5.gpv or top5.legend or top5.br or top5.remontees or top5.sage or top5.backup %}
 <div class="tmw-outer mt-4 mb-3">
 <style>
 /* ═══ TOP N MAGASINS — Premium Card ═══ */
@@ -48,11 +48,15 @@
 .tmw-col-icon.gpv    { background: linear-gradient(135deg,#dcfce7,#f0fdf4); color: #16a34a; box-shadow: 0 2px 8px rgba(34,197,94,.2); }
 .tmw-col-icon.legend { background: linear-gradient(135deg,#fef9c3,#fffbeb); color: #d97706; box-shadow: 0 2px 8px rgba(245,158,11,.2); }
 .tmw-col-icon.br     { background: linear-gradient(135deg,#fee2e2,#fff1f2); color: #dc2626; box-shadow: 0 2px 8px rgba(239,68,68,.2); }
+.tmw-col-icon.sage   { background: linear-gradient(135deg,#cffafe,#ecfeff); color: #0e7490; box-shadow: 0 2px 8px rgba(6,182,212,.2); }
+.tmw-col-icon.backup { background: linear-gradient(135deg,#fee2e2,#fef2f2); color: #b91c1c; box-shadow: 0 2px 8px rgba(239,68,68,.2); }
 .tmw-col-name { font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
 .tmw-col-name.asten  { color: #1e3a8a; }
 .tmw-col-name.gpv    { color: #15803d; }
 .tmw-col-name.legend { color: #b45309; }
 .tmw-col-name.br     { color: #b91c1c; }
+.tmw-col-name.sage   { color: #0e7490; }
+.tmw-col-name.backup { color: #b91c1c; }
 /* Rows */
 .tmw-row {
     display: flex; align-items: center; gap: 10px; padding: 9px 16px;
@@ -80,12 +84,24 @@
 .tmw-count.gpv    { color: #16a34a; }
 .tmw-count.legend { color: #d97706; }
 .tmw-count.br     { color: #dc2626; }
+.tmw-count.sage   { color: #0e7490; }
+.tmw-count.backup { color: #b91c1c; }
 .tmw-bar-wrap { width: 52px; height: 4px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
 .tmw-bar { height: 100%; border-radius: 3px; }
 .tmw-bar.asten  { background: linear-gradient(90deg,#1e3a8a,#4d7cc7); }
 .tmw-bar.gpv    { background: linear-gradient(90deg,#22c55e,#4ade80); }
 .tmw-bar.legend { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
 .tmw-bar.br     { background: linear-gradient(90deg,#ef4444,#f87171); }
+.tmw-bar.sage   { background: linear-gradient(90deg,#06b6d4,#22d3ee); }
+.tmw-bar.backup { background: linear-gradient(90deg,#ef4444,#f87171); }
+/* Source selector */
+.tmw-src-btn {
+    display:inline-block; font-size:.72rem; padding:4px 11px; border-radius:20px;
+    font-weight:600; border:1.5px solid #d1d9f0; color:#5a6a85; background:#fff;
+    transition:all .15s; text-decoration:none; white-space:nowrap; cursor:pointer;
+}
+.tmw-src-btn.active { background:#f59e0b; color:#fff; border-color:transparent; box-shadow:0 2px 8px rgba(245,158,11,.35); }
+.tmw-src-btn:hover:not(.active) { background:#f8faff; border-color:#a5b4fc; color:#1e3a8a; text-decoration:none; }
 .tmw-empty { padding: 20px 16px; font-size: .8rem; color: #94a3b8; text-align: center; }
 /* Footer */
 .tmw-footer {
@@ -118,16 +134,31 @@
             </div>
         </div>
         <div class="d-flex gap-1 flex-wrap">
-            {% with n=top5.n %}
-            <a href="{{ top_url_base }}&top_n=5"   class="tmw-nbtn {% if n == 5   %}active{% endif %}">5</a>
-            <a href="{{ top_url_base }}&top_n=10"  class="tmw-nbtn {% if n == 10  %}active{% endif %}">10</a>
-            <a href="{{ top_url_base }}&top_n=15"  class="tmw-nbtn {% if n == 15  %}active{% endif %}">15</a>
-            <a href="{{ top_url_base }}&top_n=20"  class="tmw-nbtn {% if n == 20  %}active{% endif %}">20</a>
-            <a href="{{ top_url_base }}&top_n=30"  class="tmw-nbtn {% if n == 30  %}active{% endif %}">30</a>
-            <a href="{{ top_url_base }}&top_n=50"  class="tmw-nbtn {% if n == 50  %}active{% endif %}">50</a>
-            <a href="{{ top_url_base }}&top_n=100" class="tmw-nbtn {% if n == 100 %}active{% endif %}">100</a>
+            {% with n=top5.n s=top_source %}
+            <a href="{{ top_url_base }}&top_n=5&top_source={{ s }}"   class="tmw-nbtn {% if n == 5   %}active{% endif %}">5</a>
+            <a href="{{ top_url_base }}&top_n=10&top_source={{ s }}"  class="tmw-nbtn {% if n == 10  %}active{% endif %}">10</a>
+            <a href="{{ top_url_base }}&top_n=15&top_source={{ s }}"  class="tmw-nbtn {% if n == 15  %}active{% endif %}">15</a>
+            <a href="{{ top_url_base }}&top_n=20&top_source={{ s }}"  class="tmw-nbtn {% if n == 20  %}active{% endif %}">20</a>
+            <a href="{{ top_url_base }}&top_n=30&top_source={{ s }}"  class="tmw-nbtn {% if n == 30  %}active{% endif %}">30</a>
+            <a href="{{ top_url_base }}&top_n=50&top_source={{ s }}"  class="tmw-nbtn {% if n == 50  %}active{% endif %}">50</a>
+            <a href="{{ top_url_base }}&top_n=100&top_source={{ s }}" class="tmw-nbtn {% if n == 100 %}active{% endif %}">100</a>
             {% endwith %}
         </div>
+    </div>
+
+    <!-- Source selector -->
+    <div style="padding:10px 24px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid #eef0f8;">
+        <span style="font-size:.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;flex-shrink:0;">Source :</span>
+        {% with s=top_source n=top5.n %}
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=" class="tmw-src-btn {% if not s %}active{% endif %}">Tous</a>
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=commandes_asten" class="tmw-src-btn {% if s == 'commandes_asten' %}active{% endif %}">Commandes Asten</a>
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=commandes_gpv" class="tmw-src-btn {% if s == 'commandes_gpv' %}active{% endif %}">GPV</a>
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=commandes_legend" class="tmw-src-btn {% if s == 'commandes_legend' %}active{% endif %}">Legend</a>
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=br" class="tmw-src-btn {% if s == 'br' %}active{% endif %}">BR Asten</a>
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=facture_sage" class="tmw-src-btn {% if s == 'facture_sage' %}active{% endif %}">Facture Sage</a>
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=facture_backup" class="tmw-src-btn {% if s == 'facture_backup' %}active{% endif %}">Facture Backup</a>
+        <a href="{{ top_url_base }}&top_n={{ n }}&top_source=remontees" class="tmw-src-btn {% if s == 'remontees' %}active{% endif %}">Remontées</a>
+        {% endwith %}
     </div>
 
     <!-- Grid — 1 colonne si type_donnees ciblé, sinon 4 colonnes -->
@@ -224,6 +255,50 @@
         </div>
         {% endif %}
 
+        <!-- FACTURE SAGE -->
+        {% if top5.sage %}
+        <div class="tmw-col">
+            <div class="tmw-col-head">
+                <div class="tmw-col-icon sage"><i class="bi bi-file-earmark-text"></i></div>
+                <span class="tmw-col-name sage">Facture Sage</span>
+            </div>
+            {% for r in top5.sage %}
+            <div class="tmw-row">
+                <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+                <span class="tmw-name">{{ r.prefix|default:"-" }}</span>
+                <div class="tmw-right">
+                    <span class="tmw-count sage">{{ r.total }}</span>
+                    {% if top5.sage.0.total %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar sage" style="width:{% widthratio r.total top5.sage.0.total 100 %}%"></div></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- FACTURE BACKUP -->
+        {% if top5.backup %}
+        <div class="tmw-col">
+            <div class="tmw-col-head">
+                <div class="tmw-col-icon backup"><i class="bi bi-file-earmark-zip"></i></div>
+                <span class="tmw-col-name backup">Facture Backup</span>
+            </div>
+            {% for r in top5.backup %}
+            <div class="tmw-row">
+                <span class="tmw-rank {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+                <span class="tmw-name">{{ r.magasin_code|default:"-" }}</span>
+                <div class="tmw-right">
+                    <span class="tmw-count backup">{{ r.total }}</span>
+                    {% if top5.backup.0.total %}
+                    <div class="tmw-bar-wrap"><div class="tmw-bar backup" style="width:{% widthratio r.total top5.backup.0.total 100 %}%"></div></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+        </div>
+        {% endif %}
+
         <!-- REMONTÉES -->
         {% if top5.remontees %}
         <div class="tmw-col">
@@ -257,3 +332,4 @@
 </div>
 </div>
 {% endif %}{% endif %}
+

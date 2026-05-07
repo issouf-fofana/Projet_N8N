@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.utils.dateparse import parse_date
 from django.urls import reverse
@@ -127,14 +127,20 @@ def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
         fin = today
     n = max(1, min(int(n), 100))
 
-    # source='remontees' ou sources factures/versions → pas de top commandes
-    if source in ('remontees', 'factures', 'versions'):
+    # Mapping source → flags
+    ALL = (None, '')
+    want_asten       = source in ALL or source == 'commandes_asten'
+    want_gpv         = source in ALL or source == 'commandes_gpv'
+    want_legend      = source in ALL or source == 'commandes_legend'
+    want_br          = source in ALL or source == 'br'
+    want_sage        = source in ALL or source == 'facture_sage'
+    want_backup      = source in ALL or source == 'facture_backup'
+    want_remontees   = source == 'remontees'
+    # Sources qui désactivent commandes
+    if source in ('remontees', 'factures', 'versions', 'facture_sage', 'facture_backup'):
         want_asten = want_gpv = want_legend = want_br = False
-    else:
-        want_asten  = source in (None, 'commandes_asten')
-        want_gpv    = source in (None, 'commandes_gpv')
-        want_legend = source in (None, 'commandes_legend')
-        want_br     = source in (None, 'br')
+    if source not in (None, '', 'facture_sage', 'facture_backup'):
+        want_sage = want_backup = False
 
     try:
         asten = list(
@@ -177,10 +183,9 @@ def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
 
     # Top remontées par magasin
     remontees = []
-    if source == 'remontees':
+    if want_remontees:
         try:
             from tickets.models import Ticket
-            from django.db.models import Count
             remontees = list(
                 Ticket.objects.filter(date_creation__date__gte=debut, date_creation__date__lte=fin)
                 .values('magasin__code', 'magasin__nom')
@@ -189,8 +194,35 @@ def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
         except Exception:
             remontees = []
 
+    # Top Facture Sage par prefix (pas de magasin FK)
+    sage = []
+    if want_sage:
+        try:
+            from imports.models import FactureSage
+            sage = list(
+                FactureSage.objects.filter(date_depot__gte=debut, date_depot__lte=fin)
+                .values('prefix')
+                .annotate(total=Count('id')).order_by('-total')[:n]
+            )
+        except Exception:
+            sage = []
+
+    # Top Facture Backup par magasin (nom_fichier prefix ou magasin_code si dispo)
+    backup = []
+    if want_backup:
+        try:
+            from imports.models import FactureBackupCyrus
+            backup = list(
+                FactureBackupCyrus.objects.filter(date_modif__date__gte=debut, date_modif__date__lte=fin)
+                .values('magasin_code')
+                .annotate(total=Count('id')).order_by('-total')[:n]
+            )
+        except Exception:
+            backup = []
+
     return {'asten': asten, 'gpv': gpv, 'legend': legend, 'br': br,
-            'remontees': remontees, 'debut': debut, 'fin': fin, 'n': n}
+            'remontees': remontees, 'sage': sage, 'backup': backup,
+            'debut': debut, 'fin': fin, 'n': n}
 
 
 def dashboard(request):
@@ -1490,15 +1522,34 @@ def accueil(request):
             .filter(date_br__gte=evo_debut, date_br__lte=evo_fin)
             .values('date_br').annotate(count=Count('id'))
         }
+        try:
+            from imports.models import FactureSage as _FS, FactureBackupCyrus as _FB
+            sage_daily = {
+                item['date_depot']: item['count']
+                for item in _FS.objects
+                .filter(date_depot__gte=evo_debut, date_depot__lte=evo_fin)
+                .values('date_depot').annotate(count=Count('id'))
+            }
+            backup_daily = {
+                item['date_modif__date']: item['count']
+                for item in _FB.objects
+                .filter(date_modif__date__gte=evo_debut, date_modif__date__lte=evo_fin)
+                .values('date_modif__date').annotate(count=Count('id'))
+            }
+        except Exception:
+            sage_daily = {}
+            backup_daily = {}
         evolution_journaliere = {
-            'labels': labels_evo,
-            'asten':  [asten_daily.get(d, 0)  for d in dates_evo],
-            'gpv':    [gpv_daily.get(d, 0)    for d in dates_evo],
-            'legend': [legend_daily.get(d, 0) for d in dates_evo],
-            'br':     [br_daily.get(d, 0)     for d in dates_evo],
+            'labels':  labels_evo,
+            'asten':   [asten_daily.get(d, 0)   for d in dates_evo],
+            'gpv':     [gpv_daily.get(d, 0)      for d in dates_evo],
+            'legend':  [legend_daily.get(d, 0)   for d in dates_evo],
+            'br':      [br_daily.get(d, 0)        for d in dates_evo],
+            'sage':    [sage_daily.get(d, 0)      for d in dates_evo],
+            'backup':  [backup_daily.get(d, 0)    for d in dates_evo],
         }
     except Exception:
-        evolution_journaliere = {'labels': [], 'asten': [], 'gpv': [], 'legend': [], 'br': []}
+        evolution_journaliere = {'labels': [], 'asten': [], 'gpv': [], 'legend': [], 'br': [], 'sage': [], 'backup': []}
 
     # Stats intégration RPOS (nuit dernière)
     ia_rpos = None
@@ -1543,12 +1594,33 @@ def accueil(request):
     except Exception:
         ia_rpos = None
 
+    # FACTURES SAGE
+    try:
+        from imports.models import FactureSage
+        nb_sage = FactureSage.objects.count()
+        stats_facture_sage = {'total': nb_sage}
+    except Exception:
+        stats_facture_sage = {'total': 0}
+
+    # VERSION ASTEN
+    try:
+        from imports.models import ImportFichier
+        derniere_version = ImportFichier.objects.filter(type_fichier='version_asten', statut='termine').order_by('-date_import').first()
+        stats_version = {
+            'derniere_import': derniere_version.date_import if derniere_version else None,
+            'nom_fichier': derniere_version.nom_fichier if derniere_version else None,
+        }
+    except Exception:
+        stats_version = {'derniere_import': None, 'nom_fichier': None}
+
     context = {
         'stats_asten': stats_asten,
         'stats_gpv': stats_gpv,
         'stats_legend': stats_legend,
         'stats_br': stats_br,
         'stats_factures': stats_factures,
+        'stats_facture_sage': stats_facture_sage,
+        'stats_version': stats_version,
         'stats_remontees': stats_remontees,
         'ia_rpos': ia_rpos,
         'evolution_journaliere': evolution_journaliere,
@@ -1557,9 +1629,16 @@ def accueil(request):
         'date_fin': date_fin.strftime('%Y-%m-%d') if date_fin else '',
         'semaine_comparison': _get_semaine_comparison(request.GET.get('periode_cmp', 'semaine')),
         'periode_cmp': request.GET.get('periode_cmp', 'semaine'),
-        'top5': _get_top5_magasins(debut=date_debut, fin=date_fin, n=request.GET.get('top_n', 5)),
+        'top5': _get_top5_magasins(debut=date_debut, fin=date_fin, n=request.GET.get('top_n', 5), source=request.GET.get('top_source') or None),
+        'top_source': request.GET.get('top_source', ''),
         'top_url_base': f"?periode={request.GET.get('periode','')}&date_debut={date_debut or ''}&date_fin={date_fin or ''}&periode_cmp={request.GET.get('periode_cmp','semaine')}",
     }
+
+    # Mode partial : retourne uniquement le bloc top magasins (AJAX)
+    if request.GET.get('partial') == 'top':
+        from django.template.loader import render_to_string
+        html = render_to_string('dashboard/_top_magasins.html', context, request=request)
+        return HttpResponse(html)
 
     return render(request, 'dashboard/accueil.html', context)
 
@@ -4350,3 +4429,26 @@ def changer_mot_de_passe(request):
 
 def configuration_chemins(request):
     return configuration_systeme(request)
+
+
+@require_http_methods(["GET", "POST"])
+def assistant_ia(request):
+    """Assistant IA Text-to-SQL avec Gemini — accès restreint par permission."""
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'assistant_ia'):
+        from django.contrib import messages as _msg
+        _msg.error(request, "Vous n'avez pas accès à l'Assistant IA.")
+        return redirect('dashboard:accueil')
+    result = None
+    question = ''
+
+    if request.method == 'POST':
+        question = request.POST.get('question', '').strip()
+        if question:
+            from dashboard.ai_service import query_with_gemini
+            result = query_with_gemini(question)
+
+    return render(request, 'dashboard/assistant_ia.html', {
+        'question': question,
+        'result': result,
+    })
