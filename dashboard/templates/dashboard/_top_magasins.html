@@ -1,7 +1,7 @@
 {% if top5 %}{% if top5.asten or top5.gpv or top5.legend or top5.br or top5.remontees or top5.sage or top5.backup %}
 <div class="tmw-outer mt-4 mb-3">
 <style>
-/* ═══ TOP N MAGASINS — Premium Card ═══ */
+/* ═══ TOP N MAGASINS ═══ */
 .tmw-card {
     background: linear-gradient(160deg,#f8f9ff 0%,#fff 70%);
     border-radius: 20px; border: 1px solid #e4e8f5;
@@ -19,10 +19,7 @@
     box-shadow: 0 4px 12px rgba(245,158,11,.32); flex-shrink: 0;
 }
 .tmw-htitle { font-weight: 800; color: #1e2a45; font-size: 1rem; letter-spacing: -.01em; }
-.tmw-hperiod {
-    font-size: .71rem; color: #a0aec0; font-weight: 500; margin-top: 3px;
-    display: flex; align-items: center; gap: 4px;
-}
+.tmw-hperiod { font-size: .71rem; color: #a0aec0; font-weight: 500; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
 .tmw-hchip { background: #fffbeb; color: #d97706; padding: 2px 9px; border-radius: 12px; font-size: .69rem; font-weight: 600; }
 .tmw-nbtn {
     display: inline-block; font-size: .74rem; padding: 4px 12px; border-radius: 20px;
@@ -33,30 +30,45 @@
     background: linear-gradient(135deg,#1e3a8a,#4d7cc7); color: #fff;
     border-color: transparent; box-shadow: 0 2px 8px rgba(30,58,138,.28); text-decoration: none;
 }
-/* Sources grid */
-.tmw-grid { display: grid; grid-template-columns: repeat(4,1fr); }
-@media (max-width:768px) { .tmw-grid { grid-template-columns: repeat(2,1fr); } }
+/* Source selector */
+.tmw-src-bar {
+    padding: 10px 24px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    border-bottom: 1px solid #eef0f8; background: #fafbff;
+}
+.tmw-src-btn {
+    display:inline-block; font-size:.72rem; padding:4px 12px; border-radius:20px;
+    font-weight:600; border:1.5px solid #d1d9f0; color:#5a6a85; background:#fff;
+    transition:all .15s; text-decoration:none; white-space:nowrap; cursor:pointer;
+}
+.tmw-src-btn.active { background:#f59e0b; color:#fff; border-color:transparent; box-shadow:0 2px 8px rgba(245,158,11,.35); }
+.tmw-src-btn:hover:not(.active) { background:#f8faff; border-color:#a5b4fc; color:#1e3a8a; text-decoration:none; }
+
+/* ── Layout colonnes (vue "Tous") ── */
+.tmw-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
 .tmw-col { border-right: 1px solid #eef0f8; min-width: 0; }
 .tmw-col:last-child { border-right: none; }
-/* Column headers */
-.tmw-col-head { display: flex; align-items: center; gap: 10px; padding: 13px 18px; border-bottom: 1px solid #eef0f8; }
+.tmw-col-head {
+    display: flex; align-items: center; gap: 10px; padding: 13px 18px;
+    border-bottom: 1px solid #eef0f8;
+}
 .tmw-col-icon {
     width: 32px; height: 32px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0;
 }
-.tmw-col-icon.asten  { background: linear-gradient(135deg,#dbeafe,#eff6ff); color: #1e40af; box-shadow: 0 2px 8px rgba(30,58,138,.2); }
-.tmw-col-icon.gpv    { background: linear-gradient(135deg,#dcfce7,#f0fdf4); color: #16a34a; box-shadow: 0 2px 8px rgba(34,197,94,.2); }
-.tmw-col-icon.legend { background: linear-gradient(135deg,#fef9c3,#fffbeb); color: #d97706; box-shadow: 0 2px 8px rgba(245,158,11,.2); }
-.tmw-col-icon.br     { background: linear-gradient(135deg,#fee2e2,#fff1f2); color: #dc2626; box-shadow: 0 2px 8px rgba(239,68,68,.2); }
-.tmw-col-icon.sage   { background: linear-gradient(135deg,#cffafe,#ecfeff); color: #0e7490; box-shadow: 0 2px 8px rgba(6,182,212,.2); }
-.tmw-col-icon.backup { background: linear-gradient(135deg,#fee2e2,#fef2f2); color: #b91c1c; box-shadow: 0 2px 8px rgba(239,68,68,.2); }
-.tmw-col-name { font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
-.tmw-col-name.asten  { color: #1e3a8a; }
-.tmw-col-name.gpv    { color: #15803d; }
-.tmw-col-name.legend { color: #b45309; }
-.tmw-col-name.br     { color: #b91c1c; }
-.tmw-col-name.sage   { color: #0e7490; }
-.tmw-col-name.backup { color: #b91c1c; }
+.tmw-col-icon.asten  { background:linear-gradient(135deg,#dbeafe,#eff6ff); color:#1e40af; box-shadow:0 2px 8px rgba(30,58,138,.2); }
+.tmw-col-icon.gpv    { background:linear-gradient(135deg,#dcfce7,#f0fdf4); color:#16a34a; box-shadow:0 2px 8px rgba(34,197,94,.2); }
+.tmw-col-icon.legend { background:linear-gradient(135deg,#fef9c3,#fffbeb); color:#d97706; box-shadow:0 2px 8px rgba(245,158,11,.2); }
+.tmw-col-icon.br     { background:linear-gradient(135deg,#fee2e2,#fff1f2); color:#dc2626; box-shadow:0 2px 8px rgba(239,68,68,.2); }
+.tmw-col-icon.sage   { background:linear-gradient(135deg,#cffafe,#ecfeff); color:#0e7490; box-shadow:0 2px 8px rgba(6,182,212,.2); }
+.tmw-col-icon.backup { background:linear-gradient(135deg,#fee2e2,#fef2f2); color:#b91c1c; box-shadow:0 2px 8px rgba(239,68,68,.2); }
+.tmw-col-name { font-weight:800; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; }
+.tmw-col-name.asten  { color:#1e3a8a; } .tmw-col-name.gpv { color:#15803d; }
+.tmw-col-name.legend { color:#b45309; } .tmw-col-name.br  { color:#b91c1c; }
+.tmw-col-name.sage   { color:#0e7490; } .tmw-col-name.backup { color:#b91c1c; }
+
 /* Rows */
 .tmw-row {
     display: flex; align-items: center; gap: 10px; padding: 9px 16px;
@@ -64,55 +76,69 @@
 }
 .tmw-row:hover { background: #f0f5ff; text-decoration: none; }
 .tmw-row:last-child { border-bottom: none; }
-/* Rank badges */
 .tmw-rank {
-    width: 24px; height: 24px; border-radius: 50%;
-    font-size: .68rem; font-weight: 800;
+    width: 24px; height: 24px; border-radius: 50%; font-size: .68rem; font-weight: 800;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.tmw-rank.r1 { background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #fff; box-shadow: 0 2px 6px rgba(245,158,11,.45); }
-.tmw-rank.r2 { background: linear-gradient(135deg,#cbd5e1,#94a3b8); color: #fff; box-shadow: 0 2px 6px rgba(148,163,184,.4); }
-.tmw-rank.r3 { background: linear-gradient(135deg,#fdba74,#fb923c); color: #fff; box-shadow: 0 2px 6px rgba(251,146,60,.35); }
-.tmw-rank.rn { background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; }
-.tmw-name {
-    flex: 1; font-size: .79rem; font-weight: 500; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis; color: #374151; min-width: 0;
-}
-.tmw-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
-.tmw-count { font-size: .83rem; font-weight: 800; }
-.tmw-count.asten  { color: #1e40af; }
-.tmw-count.gpv    { color: #16a34a; }
-.tmw-count.legend { color: #d97706; }
-.tmw-count.br     { color: #dc2626; }
-.tmw-count.sage   { color: #0e7490; }
-.tmw-count.backup { color: #b91c1c; }
+.tmw-rank.r1 { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#fff; box-shadow:0 2px 6px rgba(245,158,11,.45); }
+.tmw-rank.r2 { background:linear-gradient(135deg,#cbd5e1,#94a3b8); color:#fff; box-shadow:0 2px 6px rgba(148,163,184,.4); }
+.tmw-rank.r3 { background:linear-gradient(135deg,#fdba74,#fb923c); color:#fff; box-shadow:0 2px 6px rgba(251,146,60,.35); }
+.tmw-rank.rn { background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; }
+.tmw-name { flex:1; font-size:.79rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#374151; min-width:0; }
+.tmw-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
+.tmw-count { font-size:.83rem; font-weight:800; }
+.tmw-count.asten{color:#1e40af;} .tmw-count.gpv{color:#16a34a;} .tmw-count.legend{color:#d97706;}
+.tmw-count.br{color:#dc2626;} .tmw-count.sage{color:#0e7490;} .tmw-count.backup{color:#b91c1c;}
 .tmw-bar-wrap { width: 52px; height: 4px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
 .tmw-bar { height: 100%; border-radius: 3px; }
-.tmw-bar.asten  { background: linear-gradient(90deg,#1e3a8a,#4d7cc7); }
-.tmw-bar.gpv    { background: linear-gradient(90deg,#22c55e,#4ade80); }
-.tmw-bar.legend { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
-.tmw-bar.br     { background: linear-gradient(90deg,#ef4444,#f87171); }
-.tmw-bar.sage   { background: linear-gradient(90deg,#06b6d4,#22d3ee); }
-.tmw-bar.backup { background: linear-gradient(90deg,#ef4444,#f87171); }
-/* Source selector */
-.tmw-src-btn {
-    display:inline-block; font-size:.72rem; padding:4px 11px; border-radius:20px;
-    font-weight:600; border:1.5px solid #d1d9f0; color:#5a6a85; background:#fff;
-    transition:all .15s; text-decoration:none; white-space:nowrap; cursor:pointer;
+.tmw-bar.asten  { background:linear-gradient(90deg,#1e3a8a,#4d7cc7); }
+.tmw-bar.gpv    { background:linear-gradient(90deg,#22c55e,#4ade80); }
+.tmw-bar.legend { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+.tmw-bar.br     { background:linear-gradient(90deg,#ef4444,#f87171); }
+.tmw-bar.sage   { background:linear-gradient(90deg,#06b6d4,#22d3ee); }
+.tmw-bar.backup { background:linear-gradient(90deg,#ef4444,#f87171); }
+
+/* ── Vue source unique : pleine largeur + grandes barres ── */
+.tmw-single { padding: 0; }
+.tmw-single .tmw-solo-head {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 28px; border-bottom: 1px solid #eef0f8;
 }
-.tmw-src-btn.active { background:#f59e0b; color:#fff; border-color:transparent; box-shadow:0 2px 8px rgba(245,158,11,.35); }
-.tmw-src-btn:hover:not(.active) { background:#f8faff; border-color:#a5b4fc; color:#1e3a8a; text-decoration:none; }
+.tmw-single .tmw-solo-icon {
+    width: 40px; height: 40px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+}
+.tmw-single .tmw-solo-label { font-weight: 800; font-size: .95rem; text-transform: uppercase; letter-spacing: .05em; }
+.tmw-single .tmw-solo-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 28px; border-bottom: 1px solid #f5f6fa;
+    text-decoration: none; color: #1e2a45; transition: background .12s;
+}
+.tmw-single .tmw-solo-row:hover { background: #f0f5ff; text-decoration: none; }
+.tmw-single .tmw-solo-row:last-child { border-bottom: none; }
+.tmw-single .tmw-rank-lg {
+    width: 30px; height: 30px; border-radius: 50%; font-size: .78rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.tmw-single .tmw-rank-lg.r1 { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#fff; box-shadow:0 2px 8px rgba(245,158,11,.5); }
+.tmw-single .tmw-rank-lg.r2 { background:linear-gradient(135deg,#cbd5e1,#94a3b8); color:#fff; }
+.tmw-single .tmw-rank-lg.r3 { background:linear-gradient(135deg,#fdba74,#fb923c); color:#fff; }
+.tmw-single .tmw-rank-lg.rn { background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; }
+.tmw-single .tmw-solo-name { flex:1; font-size:.88rem; font-weight:600; color:#1e2a45; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tmw-single .tmw-solo-right { display:flex; flex-direction:column; align-items:flex-end; gap:5px; min-width:120px; }
+.tmw-single .tmw-solo-count { font-size:.95rem; font-weight:800; }
+.tmw-single .tmw-solo-bar-wrap { width:100%; height:6px; background:#e9ecef; border-radius:4px; overflow:hidden; }
+.tmw-single .tmw-solo-bar { height:100%; border-radius:4px; transition: width .4s ease; }
+
 .tmw-empty { padding: 20px 16px; font-size: .8rem; color: #94a3b8; text-align: center; }
 /* Footer */
-.tmw-footer {
-    padding: 12px 24px; border-top: 1px solid #eef0f8; background: #fafbff; display: flex; justify-content: flex-end;
-}
-.tmw-link {
-    font-size: .78rem; font-weight: 600; color: #1e3a8a; text-decoration: none;
-    display: flex; align-items: center; gap: 5px; transition: gap .15s;
-}
-.tmw-link:hover { gap: 8px; color: #1e40af; }
+.tmw-footer { padding:12px 24px; border-top:1px solid #eef0f8; background:#fafbff; display:flex; justify-content:flex-end; }
+.tmw-link { font-size:.78rem; font-weight:600; color:#1e3a8a; text-decoration:none; display:flex; align-items:center; gap:5px; transition:gap .15s; }
+.tmw-link:hover { gap:8px; color:#1e40af; }
 </style>
+
+{% comment %}Détecter si une seule source est active{% endcomment %}
+{% with s=top_source n=top5.n %}
 
 <div class="tmw-card">
     <!-- Header -->
@@ -124,7 +150,7 @@
                 </svg>
             </div>
             <div>
-                <div class="tmw-htitle">Top {{ top5.n }} magasins</div>
+                <div class="tmw-htitle">Top {{ n }} magasins</div>
                 {% if top5.debut and top5.fin %}
                 <div class="tmw-hperiod">
                     <i class="bi bi-calendar3" style="font-size:.68rem;"></i>
@@ -134,7 +160,6 @@
             </div>
         </div>
         <div class="d-flex gap-1 flex-wrap">
-            {% with n=top5.n s=top_source %}
             <a href="{{ top_url_base }}&top_n=5&top_source={{ s }}"   class="tmw-nbtn {% if n == 5   %}active{% endif %}">5</a>
             <a href="{{ top_url_base }}&top_n=10&top_source={{ s }}"  class="tmw-nbtn {% if n == 10  %}active{% endif %}">10</a>
             <a href="{{ top_url_base }}&top_n=15&top_source={{ s }}"  class="tmw-nbtn {% if n == 15  %}active{% endif %}">15</a>
@@ -142,14 +167,12 @@
             <a href="{{ top_url_base }}&top_n=30&top_source={{ s }}"  class="tmw-nbtn {% if n == 30  %}active{% endif %}">30</a>
             <a href="{{ top_url_base }}&top_n=50&top_source={{ s }}"  class="tmw-nbtn {% if n == 50  %}active{% endif %}">50</a>
             <a href="{{ top_url_base }}&top_n=100&top_source={{ s }}" class="tmw-nbtn {% if n == 100 %}active{% endif %}">100</a>
-            {% endwith %}
         </div>
     </div>
 
     <!-- Source selector -->
-    <div style="padding:10px 24px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid #eef0f8;">
+    <div class="tmw-src-bar">
         <span style="font-size:.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;flex-shrink:0;">Source :</span>
-        {% with s=top_source n=top5.n %}
         <a href="{{ top_url_base }}&top_n={{ n }}&top_source=" class="tmw-src-btn {% if not s %}active{% endif %}">Tous</a>
         <a href="{{ top_url_base }}&top_n={{ n }}&top_source=commandes_asten" class="tmw-src-btn {% if s == 'commandes_asten' %}active{% endif %}">Commandes Asten</a>
         <a href="{{ top_url_base }}&top_n={{ n }}&top_source=commandes_gpv" class="tmw-src-btn {% if s == 'commandes_gpv' %}active{% endif %}">GPV</a>
@@ -158,16 +181,134 @@
         <a href="{{ top_url_base }}&top_n={{ n }}&top_source=facture_sage" class="tmw-src-btn {% if s == 'facture_sage' %}active{% endif %}">Facture Sage</a>
         <a href="{{ top_url_base }}&top_n={{ n }}&top_source=facture_backup" class="tmw-src-btn {% if s == 'facture_backup' %}active{% endif %}">Facture Backup</a>
         <a href="{{ top_url_base }}&top_n={{ n }}&top_source=remontees" class="tmw-src-btn {% if s == 'remontees' %}active{% endif %}">Remontées</a>
-        {% endwith %}
     </div>
 
-    <!-- Grid — 1 colonne si type_donnees ciblé, sinon 4 colonnes -->
-    {% if type_donnees and type_donnees != 'factures' and type_donnees != 'factures_backup' and type_donnees != 'version' %}
-    <style>.tmw-grid { grid-template-columns: 1fr !important; }</style>
-    {% endif %}
+    {% if s %}
+    {# ── VUE SOURCE UNIQUE : pleine largeur ── #}
+    <div class="tmw-single">
+
+        {% if s == 'commandes_asten' and top5.asten %}
+        <div class="tmw-solo-head">
+            <div class="tmw-solo-icon asten tmw-col-icon"><i class="bi bi-box-seam"></i></div>
+            <span class="tmw-solo-label tmw-col-name asten">Commandes Asten</span>
+        </div>
+        {% for r in top5.asten %}
+        <a href="/commandes/asten/?magasin={{ r.code_magasin__code }}" class="tmw-solo-row">
+            <span class="tmw-rank-lg {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+            <span class="tmw-solo-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
+            <div class="tmw-solo-right">
+                <span class="tmw-solo-count tmw-count asten">{{ r.total }}</span>
+                {% if top5.asten.0.total %}<div class="tmw-solo-bar-wrap"><div class="tmw-solo-bar tmw-bar asten" style="width:{% widthratio r.total top5.asten.0.total 100 %}%"></div></div>{% endif %}
+            </div>
+        </a>
+        {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+
+        {% elif s == 'commandes_gpv' and top5.gpv %}
+        <div class="tmw-solo-head">
+            <div class="tmw-solo-icon gpv tmw-col-icon"><i class="bi bi-truck"></i></div>
+            <span class="tmw-solo-label tmw-col-name gpv">Commandes GPV</span>
+        </div>
+        {% for r in top5.gpv %}
+        <a href="/commandes/gpv/?magasin={{ r.code_magasin__code }}" class="tmw-solo-row">
+            <span class="tmw-rank-lg {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+            <span class="tmw-solo-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
+            <div class="tmw-solo-right">
+                <span class="tmw-solo-count tmw-count gpv">{{ r.total }}</span>
+                {% if top5.gpv.0.total %}<div class="tmw-solo-bar-wrap"><div class="tmw-solo-bar tmw-bar gpv" style="width:{% widthratio r.total top5.gpv.0.total 100 %}%"></div></div>{% endif %}
+            </div>
+        </a>
+        {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+
+        {% elif s == 'commandes_legend' and top5.legend %}
+        <div class="tmw-solo-head">
+            <div class="tmw-solo-icon legend tmw-col-icon"><i class="bi bi-archive"></i></div>
+            <span class="tmw-solo-label tmw-col-name legend">Commandes Legend</span>
+        </div>
+        {% for r in top5.legend %}
+        <a href="/commandes/legend/?depot_dest={{ r.depot_destination|urlencode }}" class="tmw-solo-row">
+            <span class="tmw-rank-lg {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+            <span class="tmw-solo-name">{{ r.depot_destination|default:"-" }}</span>
+            <div class="tmw-solo-right">
+                <span class="tmw-solo-count tmw-count legend">{{ r.total }}</span>
+                {% if top5.legend.0.total %}<div class="tmw-solo-bar-wrap"><div class="tmw-solo-bar tmw-bar legend" style="width:{% widthratio r.total top5.legend.0.total 100 %}%"></div></div>{% endif %}
+            </div>
+        </a>
+        {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+
+        {% elif s == 'br' and top5.br %}
+        <div class="tmw-solo-head">
+            <div class="tmw-solo-icon br tmw-col-icon"><i class="bi bi-receipt"></i></div>
+            <span class="tmw-solo-label tmw-col-name br">BR Asten</span>
+        </div>
+        {% for r in top5.br %}
+        <a href="/br/asten/?magasin={{ r.code_magasin__code }}" class="tmw-solo-row">
+            <span class="tmw-rank-lg {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+            <span class="tmw-solo-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
+            <div class="tmw-solo-right">
+                <span class="tmw-solo-count tmw-count br">{{ r.total }}</span>
+                {% if top5.br.0.total %}<div class="tmw-solo-bar-wrap"><div class="tmw-solo-bar tmw-bar br" style="width:{% widthratio r.total top5.br.0.total 100 %}%"></div></div>{% endif %}
+            </div>
+        </a>
+        {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+
+        {% elif s == 'facture_sage' and top5.sage %}
+        <div class="tmw-solo-head">
+            <div class="tmw-solo-icon sage tmw-col-icon"><i class="bi bi-file-earmark-text"></i></div>
+            <span class="tmw-solo-label tmw-col-name sage">Facture Sage</span>
+        </div>
+        {% for r in top5.sage %}
+        <div class="tmw-solo-row">
+            <span class="tmw-rank-lg {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+            <span class="tmw-solo-name">{{ r.prefix|default:"-" }}</span>
+            <div class="tmw-solo-right">
+                <span class="tmw-solo-count tmw-count sage">{{ r.total }}</span>
+                {% if top5.sage.0.total %}<div class="tmw-solo-bar-wrap"><div class="tmw-solo-bar tmw-bar sage" style="width:{% widthratio r.total top5.sage.0.total 100 %}%"></div></div>{% endif %}
+            </div>
+        </div>
+        {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+
+        {% elif s == 'facture_backup' and top5.backup %}
+        <div class="tmw-solo-head">
+            <div class="tmw-solo-icon backup tmw-col-icon"><i class="bi bi-file-earmark-zip"></i></div>
+            <span class="tmw-solo-label tmw-col-name backup">Facture Backup</span>
+        </div>
+        {% for r in top5.backup %}
+        <div class="tmw-solo-row">
+            <span class="tmw-rank-lg {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+            <span class="tmw-solo-name">{{ r.magasin_code|default:"-" }}</span>
+            <div class="tmw-solo-right">
+                <span class="tmw-solo-count tmw-count backup">{{ r.total }}</span>
+                {% if top5.backup.0.total %}<div class="tmw-solo-bar-wrap"><div class="tmw-solo-bar tmw-bar backup" style="width:{% widthratio r.total top5.backup.0.total 100 %}%"></div></div>{% endif %}
+            </div>
+        </div>
+        {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
+
+        {% elif s == 'remontees' and top5.remontees %}
+        <div class="tmw-solo-head">
+            <div class="tmw-solo-icon tmw-col-icon" style="background:linear-gradient(135deg,#fce7f3,#fdf2f8);"><i class="bi bi-arrow-up-circle" style="color:#e11d48;"></i></div>
+            <span class="tmw-solo-label" style="color:#e11d48;">Remontées</span>
+        </div>
+        {% for r in top5.remontees %}
+        <a href="/remontee-asten/?magasin={{ r.magasin__code }}" class="tmw-solo-row">
+            <span class="tmw-rank-lg {% if forloop.counter == 1 %}r1{% elif forloop.counter == 2 %}r2{% elif forloop.counter == 3 %}r3{% else %}rn{% endif %}">{{ forloop.counter }}</span>
+            <span class="tmw-solo-name">{{ r.magasin__nom|default:r.magasin__code|default:"-" }}</span>
+            <div class="tmw-solo-right">
+                <span class="tmw-solo-count" style="color:#e11d48;font-size:.95rem;font-weight:800;">{{ r.total }}</span>
+                {% if top5.remontees.0.total %}<div class="tmw-solo-bar-wrap"><div class="tmw-solo-bar" style="background:#f43f5e;width:{% widthratio r.total top5.remontees.0.total 100 %}%;"></div></div>{% endif %}
+            </div>
+        </a>
+        {% empty %}<div class="tmw-empty">Aucune remontée</div>{% endfor %}
+
+        {% else %}
+        <div class="tmw-empty">Aucune donnée pour cette source</div>
+        {% endif %}
+
+    </div>
+
+    {% else %}
+    {# ── VUE TOUS : grille multi-colonnes ── #}
     <div class="tmw-grid">
 
-        <!-- ASTEN -->
         {% if top5.asten %}
         <div class="tmw-col">
             <div class="tmw-col-head">
@@ -180,16 +321,13 @@
                 <span class="tmw-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count asten">{{ r.total }}</span>
-                    {% if top5.asten.0.total %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar asten" style="width:{% widthratio r.total top5.asten.0.total 100 %}%"></div></div>
-                    {% endif %}
+                    {% if top5.asten.0.total %}<div class="tmw-bar-wrap"><div class="tmw-bar asten" style="width:{% widthratio r.total top5.asten.0.total 100 %}%"></div></div>{% endif %}
                 </div>
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
         {% endif %}
 
-        <!-- GPV -->
         {% if top5.gpv %}
         <div class="tmw-col">
             <div class="tmw-col-head">
@@ -202,16 +340,13 @@
                 <span class="tmw-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count gpv">{{ r.total }}</span>
-                    {% if top5.gpv.0.total %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar gpv" style="width:{% widthratio r.total top5.gpv.0.total 100 %}%"></div></div>
-                    {% endif %}
+                    {% if top5.gpv.0.total %}<div class="tmw-bar-wrap"><div class="tmw-bar gpv" style="width:{% widthratio r.total top5.gpv.0.total 100 %}%"></div></div>{% endif %}
                 </div>
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
         {% endif %}
 
-        <!-- LEGEND -->
         {% if top5.legend %}
         <div class="tmw-col">
             <div class="tmw-col-head">
@@ -224,16 +359,13 @@
                 <span class="tmw-name">{{ r.depot_destination|default:"-" }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count legend">{{ r.total }}</span>
-                    {% if top5.legend.0.total %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar legend" style="width:{% widthratio r.total top5.legend.0.total 100 %}%"></div></div>
-                    {% endif %}
+                    {% if top5.legend.0.total %}<div class="tmw-bar-wrap"><div class="tmw-bar legend" style="width:{% widthratio r.total top5.legend.0.total 100 %}%"></div></div>{% endif %}
                 </div>
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
         {% endif %}
 
-        <!-- BR ASTEN -->
         {% if top5.br %}
         <div class="tmw-col">
             <div class="tmw-col-head">
@@ -246,16 +378,13 @@
                 <span class="tmw-name">{{ r.code_magasin__nom|default:r.code_magasin__code }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count br">{{ r.total }}</span>
-                    {% if top5.br.0.total %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar br" style="width:{% widthratio r.total top5.br.0.total 100 %}%"></div></div>
-                    {% endif %}
+                    {% if top5.br.0.total %}<div class="tmw-bar-wrap"><div class="tmw-bar br" style="width:{% widthratio r.total top5.br.0.total 100 %}%"></div></div>{% endif %}
                 </div>
             </a>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
         {% endif %}
 
-        <!-- FACTURE SAGE -->
         {% if top5.sage %}
         <div class="tmw-col">
             <div class="tmw-col-head">
@@ -268,16 +397,13 @@
                 <span class="tmw-name">{{ r.prefix|default:"-" }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count sage">{{ r.total }}</span>
-                    {% if top5.sage.0.total %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar sage" style="width:{% widthratio r.total top5.sage.0.total 100 %}%"></div></div>
-                    {% endif %}
+                    {% if top5.sage.0.total %}<div class="tmw-bar-wrap"><div class="tmw-bar sage" style="width:{% widthratio r.total top5.sage.0.total 100 %}%"></div></div>{% endif %}
                 </div>
             </div>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
         {% endif %}
 
-        <!-- FACTURE BACKUP -->
         {% if top5.backup %}
         <div class="tmw-col">
             <div class="tmw-col-head">
@@ -290,20 +416,17 @@
                 <span class="tmw-name">{{ r.magasin_code|default:"-" }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count backup">{{ r.total }}</span>
-                    {% if top5.backup.0.total %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar backup" style="width:{% widthratio r.total top5.backup.0.total 100 %}%"></div></div>
-                    {% endif %}
+                    {% if top5.backup.0.total %}<div class="tmw-bar-wrap"><div class="tmw-bar backup" style="width:{% widthratio r.total top5.backup.0.total 100 %}%"></div></div>{% endif %}
                 </div>
             </div>
             {% empty %}<div class="tmw-empty">Aucune donnée</div>{% endfor %}
         </div>
         {% endif %}
 
-        <!-- REMONTÉES -->
         {% if top5.remontees %}
         <div class="tmw-col">
             <div class="tmw-col-head">
-                <div class="tmw-col-icon" style="background:linear-gradient(135deg,#f43f5e,#e11d48);"><i class="bi bi-arrow-up-circle" style="color:#fff;"></i></div>
+                <div class="tmw-col-icon" style="background:linear-gradient(135deg,#fce7f3,#fdf2f8);"><i class="bi bi-arrow-up-circle" style="color:#e11d48;"></i></div>
                 <span class="tmw-col-name" style="color:#e11d48;">Remontées</span>
             </div>
             {% for r in top5.remontees %}
@@ -312,9 +435,7 @@
                 <span class="tmw-name">{{ r.magasin__nom|default:r.magasin__code|default:"-" }}</span>
                 <div class="tmw-right">
                     <span class="tmw-count" style="color:#e11d48;">{{ r.total }}</span>
-                    {% if top5.remontees.0.total %}
-                    <div class="tmw-bar-wrap"><div class="tmw-bar" style="background:#f43f5e;width:{% widthratio r.total top5.remontees.0.total 100 %}%;"></div></div>
-                    {% endif %}
+                    {% if top5.remontees.0.total %}<div class="tmw-bar-wrap"><div class="tmw-bar" style="background:#f43f5e;width:{% widthratio r.total top5.remontees.0.total 100 %}%;"></div></div>{% endif %}
                 </div>
             </a>
             {% empty %}<div class="tmw-empty">Aucune remontée</div>{% endfor %}
@@ -322,14 +443,16 @@
         {% endif %}
 
     </div>
+    {% endif %}
 
     <!-- Footer -->
     <div class="tmw-footer">
-        <a href="{% url 'dashboard:rapport_global' %}?section={{ section|default:'commandes' }}&periode=mois" class="tmw-link">
+        <a href="{% url 'dashboard:rapport_global' %}?section={{ section|default:'commandes' }}&periode=mois" class="tmw-link" data-no-loader>
             Voir les rapports complets <i class="bi bi-arrow-right"></i>
         </a>
     </div>
 </div>
+
+{% endwith %}
 </div>
 {% endif %}{% endif %}
-
