@@ -827,7 +827,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ── Top magasins AJAX (sans rechargement ni scroll) ──────────────────
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
     var container = document.getElementById('top-magasins-container');
     if (!container) return;
 
@@ -851,6 +851,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (wrap) { wrap.style.opacity = ''; wrap.style.pointerEvents = ''; }
             });
     });
-})();
+});
 </script>
 {% endblock %}
