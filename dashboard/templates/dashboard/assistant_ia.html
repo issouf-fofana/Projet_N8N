@@ -42,12 +42,12 @@
     text-align: center;
 }
 .aia-welcome h1 {
-    font-size: 1.85rem;
+    font-size: 2rem;
     font-weight: 800;
     color: #1e2a45;
     letter-spacing: -.03em;
     margin: 0;
-    display: flex; align-items: center; gap: 12px;
+    line-height: 1.2;
 }
 .aia-logo { width: 44px; height: 44px; }
 
@@ -261,7 +261,8 @@
                     <line x1="64" y1="24" x2="71" y2="9" stroke="#c4b5fd" stroke-width="2.5" stroke-linecap="round"/>
                     <circle cx="72" cy="7" r="4.5" fill="#a5b4fc"/>
                 </svg>
-                <h1>Bonjour, que puis-je analyser ?</h1>
+                <h1>Bonjour{% if request.user.get_full_name %}, {{ request.user.get_full_name }}{% elif request.user.first_name %}, {{ request.user.first_name }}{% else %}, {{ request.user.username }}{% endif %} 👋</h1>
+                <p style="font-size:.95rem;color:#64748b;margin:0;font-weight:500;">Que souhaitez-vous analyser aujourd'hui ?</p>
                 <div class="aia-chips" id="aia-chips">
                     <span class="aia-chip">Combien de commandes GPV aujourd'hui ?</span>
                     <span class="aia-chip">Top 5 magasins par nombre de BR ce mois</span>
