@@ -4434,33 +4434,86 @@ def configuration_chemins(request):
 @require_http_methods(["GET", "POST"])
 def assistant_ia(request):
     """Assistant IA Text-to-SQL avec Gemini — accès restreint par permission."""
+    import uuid, datetime
     from core.permissions import user_has_perm
     if not user_has_perm(request.user, 'assistant_ia'):
         from django.contrib import messages as _msg
         _msg.error(request, "Vous n'avez pas accès à l'Assistant IA.")
         return redirect('dashboard:accueil')
 
-    SESSION_KEY = 'ai_conversation'
+    CHATS_KEY   = 'ai_chats'       # liste de toutes les sessions [{id, title, turns}]
+    CURRENT_KEY = 'ai_current_chat' # id de la session active
 
-    # Effacer l'historique si demandé
-    if request.method == 'GET' and request.GET.get('clear') == '1':
-        request.session.pop(SESSION_KEY, None)
+    def _get_chats():
+        return request.session.get(CHATS_KEY, [])
+
+    def _save_chats(chats):
+        request.session[CHATS_KEY] = chats
+        request.session.modified = True
+
+    action = request.GET.get('action') or request.POST.get('action', '')
+
+    # ── Nouveau chat ──────────────────────────────────────────────────
+    if action == 'new':
+        new_id = str(uuid.uuid4())[:8]
+        chats = _get_chats()
+        chats.insert(0, {
+            'id': new_id,
+            'title': 'Nouvelle conversation',
+            'created': datetime.datetime.now().strftime('%d/%m %H:%M'),
+            'turns': []
+        })
+        _save_chats(chats)
+        request.session[CURRENT_KEY] = new_id
         return redirect('dashboard:assistant_ia')
 
-    conversation = request.session.get(SESSION_KEY, [])
+    # ── Supprimer un chat ─────────────────────────────────────────────
+    if action == 'delete':
+        del_id = request.GET.get('id', '')
+        chats = [c for c in _get_chats() if c['id'] != del_id]
+        _save_chats(chats)
+        if request.session.get(CURRENT_KEY) == del_id:
+            request.session[CURRENT_KEY] = chats[0]['id'] if chats else None
+        return redirect('dashboard:assistant_ia')
 
+    # ── Changer de chat ───────────────────────────────────────────────
+    if action == 'switch':
+        request.session[CURRENT_KEY] = request.GET.get('id', '')
+        request.session.modified = True
+        return redirect('dashboard:assistant_ia')
+
+    # ── Récupérer ou créer le chat courant ────────────────────────────
+    chats = _get_chats()
+    current_id = request.session.get(CURRENT_KEY)
+
+    if not chats or not current_id or not any(c['id'] == current_id for c in chats):
+        new_id = str(uuid.uuid4())[:8]
+        chats = [{'id': new_id, 'title': 'Nouvelle conversation',
+                  'created': datetime.datetime.now().strftime('%d/%m %H:%M'), 'turns': []}]
+        _save_chats(chats)
+        current_id = new_id
+        request.session[CURRENT_KEY] = current_id
+
+    current_chat = next(c for c in chats if c['id'] == current_id)
+
+    # ── POST : question ───────────────────────────────────────────────
     if request.method == 'POST':
         question = request.POST.get('question', '').strip()
         if question:
             from dashboard.ai_service import query_with_gemini
             result = query_with_gemini(question)
-            # Ajouter à l'historique (max 20 échanges)
-            conversation.append({'question': question, 'result': result})
-            if len(conversation) > 20:
-                conversation = conversation[-20:]
-            request.session[SESSION_KEY] = conversation
-            request.session.modified = True
+            turns = current_chat.get('turns', [])
+            turns.append({'question': question, 'result': result})
+            if len(turns) > 20:
+                turns = turns[-20:]
+            current_chat['turns'] = turns
+            # Titre = première question tronquée
+            if len(turns) == 1:
+                current_chat['title'] = question[:48] + ('…' if len(question) > 48 else '')
+            _save_chats(chats)
 
     return render(request, 'dashboard/assistant_ia.html', {
-        'conversation': conversation,
+        'chats': chats,
+        'current_chat': current_chat,
+        'conversation': current_chat.get('turns', []),
     })
