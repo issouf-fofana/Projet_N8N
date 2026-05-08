@@ -184,7 +184,11 @@ class FactureAstenLigne(models.Model):
 
     class Meta:
         verbose_name = "Ligne facture Asten"
-        indexes = [models.Index(fields=['n_bon_livraison', 'magasin'])]
+        indexes = [
+            models.Index(fields=['n_bon_livraison', 'magasin']),
+            models.Index(fields=['magasin', 'date_reception_date']),
+            models.Index(fields=['date_reception_date']),
+        ]
 
 
 class FactureEcartStatut(models.Model):

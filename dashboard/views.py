@@ -4170,7 +4170,7 @@ def vue_factures_asten(request):
             qs = qs.filter(date_reception_date__lte=f_date_fin)
 
         total = qs.count()
-        page_obj, paginator = _paginate(request, list(qs.values()))
+        page_obj, paginator = _paginate(request, qs)
     except Exception as e:
         error = str(e)
         page_obj, paginator, total, magasins_list = None, None, 0, []
