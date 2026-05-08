@@ -147,7 +147,7 @@
             <input type="hidden" name="magasin" value="{{ filtres.magasin }}">
             <input type="hidden" name="statut" value="{{ filtres.statut }}">
             <input type="hidden" name="type_ecart" value="{{ filtres.type_ecart }}">
-            <input type="hidden" name="page" value="{{ page_obj.number }}">
+            <input type="hidden" name="page" value="{{ page_num }}">
             <div class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">
@@ -194,28 +194,27 @@
                         <tr class="align-middle">
                             <td>
                                 <input class="form-check-input ecart-checkbox" type="checkbox" name="selected_ecarts"
-                                       value="{{ item.type }}:{{ item.id }}">
+                                       value="{{ item.type_ecart }}:{{ item.id }}">
                             </td>
-                            <td class="fw-semibold">{{ item.date_commande|date:"d/m/Y" }}{% if item.type == 'gpv' %} <small class="text-muted">{{ item.date_commande|date:"H:i" }}</small>{% endif %}</td>
+                            <td class="fw-semibold">{{ item.date_commande|date:"d/m/Y" }}</td>
                             <td>
                                 <strong class="text-primary">{{ item.numero_commande }}</strong>
-                                {% if item.type == 'gpv' %}
+                                {% if item.type_ecart == 'gpv' %}
                                     <br><small class="badge bg-info">GPV</small>
-                                {% elif item.type == 'legend' %}
+                                {% elif item.type_ecart == 'legend' %}
                                     <br><small class="badge bg-warning text-dark">Legend</small>
-                                {% elif item.type == 'br' %}
+                                {% elif item.type_ecart == 'br' %}
                                     <br><small class="badge bg-secondary">BR</small>
                                 {% else %}
                                     <br><small class="badge bg-primary">Asten</small>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if item.type == 'legend' %}
+                                {% if item.type_ecart_ecart == 'legend' %}
                                     <span class="badge bg-secondary">{{ item.depot_origine }}</span><br>
                                     <small class="text-muted">{{ item.depot_destination|default:"-" }}</small>
                                 {% else %}
-                                    <span class="badge bg-secondary">{{ item.code_magasin.code }}</span><br>
-                                    <small class="text-muted">{{ item.code_magasin.nom }}</small>
+                                    <span class="badge bg-secondary">{{ item.code_magasin }}</span>
                                 {% endif %}
                             </td>
                             <td><small class="text-muted">{{ item.date_creation|date:"d/m/Y H:i" }}</small></td>
@@ -239,17 +238,17 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if item.type == 'gpv' %}
+                                {% if item.type_ecart == 'gpv' %}
                                     <a href="{% url 'dashboard:detail_ecart_gpv' item.id %}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> Détails
                                     </a>
-                                {% elif item.type == 'legend' %}
+                                {% elif item.type_ecart == 'legend' %}
                                     <a href="{% url 'dashboard:detail_ecart_legend' item.id %}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> Détails
                                     </a>
-                                {% elif item.type == 'br' %}
+                                {% elif item.type_ecart == 'br' %}
                                     <a href="{% url 'dashboard:detail_ecart_br' item.id %}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> Détails
@@ -275,7 +274,43 @@
         </div>
         </form>
     </div>
-        {% include 'dashboard/includes/pagination.html' %}
+        {% if num_pages > 1 or per_page_options %}
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 px-3 pb-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">Lignes par page :</span>
+                {% for opt in per_page_options %}
+                    {% if opt == per_page %}
+                    <span class="badge bg-primary px-3 py-2" style="font-size:0.85rem;">{{ opt }}</span>
+                    {% else %}
+                    <a href="?{% for key, val in request.GET.items %}{% if key != 'per_page' and key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}per_page={{ opt }}&page=1"
+                       class="badge bg-light text-dark border px-3 py-2 text-decoration-none" style="font-size:0.85rem;">{{ opt }}</a>
+                    {% endif %}
+                {% endfor %}
+                <span class="text-muted small ms-2">— {{ ecarts_count }} résultat(s)</span>
+            </div>
+            {% if num_pages > 1 %}
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if has_prev %}
+                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page=1">&laquo;</a></li>
+                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_num|add:"-1" }}">&#8249;</a></li>
+                    {% endif %}
+                    {% for num in page_range %}
+                        {% if num == page_num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if has_next %}
+                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_num|add:"1" }}">&#8250;</a></li>
+                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ num_pages }}">&raquo;</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+        {% endif %}
 
 </div>
 <script>

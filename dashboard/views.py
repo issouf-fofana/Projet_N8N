@@ -1925,165 +1925,160 @@ def liste_ecarts(request):
     request.session['ecarts_last_seen'] = _tz.now().isoformat()
 
     # Filtres
-    date_debut = request.GET.get('date_debut')
-    date_fin = request.GET.get('date_fin')
+    date_debut  = request.GET.get('date_debut')
+    date_fin    = request.GET.get('date_fin')
     code_magasin = request.GET.get('magasin')
-    statut = request.GET.get('statut', '')  # Par défaut, afficher tous les statuts
-    type_ecart = request.GET.get('type_ecart', '')  # Filtre par type : asten, gpv, legend, br, factures
+    statut      = request.GET.get('statut', '')
+    type_ecart  = request.GET.get('type_ecart', '')
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
-    date_fin_parsed = parse_date(date_fin) if date_fin else None
-    
-    # Construire les filtres pour Asten
-    filtres_asten = {}
-    filtres_gpv = {}
-    filtres_legend = {}
-    
-    # Filtrer par statut seulement si un statut spécifique est sélectionné
-    if statut and statut != '':
-        filtres_asten['statut'] = statut
-        filtres_gpv['statut'] = statut
-        filtres_legend['statut'] = statut
-    
-    if date_debut_parsed:
-        filtres_asten['commande_asten__date_commande__gte'] = date_debut_parsed
-        filtres_gpv['commande_gpv__date_creation__date__gte'] = date_debut_parsed
-        filtres_legend['commande_legend__date_commande__gte'] = date_debut_parsed
-    if date_fin_parsed:
-        filtres_asten['commande_asten__date_commande__lte'] = date_fin_parsed
-        filtres_gpv['commande_gpv__date_creation__date__lte'] = date_fin_parsed
-        filtres_legend['commande_legend__date_commande__lte'] = date_fin_parsed
-    if code_magasin:
-        filtres_asten['commande_asten__code_magasin__code'] = code_magasin
-        filtres_gpv['commande_gpv__code_magasin__code'] = code_magasin
-        # Legend utilise depot_destination (nom), pas un code magasin — on masque les écarts Legend si un code est filtré
-        filtres_legend['id__in'] = []
-    
-    # Récupérer les écarts Asten (exclure les résolus)
-    filtres_asten_exclus = filtres_asten.copy()
-    if not statut or statut == '':
-        # Par défaut, exclure les écarts résolus
-        filtres_asten_exclus['statut__in'] = ['ouvert', 'ignore']
-    ecarts_asten = EcartCommande.objects.filter(**filtres_asten_exclus).select_related(
-        'commande_asten__code_magasin'
-    ).order_by('-date_creation')
-    
-    # Récupérer les écarts GPV (exclure les résolus)
-    filtres_gpv_exclus = filtres_gpv.copy()
-    if not statut or statut == '':
-        # Par défaut, exclure les écarts résolus
-        filtres_gpv_exclus['statut__in'] = ['ouvert', 'ignore']
-    ecarts_gpv = EcartGPV.objects.filter(**filtres_gpv_exclus).select_related(
-        'commande_gpv__code_magasin'
-    ).order_by('-date_creation')
+    date_fin_parsed   = parse_date(date_fin)   if date_fin   else None
 
-    # Récupérer les écarts Legend (exclure les résolus)
-    filtres_legend_exclus = filtres_legend.copy()
-    if not statut or statut == '':
-        # Par défaut, exclure les écarts résolus
-        filtres_legend_exclus['statut__in'] = ['ouvert', 'ignore']
-    ecarts_legend = EcartLegend.objects.filter(**filtres_legend_exclus).select_related(
-        'commande_legend'
-    ).order_by('-date_creation')
-    
-    
-    # Combiner les écarts avec un indicateur de type
-    # Exclure les écarts résolus automatiquement (statut "resolu" ET commande existe dans Cyrus)
-    ecarts_combined = []
-    
-    for ecart in ecarts_asten:
-        ecarts_combined.append({
-            'type': 'asten',
-            'ecart': ecart,
-            'id': ecart.id,
-            'date_commande': ecart.commande_asten.date_commande,
-            'numero_commande': ecart.commande_asten.numero_commande,
-            'code_magasin': ecart.commande_asten.code_magasin,
-            'montant': ecart.commande_asten.montant,
-            'date_creation': ecart.date_creation,
-            'statut': ecart.statut,
-        })
+    # Statuts affichés par défaut (hors 'resolu')
+    statuts_actifs = ['ouvert', 'ignore', 'quantite_0']
 
-    for ecart in ecarts_gpv:
-        ecarts_combined.append({
-            'type': 'gpv',
-            'ecart': ecart,
-            'id': ecart.id,
-            'date_commande': ecart.commande_gpv.date_creation,
-            'numero_commande': ecart.commande_gpv.numero_commande,
-            'code_magasin': ecart.commande_gpv.code_magasin,
-            'montant': None,
-            'date_creation': ecart.date_creation,
-            'statut': ecart.statut,
-        })
+    from django.db import connection
 
-    for ecart in ecarts_legend:
-        ecarts_combined.append({
-            'type': 'legend',
-            'ecart': ecart,
-            'id': ecart.id,
-            'date_commande': ecart.commande_legend.date_commande,
-            'numero_commande': ecart.commande_legend.numero_commande,
-            'depot_origine': ecart.commande_legend.depot_origine,
-            'depot_destination': ecart.commande_legend.depot_destination,
-            'montant': None,
-            'date_creation': ecart.date_creation,
-            'statut': ecart.statut,
-        })
-    
-    # Filtrer par type si spécifié
-    if type_ecart and type_ecart != '':
-        ecarts_combined = [e for e in ecarts_combined if e['type'] == type_ecart]
-    
-    # Trier : non intégrés (statut 'ouvert') en premier, puis les autres
-    # Priorité : 1. statut 'ouvert' (non intégré), 2. date de création (plus récent en premier)
-    from django.utils import timezone
-    def sort_key(ecart):
-        # Si statut 'ouvert', priorité 0 (en premier), sinon priorité 1
-        priority = 0 if ecart['statut'] == 'ouvert' else 1
-        # Convertir la date en timestamp pour le tri
-        date_creation = ecart['date_creation']
-        try:
-            if isinstance(date_creation, datetime):
-                if timezone.is_aware(date_creation):
-                    date_timestamp = date_creation.timestamp()
-                else:
-                    date_timestamp = timezone.make_aware(date_creation).timestamp()
-            elif hasattr(date_creation, 'timestamp'):
-                date_timestamp = date_creation.timestamp()
-            else:
-                # Si c'est une date naive, la convertir
-                if isinstance(date_creation, datetime):
-                    date_timestamp = timezone.make_aware(date_creation).timestamp()
-                else:
-                    date_timestamp = 0
-        except:
-            date_timestamp = 0
-        return (priority, -date_timestamp)
-    
-    ecarts_combined.sort(key=sort_key)
+    # ── Construction dynamique de la UNION ALL ──────────────────────────────
+    unions = []
+    params = []
 
-    per_page = int(request.GET.get('per_page', 30))
-    if per_page not in [30, 50, 100, 200]:
-        per_page = 30
-    paginator = Paginator(ecarts_combined, per_page)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
-    
+    # ─ Asten ─
+    if not type_ecart or type_ecart == 'asten':
+        w_asten = ["1=1"]
+        if statut:
+            w_asten.append("ea.statut = %s"); params.append(statut)
+        else:
+            w_asten.append("ea.statut = ANY(%s)"); params.append(statuts_actifs)
+        if date_debut_parsed:
+            w_asten.append("ca.date_commande >= %s"); params.append(date_debut_parsed)
+        if date_fin_parsed:
+            w_asten.append("ca.date_commande <= %s"); params.append(date_fin_parsed)
+        if code_magasin:
+            w_asten.append("ca.code_magasin = %s"); params.append(code_magasin)
+        unions.append(f"""
+            SELECT ea.id, 'asten' AS type_ecart,
+                   ea.statut, ea.date_creation,
+                   ca.date_commande, ca.numero_commande,
+                   ca.code_magasin  AS code_magasin,
+                   ca.montant::text AS montant,
+                   NULL::text       AS depot_origine,
+                   NULL::text       AS depot_destination
+            FROM ecarts_ecartcommande ea
+            JOIN asten_commandeasten ca ON ca.id = ea.commande_asten_id
+            WHERE {' AND '.join(w_asten)}
+        """)
+
+    # ─ GPV ─
+    if not type_ecart or type_ecart == 'gpv':
+        w_gpv = ["1=1"]
+        if statut:
+            w_gpv.append("eg.statut = %s"); params.append(statut)
+        else:
+            w_gpv.append("eg.statut = ANY(%s)"); params.append(statuts_actifs)
+        if date_debut_parsed:
+            w_gpv.append("cg.date_creation::date >= %s"); params.append(date_debut_parsed)
+        if date_fin_parsed:
+            w_gpv.append("cg.date_creation::date <= %s"); params.append(date_fin_parsed)
+        if code_magasin:
+            w_gpv.append("cg.code_magasin = %s"); params.append(code_magasin)
+        unions.append(f"""
+            SELECT eg.id, 'gpv' AS type_ecart,
+                   eg.statut, eg.date_creation,
+                   cg.date_creation::date AS date_commande,
+                   cg.numero_commande,
+                   cg.code_magasin  AS code_magasin,
+                   NULL::text       AS montant,
+                   NULL::text       AS depot_origine,
+                   NULL::text       AS depot_destination
+            FROM ecarts_ecartgpv eg
+            JOIN gpv_commandegpv cg ON cg.id = eg.commande_gpv_id
+            WHERE {' AND '.join(w_gpv)}
+        """)
+
+    # ─ Legend ─
+    if (not type_ecart or type_ecart == 'legend') and not code_magasin:
+        w_leg = ["1=1"]
+        if statut:
+            w_leg.append("el.statut = %s"); params.append(statut)
+        else:
+            w_leg.append("el.statut = ANY(%s)"); params.append(statuts_actifs)
+        if date_debut_parsed:
+            w_leg.append("cl.date_commande >= %s"); params.append(date_debut_parsed)
+        if date_fin_parsed:
+            w_leg.append("cl.date_commande <= %s"); params.append(date_fin_parsed)
+        unions.append(f"""
+            SELECT el.id, 'legend' AS type_ecart,
+                   el.statut, el.date_creation,
+                   cl.date_commande, cl.numero_commande,
+                   NULL::text AS code_magasin,
+                   NULL::text AS montant,
+                   cl.depot_origine,
+                   cl.depot_destination
+            FROM ecarts_ecartlegend el
+            JOIN legend_commandelegend cl ON cl.id = el.commande_legend_id
+            WHERE {' AND '.join(w_leg)}
+        """)
+
+    if not unions:
+        rows = []
+        total = 0
+    else:
+        union_sql = " UNION ALL ".join(unions)
+        count_sql = f"SELECT COUNT(*) FROM ({union_sql}) sub"
+        with connection.cursor() as cur:
+            cur.execute(count_sql, params)
+            total = cur.fetchone()[0]
+
+        per_page    = int(request.GET.get('per_page', 30))
+        if per_page not in [30, 50, 100, 200]:
+            per_page = 30
+        page_number = max(1, int(request.GET.get('page', 1)))
+        num_pages   = max(1, (total + per_page - 1) // per_page)
+        page_number = min(page_number, num_pages)
+        offset      = (page_number - 1) * per_page
+
+        data_sql = f"""
+            SELECT * FROM ({union_sql}) sub
+            ORDER BY
+                CASE WHEN statut = 'ouvert' THEN 0 ELSE 1 END,
+                date_creation DESC
+            LIMIT %s OFFSET %s
+        """
+        with connection.cursor() as cur:
+            cur.execute(data_sql, params + [per_page, offset])
+            cols = [c[0] for c in cur.description]
+            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+    if not rows:
+        per_page    = int(request.GET.get('per_page', 30))
+        if per_page not in [30, 50, 100, 200]:
+            per_page = 30
+        page_number = 1
+        num_pages   = 1
+
+    has_prev   = page_number > 1
+    has_next   = page_number < num_pages
+    page_range = list(range(max(1, page_number - 2), min(num_pages + 1, page_number + 3)))
+
     magasins = Magasin.objects.all().order_by('code')
-    
+
     context = {
-        'ecarts': page_obj,
-        'ecarts_count': paginator.count,
-        'page_obj': page_obj,
+        'ecarts': rows,
+        'ecarts_count': total,
+        'page_num':   page_number,
+        'num_pages':  num_pages,
+        'has_prev':   has_prev,
+        'has_next':   has_next,
+        'page_range': page_range,
         'titre': "Liste des Écarts",
         'magasins': magasins,
         'filtres': {
-            'date_debut': date_debut or '',
-            'date_fin': date_fin or '',
-            'magasin': code_magasin or '',
-            'statut': statut or '',
-            'type_ecart': type_ecart or '',
+            'date_debut':  date_debut  or '',
+            'date_fin':    date_fin    or '',
+            'magasin':     code_magasin or '',
+            'statut':      statut      or '',
+            'type_ecart':  type_ecart  or '',
         },
         'per_page': per_page,
         'per_page_options': [30, 50, 100, 200],
@@ -2772,20 +2767,24 @@ def liste_commandes_legend(request):
         return numero_str
 
     # Préparer les données de comparaison Cyrus avec normalisation
-    legend_keys = [(cmd.date_commande, normalize_numero(cmd.numero_commande)) for cmd in page_obj.object_list]
+    # Récupérer uniquement les numéros/dates Cyrus pour les commandes de la page courante
+    page_numeros_raw = {cmd.numero_commande for cmd in page_obj.object_list}
+
     cyrus_lookup = set()
     cyrus_numero_lookup = set()
 
-    # Récupérer toutes les commandes Cyrus de la période et les normaliser
     filtres_cyrus_lookup = {}
     if date_debut_parsed:
         filtres_cyrus_lookup['date_commande__gte'] = date_debut_parsed
     if date_fin_parsed:
         filtres_cyrus_lookup['date_commande__lte'] = date_fin_parsed
-    
-    for cyrus_cmd in CommandeCyrus.objects.filter(**filtres_cyrus_lookup):
-        numero_normalise = normalize_numero(cyrus_cmd.numero_commande)
-        cyrus_lookup.add((cyrus_cmd.date_commande, numero_normalise))
+
+    for date_cmd, num in CommandeCyrus.objects.filter(
+        **filtres_cyrus_lookup,
+        numero_commande__in=page_numeros_raw,
+    ).values_list('date_commande', 'numero_commande'):
+        numero_normalise = normalize_numero(num)
+        cyrus_lookup.add((date_cmd, numero_normalise))
         cyrus_numero_lookup.add(numero_normalise)
 
     # Annoter les objets du page_obj pour l'affichage
