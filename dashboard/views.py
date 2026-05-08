@@ -4189,118 +4189,195 @@ def vue_factures_asten(request):
 
 
 def vue_factures_cyrus(request):
-    from imports.services import get_factures_verification
-    result = get_factures_verification()
-    error  = result['error']
+    from django.db import connection
+    PER_PAGE = 200
 
-    # Utiliser les factures dédupliquées depuis joined
-    rows = result['joined']
-
-    # Filtres
     f_magasin    = request.GET.get('magasin', '').strip()
     f_nsee       = request.GET.get('nsee', '').strip()
-    f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
-    f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
+    f_date_debut = request.GET.get('date_debut', '').strip()
+    f_date_fin   = request.GET.get('date_fin', '').strip()
+    try:
+        page_num = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page_num = 1
 
-    magasins_list = sorted({r['cidc'] for r in rows if r['cidc']})
-    nsee_list     = sorted({r['nsee'] for r in rows if r['nsee']})
-
+    where  = ["statut_effectif != 'ignore'"]
+    params = []
     if f_magasin:
-        rows = [r for r in rows if r['cidc'] == f_magasin]
+        where.append("cidc = %s"); params.append(f_magasin)
     if f_nsee:
-        rows = [r for r in rows if r['nsee'] == f_nsee]
+        where.append("nsee = %s"); params.append(f_nsee)
     if f_date_debut:
-        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] >= f_date_debut]
+        where.append("dfac_date >= %s"); params.append(f_date_debut)
     if f_date_fin:
-        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] <= f_date_fin]
+        where.append("dfac_date <= %s"); params.append(f_date_fin)
 
-    total    = len(rows)
-    page_obj, paginator = _paginate(request, rows)
+    where_sql = "WHERE " + " AND ".join(where) if where else ""
+
+    try:
+        with connection.cursor() as cur:
+            # Listes de filtres (depuis la MV, pas de chargement complet)
+            cur.execute("SELECT DISTINCT cidc FROM mv_factures_joined WHERE cidc IS NOT NULL ORDER BY cidc")
+            magasins_list = [r[0] for r in cur.fetchall()]
+            cur.execute("SELECT DISTINCT nsee FROM mv_factures_joined WHERE nsee IS NOT NULL ORDER BY nsee")
+            nsee_list = [r[0] for r in cur.fetchall()]
+
+            # Total
+            cur.execute(f"SELECT COUNT(*) FROM mv_factures_joined {where_sql}", params)
+            total = cur.fetchone()[0]
+
+            # Page courante uniquement
+            offset = (page_num - 1) * PER_PAGE
+            cur.execute(f"""
+                SELECT cle_facture, nfac, nsee, dfac_str, dfac_date, cidc,
+                       pfth_total, nb_articles, qt_asten, valo_ttc, integree,
+                       statut_effectif, statut_manuel, ecart_valo, has_ecart_valo
+                FROM mv_factures_joined
+                {where_sql}
+                ORDER BY cidc, dfac_date DESC
+                LIMIT %s OFFSET %s
+            """, params + [PER_PAGE, offset])
+            cols = [d[0] for d in cur.description]
+            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+        error = None
+    except Exception as e:
+        rows, total, magasins_list, nsee_list, error = [], 0, [], [], str(e)
+
+    import math
+    num_pages = max(1, math.ceil(total / PER_PAGE))
 
     return render(request, 'dashboard/factures_cyrus.html', {
-        'rows':          page_obj,
-        'page_obj':      page_obj,
-        'paginator':     paginator,
+        'rows':          rows,
+        'page_obj':      rows,
+        'total':         total,
+        'page_num':      page_num,
+        'num_pages':     num_pages,
+        'has_prev':      page_num > 1,
+        'has_next':      page_num < num_pages,
+        'page_range':    range(max(1, page_num - 3), min(num_pages + 1, page_num + 4)),
         'error':         error,
         'magasins_list': magasins_list,
         'nsee_list':     nsee_list,
         'f_magasin':     f_magasin,
         'f_nsee':        f_nsee,
-        'f_date_debut':  request.GET.get('date_debut', ''),
-        'f_date_fin':    request.GET.get('date_fin', ''),
-        'total':         total,
+        'f_date_debut':  f_date_debut,
+        'f_date_fin':    f_date_fin,
     })
 
 
 def vue_factures_backup(request):
-    from imports.services import get_factures_verification
+    from django.db import connection
     from core.models import Magasin as MagasinModel
-    result = get_factures_verification()
-    rows   = result['joined']
-    stats  = result['stats']
-    error  = result['error']
+    PER_PAGE = 100
 
-    # Codes magasins Full Asten
-    full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
-
-    # Filtre Full Asten optionnel — activé uniquement si demandé explicitement
-    f_full_asten = request.GET.get('full_asten', '').strip()
-    if f_full_asten == '1' and full_asten_codes:
-        rows = [r for r in rows if r['cidc'] in full_asten_codes]
-
-    # Recalculer les stats après exclusion
-    stats = {
-        'total':          len(rows),
-        'integrees':      sum(1 for r in rows if r.get('statut_effectif') == 'integre'),
-        'integrees_vide': sum(1 for r in rows if r.get('statut_effectif') == 'integre_vide'),
-        'ecarts':         sum(1 for r in rows if r.get('statut_effectif') == 'non_integre'),
-        'ecarts_valo':    sum(1 for r in rows if r.get('has_ecart_valo')),
-        'ignores':        result['stats'].get('ignores', 0),
-    }
-
-    # Filtres
     f_statut     = request.GET.get('statut', 'non_integree').strip()
     f_magasin    = request.GET.get('magasin', '').strip()
     f_nsee       = request.GET.get('nsee', '').strip()
     f_search     = request.GET.get('search', '').strip()
-    f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
-    f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
+    f_date_debut = request.GET.get('date_debut', '').strip()
+    f_date_fin   = request.GET.get('date_fin', '').strip()
+    f_full_asten = request.GET.get('full_asten', '').strip()
+    try:
+        page_num = max(1, int(request.GET.get('page', 1)))
+    except (ValueError, TypeError):
+        page_num = 1
 
-    magasins_list = sorted({r['cidc'] for r in rows if r['cidc']})
-    nsee_list     = sorted({r['nsee'] for r in rows if r['nsee']})
+    full_asten_codes = list(
+        MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True)
+    )
 
+    where  = ["statut_effectif != 'ignore'"]
+    params = []
+
+    if f_full_asten == '1' and full_asten_codes:
+        where.append(f"cidc = ANY(%s)"); params.append(full_asten_codes)
     if f_statut == 'integree':
-        rows = [r for r in rows if r.get('statut_effectif') == 'integre']
+        where.append("statut_effectif = 'integre'")
     elif f_statut == 'integree_vide':
-        rows = [r for r in rows if r.get('statut_effectif') == 'integre_vide']
+        where.append("statut_effectif = 'integre_vide'")
     elif f_statut == 'non_integree':
-        rows = [r for r in rows if r.get('statut_effectif') == 'non_integre']
+        where.append("statut_effectif = 'non_integre'")
     elif f_statut == 'ecart_valo':
-        rows = [r for r in rows if r.get('has_ecart_valo')]
+        where.append("has_ecart_valo = true")
     elif f_statut == 'ecart':
-        rows = [r for r in rows if not r.get('integree_csv')]
+        where.append("integree = false")
     elif f_statut == 'manuel_integre':
-        rows = [r for r in rows if r.get('statut_manuel') == 'integre']
-    # 'tous' → pas de filtre
+        where.append("statut_manuel = 'integre'")
     if f_magasin:
-        rows = [r for r in rows if r['cidc'] == f_magasin]
+        where.append("cidc = %s"); params.append(f_magasin)
     if f_nsee:
-        rows = [r for r in rows if r['nsee'] == f_nsee]
+        where.append("nsee = %s"); params.append(f_nsee)
     if f_date_debut:
-        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] >= f_date_debut]
+        where.append("dfac_date >= %s"); params.append(f_date_debut)
     if f_date_fin:
-        rows = [r for r in rows if r['dfac_date'] and r['dfac_date'] <= f_date_fin]
+        where.append("dfac_date <= %s"); params.append(f_date_fin)
     if f_search:
+        where.append("(UPPER(cle_facture) LIKE %s OR UPPER(nfac) LIKE %s)")
         s = f_search.upper()
-        rows = [r for r in rows if s in (r.get('cle_facture') or '').upper() or s in (r.get('nfac') or '').upper()]
+        params += [f'%{s}%', f'%{s}%']
 
-    total    = len(rows)
-    page_obj, paginator = _paginate(request, rows, per_page=100)
+    where_sql = "WHERE " + " AND ".join(where)
+
+    try:
+        with connection.cursor() as cur:
+            # Stats globales (toujours sans filtre statut/search)
+            base_where = ["statut_effectif != 'ignore'"]
+            base_params = []
+            if f_full_asten == '1' and full_asten_codes:
+                base_where.append("cidc = ANY(%s)"); base_params.append(full_asten_codes)
+            base_sql = "WHERE " + " AND ".join(base_where)
+
+            cur.execute(f"""
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN statut_effectif='integre'     THEN 1 ELSE 0 END) AS integrees,
+                    SUM(CASE WHEN statut_effectif='integre_vide'THEN 1 ELSE 0 END) AS integrees_vide,
+                    SUM(CASE WHEN statut_effectif='non_integre' THEN 1 ELSE 0 END) AS ecarts,
+                    SUM(CASE WHEN has_ecart_valo               THEN 1 ELSE 0 END) AS ecarts_valo
+                FROM mv_factures_joined {base_sql}
+            """, base_params)
+            r = cur.fetchone()
+            stats = {
+                'total': r[0] or 0, 'integrees': r[1] or 0,
+                'integrees_vide': r[2] or 0, 'ecarts': r[3] or 0,
+                'ecarts_valo': r[4] or 0,
+            }
+
+            # Listes filtres
+            cur.execute("SELECT DISTINCT cidc FROM mv_factures_joined WHERE cidc IS NOT NULL ORDER BY cidc")
+            magasins_list = [r[0] for r in cur.fetchall()]
+            cur.execute("SELECT DISTINCT nsee FROM mv_factures_joined WHERE nsee IS NOT NULL ORDER BY nsee")
+            nsee_list = [r[0] for r in cur.fetchall()]
+
+            # Total avec filtres
+            cur.execute(f"SELECT COUNT(*) FROM mv_factures_joined {where_sql}", params)
+            total = cur.fetchone()[0]
+
+            # Page courante seulement
+            offset = (page_num - 1) * PER_PAGE
+            cur.execute(f"""
+                SELECT cle_facture, nfac, nsee, dfac_str, dfac_date, cidc,
+                       pfth_total, nb_articles, qt_asten, valo_ttc, integree,
+                       statut_effectif, statut_manuel, ecart_valo, has_ecart_valo
+                FROM mv_factures_joined
+                {where_sql}
+                ORDER BY cidc, dfac_date DESC
+                LIMIT %s OFFSET %s
+            """, params + [PER_PAGE, offset])
+            cols = [d[0] for d in cur.description]
+            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+        error = None
+    except Exception as e:
+        rows, total, magasins_list, nsee_list, stats, error = [], 0, [], [], {}, str(e)
+
+    import math
+    num_pages = max(1, math.ceil(total / PER_PAGE)) if total else 1
 
     return render(request, 'dashboard/factures_backup.html', {
-        'rows':            page_obj,
-        'page_obj':        page_obj,
-        'paginator':       paginator,
+        'rows':            rows,
+        'page_obj':        rows,
         'stats':           stats,
         'error':           error,
         'magasins_list':   magasins_list,
@@ -4309,11 +4386,16 @@ def vue_factures_backup(request):
         'f_magasin':       f_magasin,
         'f_nsee':          f_nsee,
         'f_search':        f_search,
-        'f_date_debut':    request.GET.get('date_debut', ''),
-        'f_date_fin':      request.GET.get('date_fin', ''),
+        'f_date_debut':    f_date_debut,
+        'f_date_fin':      f_date_fin,
         'f_full_asten':    f_full_asten,
-        'full_asten_codes': full_asten_codes,
+        'full_asten_codes': set(full_asten_codes),
         'total':           total,
+        'page_num':        page_num,
+        'num_pages':       num_pages,
+        'has_prev':        page_num > 1,
+        'has_next':        page_num < num_pages,
+        'page_range':      range(max(1, page_num - 3), min(num_pages + 1, page_num + 4)),
     })
 
 
