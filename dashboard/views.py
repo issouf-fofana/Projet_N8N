@@ -817,143 +817,135 @@ def dashboard(request):
         
     elif type_donnees == 'factures_backup':
         from django.db import connection as _conn
-        import json as _json
 
         backup_error = None
-
-        # Codes Full Asten
-        from core.models import Magasin as MagasinModel
-        full_asten_codes = set(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
-        filtre_full_asten = request.GET.get('full_asten') == '1' and type_donnees == 'factures_backup'
+        filtre_full_asten = request.GET.get('full_asten') == '1'
         filtre_statut     = request.GET.get('statut_fv', 'non_integre')
 
-        # ── Stats globales (via cache) ──────────────────────────────────────
         try:
             from imports.services import get_factures_stats_sql
             fv_sql = get_factures_stats_sql()
         except Exception:
             fv_sql = {}
 
-        # ── Stats pour les cartes + graphique : SQL direct sur mv_factures_joined ──
-        # La vue filtre déjà nsee != '19' et qlvu >= 0
-        _where = []
+        # ── Conditions WHERE communes ──────────────────────────────────────
+        _where = ["m.statut_effectif != 'ignore'"]
         _params = []
-        if filtre_full_asten and full_asten_codes:
-            _where.append("m.cidc = ANY(%s)")
-            _params.append(list(full_asten_codes))
+        if filtre_full_asten:
+            _where.append("COALESCE(fa.full_asten, false) = true")
         if code_magasin:
             _where.append("m.cidc = ANY(%s)")
             _params.append(list(code_magasin))
+        if date_debut_parsed:
+            _where.append("m.dfac_date >= %s")
+            _params.append(date_debut_parsed)
+        if date_fin_parsed:
+            _where.append("m.dfac_date <= %s")
+            _params.append(date_fin_parsed)
+        _where_sql = "WHERE " + " AND ".join(_where)
 
-        _where_sql = ("WHERE " + " AND ".join(_where)) if _where else ""
-
-        # Statuts manuels mis en cache 10 min (invalidé après modification)
-        from django.core.cache import cache as _dj_cache
-        from imports.models import FactureEcartStatut
-        _STATUTS_CACHE_KEY = 'facture_ecart_statuts_v1'
-        _statuts_manuels = _dj_cache.get(_STATUTS_CACHE_KEY)
-        if _statuts_manuels is None:
-            _statuts_manuels = {
-                (s.cle_facture, s.dfac_str, s.cidc): s.statut
-                for s in FactureEcartStatut.objects.all()
-            }
-            _dj_cache.set(_STATUTS_CACHE_KEY, _statuts_manuels, 60 * 10)
-        _ignores = set(k for k, v in _statuts_manuels.items() if v == 'ignore')
-        _force_integre = set(k for k, v in _statuts_manuels.items() if v == 'integre')
+        backup_files = None
 
         try:
             with _conn.cursor() as _cur:
-                # Stats agrégées par magasin directement depuis la vue matérialisée
+                # ── Agrégats globaux (1 requête) ───────────────────────────
                 _cur.execute(f"""
                     SELECT
-                        m.cle_facture, m.nfac, m.nsee, m.dfac_str, m.dfac_date,
-                        m.cidc, m.pfth_total, m.nb_articles, m.qt_asten, m.valo_ttc,
-                        m.integree,
-                        COALESCE(fa.full_asten, false) AS is_full_asten
+                        COUNT(*)                                                          AS nb_tot,
+                        SUM(CASE WHEN m.statut_effectif = 'integre'       THEN 1 ELSE 0 END) AS nb_int,
+                        SUM(CASE WHEN m.statut_effectif = 'integre_vide'  THEN 1 ELSE 0 END) AS nb_vide,
+                        SUM(CASE WHEN m.statut_effectif = 'non_integre'   THEN 1 ELSE 0 END) AS nb_eca,
+                        SUM(CASE WHEN m.statut_effectif = 'non_full_asten' THEN 1 ELSE 0 END) AS nb_nfa
                     FROM mv_factures_joined m
                     LEFT JOIN core_magasin fa ON fa.code = m.cidc
                     {_where_sql}
-                    ORDER BY m.cidc, m.dfac_date
                 """, _params)
+                _r = _cur.fetchone()
+                nb_tot, nb_int, nb_vide, nb_eca, nb_nfa = (int(v or 0) for v in _r)
+
+                # ── Stats par magasin (1 requête) ──────────────────────────
+                _cur.execute(f"""
+                    SELECT
+                        m.cidc,
+                        COALESCE(fa.full_asten, false)                                    AS full_asten,
+                        COUNT(*)                                                          AS total,
+                        SUM(CASE WHEN m.statut_effectif = 'integre'        THEN 1 ELSE 0 END) AS integrees,
+                        SUM(CASE WHEN m.statut_effectif = 'integre_vide'   THEN 1 ELSE 0 END) AS integrees_vide,
+                        SUM(CASE WHEN m.statut_effectif = 'non_integre'    THEN 1 ELSE 0 END) AS ecarts,
+                        SUM(CASE WHEN m.statut_effectif = 'non_full_asten' THEN 1 ELSE 0 END) AS non_full_asten,
+                        SUM(CASE WHEN m.has_ecart_valo                     THEN 1 ELSE 0 END) AS ecarts_valo
+                    FROM mv_factures_joined m
+                    LEFT JOIN core_magasin fa ON fa.code = m.cidc
+                    {_where_sql}
+                    GROUP BY m.cidc, fa.full_asten
+                    ORDER BY m.cidc
+                """, _params)
+                stats_par_magasin = {
+                    row[0]: {
+                        'full_asten': bool(row[1]),
+                        'total': int(row[2] or 0),
+                        'integrees': int(row[3] or 0),
+                        'integrees_vide': int(row[4] or 0),
+                        'ecarts': int(row[5] or 0),
+                        'non_full_asten': int(row[6] or 0),
+                        'ecarts_valo': int(row[7] or 0),
+                    }
+                    for row in _cur.fetchall()
+                }
+
+                # ── Filtre statut pour le tableau (LIMIT/OFFSET) ───────────
+                _statut_where = _where_sql
+                _statut_params = list(_params)
+                if filtre_statut == 'integre':
+                    _statut_where += " AND m.statut_effectif = 'integre'"
+                elif filtre_statut == 'integre_vide':
+                    _statut_where += " AND m.statut_effectif = 'integre_vide'"
+                elif filtre_statut == 'non_integre':
+                    _statut_where += " AND m.statut_effectif = 'non_integre'"
+                elif filtre_statut == 'ecart_valo':
+                    _statut_where += " AND m.has_ecart_valo = true"
+
+                _cur.execute(f"SELECT COUNT(*) FROM mv_factures_joined m LEFT JOIN core_magasin fa ON fa.code = m.cidc {_statut_where}", _statut_params)
+                _total_filtre = _cur.fetchone()[0]
+
+                _dpp = _dashboard_per_page
+                _pnum = max(1, int(request.GET.get('page', 1)))
+                _npages = max(1, (_total_filtre + _dpp - 1) // _dpp)
+                _pnum = min(_pnum, _npages)
+                _offset = (_pnum - 1) * _dpp
+
+                _cur.execute(f"""
+                    SELECT
+                        m.cle_facture, m.nfac, m.nsee, m.dfac_str, m.dfac_date,
+                        m.cidc, m.pfth_total AS pfth_cyrus, m.valo_ttc AS valo_asten,
+                        m.qt_asten, m.nb_articles, m.ecart_valo, m.has_ecart_valo,
+                        m.statut_effectif, m.statut_manuel, m.integree AS integree_csv
+                    FROM mv_factures_joined m
+                    LEFT JOIN core_magasin fa ON fa.code = m.cidc
+                    {_statut_where}
+                    ORDER BY
+                        CASE m.statut_effectif
+                            WHEN 'non_integre'    THEN 0
+                            WHEN 'non_full_asten' THEN 1
+                            WHEN 'integre_vide'   THEN 2
+                            ELSE 3
+                        END,
+                        m.dfac_date DESC
+                    LIMIT %s OFFSET %s
+                """, _statut_params + [_dpp, _offset])
                 _cols = [d[0] for d in _cur.description]
-                _all_rows = [dict(zip(_cols, row)) for row in _cur.fetchall()]
+                _joined_page = [dict(zip(_cols, row)) for row in _cur.fetchall()]
+
         except Exception as _e:
             backup_error = f"Erreur lecture vue matérialisée : {_e}"
-            _all_rows = []
+            nb_tot = nb_int = nb_vide = nb_eca = nb_nfa = 0
+            stats_par_magasin = {}
+            _joined_page = []
+            _total_filtre = 0
+            _pnum = 1
+            _npages = 1
 
-        # Calcul statut_effectif en Python (nécessaire pour statuts manuels)
-        nb_int = nb_vide = nb_eca = nb_nfa = 0
-        stats_par_magasin = {}
-        _joined_all = []
-
-        for _row in _all_rows:
-            _cle     = _row['cle_facture']
-            _cidc    = _row['cidc']
-            _dfac    = _row['dfac_str']
-            _integree_csv = bool(_row['integree'])
-            _qt      = float(_row['qt_asten'] or 0)
-            _pfth    = float(_row['pfth_total'] or 0)
-            _valo    = float(_row['valo_ttc']) if _row['valo_ttc'] is not None else 0.0
-            _valo_ok = _row['valo_ttc'] is not None
-            _is_fa   = bool(_row['is_full_asten'])
-
-            _ecart_valo = abs(round(_valo - _pfth, 2)) if _integree_csv and _valo_ok and _qt > 0 else 0.0
-            _has_ecart  = _ecart_valo > 1
-            _mkey       = (_cle, _dfac, _cidc)
-            _sm         = _statuts_manuels.get(_mkey)
-
-            if _mkey in _ignores:
-                continue
-            if _integree_csv:
-                _statut = 'integre' if _qt > 0 else 'integre_vide'
-            elif _sm == 'integre':
-                _statut = 'integre'
-            elif not _is_fa:
-                _statut = 'non_full_asten'
-            else:
-                _statut = 'non_integre'
-
-            if _statut == 'integre':         nb_int  += 1
-            elif _statut == 'integre_vide':  nb_vide += 1
-            elif _statut == 'non_full_asten': nb_nfa  += 1
-            else:                            nb_eca  += 1
-
-            if _cidc not in stats_par_magasin:
-                stats_par_magasin[_cidc] = {
-                    'total': 0, 'integrees': 0, 'integrees_vide': 0,
-                    'ecarts': 0, 'ecarts_valo': 0, 'non_full_asten': 0,
-                    'full_asten': _is_fa,
-                }
-            _sm_cidc = stats_par_magasin[_cidc]
-            _sm_cidc['total'] += 1
-            if _statut == 'integre':          _sm_cidc['integrees'] += 1
-            elif _statut == 'integre_vide':   _sm_cidc['integrees_vide'] += 1
-            elif _statut == 'non_full_asten': _sm_cidc['non_full_asten'] += 1
-            else:                             _sm_cidc['ecarts'] += 1
-            if _has_ecart:                    _sm_cidc['ecarts_valo'] += 1
-
-            _joined_all.append({
-                'cle_facture':    _cle,
-                'nfac':           _row.get('nfac', ''),
-                'nsee':           _row.get('nsee', ''),
-                'dfac_str':       _dfac,
-                'dfac_date':      _row.get('dfac_date'),
-                'cidc':           _cidc,
-                'pfth_cyrus':     _pfth,
-                'valo_asten':     _valo,
-                'qt_asten':       _qt,
-                'nb_articles':    int(_row.get('nb_articles') or 0),
-                'ecart_valo':     _ecart_valo,
-                'has_ecart_valo': _has_ecart,
-                'statut_effectif': _statut,
-                'statut_manuel':   _sm,
-                'integree':        _statut in ('integre', 'integre_vide'),
-                'integree_csv':    _integree_csv,
-            })
-
-        nb_tot = len(_joined_all)
         taux = round((nb_int + nb_vide) / nb_tot * 100, 1) if nb_tot else 0
-
         stats = {
             'total_source':         nb_tot,
             'total_target':         nb_tot,
@@ -965,25 +957,17 @@ def dashboard(request):
             'par_magasin':          stats_par_magasin,
         }
 
-        # ── Filtre statut puis pagination ──────────────────────────────────
-        if filtre_statut == 'integre':
-            joined_filtre = [r for r in _joined_all if r['statut_effectif'] == 'integre']
-        elif filtre_statut == 'integre_vide':
-            joined_filtre = [r for r in _joined_all if r['statut_effectif'] == 'integre_vide']
-        elif filtre_statut == 'non_integre':
-            joined_filtre = [r for r in _joined_all if r['statut_effectif'] == 'non_integre']
-        elif filtre_statut == 'ecart_valo':
-            joined_filtre = [r for r in _joined_all if r['has_ecart_valo']]
-        else:
-            joined_filtre = _joined_all
+        # Paginator-like object pour compatibilité template
+        from django.core.paginator import Page, Paginator as _Pag
+        _dummy_pag = _Pag(_joined_page, _dpp)
+        _dashboard_page_obj = _dummy_pag.page(1)
+        # On remplace object_list par les vraies données de la page
+        _dashboard_page_obj.object_list     = _joined_page
+        _dashboard_page_obj.number          = _pnum
+        _dashboard_page_obj.paginator.count = _total_filtre
+        _dashboard_page_obj.paginator.num_pages = _npages
 
-        _ordre = {'non_integre': 0, 'non_full_asten': 0, 'integre_vide': 1, 'integre': 2}
-        joined_filtre.sort(key=lambda r: _ordre.get(r['statut_effectif'], 3))
-
-        _dashboard_page_obj = _paginate(request, joined_filtre, per_page=_dashboard_per_page)[0]
         titre_tableau = "Factures Backup (Cyrus)"
-
-        backup_files = None
         
     elif type_donnees == 'br':
         # BR ASTEN (statut IC fourni dans le fichier)
