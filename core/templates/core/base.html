@@ -1118,6 +1118,10 @@
                 </h2>
                 <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'historique_imports' or request.resolver_match.url_name == 'configuration_systeme' or request.resolver_match.url_name == 'gestion_magasins' or request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' or request.resolver_match.url_name == 'preferences_utilisateur' %}show{% endif %}" data-bs-parent="#sidebarAccordionAdmin">
                     <div class="accordion-body">
+                        <a href="{% url 'dashboard:activite_live' %}" class="{% if request.resolver_match.url_name == 'activite_live' %}active{% endif %}">
+                            <i class="bi bi-activity"></i> Activité en direct
+                            <span id="run-dot-sidebar" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#9ca3af;margin-left:4px;vertical-align:middle"></span>
+                        </a>
                         <a href="{% url 'dashboard:historique_imports' %}" class="{% if request.resolver_match.url_name == 'historique_imports' %}active{% endif %}">
                             <i class="bi bi-clock-history"></i> Historique imports
                         </a>
@@ -1626,6 +1630,24 @@
             apply(!now);
             localStorage.setItem(STORAGE_KEY, (!now) ? '1' : '0');
         });
+    })();
+    </script>
+    <script>
+    // Dot run_auto dans la sidebar — polling toutes les 15s
+    (function() {
+        var dot = document.getElementById('run-dot-sidebar');
+        if (!dot) return;
+        function checkRunAuto() {
+            fetch("{% url 'dashboard:api_activite' %}")
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    dot.style.background = d.run_auto_actif ? '#22c55e' : '#9ca3af';
+                    dot.title = d.run_auto_actif ? 'run_auto actif' : 'run_auto arrêté';
+                })
+                .catch(function(){});
+        }
+        checkRunAuto();
+        setInterval(checkRunAuto, 15000);
     })();
     </script>
 </body>

@@ -1,0 +1,195 @@
+{% extends 'core/base.html' %}
+{% block title %}Activité en direct{% endblock %}
+
+{% block extra_css %}
+<style>
+.act-root { display:flex; gap:20px; padding:20px; height:calc(100vh - 80px); }
+.act-panel { display:flex; flex-direction:column; background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+.act-panel-imports { flex:1; min-width:0; }
+.act-panel-log { width:420px; flex-shrink:0; }
+.act-header { padding:14px 18px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:10px; }
+.act-header h2 { font-size:0.95rem; font-weight:700; margin:0; color:#1f2937; }
+.act-body { flex:1; overflow-y:auto; }
+
+/* Badge statut run_auto */
+.run-badge { display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:600; padding:3px 10px; border-radius:20px; }
+.run-badge.on  { background:#dcfce7; color:#166534; }
+.run-badge.off { background:#fee2e2; color:#991b1b; }
+.run-dot { width:8px; height:8px; border-radius:50%; }
+.run-badge.on  .run-dot { background:#22c55e; animation:pulse 1.5s infinite; }
+.run-badge.off .run-dot { background:#ef4444; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* Tableau imports */
+.imp-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.imp-table th { background:#f8fafc; padding:9px 14px; text-align:left; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; border-bottom:2px solid #e5e7eb; white-space:nowrap; }
+.imp-table td { padding:8px 14px; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+.imp-table tr:hover td { background:#f0f7ff; }
+.badge-type { font-size:0.72rem; font-weight:600; padding:2px 8px; border-radius:5px; white-space:nowrap; }
+.badge-asten   { background:#dbeafe; color:#1e40af; }
+.badge-cyrus   { background:#fce7f3; color:#9d174d; }
+.badge-gpv     { background:#fef3c7; color:#92400e; }
+.badge-legend  { background:#ede9fe; color:#5b21b6; }
+.badge-br_asten{ background:#d1fae5; color:#065f46; }
+.badge-br_ic   { background:#ffedd5; color:#9a3412; }
+.badge-facture_asten { background:#e0e7ff; color:#3730a3; }
+.badge-facture_cyrus { background:#fdf2f8; color:#86198f; }
+.s-termine { color:#059669; font-weight:600; }
+.s-erreur  { color:#dc2626; font-weight:600; }
+.s-en_cours{ color:#d97706; font-weight:600; }
+
+/* Log terminal */
+.log-terminal { background:#0f172a; color:#94a3b8; font-family:monospace; font-size:0.78rem; line-height:1.6; padding:14px; height:100%; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
+.log-line-copy    { color:#4ade80; }
+.log-line-erreur  { color:#f87171; }
+.log-line-nouveau { color:#60a5fa; }
+.log-line-ok      { color:#a3e635; }
+
+/* refresh indicator */
+.refresh-info { margin-left:auto; font-size:0.75rem; color:#9ca3af; display:flex; align-items:center; gap:6px; }
+.spinner-sm { width:12px; height:12px; border:2px solid #e5e7eb; border-top-color:#6366f1; border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding:16px 20px 0">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <h1 class="h5 fw-bold mb-0" style="color:#1f2937">
+            <i class="bi bi-activity me-2" style="color:#6366f1"></i>Activité en direct
+        </h1>
+        <span id="run-badge" class="run-badge off">
+            <span class="run-dot"></span>
+            <span id="run-label">run_auto : vérification…</span>
+        </span>
+        <span class="refresh-info">
+            <span class="spinner-sm" id="spinner" style="display:none"></span>
+            <span id="last-refresh">—</span>
+        </span>
+    </div>
+</div>
+
+<div class="act-root">
+
+    <!-- Panneau imports -->
+    <div class="act-panel act-panel-imports">
+        <div class="act-header">
+            <i class="bi bi-database-up" style="color:#6366f1"></i>
+            <h2>Imports en base <span id="imp-count" class="badge bg-secondary ms-1">…</span></h2>
+        </div>
+        <div class="act-body">
+            <table class="imp-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Fichier</th>
+                        <th>Lignes</th>
+                        <th>Nouveaux</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody id="imp-tbody">
+                    <tr><td colspan="6" class="text-center text-muted py-4">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Panneau log terminal -->
+    <div class="act-panel act-panel-log">
+        <div class="act-header">
+            <i class="bi bi-terminal" style="color:#22c55e"></i>
+            <h2>Journal run_auto</h2>
+        </div>
+        <div class="act-body">
+            <div class="log-terminal" id="log-terminal">Chargement…</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const API_URL = "{% url 'dashboard:api_activite' %}";
+const INTERVAL = 5000; // 5 secondes
+
+const LABELS = {
+    asten:'Asten', cyrus:'Cyrus', gpv:'GPV', legend:'Legend',
+    br_asten:'BR Asten', br_ic:'BR IC',
+    facture_asten:'Fact. Asten', facture_cyrus:'Fact. Cyrus',
+    facture_backup:'Backup'
+};
+
+function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function renderImports(imports) {
+    const tbody = document.getElementById('imp-tbody');
+    document.getElementById('imp-count').textContent = imports.length;
+    if (!imports.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox"></i> Aucun import</td></tr>';
+        return;
+    }
+    tbody.innerHTML = imports.map(imp => {
+        const type = imp.type_fichier || '';
+        const label = LABELS[type] || type;
+        const sClass = imp.statut === 'termine' ? 's-termine' : imp.statut === 'erreur' ? 's-erreur' : 's-en_cours';
+        const sIcon  = imp.statut === 'termine' ? '✓' : imp.statut === 'erreur' ? '✗' : '…';
+        const errTip = imp.message_erreur ? ` title="${imp.message_erreur.replace(/"/g,"'")}"` : '';
+        return `<tr>
+            <td class="text-nowrap text-muted" style="font-size:0.75rem">${fmtDate(imp.date_import)}</td>
+            <td><span class="badge-type badge-${type}">${label}</span></td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${imp.nom_fichier}">${imp.nom_fichier}</td>
+            <td class="text-end">${imp.nombre_lignes ?? '—'}</td>
+            <td class="text-end">${imp.nombre_nouveaux ?? '—'}</td>
+            <td class="${sClass}"${errTip}>${sIcon} ${imp.statut}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderLog(lines) {
+    const term = document.getElementById('log-terminal');
+    if (!lines.length) { term.textContent = 'Aucun log disponible (logs/run_auto.log)'; return; }
+    term.innerHTML = lines.map(l => {
+        let cls = '';
+        if (l.includes('[COPY]') || l.includes('[OK]'))     cls = 'log-line-copy';
+        else if (l.includes('[ERREUR]'))                     cls = 'log-line-erreur';
+        else if (l.includes('[NOUVEAU]'))                    cls = 'log-line-nouveau';
+        else if (l.includes('✓') || l.includes('Terminé'))  cls = 'log-line-ok';
+        const escaped = l.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        return cls ? `<span class="${cls}">${escaped}</span>` : escaped;
+    }).join('\n');
+    // Auto-scroll vers le bas
+    term.scrollTop = term.scrollHeight;
+}
+
+function renderRunBadge(actif) {
+    const badge = document.getElementById('run-badge');
+    const label = document.getElementById('run-label');
+    badge.className = 'run-badge ' + (actif ? 'on' : 'off');
+    label.textContent = actif ? 'run_auto : actif' : 'run_auto : arrêté';
+}
+
+async function refresh() {
+    document.getElementById('spinner').style.display = 'inline-block';
+    try {
+        const resp = await fetch(API_URL);
+        const data = await resp.json();
+        renderImports(data.imports);
+        renderLog(data.log_lines);
+        renderRunBadge(data.run_auto_actif);
+        document.getElementById('last-refresh').textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
+    } catch(e) {
+        document.getElementById('last-refresh').textContent = 'Erreur réseau';
+    } finally {
+        document.getElementById('spinner').style.display = 'none';
+    }
+}
+
+refresh();
+setInterval(refresh, INTERVAL);
+</script>
+{% endblock %}

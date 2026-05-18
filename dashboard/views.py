@@ -4470,6 +4470,55 @@ def api_last_import(request):
     return JsonResponse({'last_import': ts})
 
 
+def activite_live(request):
+    """Page journal d'activité : copie SMB + imports en base."""
+    return render(request, 'dashboard/activite_live.html')
+
+
+def api_activite(request):
+    """API JSON — dernières activités pour le polling du journal live."""
+    import os
+    from imports.models import ImportFichier
+    from django.utils import timezone as _tz
+
+    # ── Derniers imports en base (50 max) ──────────────────────────────────
+    imports = list(
+        ImportFichier.objects
+        .order_by('-date_import')
+        .values('id', 'type_fichier', 'nom_fichier', 'statut',
+                'nombre_lignes', 'nombre_nouveaux', 'message_erreur', 'date_import')
+        [:50]
+    )
+    for imp in imports:
+        imp['date_import'] = imp['date_import'].isoformat()
+
+    # ── Dernières lignes du log run_auto ───────────────────────────────────
+    log_path = os.path.join(settings.BASE_DIR, 'logs', 'run_auto.log')
+    log_lines = []
+    if os.path.exists(log_path):
+        try:
+            with open(log_path, 'r', errors='replace') as f:
+                lines = f.readlines()
+            log_lines = [l.rstrip() for l in lines[-100:]]
+        except Exception:
+            pass
+
+    # ── Statut run_auto (en cours ou arrêté) ──────────────────────────────
+    import subprocess
+    try:
+        out = subprocess.check_output(['pgrep', '-f', 'run_auto.py'], text=True)
+        run_auto_actif = bool(out.strip())
+    except subprocess.CalledProcessError:
+        run_auto_actif = False
+
+    return JsonResponse({
+        'imports':        imports,
+        'log_lines':      log_lines,
+        'run_auto_actif': run_auto_actif,
+        'now':            _tz.now().isoformat(),
+    })
+
+
 def changer_mot_de_passe(request):
     """Vue forcée au premier login si must_change_password=True."""
     from django.contrib.auth import update_session_auth_hash
