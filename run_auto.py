@@ -74,10 +74,27 @@ def get_known_files(dest_dir, extensions):
     }
 
 
+DATE_IN_NAME = re.compile(r'(\d{8})_\d{6}')
+
+
+def get_file_date(filename, mtime):
+    """
+    Extrait la date depuis le nom du fichier (ex: _20260518_141111).
+    Si absente, utilise le mtime. Le SMB peut fausser le mtime — le nom est fiable.
+    """
+    m = DATE_IN_NAME.search(filename)
+    if m:
+        try:
+            return datetime.strptime(m.group(1), "%Y%m%d")
+        except ValueError:
+            pass
+    return datetime.fromtimestamp(mtime)
+
+
 def scan_source(source_dir, dest_dir, folder_name, known_files):
     """
     Parcourt source_dir et copie dans dest_dir tout fichier
-    - modifié dans les JOURS_MAX derniers jours
+    - dont la date (dans le nom ou mtime) est dans les JOURS_MAX derniers jours
     - pas encore présent dans known_files (ou COPY_ALWAYS)
     Retourne le nombre de fichiers copiés.
     """
@@ -98,7 +115,6 @@ def scan_source(source_dir, dest_dir, folder_name, known_files):
 
             try:
                 mtime = os.path.getmtime(source_file)
-                file_date = datetime.fromtimestamp(mtime)
 
                 if always:
                     dest_file = os.path.join(dest_dir, file)
@@ -108,14 +124,21 @@ def scan_source(source_dir, dest_dir, folder_name, known_files):
                         copied += 1
                     continue
 
+                # Date fiable = depuis le nom du fichier
+                file_date = get_file_date(file, mtime)
+
                 # Ignorer les fichiers trop anciens
                 if file_date < cutoff:
                     continue
 
-                # Construire le nom de destination avec timestamp
-                date_str = file_date.strftime("%Y%m%d_%H%M%S")
-                name, ext = os.path.splitext(file)
-                dest_name = f"{name}_{date_str}{ext}"
+                # Nom destination = nom original (la date est déjà dedans)
+                # Si pas de date dans le nom, ajouter le mtime
+                if DATE_IN_NAME.search(file):
+                    dest_name = file
+                else:
+                    date_str = datetime.fromtimestamp(mtime).strftime("%Y%m%d_%H%M%S")
+                    name, ext = os.path.splitext(file)
+                    dest_name = f"{name}_{date_str}{ext}"
 
                 if dest_name in known_files:
                     continue  # déjà copié
