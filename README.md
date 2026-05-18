@@ -307,3 +307,83 @@ Pour la production (serveur dédié)
 
 ## Si tu mets ça sur un vrai serveur, tu n'utilises plus runserver — tu utilises Gunicorn + Nginx qui démarrent automatiquement comme services. Mais pour l'instant en local, les 3 commandes ci-dessus suffisent.
 
+
+---
+
+## ⚙️ Configuration serveur de production (/opt/Projet_N8N)
+
+### Services qui tournent
+
+| Service | Rôle | Commande |
+|---|---|---|
+| `gunicorn` | Serveur Django | `sudo systemctl restart gunicorn` |
+| `run_auto.py` | Surveillance SMB → copie media/ | Daemon manuel (voir ci-dessous) |
+| cron `auto_import` | Import fichiers + recalcul écarts | Toutes les 5 min |
+
+---
+
+### 1. run_auto.py — Surveillance des fichiers SMB
+
+Tourne en **daemon** en arrière-plan. Surveille les dossiers SMB et copie les nouveaux fichiers (≤ 7 jours) dans `media/` toutes les 2 minutes.
+
+**Vérifier s'il tourne :**
+```bash
+ps aux | grep run_auto
+```
+
+**S'il ne tourne pas, le relancer :**
+```bash
+mkdir -p /opt/Projet_N8N/logs
+nohup /opt/Projet_N8N/env/bin/python /opt/Projet_N8N/run_auto.py --interval 2 > /opt/Projet_N8N/logs/run_auto.log 2>&1 &
+```
+
+**Voir ses logs :**
+```bash
+tail -f /opt/Projet_N8N/logs/run_auto.log
+```
+
+**En cas de double instance, tuer et relancer :**
+```bash
+pkill -f run_auto.py
+# puis relancer avec nohup ci-dessus
+```
+
+---
+
+### 2. Cron auto_import — Import + recalcul écarts
+
+Configuré dans `crontab -e` :
+```cron
+*/5 * * * * cd /opt/Projet_N8N && env/bin/python manage.py auto_import >> /opt/Projet_N8N/logs/auto_import.log 2>&1
+```
+
+**Lancer manuellement :**
+```bash
+cd /opt/Projet_N8N && env/bin/python manage.py auto_import
+```
+
+**Recalculer les écarts manuellement :**
+```bash
+cd /opt/Projet_N8N && env/bin/python manage.py shell -c "from ecarts.services import recalculer_ecarts; r = recalculer_ecarts(); print(r)"
+```
+
+**Voir les logs :**
+```bash
+tail -f /opt/Projet_N8N/logs/auto_import.log
+```
+
+---
+
+### 3. Déployer une mise à jour
+
+```bash
+sudo git pull
+sudo env/bin/python manage.py migrate   # si nouvelles migrations
+sudo systemctl restart gunicorn
+```
+
+### 4. Page "Activité en direct"
+
+Accessible dans le menu **Paramètres → Activité en direct**.  
+Affiche en temps réel les imports en base + les logs de `run_auto.py`.  
+Se rafraîchit automatiquement toutes les 5 secondes.
