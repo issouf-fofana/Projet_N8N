@@ -16,9 +16,12 @@ import shutil
 import re
 import argparse
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 from pathlib import Path
+
+# Ne copier que les fichiers modifiés dans les N derniers jours (première passe incluse)
+JOURS_MAX = 7
 
 SOURCE_BASE = "/mnt/partage-share"
 
@@ -74,7 +77,8 @@ def get_known_files(dest_dir, extensions):
 def scan_source(source_dir, dest_dir, folder_name, known_files):
     """
     Parcourt source_dir et copie dans dest_dir tout fichier
-    qui n'est pas encore dans known_files (ou COPY_ALWAYS).
+    - modifié dans les JOURS_MAX derniers jours
+    - pas encore présent dans known_files (ou COPY_ALWAYS)
     Retourne le nombre de fichiers copiés.
     """
     if not os.path.isdir(source_dir):
@@ -82,6 +86,7 @@ def scan_source(source_dir, dest_dir, folder_name, known_files):
 
     extensions = EXTENSIONS.get(folder_name, (".csv",))
     always = folder_name in COPY_ALWAYS
+    cutoff = datetime.now() - timedelta(days=JOURS_MAX)
     copied = 0
 
     for root, _, files in os.walk(source_dir):
@@ -92,19 +97,23 @@ def scan_source(source_dir, dest_dir, folder_name, known_files):
             source_file = os.path.join(root, file)
 
             try:
+                mtime = os.path.getmtime(source_file)
+                file_date = datetime.fromtimestamp(mtime)
+
                 if always:
                     dest_file = os.path.join(dest_dir, file)
-                    # Copier si absent ou modifié
-                    if not os.path.exists(dest_file) or \
-                       os.path.getmtime(source_file) > os.path.getmtime(dest_file):
+                    if not os.path.exists(dest_file) or mtime > os.path.getmtime(dest_file):
                         shutil.copy2(source_file, dest_file)
                         log(f"  [COPY] {folder_name}/{file}")
                         copied += 1
                     continue
 
-                # Construire le nom de destination avec timestamp pour éviter collision
-                mtime = os.path.getmtime(source_file)
-                date_str = datetime.fromtimestamp(mtime).strftime("%Y%m%d_%H%M%S")
+                # Ignorer les fichiers trop anciens
+                if file_date < cutoff:
+                    continue
+
+                # Construire le nom de destination avec timestamp
+                date_str = file_date.strftime("%Y%m%d_%H%M%S")
                 name, ext = os.path.splitext(file)
                 dest_name = f"{name}_{date_str}{ext}"
 
