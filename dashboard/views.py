@@ -1918,8 +1918,8 @@ def liste_ecarts(request):
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed   = parse_date(date_fin)   if date_fin   else None
 
-    # Statuts affichés par défaut (hors 'resolu')
-    statuts_actifs = ['ouvert', 'ignore', 'quantite_0']
+    # Statuts affichés par défaut (hors 'resolu' et 'quantite_0')
+    statuts_actifs = ['ouvert', 'ignore']
 
     from django.db import connection
 
