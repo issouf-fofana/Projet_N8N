@@ -1,16 +1,27 @@
 """
-run_auto.py — Copie automatique : hier 00:00 → aujourd'hui 23:59
-Lance ce script sans argument, il calcule les dates tout seul.
+run_auto.py — Surveillance continue des dossiers SMB → copie dans media/
+
+Lance ce script une fois, il tourne en boucle et copie dès qu'un nouveau
+fichier apparaît dans les dossiers source. Intervalle par défaut : 2 minutes.
+
+Usage :
+    python run_auto.py           # intervalle 2 min
+    python run_auto.py --once    # une seule passe puis quitte
+    python run_auto.py --interval 5  # toutes les 5 minutes
 """
+
 import os
+import sys
 import shutil
 import re
-from datetime import datetime, timedelta
+import argparse
+import time
+from datetime import datetime
 from collections import defaultdict
+from pathlib import Path
 
 SOURCE_BASE = "/mnt/partage-share"
 
-# Détection automatique du chemin selon la machine
 _script_dir = os.path.dirname(os.path.abspath(__file__))
 DEST_BASE = os.path.join(_script_dir, "media")
 
@@ -19,21 +30,18 @@ SOURCES = {
     f"{SOURCE_BASE}/FOFANA/Etats Natacha/Commande/PRESENTATION_COMMANDE/CMD CYRUS": "commande_cyrus",
     f"{SOURCE_BASE}/FOFANA/Etats Natacha/Commande/PRESENTATION_COMMANDE/GPV": "commande_gpv",
     f"{SOURCE_BASE}/FOFANA/Etats Natacha/Commande/PRESENTATION_COMMANDE/LEGEND": "commande_legend",
-
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Vérification_BRS/BRS/BRS_IC": "br_ic",
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Vérification_BRS/BRS/ASTEN/Receptions": "br_asten",
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Vérification_BRS/Anomalies_BR_ASTEN": "anomalie_br",
-
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mdme_Natacha/Verification_Factures_ASTEN/Fact_ASTEN": "facture_asten",
     f"{SOURCE_BASE}/ASTEN/SALAMI/Mme_Jeannette/Vérification_Factures_GPV/Fact-CYRUS": "facture_cyrus",
 }
 
-# Extensions acceptées par dossier (par défaut : csv uniquement)
 EXTENSIONS = {
     "br_ic": (".csv", ".xlsx"),
 }
 
-# Dossiers dont le fichier doit être copié sans filtre de date (toujours à jour)
+# Ces dossiers sont toujours recopiés (pas de filtre par nouveauté)
 COPY_ALWAYS = {"anomalie_br"}
 
 DEDUP_PATTERNS = {
@@ -49,76 +57,70 @@ DEDUP_PATTERNS = {
 }
 
 
-def format_date(timestamp):
-    return datetime.fromtimestamp(timestamp).strftime("%Y%m%d_%H%M%S")
+def log(msg):
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
 
 
-def extract_date_from_filename(filename):
-    match = re.search(r'(\d{8}_\d{6})', filename)
-    if match:
-        return datetime.strptime(match.group(1), "%Y%m%d_%H%M%S")
-    return None
+def get_known_files(dest_dir, extensions):
+    """Retourne l'ensemble des noms de fichiers déjà présents dans dest."""
+    if not os.path.isdir(dest_dir):
+        return set()
+    return {
+        f for f in os.listdir(dest_dir)
+        if f.lower().endswith(extensions)
+    }
 
 
-def is_in_range(file_time, start, end):
-    if start and file_time < start:
-        return False
-    if end and file_time > end:
-        return False
-    return True
-
-
-def copy_files(source_dir, dest_dir, start_date, end_date, folder_name=""):
-    if not os.path.exists(source_dir):
-        print(f"  [ERREUR] chemin introuvable: {source_dir}")
-        return
+def scan_source(source_dir, dest_dir, folder_name, known_files):
+    """
+    Parcourt source_dir et copie dans dest_dir tout fichier
+    qui n'est pas encore dans known_files (ou COPY_ALWAYS).
+    Retourne le nombre de fichiers copiés.
+    """
+    if not os.path.isdir(source_dir):
+        return 0
 
     extensions = EXTENSIONS.get(folder_name, (".csv",))
     always = folder_name in COPY_ALWAYS
     copied = 0
-    skipped = 0
 
-    for root, dirs, files in os.walk(source_dir):
+    for root, _, files in os.walk(source_dir):
         for file in files:
             if not file.lower().endswith(extensions):
                 continue
+
             source_file = os.path.join(root, file)
+
             try:
                 if always:
-                    # Copier sans filtre de date, écraser l'existant
                     dest_file = os.path.join(dest_dir, file)
-                    shutil.copy2(source_file, dest_file)
-                    copied += 1
-                    print(f"  [OK] {file}")
+                    # Copier si absent ou modifié
+                    if not os.path.exists(dest_file) or \
+                       os.path.getmtime(source_file) > os.path.getmtime(dest_file):
+                        shutil.copy2(source_file, dest_file)
+                        log(f"  [COPY] {folder_name}/{file}")
+                        copied += 1
                     continue
 
-                file_date = extract_date_from_filename(file)
-                if file_date:
-                    mtime = file_date.timestamp()
-                else:
-                    mtime = os.path.getmtime(source_file)
-                    file_date = datetime.fromtimestamp(mtime)
-
-                if not is_in_range(file_date, start_date, end_date):
-                    continue
-
-                date_str = format_date(mtime)
+                # Construire le nom de destination avec timestamp pour éviter collision
+                mtime = os.path.getmtime(source_file)
+                date_str = datetime.fromtimestamp(mtime).strftime("%Y%m%d_%H%M%S")
                 name, ext = os.path.splitext(file)
-                new_name = f"{name}_{date_str}{ext}"
-                dest_file = os.path.join(dest_dir, new_name)
+                dest_name = f"{name}_{date_str}{ext}"
 
-                if os.path.exists(dest_file):
-                    skipped += 1
-                    continue
+                if dest_name in known_files:
+                    continue  # déjà copié
 
+                dest_file = os.path.join(dest_dir, dest_name)
                 shutil.copy2(source_file, dest_file)
+                known_files.add(dest_name)
+                log(f"  [NOUVEAU] {folder_name}/{dest_name}")
                 copied += 1
-                print(f"  [OK] {file}")
 
             except Exception as e:
-                print(f"  [ERREUR] {source_file} : {e}")
+                log(f"  [ERREUR] {source_file} : {e}")
 
-    print(f"  → {copied} copié(s), {skipped} déjà présent(s)")
+    return copied
 
 
 def deduplicate(dest_dir, folder_name):
@@ -128,6 +130,7 @@ def deduplicate(dest_dir, folder_name):
 
     extensions = EXTENSIONS.get(folder_name, (".csv",))
     groups = defaultdict(list)
+
     for f in os.listdir(dest_dir):
         if not f.lower().endswith(extensions):
             continue
@@ -141,33 +144,76 @@ def deduplicate(dest_dir, folder_name):
     for key, files in groups.items():
         files.sort(reverse=True)
         for _, f in files[1:]:
-            os.remove(os.path.join(dest_dir, f))
-            deleted += 1
+            try:
+                os.remove(os.path.join(dest_dir, f))
+                deleted += 1
+            except Exception:
+                pass
 
     if deleted:
-        print(f"  → {deleted} doublon(s) supprimé(s)")
+        log(f"  [{folder_name}] {deleted} doublon(s) supprimé(s)")
+
+
+def run_once(known_files_cache):
+    """Une passe de scan sur tous les dossiers source."""
+    total_new = 0
+
+    for source_path, folder_name in SOURCES.items():
+        dest_path = os.path.join(DEST_BASE, folder_name)
+        os.makedirs(dest_path, exist_ok=True)
+
+        extensions = EXTENSIONS.get(folder_name, (".csv",))
+
+        # Initialiser le cache pour ce dossier si première passe
+        if folder_name not in known_files_cache:
+            known_files_cache[folder_name] = get_known_files(dest_path, extensions)
+
+        copied = scan_source(
+            source_path, dest_path, folder_name,
+            known_files_cache[folder_name]
+        )
+        if copied:
+            deduplicate(dest_path, folder_name)
+            total_new += copied
+
+    return total_new
 
 
 def main():
-    aujourd_hui = datetime.now().replace(hour=23, minute=59, second=59, microsecond=0)
-    hier        = (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    parser = argparse.ArgumentParser(description="Surveillance continue SMB → media/")
+    parser.add_argument('--once', action='store_true', help='Une seule passe puis quitter')
+    parser.add_argument('--interval', type=int, default=2, help='Intervalle en minutes (défaut: 2)')
+    args = parser.parse_args()
 
-    print("=" * 55)
-    print("   Copie automatique — Hier → Aujourd'hui")
-    print("=" * 55)
-    print(f"  Période    : {hier.strftime('%d/%m/%Y')} → {aujourd_hui.strftime('%d/%m/%Y')}")
-    print(f"  Destination: {DEST_BASE}")
-    print()
+    interval_sec = args.interval * 60
 
-    for source_path, dest_folder in SOURCES.items():
-        dest_path = os.path.join(DEST_BASE, dest_folder)
-        os.makedirs(dest_path, exist_ok=True)
-        print(f"─── {dest_folder} ───")
-        copy_files(source_path, dest_path, hier, aujourd_hui, dest_folder)
-        deduplicate(dest_path, dest_folder)
-        print()
+    log("=" * 55)
+    log("  Surveillance démarrée")
+    log(f"  Source     : {SOURCE_BASE}")
+    log(f"  Destination: {DEST_BASE}")
+    if not args.once:
+        log(f"  Intervalle : toutes les {args.interval} minute(s)")
+    log("=" * 55)
 
-    print("✓ Terminé.")
+    # Cache des fichiers connus par dossier (évite de relire le disque à chaque passe)
+    known_files_cache = {}
+
+    if args.once:
+        total = run_once(known_files_cache)
+        log(f"Terminé — {total} nouveau(x) fichier(s) copié(s).")
+        return
+
+    # Boucle infinie
+    try:
+        while True:
+            total = run_once(known_files_cache)
+            if total:
+                log(f"✓ {total} nouveau(x) fichier(s) copié(s)")
+            else:
+                log("Aucun nouveau fichier.")
+            time.sleep(interval_sec)
+    except KeyboardInterrupt:
+        log("Arrêt demandé (Ctrl+C).")
 
 
 if __name__ == "__main__":
