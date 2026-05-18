@@ -2104,17 +2104,17 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if item.ecart and item.ecart.statut == 'quantite_0' %}
-                                        <span class="text-muted small">Écart non calculé</span>
-                                    {% elif item.integre or item.ecart and item.ecart.statut == 'resolu' %}
+                                    {% if item.integre or item.ecart and item.ecart.statut == 'resolu' %}
                                         <span class="badge bg-success"><i class="bi bi-check2"></i> OK</span>
+                                    {% elif item.ecart and item.ecart.statut == 'quantite_0' %}
+                                        <span class="badge bg-secondary"><i class="bi bi-dash-circle"></i> Qté 0</span>
                                     {% elif item.ecart and item.ecart.statut != 'resolu' %}
-                                        <a href="{% url 'dashboard:detail_ecart' item.ecart.id %}" 
+                                        <a href="{% url 'dashboard:detail_ecart' item.ecart.id %}"
                                            class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-eye"></i> Voir écart
                                         </a>
                                     {% else %}
-                                        <span class="text-muted small">Écart non calculé</span>
+                                        <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i> Non intégré</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -2189,17 +2189,17 @@
                                 </td>
                                 <td>
                                     {% if item.doit_etre_dans_cyrus %}
-                                    {% if item.ecart and item.ecart.statut == 'quantite_0' %}
-                                        <span class="text-muted small">Écart non calculé</span>
-                                    {% elif item.integre or item.ecart and item.ecart.statut == 'resolu' %}
+                                    {% if item.integre or item.ecart and item.ecart.statut == 'resolu' %}
                                         <span class="badge bg-success"><i class="bi bi-check2"></i> OK</span>
+                                    {% elif item.ecart and item.ecart.statut == 'quantite_0' %}
+                                        <span class="badge bg-secondary"><i class="bi bi-dash-circle"></i> Qté 0</span>
                                     {% elif item.ecart and item.ecart.statut != 'resolu' %}
-                                        <a href="{% url 'dashboard:detail_ecart_gpv' item.ecart.id %}" 
+                                        <a href="{% url 'dashboard:detail_ecart_gpv' item.ecart.id %}"
                                            class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-eye"></i> Voir écart
                                         </a>
                                     {% else %}
-                                        <span class="text-muted small">Écart non calculé</span>
+                                        <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i> Non intégré</span>
                                     {% endif %}
                                     {% else %}
                                         <span class="badge bg-secondary"><i class="bi bi-info-circle"></i> OK</span>
@@ -2265,20 +2265,20 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if item.ecart and item.ecart.statut == 'quantite_0' %}
-                                        <span class="text-muted small">Écart non calculé</span>
-                                    {% elif item.integre or item.ecart and item.ecart.statut == 'resolu' %}
-                                        <a href="{% url 'dashboard:detail_commande_legend' item.legend.id %}" 
+                                    {% if item.integre or item.ecart and item.ecart.statut == 'resolu' %}
+                                        <a href="{% url 'dashboard:detail_commande_legend' item.legend.id %}"
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-eye"></i> Voir détail
                                         </a>
+                                    {% elif item.ecart and item.ecart.statut == 'quantite_0' %}
+                                        <span class="badge bg-secondary"><i class="bi bi-dash-circle"></i> Qté 0</span>
                                     {% elif item.ecart and item.ecart.statut != 'resolu' %}
-                                        <a href="{% url 'dashboard:detail_ecart_legend' item.ecart.id %}" 
+                                        <a href="{% url 'dashboard:detail_ecart_legend' item.ecart.id %}"
                                            class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-eye"></i> Voir écart
                                         </a>
                                     {% else %}
-                                        <span class="text-muted small">Écart non calculé</span>
+                                        <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i> Non intégré</span>
                                     {% endif %}
                                 </td>
                             </tr>
