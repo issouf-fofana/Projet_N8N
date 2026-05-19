@@ -2652,14 +2652,18 @@ def detail_ecart_legend(request, ecart_id):
     try:
         ecart = EcartLegend.objects.select_related('commande_legend').get(pk=ecart_id)
 
-        # Vérifier si la commande existe dans Cyrus
-        existe_cyrus = CommandeCyrus.objects.filter(
-            date_commande=ecart.commande_legend.date_commande,
+        # Vérifier si la commande existe dans GPV (flux Legend → GPV → Cyrus)
+        def _norm(n):
+            if not n: return ''
+            d = ''.join(c for c in str(n).strip() if c.isdigit())
+            return d.lstrip('0') or '0' if d else str(n).strip()
+        existe_gpv = CommandeGPV.objects.filter(
             numero_commande=ecart.commande_legend.numero_commande
         ).first()
-        if existe_cyrus is None:
-            existe_cyrus = CommandeCyrus.objects.filter(
-                numero_commande=ecart.commande_legend.numero_commande
+        if existe_gpv is None:
+            num_norm = _norm(ecart.commande_legend.numero_commande)
+            existe_gpv = CommandeGPV.objects.filter(
+                numero_commande__regex=r'^0*' + num_norm + r'$'
             ).first()
 
         if request.method == 'POST':
@@ -2688,7 +2692,7 @@ def detail_ecart_legend(request, ecart_id):
 
         context = {
             'ecart': ecart,
-            'existe_cyrus': existe_cyrus,
+            'existe_gpv': existe_gpv,
         }
         return render(request, 'dashboard/detail_ecart_legend.html', context)
     except EcartLegend.DoesNotExist:

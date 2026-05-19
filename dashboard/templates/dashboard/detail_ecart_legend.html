@@ -60,7 +60,13 @@
                     <tr>
                         <th width="40%">Type d'écart</th>
                         <td>
-                            <span class="badge bg-danger">Absent Cyrus</span>
+                            {% if ecart.type_ecart == 'gpv_absent' %}
+                                <span class="badge bg-danger">Absente dans GPV</span>
+                            {% elif ecart.type_ecart == 'cyrus_absent' %}
+                                <span class="badge bg-warning text-dark">Absente dans Cyrus</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ ecart.type_ecart|default:"-" }}</span>
+                            {% endif %}
                         </td>
                     </tr>
                     <tr>
@@ -70,6 +76,8 @@
                                 <span class="badge bg-danger">Ouvert</span>
                             {% elif ecart.statut == 'resolu' %}
                                 <span class="badge bg-success">Résolu</span>
+                            {% elif ecart.statut == 'quantite_0' %}
+                                <span class="badge bg-info">Quantité 0</span>
                             {% else %}
                                 <span class="badge bg-secondary">Ignoré</span>
                             {% endif %}
@@ -98,21 +106,19 @@
         </div>
 
         <div class="alert alert-info">
-            <h6><i class="bi bi-info-circle"></i> Vérifications effectuées</h6>
+            <h6><i class="bi bi-info-circle"></i> Flux de vérification</h6>
             <p class="mb-0">
-                Clé de comparaison (Legend/GPV/Cyrus) :
-                <strong>Date: {{ ecart.commande_legend.date_commande|date:"d/m/Y" }}</strong>,
-                <strong>N°: {{ ecart.commande_legend.numero_commande }}</strong>.
-                Le code magasin n'est pas utilisé.
+                <strong>Legend (exportée) → GPV → Cyrus</strong><br>
+                Clé de comparaison : <strong>N° {{ ecart.commande_legend.numero_commande }}</strong> recherché dans GPV.
             </p>
         </div>
 
         <div class="row">
             <div class="col-md-12">
-                {% if existe_cyrus %}
-                    <div class="alert alert-success">Commande trouvée dans Cyrus</div>
+                {% if existe_gpv %}
+                    <div class="alert alert-success"><i class="bi bi-check-circle"></i> Commande trouvée dans GPV</div>
                 {% else %}
-                    <div class="alert alert-warning">Commande absente dans Cyrus</div>
+                    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Commande absente dans GPV</div>
                 {% endif %}
             </div>
         </div>

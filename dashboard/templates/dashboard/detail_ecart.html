@@ -88,6 +88,8 @@
                                 <span class="badge bg-danger">Ouvert</span>
                             {% elif ecart.statut == 'resolu' %}
                                 <span class="badge bg-success">Résolu</span>
+                            {% elif ecart.statut == 'quantite_0' %}
+                                <span class="badge bg-info">Quantité 0</span>
                             {% else %}
                                 <span class="badge bg-secondary">Ignoré</span>
                             {% endif %}
