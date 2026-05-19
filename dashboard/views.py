@@ -10,6 +10,47 @@ from django.utils import timezone
 from django.db.models import Q, Prefetch, Exists, OuterRef, Count, Sum
 from django.db import IntegrityError
 from django.db.models.deletion import ProtectedError
+import threading
+
+# ── État global de l'import asynchrone ────────────────────────────────────────
+_import_lock = threading.Lock()
+_import_state = {
+    'running': False,
+    'started_at': None,
+    'finished_at': None,
+    'imported': 0,
+    'ecarts_crees': 0,
+    'ecarts_resolus': 0,
+    'error': None,
+}
+
+def _run_import_background():
+    """Lance scanner_et_importer_fichiers + recalculer_ecarts dans un thread."""
+    global _import_state
+    import time as _time
+    with _import_lock:
+        if _import_state['running']:
+            return  # déjà en cours, ne pas relancer
+        _import_state.update({'running': True, 'started_at': _time.time(),
+                               'finished_at': None, 'imported': 0,
+                               'ecarts_crees': 0, 'ecarts_resolus': 0, 'error': None})
+
+    try:
+        from imports.services import scanner_et_importer_fichiers as _scan
+        from ecarts.services import recalculer_ecarts as _recalc
+        fichiers = _scan()
+        res = _recalc()
+        crees   = res.get('ecarts_crees', 0)   if isinstance(res, dict) else (res or 0)
+        resolus = res.get('ecarts_resolus', 0) if isinstance(res, dict) else 0
+        with _import_lock:
+            _import_state.update({'running': False, 'finished_at': _time.time(),
+                                   'imported': len(fichiers),
+                                   'ecarts_crees': crees, 'ecarts_resolus': resolus})
+    except Exception as _e:
+        with _import_lock:
+            _import_state.update({'running': False, 'finished_at': _time.time(),
+                                   'error': str(_e)})
+# ───────────────────────────────────────────────────────────────────────────────
 from imports.services import (
     scanner_et_importer_fichiers,
     scanner_factures_sage,
@@ -17,7 +58,7 @@ from imports.services import (
     scanner_factures_backup,
 )
 from imports.models import ImportFichier, FactureSage, FactureBackupCyrus
-from ecarts.services import recalculer_ecarts, get_statistiques
+from ecarts.services import recalculer_ecarts
 from asten.models import CommandeAsten
 from cyrus.models import CommandeCyrus
 from gpv.models import CommandeGPV
@@ -1283,24 +1324,29 @@ def accueil(request):
     stats_br = {}
     stats_factures = {}
     
-    # ASTEN
+    # ASTEN — 1 requête sur EcartCommande + 1 COUNT sur CommandeAsten
     try:
+        from django.db.models import Count, Q as _Q
         filtres_asten = {}
         if date_debut:
             filtres_asten['date_commande__gte'] = date_debut
         if date_fin:
             filtres_asten['date_commande__lte'] = date_fin
-        
+
         total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
-        
+
         filtres_ecarts_asten = {}
         if date_debut:
             filtres_ecarts_asten['commande_asten__date_commande__gte'] = date_debut
         if date_fin:
             filtres_ecarts_asten['commande_asten__date_commande__lte'] = date_fin
-        
-        total_ecarts_ouverts_asten = EcartCommande.objects.filter(**filtres_ecarts_asten).filter(statut='ouvert').count()
-        total_ecarts_quantite_0_asten = EcartCommande.objects.filter(**filtres_ecarts_asten).filter(statut='quantite_0').count()
+
+        asten_ecart_agg = EcartCommande.objects.filter(**filtres_ecarts_asten).aggregate(
+            ouverts=Count('id', filter=_Q(statut='ouvert')),
+            quantite_0=Count('id', filter=_Q(statut='quantite_0')),
+        )
+        total_ecarts_ouverts_asten = asten_ecart_agg['ouverts']
+        total_ecarts_quantite_0_asten = asten_ecart_agg['quantite_0']
         total_asten_pour_stats = total_asten - total_ecarts_quantite_0_asten
         commandes_integres_asten = total_asten - total_ecarts_ouverts_asten - total_ecarts_quantite_0_asten
         commandes_non_integres_asten = total_ecarts_ouverts_asten
@@ -1316,8 +1362,9 @@ def accueil(request):
     except:
         stats_asten = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
     
-    # GPV
+    # GPV — 1 requête agrégée sur EcartGPV
     try:
+        from django.db.models import Count, Q as _Q
         filtres_gpv = {'statut__iexact': 'Transmise'}
         if date_debut:
             filtres_gpv['date_creation__date__gte'] = date_debut
@@ -1331,9 +1378,13 @@ def accueil(request):
             filtres_ecarts_gpv['commande_gpv__date_creation__date__gte'] = date_debut
         if date_fin:
             filtres_ecarts_gpv['commande_gpv__date_creation__date__lte'] = date_fin
-        
-        total_ecarts_ouverts_gpv = EcartGPV.objects.filter(**filtres_ecarts_gpv).filter(statut='ouvert').count()
-        total_ecarts_quantite_0_gpv = EcartGPV.objects.filter(**filtres_ecarts_gpv).filter(statut='quantite_0').count()
+
+        gpv_ecart_agg = EcartGPV.objects.filter(**filtres_ecarts_gpv).aggregate(
+            ouverts=Count('id', filter=_Q(statut='ouvert')),
+            quantite_0=Count('id', filter=_Q(statut='quantite_0')),
+        )
+        total_ecarts_ouverts_gpv = gpv_ecart_agg['ouverts']
+        total_ecarts_quantite_0_gpv = gpv_ecart_agg['quantite_0']
         total_gpv_pour_stats = total_gpv_transmise - total_ecarts_quantite_0_gpv
         commandes_integres_gpv = total_gpv_transmise - total_ecarts_ouverts_gpv - total_ecarts_quantite_0_gpv
         commandes_non_integres_gpv = total_ecarts_ouverts_gpv
@@ -1364,9 +1415,14 @@ def accueil(request):
             filtres_ecarts_legend['commande_legend__date_commande__gte'] = date_debut
         if date_fin:
             filtres_ecarts_legend['commande_legend__date_commande__lte'] = date_fin
-        
-        total_ecarts_ouverts_legend = EcartLegend.objects.filter(**filtres_ecarts_legend).filter(statut='ouvert').count()
-        total_ecarts_quantite_0_legend = EcartLegend.objects.filter(**filtres_ecarts_legend).filter(statut='quantite_0').count()
+
+        from django.db.models import Count, Q as _Q
+        legend_ecart_agg = EcartLegend.objects.filter(**filtres_ecarts_legend).aggregate(
+            ouverts=Count('id', filter=_Q(statut='ouvert')),
+            quantite_0=Count('id', filter=_Q(statut='quantite_0')),
+        )
+        total_ecarts_ouverts_legend = legend_ecart_agg['ouverts']
+        total_ecarts_quantite_0_legend = legend_ecart_agg['quantite_0']
         total_legend_pour_stats = total_legend_exportee - total_ecarts_quantite_0_legend
         commandes_integres_legend = total_legend_exportee - total_ecarts_ouverts_legend - total_ecarts_quantite_0_legend
         commandes_non_integres_legend = total_ecarts_ouverts_legend
@@ -1390,23 +1446,19 @@ def accueil(request):
         if date_fin:
             filtres_br['date_br__lte'] = date_fin
         
-        br_quantite_0 = BRAsten.objects.filter(**filtres_br).filter(
-            Q(statut_ic__icontains='Quantité 0') | 
-            Q(statut_ic__icontains='quantite_0') |
-            Q(statut_ic__icontains='Quantite 0')
-        ).count()
-        total_br = BRAsten.objects.filter(**filtres_br).count()
+        from django.db.models import Count, Q as _Q
+        _q0 = _Q(statut_ic__icontains='Quantité 0') | _Q(statut_ic__icontains='quantite_0') | _Q(statut_ic__icontains='Quantite 0')
+        br_agg = BRAsten.objects.filter(**filtres_br).aggregate(
+            total=Count('id'),
+            quantite_0=Count('id', filter=_q0),
+            trouvees=Count('id', filter=_Q(ic_integre=True) & ~_q0),
+            non_trouvees=Count('id', filter=_Q(ic_integre=False) & ~_q0),
+        )
+        total_br = br_agg['total']
+        br_quantite_0 = br_agg['quantite_0']
         total_br_pour_stats = total_br - br_quantite_0
-        br_trouvees = BRAsten.objects.filter(**filtres_br, ic_integre=True).exclude(
-            Q(statut_ic__icontains='Quantité 0') | 
-            Q(statut_ic__icontains='quantite_0') |
-            Q(statut_ic__icontains='Quantite 0')
-        ).count()
-        br_non_trouvees = BRAsten.objects.filter(**filtres_br, ic_integre=False).exclude(
-            Q(statut_ic__icontains='Quantité 0') | 
-            Q(statut_ic__icontains='quantite_0') |
-            Q(statut_ic__icontains='Quantite 0')
-        ).count()
+        br_trouvees = br_agg['trouvees']
+        br_non_trouvees = br_agg['non_trouvees']
         taux_integration_br = round((br_trouvees / total_br_pour_stats * 100) if total_br_pour_stats > 0 else 0, 2)
         taux_non_integration_br = round((br_non_trouvees / total_br_pour_stats * 100) if total_br_pour_stats > 0 else 0, 2)
         stats_br = {
@@ -1445,11 +1497,19 @@ def accueil(request):
         if date_fin:
             filtres_remontees['date_creation__date__lte'] = date_fin
         
-        total_remontees = Ticket.objects.filter(**filtres_remontees).count()
-        resolu_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_RESOLU).count()
-        en_cours_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_EN_COURS).count()
-        en_attente_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_EN_ATTENTE).count()
-        ferme_remontees = Ticket.objects.filter(**filtres_remontees, statut=Ticket.STATUT_FERME).count()
+        from django.db.models import Count, Q as _Q
+        ticket_agg = Ticket.objects.filter(**filtres_remontees).aggregate(
+            total=Count('id'),
+            resolu=Count('id', filter=_Q(statut=Ticket.STATUT_RESOLU)),
+            en_cours=Count('id', filter=_Q(statut=Ticket.STATUT_EN_COURS)),
+            en_attente=Count('id', filter=_Q(statut=Ticket.STATUT_EN_ATTENTE)),
+            ferme=Count('id', filter=_Q(statut=Ticket.STATUT_FERME)),
+        )
+        total_remontees = ticket_agg['total']
+        resolu_remontees = ticket_agg['resolu']
+        en_cours_remontees = ticket_agg['en_cours']
+        en_attente_remontees = ticket_agg['en_attente']
+        ferme_remontees = ticket_agg['ferme']
         non_resolu_remontees = total_remontees - resolu_remontees - ferme_remontees
         taux_resolu_remontees = round((resolu_remontees / total_remontees * 100) if total_remontees > 0 else 0, 2)
         stats_remontees = {
@@ -1760,57 +1820,24 @@ def actualiser_stream(request):
 
 @require_http_methods(["POST"])
 def actualiser_donnees(request):
-    """Actualise TOUTES les données globalement : importe les fichiers et recalcule les écarts pour tous les types"""
+    """Lance l'import en arrière-plan et redirige immédiatement sans bloquer."""
     from core.permissions import user_has_perm
     if not user_has_perm(request.user, 'actualiser_importer'):
         messages.error(request, "Action non autorisée.")
         return redirect('dashboard:dashboard')
-    try:
-        # ACTUALISATION GLOBALE : Scanner et importer les nouveaux fichiers pour TOUS les types
-        # (Asten, GPV, Legend, Factures, BR - quand ils seront implémentés)
-        fichiers_importes = scanner_et_importer_fichiers()
-        
-        # Recalculer les écarts pour TOUS les types
-        resultat_ecarts = recalculer_ecarts()
-        
-        # recalculer_ecarts() retourne maintenant un dictionnaire
-        if isinstance(resultat_ecarts, dict):
-            nombre_ecarts_crees = resultat_ecarts.get('ecarts_crees', 0)
-            nombre_ecarts_resolus = resultat_ecarts.get('ecarts_resolus', 0)
-        else:
-            # Compatibilité avec l'ancien format
-            nombre_ecarts_crees = resultat_ecarts if isinstance(resultat_ecarts, int) else 0
-            nombre_ecarts_resolus = 0
-        
-        # TODO: Quand les autres types seront implémentés, ajouter ici :
-        # - scanner_et_importer_fichiers_gpv()
-        # - scanner_et_importer_fichiers_legend()
-        # - scanner_et_importer_fichiers_factures()
-        # - scanner_et_importer_fichiers_br()
-        # - recalculer_ecarts_gpv()
-        # - recalculer_ecarts_legend()
-        # - etc.
-        
-        # Les données sont maintenant en base de données et restent PERMANENTES
-        # même si on change de type (Asten, GPV, Legend, Factures, BR)
-        # Réinitialiser le flag de session pour permettre une nouvelle actualisation automatique
-        request.session['donnees_actualisees'] = False
-        
-        message = f"Actualisation globale réussie ! {len(fichiers_importes)} fichier(s) importé(s)."
-        if nombre_ecarts_crees > 0:
-            message += f" {nombre_ecarts_crees} nouvel(le)(s) écart(s) détecté(s)."
-        if nombre_ecarts_resolus > 0:
-            message += f" {nombre_ecarts_resolus} écart(s) résolu(s) automatiquement."
-        message += " Toutes les données sont maintenant à jour et permanentes."
-        
-        messages.success(request, message)
-    except Exception as e:
-        messages.error(request, f"Erreur lors de l'actualisation : {str(e)}")
-    
-    # Préserver le type de données dans la redirection
+
+    with _import_lock:
+        already_running = _import_state['running']
+
+    if already_running:
+        messages.warning(request, "Un import est déjà en cours, patientez quelques secondes.")
+    else:
+        t = threading.Thread(target=_run_import_background, daemon=True)
+        t.start()
+        messages.info(request, "Import lancé en arrière-plan — la page se met à jour automatiquement.")
+
     type_donnees = request.POST.get('type_donnees', 'commandes_asten')
     redirect_url = f"{reverse('dashboard:dashboard')}?type_donnees={type_donnees}"
-    
     return redirect(redirect_url)
 
 
@@ -2510,16 +2537,26 @@ def detail_commande_legend(request, commande_id):
         
         # Chercher dans Cyrus avec normalisation
         commande_cyrus = None
-        for cyrus_cmd in CommandeCyrus.objects.filter(date_commande=commande.date_commande):
+        # Chercher d'abord par date + numéro exact, puis fallback numéro seul
+        # On utilise __in sur les candidats proches pour éviter de charger toute la table
+        for cyrus_cmd in CommandeCyrus.objects.filter(
+            date_commande=commande.date_commande,
+            numero_commande__in=CommandeCyrus.objects.filter(
+                date_commande=commande.date_commande
+            ).values_list('numero_commande', flat=True)
+        ):
             if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
                 commande_cyrus = cyrus_cmd
                 break
-        
+
         if commande_cyrus is None:
-            # Fallback: chercher par numéro seulement (sans date)
-            for cyrus_cmd in CommandeCyrus.objects.all():
-                if normalize_numero(cyrus_cmd.numero_commande) == numero_legend_normalise:
-                    commande_cyrus = cyrus_cmd
+            # Fallback : chercher uniquement les numéros qui commencent par les mêmes chiffres
+            prefix = numero_legend_normalise[:4] if len(numero_legend_normalise) >= 4 else numero_legend_normalise
+            for cyrus_cmd in CommandeCyrus.objects.filter(
+                numero_commande__startswith=prefix
+            ).values('id', 'numero_commande', 'date_commande', 'code_magasin_id')[:500]:
+                if normalize_numero(cyrus_cmd['numero_commande']) == numero_legend_normalise:
+                    commande_cyrus = CommandeCyrus.objects.filter(pk=cyrus_cmd['id']).first()
                     break
 
         # Vérifier s'il y a un écart
@@ -3460,17 +3497,28 @@ def rapport_global(request):
     )
 
     # ---- FACTURES ÉCARTS (statuts) ----
-    ecart_integre = FactureEcartStatut.objects.filter(statut='integre').count()
-    ecart_non_integre = FactureEcartStatut.objects.filter(statut='non_integre').count()
-    ecart_ignore = FactureEcartStatut.objects.filter(statut='ignore').count()
+    fes_agg = FactureEcartStatut.objects.aggregate(
+        integre=Count('id', filter=Q(statut='integre')),
+        non_integre=Count('id', filter=Q(statut='non_integre')),
+        ignore=Count('id', filter=Q(statut='ignore')),
+    )
+    ecart_integre = fes_agg['integre']
+    ecart_non_integre = fes_agg['non_integre']
+    ecart_ignore = fes_agg['ignore']
     ecart_total = ecart_integre + ecart_non_integre + ecart_ignore
 
     # ---- VERSIONS ASTEN ----
     versions_qs = VersionAstenSnap.objects.filter(date__gte=date_debut, date__lte=date_fin)
-    versions_total = versions_qs.count()
-    versions_ok = versions_qs.filter(statut='ok').count()
-    versions_warning = versions_qs.filter(statut='warning').count()
-    versions_error = versions_qs.filter(statut='error').count()
+    ver_agg = versions_qs.aggregate(
+        total=Count('id'),
+        ok=Count('id', filter=Q(statut='ok')),
+        warning=Count('id', filter=Q(statut='warning')),
+        error=Count('id', filter=Q(statut='error')),
+    )
+    versions_total = ver_agg['total']
+    versions_ok = ver_agg['ok']
+    versions_warning = ver_agg['warning']
+    versions_error = ver_agg['error']
     versions_par_jour = list(
         versions_qs.values('date').annotate(total=Count('id')).order_by('date')
     )
@@ -3480,9 +3528,14 @@ def rapport_global(request):
     tickets_qs = Ticket.objects.filter(
         date_creation__date__gte=date_debut, date_creation__date__lte=date_fin
     )
-    tickets_total = tickets_qs.count()
-    tickets_ouverts = tickets_qs.filter(statut__in=['nouveau', 'en_cours', 'en_attente']).count()
-    tickets_resolus = tickets_qs.filter(statut__in=['resolu', 'ferme']).count()
+    tkt_agg = tickets_qs.aggregate(
+        total=Count('id'),
+        ouverts=Count('id', filter=Q(statut__in=['nouveau', 'en_cours', 'en_attente'])),
+        resolus=Count('id', filter=Q(statut__in=['resolu', 'ferme'])),
+    )
+    tickets_total = tkt_agg['total']
+    tickets_ouverts = tkt_agg['ouverts']
+    tickets_resolus = tkt_agg['resolus']
 
     tickets_par_statut = list(tickets_qs.values('statut').annotate(total=Count('id')).order_by('statut'))
     tickets_par_type = list(tickets_qs.values('type_demande').annotate(total=Count('id')))
@@ -4511,12 +4564,23 @@ def api_activite(request):
     except subprocess.CalledProcessError:
         run_auto_actif = False
 
+    with _import_lock:
+        import_bg = dict(_import_state)
+
     return JsonResponse({
         'imports':        imports,
         'log_lines':      log_lines,
         'run_auto_actif': run_auto_actif,
+        'import_bg':      import_bg,
         'now':            _tz.now().isoformat(),
     })
+
+
+def api_import_status(request):
+    """Retourne l'état courant de l'import asynchrone (pour polling JS)."""
+    with _import_lock:
+        state = dict(_import_state)
+    return JsonResponse(state)
 
 
 def changer_mot_de_passe(request):

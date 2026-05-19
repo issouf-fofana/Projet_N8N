@@ -40,7 +40,7 @@ class ImportsConfig(AppConfig):
 
 
 def _job_import_fichiers():
-    """Tâche planifiée : scanner et importer les nouveaux fichiers."""
+    """Tâche planifiée : scanner, importer les nouveaux fichiers, puis recalculer les écarts."""
     import threading
     import logging
     _lock = getattr(_job_import_fichiers, '_lock', None)
@@ -54,9 +54,13 @@ def _job_import_fichiers():
     log = logging.getLogger(__name__)
     try:
         from imports.services import scanner_et_importer_fichiers
+        from ecarts.services import recalculer_ecarts
         log.debug("Import automatique : début du scan")
-        scanner_et_importer_fichiers()
-        log.debug("Import automatique : scan terminé")
+        fichiers = scanner_et_importer_fichiers()
+        log.debug(f"Import automatique : {len(fichiers)} fichier(s) importé(s)")
+        if fichiers:
+            recalculer_ecarts()
+            log.debug("Import automatique : écarts recalculés")
     except Exception as e:
         log.error(f"Erreur import automatique : {e}", exc_info=True)
     finally:

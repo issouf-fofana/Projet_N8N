@@ -1193,6 +1193,13 @@
             {% endfor %}
         {% endif %}
         
+        <!-- Bandeau import en arrière-plan -->
+        <div id="import-bg-banner" style="display:none;"
+             class="alert alert-info d-flex align-items-center gap-2 mb-3 py-2">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span id="import-bg-msg">Import en cours…</span>
+        </div>
+
         {% block content %}{% endblock %}
     </div>
 
@@ -1648,6 +1655,37 @@
         }
         checkRunAuto();
         setInterval(checkRunAuto, 15000);
+    })();
+    </script>
+    <script>
+    // Bandeau import en arrière-plan — polling toutes les 3s
+    (function() {
+        var banner = document.getElementById('import-bg-banner');
+        var msg    = document.getElementById('import-bg-msg');
+        if (!banner) return;
+        var wasRunning = false;
+        function checkImport() {
+            fetch("{% url 'dashboard:api_import_status' %}")
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    if (d.running) {
+                        banner.style.display = '';
+                        msg.textContent = 'Import en cours… (lancé il y a ' +
+                            Math.round((Date.now()/1000) - d.started_at) + 's)';
+                        wasRunning = true;
+                    } else {
+                        banner.style.display = 'none';
+                        if (wasRunning && d.finished_at) {
+                            // Import terminé → recharger la page pour afficher les nouvelles données
+                            wasRunning = false;
+                            window.location.reload();
+                        }
+                    }
+                })
+                .catch(function(){});
+        }
+        checkImport();
+        setInterval(checkImport, 3000);
     })();
     </script>
 </body>
