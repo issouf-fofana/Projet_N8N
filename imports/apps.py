@@ -58,9 +58,8 @@ def _job_import_fichiers():
         log.debug("Import automatique : début du scan")
         fichiers = scanner_et_importer_fichiers()
         log.debug(f"Import automatique : {len(fichiers)} fichier(s) importé(s)")
-        if fichiers:
-            recalculer_ecarts()
-            log.debug("Import automatique : écarts recalculés")
+        recalculer_ecarts()
+        log.debug("Import automatique : écarts recalculés")
     except Exception as e:
         log.error(f"Erreur import automatique : {e}", exc_info=True)
     finally:
