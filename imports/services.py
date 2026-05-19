@@ -1391,6 +1391,8 @@ def scanner_et_importer_fichiers():
     fichiers_asten = list(dossier_asten.glob('*.csv')) + list(dossier_asten.glob('*.CSV'))
     for fichier in fichiers_asten:
         try:
+            if not fichier.exists():
+                continue
             # Obtenir la date de modification du fichier
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
             date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
@@ -1428,6 +1430,8 @@ def scanner_et_importer_fichiers():
     fichiers_cyrus = list(dossier_cyrus.glob('*.csv')) + list(dossier_cyrus.glob('*.CSV'))
     for fichier in fichiers_cyrus:
         try:
+            if not fichier.exists():
+                continue
             # Obtenir la date de modification du fichier
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
             date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
@@ -1465,6 +1469,8 @@ def scanner_et_importer_fichiers():
     fichiers_gpv = list(dossier_gpv.glob('*.csv')) + list(dossier_gpv.glob('*.CSV'))
     for fichier in fichiers_gpv:
         try:
+            if not fichier.exists():
+                continue
             # Obtenir la date de modification du fichier
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
             date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
@@ -1502,6 +1508,8 @@ def scanner_et_importer_fichiers():
     fichiers_legend = list(dossier_legend.glob('*.csv')) + list(dossier_legend.glob('*.CSV'))
     for fichier in fichiers_legend:
         try:
+            if not fichier.exists():
+                continue
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
             date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
 
@@ -1538,6 +1546,8 @@ def scanner_et_importer_fichiers():
     )
     for fichier in fichiers_br_asten:
         try:
+            if not fichier.exists():
+                continue
             date_modif_fichier = datetime.fromtimestamp(fichier.stat().st_mtime)
             date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
 
