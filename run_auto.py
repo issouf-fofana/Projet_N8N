@@ -16,12 +16,12 @@ import shutil
 import re
 import argparse
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-# Ne copier que les fichiers modifiés dans les N derniers jours (première passe incluse)
-JOURS_MAX = 7
+# Ne copier que les fichiers d'aujourd'hui
+JOURS_MAX = 0  # 0 = aujourd'hui uniquement
 
 SOURCE_BASE = "/mnt/partage-share"
 
@@ -103,7 +103,7 @@ def scan_source(source_dir, dest_dir, folder_name, known_files):
 
     extensions = EXTENSIONS.get(folder_name, (".csv",))
     always = folder_name in COPY_ALWAYS
-    cutoff = datetime.now() - timedelta(days=JOURS_MAX)
+    cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     copied = 0
 
     for root, _, files in os.walk(source_dir):
