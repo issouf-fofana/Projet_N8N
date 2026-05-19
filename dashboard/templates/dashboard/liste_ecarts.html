@@ -215,6 +215,7 @@
                                     <small class="text-muted">{{ item.depot_destination|default:"-" }}</small>
                                 {% else %}
                                     <span class="badge bg-secondary">{{ item.code_magasin }}</span>
+                                    {% if item.nom_magasin %}<br><small class="text-muted">{{ item.nom_magasin }}</small>{% endif %}
                                 {% endif %}
                             </td>
                             <td><small class="text-muted">{{ item.date_creation|date:"d/m/Y H:i" }}</small></td>

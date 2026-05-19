@@ -1971,12 +1971,14 @@ def liste_ecarts(request):
             SELECT ea.id, 'asten' AS type_ecart,
                    ea.statut, ea.date_creation,
                    ca.date_commande, ca.numero_commande,
-                   ca.code_magasin  AS code_magasin,
+                   ca.code_magasin::text AS code_magasin,
+                   COALESCE(m.nom, '') AS nom_magasin,
                    ca.montant::text AS montant,
                    NULL::text       AS depot_origine,
                    NULL::text       AS depot_destination
             FROM ecarts_ecartcommande ea
             JOIN asten_commandeasten ca ON ca.id = ea.commande_asten_id
+            LEFT JOIN core_magasin m ON m.code = ca.code_magasin::text
             WHERE {' AND '.join(w_asten)}
         """)
 
@@ -1998,12 +2000,14 @@ def liste_ecarts(request):
                    eg.statut, eg.date_creation,
                    cg.date_creation::date AS date_commande,
                    cg.numero_commande,
-                   cg.code_magasin  AS code_magasin,
+                   cg.code_magasin::text AS code_magasin,
+                   COALESCE(m.nom, '') AS nom_magasin,
                    NULL::text       AS montant,
                    NULL::text       AS depot_origine,
                    NULL::text       AS depot_destination
             FROM ecarts_ecartgpv eg
             JOIN gpv_commandegpv cg ON cg.id = eg.commande_gpv_id
+            LEFT JOIN core_magasin m ON m.code = cg.code_magasin::text
             WHERE {' AND '.join(w_gpv)}
         """)
 
@@ -2023,6 +2027,7 @@ def liste_ecarts(request):
                    el.statut, el.date_creation,
                    cl.date_commande, cl.numero_commande,
                    NULL::text AS code_magasin,
+                   NULL::text AS nom_magasin,
                    NULL::text AS montant,
                    cl.depot_origine,
                    cl.depot_destination
