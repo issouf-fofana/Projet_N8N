@@ -114,12 +114,15 @@ def recalculer_ecarts():
             EcartGPV.objects.bulk_create(a_creer_gpv, ignore_conflicts=True)
 
         # ── 3. ÉCARTS LEGEND ─────────────────────────────────────────────────
+        # Flux : Legend (exportée) → GPV → Cyrus
+        # Un écart Legend = commande exportée absente dans GPV (pas dans Cyrus directement)
         ecarts_legend_crees = 0
         ecarts_legend_resolus = 0
 
-        cyrus_numeros_norm = set(
+        # Set des numéros normalisés présents dans GPV
+        gpv_numeros_norm = set(
             normalize_numero(n)
-            for n in CommandeCyrus.objects.values_list('numero_commande', flat=True).iterator(chunk_size=2000)
+            for n in CommandeGPV.objects.values_list('numero_commande', flat=True).iterator(chunk_size=2000)
         )
 
         ecarts_legend_existants = {
@@ -130,7 +133,7 @@ def recalculer_ecarts():
         a_creer_legend = []
         a_supprimer_legend_non_exportees = []
         a_supprimer_legend_resolus = []
-        a_maj_legend = []  # liste de (id, nouveau_type_ecart)
+        a_maj_legend = []
 
         for leg_id, num_cmd, exportee in CommandeLegend.objects.values_list(
             'id', 'numero_commande', 'exportee'
@@ -138,19 +141,22 @@ def recalculer_ecarts():
             ecart_info = ecarts_legend_existants.get(leg_id)
 
             if not exportee:
+                # Non exportée → pas d'écart attendu
                 if ecart_info and ecart_info[1] != 'ignore':
                     a_supprimer_legend_non_exportees.append(ecart_info[0])
                 continue
 
             num_norm = normalize_numero(num_cmd)
-            cyrus_existe = num_norm in cyrus_numeros_norm
-            type_ecart = None if cyrus_existe else 'cyrus_absent'
+            gpv_existe = num_norm in gpv_numeros_norm
+            type_ecart = None if gpv_existe else 'gpv_absent'
 
             if type_ecart is None:
+                # Trouvée dans GPV → écart résolu
                 if ecart_info and ecart_info[1] == 'ouvert':
                     a_supprimer_legend_resolus.append(ecart_info[0])
                     ecarts_legend_resolus += 1
             else:
+                # Absente dans GPV → écart
                 if ecart_info:
                     if ecart_info[1] not in ('ignore', 'resolu'):
                         a_maj_legend.append({'id': ecart_info[0], 'type_ecart': type_ecart})

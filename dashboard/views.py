@@ -645,63 +645,43 @@ def dashboard(request):
         titre_tableau = "Comparaison GPV vs Cyrus"
         
     elif type_donnees == 'commandes_legend':
-        # Récupérer les commandes Legend (seules les exportées sont éligibles)
+        # Flux : Legend (exportée) → GPV → Cyrus
+        # Stats via jointure SQL directe Legend → GPV (sans dépendre des écarts calculés)
         filtres_legend = {}
         if date_debut_parsed:
             filtres_legend['date_commande__gte'] = date_debut_parsed
         if date_fin_parsed:
             filtres_legend['date_commande__lte'] = date_fin_parsed
 
-        # Statistiques basées uniquement sur les commandes exportées
-        total_legend_exportee = CommandeLegend.objects.filter(exportee=True, **filtres_legend).count()
-
-        # Total Cyrus sur la même période (comparaison sans code magasin)
-        filtres_cyrus = {}
+        from django.db import connection as _conn2
+        _date_cond = ""
+        _p = []
         if date_debut_parsed:
-            filtres_cyrus['date_commande__gte'] = date_debut_parsed
+            _date_cond += " AND l.date_commande >= %s"; _p.append(str(date_debut_parsed))
         if date_fin_parsed:
-            filtres_cyrus['date_commande__lte'] = date_fin_parsed
-        total_cyrus = CommandeCyrus.objects.filter(**filtres_cyrus).count()
+            _date_cond += " AND l.date_commande <= %s"; _p.append(str(date_fin_parsed))
+        with _conn2.cursor() as _cur2:
+            _cur2.execute(f"""                SELECT
+                    COUNT(*) AS total,
+                    COUNT(*) FILTER (WHERE g.numero_commande IS NOT NULL) AS integrees,
+                    COUNT(*) FILTER (WHERE g.numero_commande IS NULL)     AS non_integrees
+                FROM legend_commandelegend l
+                LEFT JOIN gpv_commandegpv g
+                    ON REGEXP_REPLACE(g.numero_commande,'[^0-9]','','g') =
+                       LTRIM(REGEXP_REPLACE(l.numero_commande,'[^0-9]','','g'),'0')
+                WHERE l.exportee = TRUE {_date_cond}
+            """, _p)
+            _r = _cur2.fetchone()
+        total_legend_exportee  = _r[0] or 0
+        commandes_integres     = _r[1] or 0
+        commandes_non_integres = _r[2] or 0
+        total_legend_pour_stats = total_legend_exportee
+        taux_integration    = round(commandes_integres     / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
+        taux_non_integration = round(commandes_non_integres / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
 
-        # Compter les écarts Legend par statut
-        filtres_ecarts = {'commande_legend__exportee': True}
-        if date_debut_parsed:
-            filtres_ecarts['commande_legend__date_commande__gte'] = date_debut_parsed
-        if date_fin_parsed:
-            filtres_ecarts['commande_legend__date_commande__lte'] = date_fin_parsed
-        
-        total_ecarts_ouverts = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='ouvert').count()
-        total_ecarts_resolus = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='resolu').count()
-        total_ecarts_ignores = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='ignore').count()
-        total_ecarts_quantite_0 = EcartLegend.objects.filter(**filtres_ecarts).filter(statut='quantite_0').count()
-        
-        # Logique de calcul :
-        # - Les écarts "ouverts" = commandes non intégrées
-        # - Les écarts "résolus" = commandes considérées comme intégrées (même si pas encore dans Cyrus)
-        # - Les écarts "ignorés" = commandes considérées comme intégrées
-        # - Les écarts "quantite_0" = NE COMPTENT PAS dans les statistiques (exclus du total)
-        # 
-        # Total pour les statistiques = total_legend_exportee - total_ecarts_quantite_0 (exclure les quantite_0)
-        # Commandes intégrées = total_legend_exportee - total_ecarts_ouverts - total_ecarts_quantite_0
-        # (les écarts résolus et ignorés sont déjà comptés comme intégrés dans cette formule)
-        
-        # Exclure les commandes avec écart "quantite_0" du total affiché
-        total_legend_pour_stats = total_legend_exportee - total_ecarts_quantite_0
-        
-        # Commandes intégrées = total - écarts ouverts - écarts quantite_0
-        # (les écarts résolus et ignorés sont déjà dans le total, donc ils sont comptés comme intégrés)
-        commandes_integres = total_legend_exportee - total_ecarts_ouverts - total_ecarts_quantite_0
-        commandes_non_integres = total_ecarts_ouverts
-
-        # Calculer les taux basés sur le total sans les quantite_0
-        taux_integration = round((commandes_integres / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
-        taux_non_integration = round((commandes_non_integres / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
-
-        # Normaliser les statistiques pour correspondre au template
-        # Utiliser total_legend_pour_stats pour exclure les quantite_0 du total affiché
-        stats = {
-            'total_source': total_legend_pour_stats,  # Total sans les quantite_0
-            'total_target': total_cyrus,
+                stats = {
+            'total_source': total_legend_pour_stats,
+            'total_target': CommandeGPV.objects.count(),
             'integres': commandes_integres,
             'non_integres': commandes_non_integres,
             'taux_integration': taux_integration,
@@ -733,26 +713,21 @@ def dashboard(request):
         _pag_legend = _Pag(commandes_legend_qs, _per_page_legend)
         _page_legend = _pag_legend.get_page(request.GET.get('page', 1))
 
-        # Lookup Cyrus uniquement sur les numéros de la page courante
-        cyrus_lookup = set()
-        cyrus_numero_lookup = set()
+        # Lookup GPV uniquement sur les numéros de la page courante
+        # Flux : Legend (exportée) → GPV → Cyrus
+        gpv_numero_lookup = set()
         page_legend_cmds = list(_page_legend)
         if page_legend_cmds:
             numeros_page = [normalize_numero(cmd.numero_commande) for cmd in page_legend_cmds]
-            # Filtrer Cyrus sur les numéros exacts de la page + période optionnelle
-            filtres_cyrus_lookup = {'numero_commande__in': numeros_page}
-            if date_debut_parsed:
-                filtres_cyrus_lookup['date_commande__gte'] = date_debut_parsed
-            if date_fin_parsed:
-                filtres_cyrus_lookup['date_commande__lte'] = date_fin_parsed
-            for cyrus_cmd in CommandeCyrus.objects.filter(**filtres_cyrus_lookup).values_list('date_commande', 'numero_commande'):
-                cyrus_lookup.add((cyrus_cmd[0], normalize_numero(cyrus_cmd[1])))
-                cyrus_numero_lookup.add(normalize_numero(cyrus_cmd[1]))
+            for gpv_num in CommandeGPV.objects.filter(
+                numero_commande__in=numeros_page
+            ).values_list('numero_commande', flat=True):
+                gpv_numero_lookup.add(normalize_numero(gpv_num))
 
         commandes_data = []
         for cmd_legend in page_legend_cmds:
             numero_normalise = normalize_numero(cmd_legend.numero_commande)
-            cyrus_present = (cmd_legend.date_commande, numero_normalise) in cyrus_lookup or numero_normalise in cyrus_numero_lookup
+            gpv_present = numero_normalise in gpv_numero_lookup
             try:
                 ecart = cmd_legend.ecart
             except Exception:
@@ -760,20 +735,22 @@ def dashboard(request):
             integre = True
             etape_blocage = None
             if cmd_legend.exportee:
-                if ecart:
-                    if ecart.statut in ('resolu', 'ignore'):
-                        integre = True
-                    elif not cyrus_present:
-                        integre = False
-                        etape_blocage = "Absente dans Cyrus"
-                elif not cyrus_present:
+                if ecart and ecart.statut in ('resolu', 'ignore'):
+                    integre = True
+                elif not gpv_present:
                     integre = False
-                    etape_blocage = "Absente dans Cyrus"
-            commandes_data.append({'legend': cmd_legend, 'cyrus_present': cyrus_present, 'integre': integre, 'etape_blocage': etape_blocage, 'ecart': ecart})
+                    etape_blocage = "Absente dans GPV"
+            commandes_data.append({
+                'legend': cmd_legend,
+                'cyrus_present': gpv_present,  # conserve le nom pour le template
+                'integre': integre,
+                'etape_blocage': etape_blocage,
+                'ecart': ecart,
+            })
 
         _dashboard_page_obj = _page_legend
         _dashboard_per_page = _per_page_legend
-        titre_tableau = "Comparaison Legend vs Cyrus"
+        titre_tableau = "Comparaison Legend vs GPV"
         
     elif type_donnees == 'factures':
         sage_error = None
@@ -1419,7 +1396,7 @@ def accueil(request):
     except:
         stats_gpv = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
 
-    # LEGEND — comparaison directe avec Cyrus (exportées uniquement, numéro normalisé)
+    # LEGEND — comparaison avec GPV (flux : Legend exportée → GPV → Cyrus)
     try:
         from django.db import connection as _conn
 
@@ -1436,11 +1413,11 @@ def accueil(request):
             cur.execute(f"""
                 SELECT
                     COUNT(*)                                              AS total,
-                    COUNT(*) FILTER (WHERE c.numero_commande IS NOT NULL) AS integrees,
-                    COUNT(*) FILTER (WHERE c.numero_commande IS NULL)     AS non_integrees
+                    COUNT(*) FILTER (WHERE g.numero_commande IS NOT NULL) AS integrees,
+                    COUNT(*) FILTER (WHERE g.numero_commande IS NULL)     AS non_integrees
                 FROM legend_commandelegend l
-                LEFT JOIN cyrus_commandecyrus c
-                    ON REGEXP_REPLACE(c.numero_commande, '[^0-9]', '', 'g') =
+                LEFT JOIN gpv_commandegpv g
+                    ON REGEXP_REPLACE(g.numero_commande, '[^0-9]', '', 'g') =
                        LTRIM(REGEXP_REPLACE(l.numero_commande, '[^0-9]', '', 'g'), '0')
                 WHERE l.exportee = TRUE
                 {date_cond_leg}
