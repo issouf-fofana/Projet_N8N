@@ -52,14 +52,10 @@ def recalculer_ecarts():
             statut = ecarts_existants.get(asten_id)
 
             if statut is not None:
+                # resolu/ignore = modifié manuellement, on ne touche pas
                 if existe_cyrus and statut == 'ouvert':
                     a_supprimer.append(ecarts_id_par_asten[asten_id])
                     ecarts_resolus += 1
-                elif not existe_cyrus and statut == 'resolu':
-                    # Réouvrir : était résolu mais redevenu absent
-                    a_supprimer.append(ecarts_id_par_asten[asten_id])
-                    a_creer.append(EcartCommande(commande_asten_id=asten_id, statut='ouvert'))
-                    ecarts_crees += 1
             else:
                 if not existe_cyrus:
                     a_creer.append(EcartCommande(commande_asten_id=asten_id, statut='ouvert'))
@@ -103,14 +99,10 @@ def recalculer_ecarts():
             existe_cyrus = key in cyrus_keys
 
             if statut_ecart is not None:
+                # resolu/ignore = modifié manuellement, on ne touche pas
                 if existe_cyrus and statut_ecart == 'ouvert':
                     a_supprimer_gpv.append(ecarts_gpv_id[gpv_id])
                     ecarts_gpv_resolus += 1
-                elif not existe_cyrus and statut_ecart == 'resolu':
-                    # Réouvrir : était résolu mais redevenu absent
-                    a_supprimer_gpv.append(ecarts_gpv_id[gpv_id])
-                    a_creer_gpv.append(EcartGPV(commande_gpv_id=gpv_id, statut='ouvert'))
-                    ecarts_gpv_crees += 1
             else:
                 if not existe_cyrus:
                     a_creer_gpv.append(EcartGPV(commande_gpv_id=gpv_id, statut='ouvert'))
@@ -168,13 +160,8 @@ def recalculer_ecarts():
             else:
                 # Absente dans GPV → écart
                 if ecart_info:
-                    if ecart_info[1] == 'ignore':
-                        pass  # ignoré manuellement, on ne touche pas
-                    elif ecart_info[1] in ('resolu',):
-                        # Réouvrir : était résolu mais redevenu absent
-                        a_maj_legend.append({'id': ecart_info[0], 'type_ecart': type_ecart, 'statut': 'ouvert'})
-                        ecarts_legend_crees += 1
-                    else:
+                    # resolu/ignore = modifié manuellement, on ne touche pas
+                    if ecart_info[1] == 'ouvert':
                         a_maj_legend.append({'id': ecart_info[0], 'type_ecart': type_ecart})
                 else:
                     a_creer_legend.append(EcartLegend(
