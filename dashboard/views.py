@@ -646,35 +646,19 @@ def dashboard(request):
         
     elif type_donnees == 'commandes_legend':
         # Flux : Legend (exportée) → GPV → Cyrus
-        # Stats via jointure SQL directe Legend → GPV (sans dépendre des écarts calculés)
+        # Stats basées sur EcartLegend (même source que la page écarts)
         filtres_legend = {}
+        filtres_ecart_legend = {}
         if date_debut_parsed:
             filtres_legend['date_commande__gte'] = date_debut_parsed
+            filtres_ecart_legend['commande_legend__date_commande__gte'] = date_debut_parsed
         if date_fin_parsed:
             filtres_legend['date_commande__lte'] = date_fin_parsed
+            filtres_ecart_legend['commande_legend__date_commande__lte'] = date_fin_parsed
 
-        from django.db import connection as _conn2
-        _date_cond = ""
-        _p = []
-        if date_debut_parsed:
-            _date_cond += " AND l.date_commande >= %s"; _p.append(str(date_debut_parsed))
-        if date_fin_parsed:
-            _date_cond += " AND l.date_commande <= %s"; _p.append(str(date_fin_parsed))
-        with _conn2.cursor() as _cur2:
-            _cur2.execute(f"""                SELECT
-                    COUNT(*) AS total,
-                    COUNT(*) FILTER (WHERE g.numero_commande IS NOT NULL) AS integrees,
-                    COUNT(*) FILTER (WHERE g.numero_commande IS NULL)     AS non_integrees
-                FROM legend_commandelegend l
-                LEFT JOIN gpv_commandegpv g
-                    ON REGEXP_REPLACE(g.numero_commande,'[^0-9]','','g') =
-                       LTRIM(REGEXP_REPLACE(l.numero_commande,'[^0-9]','','g'),'0')
-                WHERE l.exportee = TRUE {_date_cond}
-            """, _p)
-            _r = _cur2.fetchone()
-        total_legend_exportee  = _r[0] or 0
-        commandes_integres     = _r[1] or 0
-        commandes_non_integres = _r[2] or 0
+        total_legend_exportee = CommandeLegend.objects.filter(exportee=True, **filtres_legend).count()
+        commandes_non_integres = EcartLegend.objects.filter(statut='ouvert', **filtres_ecart_legend).count()
+        commandes_integres = total_legend_exportee - commandes_non_integres
         total_legend_pour_stats = total_legend_exportee
         taux_integration    = round(commandes_integres     / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
         taux_non_integration = round(commandes_non_integres / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
