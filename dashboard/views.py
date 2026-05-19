@@ -1324,9 +1324,10 @@ def accueil(request):
     stats_br = {}
     stats_factures = {}
     
-    # ASTEN — 1 requête sur EcartCommande + 1 COUNT sur CommandeAsten
+    # ASTEN — comparaison directe avec Cyrus via SQL (sans dépendre des écarts calculés)
     try:
         from django.db.models import Count, Q as _Q
+        from django.db import connection as _conn
         filtres_asten = {}
         if date_debut:
             filtres_asten['date_commande__gte'] = date_debut
@@ -1335,23 +1336,34 @@ def accueil(request):
 
         total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
 
-        filtres_ecarts_asten = {}
+        # Compter directement combien de commandes Asten existent dans Cyrus
+        date_cond_a = ""
+        date_cond_c = ""
+        params = []
         if date_debut:
-            filtres_ecarts_asten['commande_asten__date_commande__gte'] = date_debut
+            date_cond_a += " AND a.date_commande >= %s"
+            params.append(str(date_debut))
         if date_fin:
-            filtres_ecarts_asten['commande_asten__date_commande__lte'] = date_fin
+            date_cond_a += " AND a.date_commande <= %s"
+            params.append(str(date_fin))
 
-        asten_ecart_agg = EcartCommande.objects.filter(**filtres_ecarts_asten).aggregate(
-            ouverts=Count('id', filter=_Q(statut='ouvert')),
-            quantite_0=Count('id', filter=_Q(statut='quantite_0')),
-        )
-        total_ecarts_ouverts_asten = asten_ecart_agg['ouverts']
-        total_ecarts_quantite_0_asten = asten_ecart_agg['quantite_0']
-        total_asten_pour_stats = total_asten - total_ecarts_quantite_0_asten
-        commandes_integres_asten = total_asten - total_ecarts_ouverts_asten - total_ecarts_quantite_0_asten
-        commandes_non_integres_asten = total_ecarts_ouverts_asten
-        taux_integration_asten = round((commandes_integres_asten / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
-        taux_non_integration_asten = round((commandes_non_integres_asten / total_asten_pour_stats * 100) if total_asten_pour_stats > 0 else 0, 2)
+        with _conn.cursor() as cur:
+            cur.execute(f"""
+                SELECT
+                    COUNT(*) FILTER (WHERE c.numero_commande IS NOT NULL) AS integrees,
+                    COUNT(*) FILTER (WHERE c.numero_commande IS NULL)     AS non_integrees
+                FROM asten_commandeasten a
+                LEFT JOIN cyrus_commandecyrus c
+                    ON c.numero_commande = a.numero_commande
+                    AND c.code_magasin_id = a.code_magasin_id
+                WHERE 1=1 {date_cond_a}
+            """, params)
+            row = cur.fetchone()
+        commandes_integres_asten  = row[0] or 0
+        commandes_non_integres_asten = row[1] or 0
+        total_asten_pour_stats = total_asten
+        taux_integration_asten     = round(commandes_integres_asten  / total_asten_pour_stats * 100, 2) if total_asten_pour_stats else 0
+        taux_non_integration_asten = round(commandes_non_integres_asten / total_asten_pour_stats * 100, 2) if total_asten_pour_stats else 0
         stats_asten = {
             'total': total_asten_pour_stats,
             'integres': commandes_integres_asten,
@@ -1362,36 +1374,41 @@ def accueil(request):
     except:
         stats_asten = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
     
-    # GPV — 1 requête agrégée sur EcartGPV
+    # GPV — comparaison directe avec Cyrus (transmises uniquement)
     try:
         from django.db.models import Count, Q as _Q
-        filtres_gpv = {'statut__iexact': 'Transmise'}
+        from django.db import connection as _conn
+
+        date_cond_gpv = ""
+        params_gpv = []
         if date_debut:
-            filtres_gpv['date_creation__date__gte'] = date_debut
+            date_cond_gpv += " AND DATE(g.date_creation) >= %s"
+            params_gpv.append(str(date_debut))
         if date_fin:
-            filtres_gpv['date_creation__date__lte'] = date_fin
+            date_cond_gpv += " AND DATE(g.date_creation) <= %s"
+            params_gpv.append(str(date_fin))
 
-        total_gpv_transmise = CommandeGPV.objects.filter(**filtres_gpv).count()
-
-        filtres_ecarts_gpv = {}
-        if date_debut:
-            filtres_ecarts_gpv['commande_gpv__date_creation__date__gte'] = date_debut
-        if date_fin:
-            filtres_ecarts_gpv['commande_gpv__date_creation__date__lte'] = date_fin
-
-        gpv_ecart_agg = EcartGPV.objects.filter(**filtres_ecarts_gpv).aggregate(
-            ouverts=Count('id', filter=_Q(statut='ouvert')),
-            quantite_0=Count('id', filter=_Q(statut='quantite_0')),
-        )
-        total_ecarts_ouverts_gpv = gpv_ecart_agg['ouverts']
-        total_ecarts_quantite_0_gpv = gpv_ecart_agg['quantite_0']
-        total_gpv_pour_stats = total_gpv_transmise - total_ecarts_quantite_0_gpv
-        commandes_integres_gpv = total_gpv_transmise - total_ecarts_ouverts_gpv - total_ecarts_quantite_0_gpv
-        commandes_non_integres_gpv = total_ecarts_ouverts_gpv
-        taux_integration_gpv = round((commandes_integres_gpv / total_gpv_pour_stats * 100) if total_gpv_pour_stats > 0 else 0, 2)
-        taux_non_integration_gpv = round((commandes_non_integres_gpv / total_gpv_pour_stats * 100) if total_gpv_pour_stats > 0 else 0, 2)
+        with _conn.cursor() as cur:
+            cur.execute(f"""
+                SELECT
+                    COUNT(*)                                              AS total,
+                    COUNT(*) FILTER (WHERE c.numero_commande IS NOT NULL) AS integrees,
+                    COUNT(*) FILTER (WHERE c.numero_commande IS NULL)     AS non_integrees
+                FROM gpv_commandegpv g
+                LEFT JOIN cyrus_commandecyrus c
+                    ON c.numero_commande = g.numero_commande
+                    AND c.code_magasin_id = g.code_magasin_id
+                WHERE UPPER(TRIM(g.statut)) IN ('TRANSMISE', 'TRANSMIS')
+                {date_cond_gpv}
+            """, params_gpv)
+            row = cur.fetchone()
+        total_gpv_transmise        = row[0] or 0
+        commandes_integres_gpv     = row[1] or 0
+        commandes_non_integres_gpv = row[2] or 0
+        taux_integration_gpv     = round(commandes_integres_gpv     / total_gpv_transmise * 100, 2) if total_gpv_transmise else 0
+        taux_non_integration_gpv = round(commandes_non_integres_gpv / total_gpv_transmise * 100, 2) if total_gpv_transmise else 0
         stats_gpv = {
-            'total': total_gpv_pour_stats,
+            'total': total_gpv_transmise,
             'integres': commandes_integres_gpv,
             'non_integres': commandes_non_integres_gpv,
             'taux_integration': taux_integration_gpv,
@@ -1399,37 +1416,41 @@ def accueil(request):
         }
     except:
         stats_gpv = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
-    
-    # LEGEND
-    try:
-        filtres_legend = {'exportee': True}
-        if date_debut:
-            filtres_legend['date_commande__gte'] = date_debut
-        if date_fin:
-            filtres_legend['date_commande__lte'] = date_fin
-        
-        total_legend_exportee = CommandeLegend.objects.filter(**filtres_legend).count()
-        
-        filtres_ecarts_legend = {'commande_legend__exportee': True}
-        if date_debut:
-            filtres_ecarts_legend['commande_legend__date_commande__gte'] = date_debut
-        if date_fin:
-            filtres_ecarts_legend['commande_legend__date_commande__lte'] = date_fin
 
-        from django.db.models import Count, Q as _Q
-        legend_ecart_agg = EcartLegend.objects.filter(**filtres_ecarts_legend).aggregate(
-            ouverts=Count('id', filter=_Q(statut='ouvert')),
-            quantite_0=Count('id', filter=_Q(statut='quantite_0')),
-        )
-        total_ecarts_ouverts_legend = legend_ecart_agg['ouverts']
-        total_ecarts_quantite_0_legend = legend_ecart_agg['quantite_0']
-        total_legend_pour_stats = total_legend_exportee - total_ecarts_quantite_0_legend
-        commandes_integres_legend = total_legend_exportee - total_ecarts_ouverts_legend - total_ecarts_quantite_0_legend
-        commandes_non_integres_legend = total_ecarts_ouverts_legend
-        taux_integration_legend = round((commandes_integres_legend / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
-        taux_non_integration_legend = round((commandes_non_integres_legend / total_legend_pour_stats * 100) if total_legend_pour_stats > 0 else 0, 2)
+    # LEGEND — comparaison directe avec Cyrus (exportées uniquement, numéro normalisé)
+    try:
+        from django.db import connection as _conn
+
+        date_cond_leg = ""
+        params_leg = []
+        if date_debut:
+            date_cond_leg += " AND l.date_commande >= %s"
+            params_leg.append(str(date_debut))
+        if date_fin:
+            date_cond_leg += " AND l.date_commande <= %s"
+            params_leg.append(str(date_fin))
+
+        with _conn.cursor() as cur:
+            cur.execute(f"""
+                SELECT
+                    COUNT(*)                                              AS total,
+                    COUNT(*) FILTER (WHERE c.numero_commande IS NOT NULL) AS integrees,
+                    COUNT(*) FILTER (WHERE c.numero_commande IS NULL)     AS non_integrees
+                FROM legend_commandelegend l
+                LEFT JOIN cyrus_commandecyrus c
+                    ON REGEXP_REPLACE(c.numero_commande, '[^0-9]', '', 'g') =
+                       LTRIM(REGEXP_REPLACE(l.numero_commande, '[^0-9]', '', 'g'), '0')
+                WHERE l.exportee = TRUE
+                {date_cond_leg}
+            """, params_leg)
+            row = cur.fetchone()
+        total_legend_exportee          = row[0] or 0
+        commandes_integres_legend      = row[1] or 0
+        commandes_non_integres_legend  = row[2] or 0
+        taux_integration_legend     = round(commandes_integres_legend     / total_legend_exportee * 100, 2) if total_legend_exportee else 0
+        taux_non_integration_legend = round(commandes_non_integres_legend / total_legend_exportee * 100, 2) if total_legend_exportee else 0
         stats_legend = {
-            'total': total_legend_pour_stats,
+            'total': total_legend_exportee,
             'integres': commandes_integres_legend,
             'non_integres': commandes_non_integres_legend,
             'taux_integration': taux_integration_legend,
