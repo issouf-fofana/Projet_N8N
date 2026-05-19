@@ -87,15 +87,18 @@ def parse_heure_asten(date_str):
 def parse_date_gpv(date_str):
     """
     Parse la date GPV au format DD/MM/YYYY HH:MM (ex: 14/01/2026 14:06)
-    Retourne un datetime (avec heure) pour conserver les heures.
+    Retourne un datetime timezone-aware pour éviter les warnings Django USE_TZ.
     """
     if not date_str:
         return None
     date_str = date_str.strip()
     try:
+        from django.utils import timezone as _tz
         if ' ' in date_str:
-            return datetime.strptime(date_str, '%d/%m/%Y %H:%M')
-        return datetime.strptime(date_str, '%d/%m/%Y')
+            dt = datetime.strptime(date_str, '%d/%m/%Y %H:%M')
+        else:
+            dt = datetime.strptime(date_str, '%d/%m/%Y')
+        return _tz.make_aware(dt) if _tz.is_naive(dt) else dt
     except (ValueError, AttributeError):
         return None
 
@@ -1639,27 +1642,27 @@ def scanner_et_importer_fichiers():
     except Exception as e:
         print(f"Erreur import Entrée Journal: {e}")
 
-    # Importer factures Cyrus et Asten en base de données
+    # Importer factures Cyrus et Asten en base — MV rafraîchie seulement si import effectif
+    _factures_importees = False
     try:
+        avant = len(fichiers_importes)
         importer_factures_cyrus_en_base()
-    except Exception as e:
-        print(f"Erreur import factures Cyrus en base: {e}")
-    try:
         importer_factures_asten_en_base()
+        _factures_importees = len(fichiers_importes) > avant
     except Exception as e:
-        print(f"Erreur import factures Asten en base: {e}")
+        print(f"Erreur import factures en base: {e}")
 
-    # Rafraîchir la vue matérialisée + vider le cache factures
-    try:
-        from django.db import connection as _conn
-        from django.core.cache import cache as _cache
-        with _conn.cursor() as _cur:
-            _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
-        _cache.delete('factures_verification_v1')
-        _cache.delete('factures_stats_sql_v1')
-        print("[MV] mv_factures_joined rafraîchie, cache vidé")
-    except Exception as e:
-        print(f"Erreur refresh vue matérialisée: {e}")
+    if _factures_importees:
+        try:
+            from django.db import connection as _conn
+            from django.core.cache import cache as _cache
+            with _conn.cursor() as _cur:
+                _cur.execute('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_factures_joined')
+            _cache.delete('factures_verification_v1')
+            _cache.delete('factures_stats_sql_v1')
+            print("[MV] mv_factures_joined rafraîchie, cache vidé")
+        except Exception as e:
+            print(f"Erreur refresh vue matérialisée: {e}")
 
     return fichiers_importes
 
@@ -2812,18 +2815,6 @@ def importer_factures_cyrus_en_base():
             csv_path.unlink(missing_ok=True)
         except Exception as e:
             print(f"  [Facture Cyrus] ERREUR {fichier}: {e}")
-    # Rafraîchir la vue matérialisée
-    try:
-        from django.db import connection
-        with connection.cursor() as cur:
-            cur.execute('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_factures_joined')
-    except Exception:
-        try:
-            from django.db import connection
-            with connection.cursor() as cur:
-                cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
-        except Exception as e:
-            print(f"  [Vue] Impossible de rafraîchir mv_factures_joined: {e}")
 
 
 def importer_factures_asten_en_base():
@@ -2879,18 +2870,6 @@ def importer_factures_asten_en_base():
             csv_path.unlink(missing_ok=True)
         except Exception as e:
             print(f"  [Facture Asten] ERREUR {fichier}: {e}")
-    # Rafraîchir la vue matérialisée
-    try:
-        from django.db import connection
-        with connection.cursor() as cur:
-            cur.execute('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_factures_joined')
-    except Exception:
-        try:
-            from django.db import connection
-            with connection.cursor() as cur:
-                cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
-        except Exception as e:
-            print(f"  [Vue] Impossible de rafraîchir mv_factures_joined: {e}")
 
 
 def _lire_asten_factures(dossier_path):
