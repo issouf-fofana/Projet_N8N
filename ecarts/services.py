@@ -55,6 +55,11 @@ def recalculer_ecarts():
                 if existe_cyrus and statut == 'ouvert':
                     a_supprimer.append(ecarts_id_par_asten[asten_id])
                     ecarts_resolus += 1
+                elif not existe_cyrus and statut == 'resolu':
+                    # Réouvrir : était résolu mais redevenu absent
+                    a_supprimer.append(ecarts_id_par_asten[asten_id])
+                    a_creer.append(EcartCommande(commande_asten_id=asten_id, statut='ouvert'))
+                    ecarts_crees += 1
             else:
                 if not existe_cyrus:
                     a_creer.append(EcartCommande(commande_asten_id=asten_id, statut='ouvert'))
@@ -101,6 +106,11 @@ def recalculer_ecarts():
                 if existe_cyrus and statut_ecart == 'ouvert':
                     a_supprimer_gpv.append(ecarts_gpv_id[gpv_id])
                     ecarts_gpv_resolus += 1
+                elif not existe_cyrus and statut_ecart == 'resolu':
+                    # Réouvrir : était résolu mais redevenu absent
+                    a_supprimer_gpv.append(ecarts_gpv_id[gpv_id])
+                    a_creer_gpv.append(EcartGPV(commande_gpv_id=gpv_id, statut='ouvert'))
+                    ecarts_gpv_crees += 1
             else:
                 if not existe_cyrus:
                     a_creer_gpv.append(EcartGPV(commande_gpv_id=gpv_id, statut='ouvert'))
@@ -158,7 +168,13 @@ def recalculer_ecarts():
             else:
                 # Absente dans GPV → écart
                 if ecart_info:
-                    if ecart_info[1] not in ('ignore', 'resolu'):
+                    if ecart_info[1] == 'ignore':
+                        pass  # ignoré manuellement, on ne touche pas
+                    elif ecart_info[1] in ('resolu',):
+                        # Réouvrir : était résolu mais redevenu absent
+                        a_maj_legend.append({'id': ecart_info[0], 'type_ecart': type_ecart, 'statut': 'ouvert'})
+                        ecarts_legend_crees += 1
+                    else:
                         a_maj_legend.append({'id': ecart_info[0], 'type_ecart': type_ecart})
                 else:
                     a_creer_legend.append(EcartLegend(
@@ -176,7 +192,10 @@ def recalculer_ecarts():
             EcartLegend.objects.bulk_create(a_creer_legend, ignore_conflicts=True)
         if a_maj_legend:
             for item in a_maj_legend:
-                EcartLegend.objects.filter(pk=item['id']).update(type_ecart=item['type_ecart'])
+                update_fields = {'type_ecart': item['type_ecart']}
+                if 'statut' in item:
+                    update_fields['statut'] = item['statut']
+                EcartLegend.objects.filter(pk=item['id']).update(**update_fields)
 
         return {
             'ecarts_crees': ecarts_crees + ecarts_gpv_crees + ecarts_legend_crees,
