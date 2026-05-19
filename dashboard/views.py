@@ -1287,48 +1287,25 @@ def accueil(request):
     stats_br = {}
     stats_factures = {}
     
-    # ASTEN — comparaison directe avec Cyrus via SQL (sans dépendre des écarts calculés)
+    # ASTEN — basé sur EcartCommande (même source que dashboard et page écarts)
     try:
-        from django.db.models import Count, Q as _Q
-        from django.db import connection as _conn
+        from ecarts.models import EcartCommande as _EcartCommande, EcartGPV as _EcartGPV
         filtres_asten = {}
+        filtres_ecart_asten = {}
         if date_debut:
             filtres_asten['date_commande__gte'] = date_debut
+            filtres_ecart_asten['commande_asten__date_commande__gte'] = date_debut
         if date_fin:
             filtres_asten['date_commande__lte'] = date_fin
+            filtres_ecart_asten['commande_asten__date_commande__lte'] = date_fin
 
         total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
-
-        # Compter directement combien de commandes Asten existent dans Cyrus
-        date_cond_a = ""
-        date_cond_c = ""
-        params = []
-        if date_debut:
-            date_cond_a += " AND a.date_commande >= %s"
-            params.append(str(date_debut))
-        if date_fin:
-            date_cond_a += " AND a.date_commande <= %s"
-            params.append(str(date_fin))
-
-        with _conn.cursor() as cur:
-            cur.execute(f"""
-                SELECT
-                    COUNT(*) FILTER (WHERE c.numero_commande IS NOT NULL) AS integrees,
-                    COUNT(*) FILTER (WHERE c.numero_commande IS NULL)     AS non_integrees
-                FROM asten_commandeasten a
-                LEFT JOIN cyrus_commandecyrus c
-                    ON c.numero_commande = a.numero_commande
-                    AND c.code_magasin = a.code_magasin
-                WHERE 1=1 {date_cond_a}
-            """, params)
-            row = cur.fetchone()
-        commandes_integres_asten  = row[0] or 0
-        commandes_non_integres_asten = row[1] or 0
-        total_asten_pour_stats = total_asten
-        taux_integration_asten     = round(commandes_integres_asten  / total_asten_pour_stats * 100, 2) if total_asten_pour_stats else 0
-        taux_non_integration_asten = round(commandes_non_integres_asten / total_asten_pour_stats * 100, 2) if total_asten_pour_stats else 0
+        commandes_non_integres_asten = _EcartCommande.objects.filter(statut='ouvert', **filtres_ecart_asten).count()
+        commandes_integres_asten = total_asten - commandes_non_integres_asten
+        taux_integration_asten     = round(commandes_integres_asten  / total_asten * 100, 2) if total_asten else 0
+        taux_non_integration_asten = round(commandes_non_integres_asten / total_asten * 100, 2) if total_asten else 0
         stats_asten = {
-            'total': total_asten_pour_stats,
+            'total': total_asten,
             'integres': commandes_integres_asten,
             'non_integres': commandes_non_integres_asten,
             'taux_integration': taux_integration_asten,
@@ -1336,38 +1313,24 @@ def accueil(request):
         }
     except:
         stats_asten = {'total': 0, 'integres': 0, 'non_integres': 0, 'taux_integration': 0, 'taux_non_integration': 0}
-    
-    # GPV — comparaison directe avec Cyrus (transmises uniquement)
+
+    # GPV — basé sur EcartGPV (même source que dashboard et page écarts)
     try:
-        from django.db.models import Count, Q as _Q
-        from django.db import connection as _conn
-
-        date_cond_gpv = ""
-        params_gpv = []
+        from ecarts.models import EcartGPV as _EcartGPV
+        filtres_gpv = {}
+        filtres_ecart_gpv = {}
         if date_debut:
-            date_cond_gpv += " AND DATE(g.date_creation) >= %s"
-            params_gpv.append(str(date_debut))
+            filtres_gpv['date_creation__date__gte'] = date_debut
+            filtres_ecart_gpv['commande_gpv__date_creation__date__gte'] = date_debut
         if date_fin:
-            date_cond_gpv += " AND DATE(g.date_creation) <= %s"
-            params_gpv.append(str(date_fin))
+            filtres_gpv['date_creation__date__lte'] = date_fin
+            filtres_ecart_gpv['commande_gpv__date_creation__date__lte'] = date_fin
 
-        with _conn.cursor() as cur:
-            cur.execute(f"""
-                SELECT
-                    COUNT(*)                                              AS total,
-                    COUNT(*) FILTER (WHERE c.numero_commande IS NOT NULL) AS integrees,
-                    COUNT(*) FILTER (WHERE c.numero_commande IS NULL)     AS non_integrees
-                FROM gpv_commandegpv g
-                LEFT JOIN cyrus_commandecyrus c
-                    ON c.numero_commande = g.numero_commande
-                    AND c.code_magasin = g.code_magasin
-                WHERE UPPER(TRIM(g.statut)) IN ('TRANSMISE', 'TRANSMIS')
-                {date_cond_gpv}
-            """, params_gpv)
-            row = cur.fetchone()
-        total_gpv_transmise        = row[0] or 0
-        commandes_integres_gpv     = row[1] or 0
-        commandes_non_integres_gpv = row[2] or 0
+        total_gpv_transmise = CommandeGPV.objects.filter(
+            statut__iregex=r'^transmis[e]?$', **filtres_gpv
+        ).count()
+        commandes_non_integres_gpv = _EcartGPV.objects.filter(statut='ouvert', **filtres_ecart_gpv).count()
+        commandes_integres_gpv = total_gpv_transmise - commandes_non_integres_gpv
         taux_integration_gpv     = round(commandes_integres_gpv     / total_gpv_transmise * 100, 2) if total_gpv_transmise else 0
         taux_non_integration_gpv = round(commandes_non_integres_gpv / total_gpv_transmise * 100, 2) if total_gpv_transmise else 0
         stats_gpv = {
