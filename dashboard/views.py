@@ -679,7 +679,7 @@ def dashboard(request):
         taux_integration    = round(commandes_integres     / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
         taux_non_integration = round(commandes_non_integres / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
 
-                stats = {
+        stats = {
             'total_source': total_legend_pour_stats,
             'total_target': CommandeGPV.objects.count(),
             'integres': commandes_integres,
