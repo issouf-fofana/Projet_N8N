@@ -1318,7 +1318,7 @@ def accueil(request):
                 FROM asten_commandeasten a
                 LEFT JOIN cyrus_commandecyrus c
                     ON c.numero_commande = a.numero_commande
-                    AND c.code_magasin_id = a.code_magasin_id
+                    AND c.code_magasin = a.code_magasin
                 WHERE 1=1 {date_cond_a}
             """, params)
             row = cur.fetchone()
@@ -1360,7 +1360,7 @@ def accueil(request):
                 FROM gpv_commandegpv g
                 LEFT JOIN cyrus_commandecyrus c
                     ON c.numero_commande = g.numero_commande
-                    AND c.code_magasin_id = g.code_magasin_id
+                    AND c.code_magasin = g.code_magasin
                 WHERE UPPER(TRIM(g.statut)) IN ('TRANSMISE', 'TRANSMIS')
                 {date_cond_gpv}
             """, params_gpv)
