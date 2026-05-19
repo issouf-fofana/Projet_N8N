@@ -2125,16 +2125,21 @@ def liste_ecarts(request):
 
 def liste_commandes_asten(request):
     """Affiche la liste des commandes Asten"""
+    from datetime import date, timedelta
     # Filtres
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
-    codes_magasins = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs
+    codes_magasins = request.GET.getlist('magasin')
     numero_commande = request.GET.get('numero_commande', '').strip()
-    recherche_magasin = request.GET.get('recherche_magasin', '').strip()  # Recherche par code ou nom
-    
+    recherche_magasin = request.GET.get('recherche_magasin', '').strip()
+
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
-    
+
+    if not date_debut_parsed and not date_fin_parsed and not numero_commande and not codes_magasins:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
+
     filtres = {}
     if date_debut_parsed:
         filtres['date_commande__gte'] = date_debut_parsed
@@ -2180,16 +2185,20 @@ def liste_commandes_asten(request):
 
 def liste_commandes_cyrus(request):
     """Affiche la liste des commandes Cyrus"""
-    # Filtres
+    from datetime import date, timedelta
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
-    codes_magasins = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs
+    codes_magasins = request.GET.getlist('magasin')
     numero_commande = request.GET.get('numero_commande', '').strip()
-    recherche_magasin = request.GET.get('recherche_magasin', '').strip()  # Recherche par code ou nom
-    
+    recherche_magasin = request.GET.get('recherche_magasin', '').strip()
+
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
-    
+
+    if not date_debut_parsed and not date_fin_parsed and not numero_commande and not codes_magasins:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
+
     filtres = {}
     if date_debut_parsed:
         filtres['date_commande__gte'] = date_debut_parsed
@@ -2234,6 +2243,7 @@ def liste_commandes_cyrus(request):
 
 def liste_br_asten(request):
     """Affiche la liste des BR Asten"""
+    from datetime import date, timedelta
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
     codes_magasins = request.GET.getlist('magasin')
@@ -2242,6 +2252,10 @@ def liste_br_asten(request):
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    if not date_debut_parsed and not date_fin_parsed and not numero_br and not codes_magasins:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
 
     filtres = {}
     if date_debut_parsed:
@@ -2709,16 +2723,20 @@ def detail_ecart_legend(request, ecart_id):
 
 def liste_commandes_gpv(request):
     """Affiche la liste des commandes GPV"""
-    # Filtres
+    from datetime import date, timedelta
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
-    codes_magasins = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs
+    codes_magasins = request.GET.getlist('magasin')
     numero_commande = request.GET.get('numero_commande', '').strip()
-    recherche_magasin = request.GET.get('recherche_magasin', '').strip()  # Recherche par code ou nom
-    
+    recherche_magasin = request.GET.get('recherche_magasin', '').strip()
+
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
-    
+
+    if not date_debut_parsed and not date_fin_parsed and not numero_commande and not codes_magasins:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
+
     filtres = {}
     if date_debut_parsed:
         filtres['date_creation__date__gte'] = date_debut_parsed
@@ -2763,6 +2781,7 @@ def liste_commandes_gpv(request):
 
 def liste_commandes_legend(request):
     """Affiche la liste des commandes Legend"""
+    from datetime import date, timedelta
     # Filtres
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
@@ -2772,6 +2791,12 @@ def liste_commandes_legend(request):
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    # Par défaut : 30 derniers jours si aucun filtre de date ni de numéro
+    _has_filtre = date_debut_parsed or date_fin_parsed or numero_commande or depot_recherche
+    if not _has_filtre:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
 
     filtres = {}
     if date_debut_parsed:
