@@ -287,9 +287,11 @@ def dashboard(request):
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
     periode = request.GET.get('periode', '')
-    # Pour GPV : défaut = non_integres (masquer les 61k résolus)
-    _default_show = 'non_integres' if type_donnees == 'commandes_gpv' else ''
-    show = request.GET.get('show', _default_show)  # 'non_integres' pour afficher uniquement les écarts ouverts
+    # Pour GPV sans filtre de date : défaut = non_integres (évite de charger les 61k résolus)
+    # Avec un filtre de date actif : afficher tout (sinon les nouvelles commandes sans écart calculé sont invisibles)
+    _has_date_filter = bool(date_debut or date_fin or periode)
+    _default_show = 'non_integres' if (type_donnees == 'commandes_gpv' and not _has_date_filter) else ''
+    show = request.GET.get('show', _default_show)
     
     # Nettoyer les valeurs "None" en string
     if date_debut == 'None' or date_debut == '':
