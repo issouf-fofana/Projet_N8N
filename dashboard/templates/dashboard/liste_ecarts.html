@@ -210,7 +210,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if item.type_ecart_ecart == 'legend' %}
+                                {% if item.type_ecart == 'legend' %}
                                     <span class="badge bg-secondary">{{ item.depot_origine }}</span><br>
                                     <small class="text-muted">{{ item.depot_destination|default:"-" }}</small>
                                 {% else %}
