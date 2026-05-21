@@ -1652,13 +1652,15 @@ def scanner_et_importer_fichiers():
     except Exception as e:
         print(f"Erreur import Entrée Journal: {e}")
 
-    # Importer factures Cyrus et Asten en base — MV rafraîchie seulement si import effectif
+    # Importer factures Cyrus et Asten en base — MV rafraîchie si import effectif
     _factures_importees = False
     try:
-        avant = len(fichiers_importes)
+        from imports.models import FactureAstenLigne as _FAL, FactureCyrusLigne as _FCL
+        avant_asten = _FAL.objects.count()
+        avant_cyrus = _FCL.objects.count()
         importer_factures_cyrus_en_base()
         importer_factures_asten_en_base()
-        _factures_importees = len(fichiers_importes) > avant
+        _factures_importees = (_FAL.objects.count() > avant_asten or _FCL.objects.count() > avant_cyrus)
     except Exception as e:
         print(f"Erreur import factures en base: {e}")
 
