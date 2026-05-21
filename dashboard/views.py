@@ -821,10 +821,12 @@ def dashboard(request):
         
     elif type_donnees == 'factures_backup':
         from django.db import connection as _conn
+        from core.models import Magasin as _Magasin
 
         backup_error = None
         filtre_full_asten = request.GET.get('full_asten') == '1'
         filtre_statut     = request.GET.get('statut_fv', 'non_integre')
+        full_asten_codes  = list(_Magasin.objects.filter(full_asten=True).values_list('code', flat=True))
 
         try:
             from imports.services import get_factures_stats_sql
@@ -835,8 +837,9 @@ def dashboard(request):
         # ── Conditions WHERE communes ──────────────────────────────────────
         _where = ["m.statut_effectif != 'ignore'"]
         _params = []
-        if filtre_full_asten:
-            _where.append("COALESCE(fa.full_asten, false) = true")
+        if filtre_full_asten and full_asten_codes:
+            _where.append("m.cidc = ANY(%s)")
+            _params.append(full_asten_codes)
         if code_magasin:
             _where.append("m.cidc = ANY(%s)")
             _params.append(list(code_magasin))
