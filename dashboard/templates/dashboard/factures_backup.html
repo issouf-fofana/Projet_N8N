@@ -504,14 +504,21 @@ async function bulkAction(statut) {
     if (!ok) return;
 
     AppModal.spinner(true, 'Enregistrement…');
-    await Promise.all(checked.map(cb =>
+    const results = await Promise.all(checked.map(cb =>
         fetch(URL_SET, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
             body: JSON.stringify({ cle_facture: cb.dataset.cle, dfac_str: cb.dataset.dfac, cidc: cb.dataset.cidc, statut, note: '' }),
-        })
+        }).then(r => r.json())
     ));
-    window.location.reload();
+    AppModal.spinner(false);
+    // Supprimer visuellement les lignes traitées sans recharger la page
+    checked.forEach(cb => {
+        const row = cb.closest('tr');
+        if (row) row.remove();
+    });
+    // Mettre à jour le compteur de sélection
+    updateBulkBar();
 }
 
 /* ── Modal statut individuel ── */
@@ -549,7 +556,11 @@ async function saveStatut() {
         });
         const data = await r.json();
         if (data.ok) {
-            window.location.reload();
+            AppModal.spinner(false);
+            // Supprimer la ligne visuellement sans recharger
+            const row = document.querySelector(`tr[data-cle="${_modal.cle}"]`);
+            if (row) row.remove();
+            updateBulkBar();
         } else {
             AppModal.spinner(false);
             AppModal.alert({ type: 'danger', title: 'Erreur', body: data.error || 'Erreur inconnue' });
