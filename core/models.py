@@ -7,6 +7,7 @@ class Magasin(models.Model):
     code = models.CharField(max_length=10, unique=True, primary_key=True, verbose_name="Code magasin")
     nom = models.CharField(max_length=200, verbose_name="Nom du magasin")
     full_asten = models.BooleanField(default=False, verbose_name="Full Asten")
+    exclure_factures = models.BooleanField(default=False, verbose_name="Exclure des stats factures")
     date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
     date_modification = models.DateTimeField(auto_now=True, verbose_name="Date de modification")
 

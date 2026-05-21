@@ -61,8 +61,17 @@
                         {% if magasin_edit and magasin_edit.full_asten %}checked{% endif %}>
                     <label for="full_asten_input" class="form-check-label fw-semibold" style="cursor:pointer">Oui</label>
                 </div>
-                <!-- converti checkbox → champ hidden pour submit -->
                 <input type="hidden" name="full_asten" id="full_asten_hidden" value="{% if magasin_edit and magasin_edit.full_asten %}1{% else %}0{% endif %}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small text-uppercase">Excl. Factures</label>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <input type="checkbox" name="exclure_factures" id="exclure_factures_input" value="1" class="form-check-input" style="width:20px;height:20px;cursor:pointer"
+                        {% if magasin_edit and magasin_edit.exclure_factures %}checked{% endif %}>
+                    <label for="exclure_factures_input" class="form-check-label fw-semibold" style="cursor:pointer">Oui</label>
+                </div>
+                <input type="hidden" name="exclure_factures" id="exclure_factures_hidden" value="{% if magasin_edit and magasin_edit.exclure_factures %}1{% else %}0{% endif %}">
+                <small class="text-muted">Exclure des stats factures</small>
             </div>
             <div class="col-md-3 d-flex align-items-end">
                 {% if magasin_edit %}
@@ -121,6 +130,7 @@
                         <th>Code</th>
                         <th>Nom</th>
                         <th class="text-center">Full Asten</th>
+                        <th class="text-center">Excl. Factures</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -138,6 +148,17 @@
                                 </button>
                                 <span id="badge-{{ mag.code }}" class="ms-2 {% if mag.full_asten %}badge-fa{% else %}badge-non-fa{% endif %}">
                                     {% if mag.full_asten %}Full Asten{% else %}Non{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <button type="button"
+                                    class="toggle-fa {% if mag.exclure_factures %}on{% else %}off{% endif %}"
+                                    data-code="{{ mag.code }}" data-field="exclure_factures"
+                                    title="{% if mag.exclure_factures %}Exclu — cliquer pour inclure{% else %}Inclus — cliquer pour exclure{% endif %}"
+                                    style="background:{% if mag.exclure_factures %}#ef4444{% else %}#d1d5db{% endif %}">
+                                </button>
+                                <span id="badge-excl-{{ mag.code }}" class="ms-2 badge {% if mag.exclure_factures %}bg-danger{% else %}bg-light text-dark border{% endif %}" style="font-size:0.75rem">
+                                    {% if mag.exclure_factures %}Exclu{% else %}Inclus{% endif %}
                                 </span>
                             </td>
                             <td class="text-end">
@@ -181,23 +202,39 @@ document.getElementById('full_asten_input')?.addEventListener('change', function
     document.getElementById('full_asten_hidden').value = this.checked ? '1' : '0';
 });
 
+// Synchronise checkbox exclure_factures avec le hidden field
+document.getElementById('exclure_factures_input')?.addEventListener('change', function() {
+    document.getElementById('exclure_factures_hidden').value = this.checked ? '1' : '0';
+});
+
 // Toggle individuel via AJAX
 document.querySelectorAll('.toggle-fa').forEach(btn => {
     btn.addEventListener('click', async function() {
         const code = this.dataset.code;
+        const field = this.dataset.field || 'full_asten';
         const res = await fetch(URL_TOGGLE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
-            body: `action=toggle_one&code=${encodeURIComponent(code)}`
+            body: `action=toggle_one&code=${encodeURIComponent(code)}&field=${encodeURIComponent(field)}`
         });
         const data = await res.json();
         if (data.ok) {
-            const isOn = data.full_asten;
-            this.className = 'toggle-fa ' + (isOn ? 'on' : 'off');
-            this.title = isOn ? 'Full Asten — cliquer pour désactiver' : 'Pas Full Asten — cliquer pour activer';
-            const badge = document.getElementById('badge-' + code);
-            badge.className = 'ms-2 ' + (isOn ? 'badge-fa' : 'badge-non-fa');
-            badge.textContent = isOn ? 'Full Asten' : 'Non';
+            if (field === 'exclure_factures') {
+                const isOn = data.exclure_factures;
+                this.style.background = isOn ? '#ef4444' : '#d1d5db';
+                this.className = 'toggle-fa ' + (isOn ? 'on' : 'off');
+                this.title = isOn ? 'Exclu — cliquer pour inclure' : 'Inclus — cliquer pour exclure';
+                const badge = document.getElementById('badge-excl-' + code);
+                badge.className = 'ms-2 badge ' + (isOn ? 'bg-danger' : 'bg-light text-dark border');
+                badge.textContent = isOn ? 'Exclu' : 'Inclus';
+            } else {
+                const isOn = data.full_asten;
+                this.className = 'toggle-fa ' + (isOn ? 'on' : 'off');
+                this.title = isOn ? 'Full Asten — cliquer pour désactiver' : 'Pas Full Asten — cliquer pour activer';
+                const badge = document.getElementById('badge-' + code);
+                badge.className = 'ms-2 ' + (isOn ? 'badge-fa' : 'badge-non-fa');
+                badge.textContent = isOn ? 'Full Asten' : 'Non';
+            }
         }
     });
 });

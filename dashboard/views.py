@@ -835,7 +835,7 @@ def dashboard(request):
             fv_sql = {}
 
         # ── Conditions WHERE communes ──────────────────────────────────────
-        _where = ["m.statut_effectif != 'ignore'"]
+        _where = ["m.statut_effectif != 'ignore'", "COALESCE(fa.exclure_factures, false) = false"]
         _params = []
         if filtre_full_asten and full_asten_codes:
             _where.append("m.cidc = ANY(%s)")
@@ -3121,6 +3121,7 @@ def gestion_magasins(request):
                     magasin = Magasin.objects.get(code=original_code)
                     magasin.nom = nom
                     magasin.full_asten = request.POST.get('full_asten') == '1'
+                    magasin.exclure_factures = request.POST.get('exclure_factures') == '1'
                     magasin.save()
                     messages.success(request, f"Magasin {original_code} mis à jour avec succès.")
                     return redirect('dashboard:gestion_magasins')
@@ -3134,14 +3135,21 @@ def gestion_magasins(request):
             messages.success(request, f"Tous les magasins ont été {label} (Full Asten).")
             return redirect('dashboard:gestion_magasins')
         elif action == 'toggle_one':
-            # Basculer Full Asten d'un seul magasin (appel AJAX)
+            # Basculer Full Asten ou exclure_factures d'un seul magasin (appel AJAX)
+            field = request.POST.get('field', 'full_asten')
             if code:
                 try:
                     magasin = Magasin.objects.get(code=code)
-                    magasin.full_asten = not magasin.full_asten
-                    magasin.save()
-                    from django.http import JsonResponse
-                    return JsonResponse({'ok': True, 'full_asten': magasin.full_asten})
+                    if field == 'exclure_factures':
+                        magasin.exclure_factures = not magasin.exclure_factures
+                        magasin.save()
+                        from django.http import JsonResponse
+                        return JsonResponse({'ok': True, 'exclure_factures': magasin.exclure_factures})
+                    else:
+                        magasin.full_asten = not magasin.full_asten
+                        magasin.save()
+                        from django.http import JsonResponse
+                        return JsonResponse({'ok': True, 'full_asten': magasin.full_asten})
                 except Magasin.DoesNotExist:
                     from django.http import JsonResponse
                     return JsonResponse({'ok': False}, status=404)
@@ -3154,7 +3162,8 @@ def gestion_magasins(request):
             else:
                 try:
                     full_asten = request.POST.get('full_asten') == '1'
-                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten)
+                    exclure_factures = request.POST.get('exclure_factures') == '1'
+                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten, exclure_factures=exclure_factures)
                     messages.success(request, f"Magasin {code} - {nom} ajouté avec succès.")
                     return redirect('dashboard:gestion_magasins')
                 except IntegrityError:
@@ -4296,6 +4305,12 @@ def vue_factures_backup(request):
     where  = ["statut_effectif != 'ignore'"]
     params = []
 
+    # Exclure les magasins marqués "exclure_factures"
+    exclu_codes = list(MagasinModel.objects.filter(exclure_factures=True).values_list('code', flat=True))
+    if exclu_codes:
+        where.append("cidc != ALL(%s)")
+        params.append(exclu_codes)
+
     if f_full_asten == '1' and full_asten_codes:
         where.append(f"cidc = ANY(%s)"); params.append(full_asten_codes)
     if f_statut == 'integree':
@@ -4330,6 +4345,9 @@ def vue_factures_backup(request):
             # Stats globales (toujours sans filtre statut/search)
             base_where = ["statut_effectif != 'ignore'"]
             base_params = []
+            if exclu_codes:
+                base_where.append("cidc != ALL(%s)")
+                base_params.append(exclu_codes)
             if f_full_asten == '1' and full_asten_codes:
                 base_where.append("cidc = ANY(%s)"); base_params.append(full_asten_codes)
             base_sql = "WHERE " + " AND ".join(base_where)

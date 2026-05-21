@@ -2959,6 +2959,7 @@ def get_factures_stats_sql():
                                      AND m.statut_effectif = 'non_integre')               AS sem_prev_eca
                 FROM mv_factures_joined m
                 LEFT JOIN core_magasin fa ON fa.code = m.cidc
+                WHERE COALESCE(fa.exclure_factures, false) = false
                 GROUP BY m.cidc, fa.full_asten
             """, [
                 debut_sem, debut_sem,
