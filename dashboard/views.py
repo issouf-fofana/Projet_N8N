@@ -1669,13 +1669,15 @@ def actualiser_stream(request):
         try:
             yield sse_line('=== Scan des dossiers ===', 'section')
             dossiers = {
-                'Asten':       settings.DOSSIER_COMMANDES_ASTEN_PATH,
-                'Cyrus':       settings.DOSSIER_COMMANDES_CYRUS_PATH,
-                'GPV':         settings.DOSSIER_COMMANDES_GPV_PATH,
-                'Legend':      settings.DOSSIER_COMMANDES_LEGEND_PATH,
-                'BR Asten':    settings.DOSSIER_BR_ASTEN_PATH,
-                'BR IC':       settings.DOSSIER_BR_IC_PATH,
-                'Anomalie BR': settings.DOSSIER_ANOMALIE_BR_PATH,
+                'Asten':           settings.DOSSIER_COMMANDES_ASTEN_PATH,
+                'Cyrus':           settings.DOSSIER_COMMANDES_CYRUS_PATH,
+                'GPV':             settings.DOSSIER_COMMANDES_GPV_PATH,
+                'Legend':          settings.DOSSIER_COMMANDES_LEGEND_PATH,
+                'BR Asten':        settings.DOSSIER_BR_ASTEN_PATH,
+                'BR IC':           settings.DOSSIER_BR_IC_PATH,
+                'Anomalie BR':     settings.DOSSIER_ANOMALIE_BR_PATH,
+                'Facture Asten':   settings.DOSSIER_FACTURES_ASTEN_CSV_PATH,
+                'Facture Cyrus':   settings.DOSSIER_FACTURES_CYRUS_PATH,
             }
             total_fichiers = 0
             for nom, chemin_str in dossiers.items():
