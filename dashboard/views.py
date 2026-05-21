@@ -3121,8 +3121,22 @@ def gestion_magasins(request):
                     magasin = Magasin.objects.get(code=original_code)
                     magasin.nom = nom
                     magasin.full_asten = request.POST.get('full_asten') == '1'
-                    magasin.exclure_factures = request.POST.get('exclure_factures') == '1'
+                    nouvel_exclu = request.POST.get('exclure_factures') == '1'
+                    ancien_exclu = magasin.exclure_factures
+                    magasin.exclure_factures = nouvel_exclu
                     magasin.save()
+                    if nouvel_exclu and not ancien_exclu:
+                        from django.db import connection as _c
+                        with _c.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO imports_factureecartstatut (cle_facture, dfac_str, cidc, statut, note, date_modif)
+                                SELECT cle_facture, dfac_str, cidc, 'ignore', 'Magasin exclu', NOW()
+                                FROM mv_factures_joined
+                                WHERE cidc = %s AND statut_effectif = 'non_integre'
+                                ON CONFLICT (cle_facture, dfac_str, cidc) DO UPDATE SET statut = 'ignore', date_modif = NOW()
+                            """, [original_code])
+                        with _c.cursor() as cur:
+                            cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
                     messages.success(request, f"Magasin {original_code} mis à jour avec succès.")
                     return redirect('dashboard:gestion_magasins')
                 except Magasin.DoesNotExist:
@@ -3143,8 +3157,24 @@ def gestion_magasins(request):
                     if field == 'exclure_factures':
                         magasin.exclure_factures = not magasin.exclure_factures
                         magasin.save()
+                        nb_ignores = 0
+                        if magasin.exclure_factures:
+                            # Ignorer toutes les factures non intégrées de ce magasin
+                            from django.db import connection as _c
+                            from django.utils import timezone
+                            with _c.cursor() as cur:
+                                cur.execute("""
+                                    INSERT INTO imports_factureecartstatut (cle_facture, dfac_str, cidc, statut, note, date_modif)
+                                    SELECT cle_facture, dfac_str, cidc, 'ignore', 'Magasin exclu', NOW()
+                                    FROM mv_factures_joined
+                                    WHERE cidc = %s AND statut_effectif = 'non_integre'
+                                    ON CONFLICT (cle_facture, dfac_str, cidc) DO UPDATE SET statut = 'ignore', date_modif = NOW()
+                                """, [code])
+                                nb_ignores = cur.rowcount
+                            with _c.cursor() as cur:
+                                cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
                         from django.http import JsonResponse
-                        return JsonResponse({'ok': True, 'exclure_factures': magasin.exclure_factures})
+                        return JsonResponse({'ok': True, 'exclure_factures': magasin.exclure_factures, 'nb_ignores': nb_ignores})
                     else:
                         magasin.full_asten = not magasin.full_asten
                         magasin.save()

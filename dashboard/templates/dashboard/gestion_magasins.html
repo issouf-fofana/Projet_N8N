@@ -227,6 +227,9 @@ document.querySelectorAll('.toggle-fa').forEach(btn => {
                 const badge = document.getElementById('badge-excl-' + code);
                 badge.className = 'ms-2 badge ' + (isOn ? 'bg-danger' : 'bg-light text-dark border');
                 badge.textContent = isOn ? 'Exclu' : 'Inclus';
+                if (isOn && data.nb_ignores > 0) {
+                    alert(`✓ ${data.nb_ignores} facture(s) de ce magasin ignorées automatiquement.`);
+                }
             } else {
                 const isOn = data.full_asten;
                 this.className = 'toggle-fa ' + (isOn ? 'on' : 'off');
