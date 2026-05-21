@@ -4528,9 +4528,13 @@ def set_statut_facture_ecart(request):
             cidc=cidc,
             defaults={'statut': statut, 'note': note},
         )
-        from django.db import connection as _conn
-        with _conn.cursor() as _cur:
-            _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
+        import threading, django.db
+        def _refresh():
+            django.db.close_old_connections()
+            from django.db import connection as _conn
+            with _conn.cursor() as _cur:
+                _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
+        threading.Thread(target=_refresh, daemon=True).start()
         return JsonResponse({'ok': True, 'statut': statut, 'created': created})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
