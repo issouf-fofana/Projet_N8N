@@ -45,7 +45,7 @@ EXTENSIONS = {
 }
 
 # Ces dossiers sont toujours recopiés (pas de filtre par nouveauté)
-COPY_ALWAYS = {"anomalie_br"}
+COPY_ALWAYS = {"anomalie_br", "facture_asten", "facture_cyrus"}
 
 DEDUP_PATTERNS = {
     "commande_asten":  re.compile(r'^export_commande_reassort_(\d+)_(\d{8})_(\d{6})'),
