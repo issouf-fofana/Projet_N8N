@@ -2941,22 +2941,22 @@ def get_factures_stats_sql():
                 SELECT
                     m.cidc,
                     COALESCE(fa.full_asten, false)                          AS is_full_asten,
-                    COUNT(*)                                                 AS total,
-                    COUNT(*) FILTER (WHERE m.integree AND m.qt_asten > 0)   AS integrees,
-                    COUNT(*) FILTER (WHERE m.integree AND m.qt_asten = 0)   AS integrees_vide,
-                    COUNT(*) FILTER (WHERE NOT m.integree)                  AS ecarts,
-                    COUNT(*) FILTER (WHERE NOT m.integree
-                                     AND NOT COALESCE(fa.full_asten, false)) AS non_full_asten,
+                    COUNT(*)                                                                    AS total,
+                    COUNT(*) FILTER (WHERE m.statut_effectif = 'integre')                  AS integrees,
+                    COUNT(*) FILTER (WHERE m.statut_effectif = 'integre_vide')             AS integrees_vide,
+                    COUNT(*) FILTER (WHERE m.statut_effectif = 'non_integre')              AS ecarts,
+                    COUNT(*) FILTER (WHERE m.statut_effectif = 'non_integre'
+                                     AND NOT COALESCE(fa.full_asten, false))               AS non_full_asten,
                     -- Semaine courante
                     COUNT(*) FILTER (WHERE m.dfac_date >= %s
-                                     AND m.integree)                        AS sem_cur_int,
+                                     AND m.statut_effectif IN ('integre','integre_vide'))  AS sem_cur_int,
                     COUNT(*) FILTER (WHERE m.dfac_date >= %s
-                                     AND NOT m.integree)                    AS sem_cur_eca,
+                                     AND m.statut_effectif = 'non_integre')               AS sem_cur_eca,
                     -- Semaine précédente
                     COUNT(*) FILTER (WHERE m.dfac_date BETWEEN %s AND %s
-                                     AND m.integree)                        AS sem_prev_int,
+                                     AND m.statut_effectif IN ('integre','integre_vide'))  AS sem_prev_int,
                     COUNT(*) FILTER (WHERE m.dfac_date BETWEEN %s AND %s
-                                     AND NOT m.integree)                    AS sem_prev_eca
+                                     AND m.statut_effectif = 'non_integre')               AS sem_prev_eca
                 FROM mv_factures_joined m
                 LEFT JOIN core_magasin fa ON fa.code = m.cidc
                 GROUP BY m.cidc, fa.full_asten
@@ -2991,7 +2991,7 @@ def get_factures_stats_sql():
                 'full_asten':    is_fa,
             }
 
-        total = nb_integrees + nb_integrees_vide + nb_non_integrees + nb_non_full_asten
+        total = nb_integrees + nb_integrees_vide + nb_non_integrees
         taux  = round((nb_integrees + nb_integrees_vide) / total * 100, 1) if total else 0
         top10 = sorted(
             [(c, s) for c, s in par_magasin.items() if s['ecarts'] > 0],
