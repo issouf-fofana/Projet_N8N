@@ -1433,29 +1433,35 @@
             Laissez vide pour revenir aux données réelles.
         </div>
         <div class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-semibold small" for="inp_integrees">
-                    <i class="bi bi-check-circle text-success"></i> Factures intégrées
+                    <i class="bi bi-check-circle text-success"></i> Intégrées
                 </label>
                 <input type="number" class="form-control form-control-sm" id="inp_integrees" min="0" placeholder="Auto ({{ stats.integres|default:0 }})">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small" for="inp_integrees_vide_man">
+                    <i class="bi bi-exclamation-circle" style="color:#d97706"></i> À vide
+                </label>
+                <input type="number" class="form-control form-control-sm" id="inp_integrees_vide_man" min="0" placeholder="Auto ({{ stats.integres_vide|default:0 }})">
+            </div>
+            <div class="col-md-2">
                 <label class="form-label fw-semibold small" for="inp_non_integrees">
                     <i class="bi bi-x-circle text-danger"></i> En écart
                 </label>
                 <input type="number" class="form-control form-control-sm" id="inp_non_integrees" min="0" placeholder="Auto ({{ stats.non_integres|default:0 }})">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-semibold small" for="inp_integrees_vide">
                     <i class="bi bi-collection"></i> Total
                 </label>
                 <input type="number" class="form-control form-control-sm" id="inp_integrees_vide" min="0" placeholder="Auto ({{ stats.total_source|default:0 }})">
             </div>
-            <div class="col-md-3 d-flex gap-2">
-                <button class="btn btn-sm w-50" style="background:#7c3aed;color:#fff" onclick="applyBackupValues()">
+            <div class="col-md-4 d-flex gap-2 align-items-end">
+                <button class="btn btn-sm flex-fill" style="background:#7c3aed;color:#fff" onclick="applyBackupValues()">
                     <i class="bi bi-check2-all"></i> Appliquer
                 </button>
-                <button class="btn btn-sm btn-outline-secondary w-50" onclick="resetBackupValues()">
+                <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="resetBackupValues()">
                     <i class="bi bi-arrow-counterclockwise"></i> Reset
                 </button>
             </div>
@@ -1492,10 +1498,11 @@
         const saved = loadSaved();
         const hasManuel = saved.integrees !== '' && saved.integrees !== undefined;
         if (hasManuel) {
-            const int = parseInt(saved.integrees)     || 0;
-            const eca = parseInt(saved.non_integrees) || 0;
-            const tot = parseInt(saved.total)         || (int + eca);
-            return { int, eca, tot, ign: SERVER.ignores, isManuel: true };
+            const int  = parseInt(saved.integrees)       || 0;
+            const vide = parseInt(saved.integrees_vide)  || 0;
+            const eca  = parseInt(saved.non_integrees)   || 0;
+            const tot  = parseInt(saved.total)           || (int + vide + eca);
+            return { int, vide, eca, tot, ign: SERVER.ignores, isManuel: true };
         }
         return { int: SERVER.integrees, vide: SERVER.integrees_vide, eca: SERVER.non_integrees, tot: SERVER.total, ign: SERVER.ignores, isManuel: false };
     }
@@ -1634,9 +1641,10 @@
 
     window.applyBackupValues = function() {
         saveCurrent({
-            integrees:    document.getElementById('inp_integrees').value,
-            non_integrees:document.getElementById('inp_non_integrees').value,
-            total:        document.getElementById('inp_integrees_vide').value,
+            integrees:      document.getElementById('inp_integrees').value,
+            integrees_vide: document.getElementById('inp_integrees_vide_man').value,
+            non_integrees:  document.getElementById('inp_non_integrees').value,
+            total:          document.getElementById('inp_integrees_vide').value,
         });
         refreshAll();
     };
@@ -1644,6 +1652,7 @@
     window.resetBackupValues = function() {
         localStorage.removeItem(LS_KEY);
         document.getElementById('inp_integrees').value = '';
+        document.getElementById('inp_integrees_vide_man').value = '';
         document.getElementById('inp_non_integrees').value = '';
         document.getElementById('inp_integrees_vide').value = '';
         refreshAll();
@@ -1660,9 +1669,10 @@
     // Restaurer saisie manuelle si présente
     const saved = loadSaved();
     if (saved.integrees !== undefined && saved.integrees !== '') {
-        document.getElementById('inp_integrees').value = saved.integrees;
-        document.getElementById('inp_non_integrees').value = saved.non_integrees || '';
-        document.getElementById('inp_integrees_vide').value = saved.total || '';
+        document.getElementById('inp_integrees').value          = saved.integrees       || '';
+        document.getElementById('inp_integrees_vide_man').value = saved.integrees_vide  || '';
+        document.getElementById('inp_non_integrees').value      = saved.non_integrees   || '';
+        document.getElementById('inp_integrees_vide').value     = saved.total           || '';
     }
 
     // Initialiser tous les graphiques au chargement

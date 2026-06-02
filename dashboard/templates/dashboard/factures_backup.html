@@ -151,37 +151,37 @@ tr.clickable-row { cursor:pointer; }
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg">
             <div class="stat-card stat-total" style="cursor:pointer" onclick="window.location='?statut=tous'">
-                <div class="stat-num" style="color:#1e3a8a">{{ stats.total }}</div>
+                <div class="stat-num" style="color:#1e3a8a" id="stat-total">{{ stats.total }}</div>
                 <div class="stat-label">Total factures</div>
             </div>
         </div>
         <div class="col-6 col-lg">
             <div class="stat-card stat-ok" style="cursor:pointer" onclick="window.location='?statut=integree'">
-                <div class="stat-num" style="color:#059669">{{ stats.integrees }}</div>
+                <div class="stat-num" style="color:#059669" id="stat-integrees">{{ stats.integrees }}</div>
                 <div class="stat-label">Intégrées ✓</div>
             </div>
         </div>
         <div class="col-6 col-lg">
             <div class="stat-card stat-vide" style="cursor:pointer" onclick="window.location='?statut=integree_vide'">
-                <div class="stat-num" style="color:#d97706">{{ stats.integrees_vide }}</div>
+                <div class="stat-num" style="color:#d97706" id="stat-integrees-vide">{{ stats.integrees_vide }}</div>
                 <div class="stat-label">À vide ⚠</div>
             </div>
         </div>
         <div class="col-6 col-lg">
             <div class="stat-card stat-ecart" style="cursor:pointer" onclick="window.location='?statut=non_integree'">
-                <div class="stat-num" style="color:#dc2626">{{ stats.ecarts }}</div>
+                <div class="stat-num" style="color:#dc2626" id="stat-ecarts">{{ stats.ecarts }}</div>
                 <div class="stat-label">Non intégrées ✗</div>
             </div>
         </div>
         <div class="col-6 col-lg">
             <div class="stat-card stat-taux" style="cursor:pointer" onclick="window.location='?statut=ecart_valo'">
-                <div class="stat-num" style="color:#6366f1">{{ stats.ecarts_valo }}</div>
+                <div class="stat-num" style="color:#6366f1" id="stat-ecarts-valo">{{ stats.ecarts_valo }}</div>
                 <div class="stat-label">Écarts valo</div>
             </div>
         </div>
         <div class="col-6 col-lg">
             <div class="stat-card stat-ignore">
-                <div class="stat-num" style="color:#6b7280">{{ stats.ignores }}</div>
+                <div class="stat-num" style="color:#6b7280" id="stat-ignores">{{ stats.ignores }}</div>
                 <div class="stat-label">Ignorées</div>
             </div>
         </div>
@@ -261,6 +261,15 @@ tr.clickable-row { cursor:pointer; }
         </form>
     </div>
 
+    <!-- Bouton Tout Intégré -->
+    {% if total > 0 and f_statut == 'non_integree' or total > 0 and f_statut == 'integree_vide' %}
+    <div style="margin-bottom:10px">
+        <button class="btn btn-sm btn-success fw-semibold" onclick="allFilteredAction('integre')" id="btnToutIntegre">
+            <i class="bi bi-check-circle-fill me-1"></i> Tout marquer Intégré <span class="badge bg-white text-success ms-1">{{ total }}</span>
+        </button>
+    </div>
+    {% endif %}
+
     <!-- Barre d'actions groupées -->
     <div id="bulkBar">
         <span class="bulk-count"><span id="bulkCount">0</span> facture(s) sélectionnée(s)</span>
@@ -312,11 +321,12 @@ tr.clickable-row { cursor:pointer; }
 
                         <!-- Checkbox (stoppe la navigation) -->
                         <td onclick="event.stopPropagation()">
-                            {% if r.statut_effectif == 'non_integre' %}
+                            {% if r.statut_effectif == 'non_integre' or r.statut_effectif == 'integre_vide' %}
                             <input type="checkbox" class="row-check row-cb"
                                 data-cle="{{ r.cle_facture }}"
                                 data-dfac="{{ r.dfac_str }}"
                                 data-cidc="{{ r.cidc }}"
+                                data-statut="{{ r.statut_effectif }}"
                                 onchange="updateBulkBar()">
                             {% endif %}
                         </td>
@@ -331,6 +341,10 @@ tr.clickable-row { cursor:pointer; }
                                 {% endif %}
                             {% elif r.statut_effectif == 'integre_vide' %}
                                 <span style="background:#fef3c7;color:#d97706;font-weight:600;border-radius:6px;padding:3px 10px;font-size:0.78rem;white-space:nowrap"><i class="bi bi-exclamation-circle-fill me-1"></i>À vide</span>
+                                <button class="btn-edit-statut ms-1" title="Modifier"
+                                    onclick="ouvrirModal('{{ r.cle_facture }}','{{ r.dfac_str }}','{{ r.cidc }}','integre_vide')">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
                             {% else %}
                                 <span class="badge-ecart"><i class="bi bi-x-circle-fill me-1"></i>Non intégrée</span>
                                 <button class="btn-edit-statut ms-1" title="Modifier"
@@ -446,8 +460,59 @@ tr.clickable-row { cursor:pointer; }
 {% block extra_js %}
 <script>
 const URL_SET    = "{% url 'dashboard:set_statut_facture_ecart' %}";
+const URL_SET_BULK = "{% url 'dashboard:set_statut_facture_ecart_bulk' %}";
+const URL_STATS     = "{% url 'dashboard:api_factures_backup_stats' %}";
+const URL_MV_STATUS = "{% url 'dashboard:api_mv_refresh_status' %}";
 const CSRF       = "{{ csrf_token }}";
 const URL_DETAIL = "{% url 'dashboard:detail_facture_cyrus' %}";
+
+const FULL_ASTEN_PARAM = "{{ f_full_asten }}";
+const CURRENT_FILTERS = {
+    magasin:       "{{ f_magasin }}",
+    nsee:          "{{ f_nsee }}",
+    date_debut:    "{{ f_date_debut }}",
+    date_fin:      "{{ f_date_fin }}",
+    search:        "{{ f_search }}",
+    full_asten:    "{{ f_full_asten }}",
+    source_statut: "{% if f_statut == 'integree_vide' %}integre_vide{% else %}non_integre{% endif %}",
+};
+
+async function refreshStats() {
+    try {
+        const url = URL_STATS + (FULL_ASTEN_PARAM === '1' ? '?full_asten=1' : '');
+        const data = await fetch(url).then(r => r.json());
+        if (!data.ok) return;
+        const s = data.stats;
+        document.getElementById('stat-total').textContent          = s.total;
+        document.getElementById('stat-integrees').textContent      = s.integrees;
+        document.getElementById('stat-integrees-vide').textContent = s.integrees_vide;
+        document.getElementById('stat-ecarts').textContent         = s.ecarts;
+        document.getElementById('stat-ecarts-valo').textContent    = s.ecarts_valo;
+        document.getElementById('stat-ignores').textContent        = s.ignores;
+    } catch {}
+}
+
+async function waitRefreshThenStats() {
+    // Attendre que le REFRESH MATERIALIZED VIEW soit terminé (max 60s), puis recharger les stats
+    const start = Date.now();
+    let lastDone = null;
+    while (Date.now() - start < 60000) {
+        try {
+            const d = await fetch(URL_MV_STATUS).then(r => r.json());
+            if (lastDone === null) lastDone = d.last_done;
+            if (!d.pending && d.last_done > lastDone) {
+                await refreshStats();
+                return;
+            }
+            if (!d.pending && lastDone === d.last_done && Date.now() - start > 3000) {
+                // Pas de refresh en cours et last_done n'a pas changé — peut-être déjà fini avant qu'on poll
+                await refreshStats();
+                return;
+            }
+        } catch {}
+        await new Promise(r => setTimeout(r, 2000));
+    }
+}
 
 const BULK_LABELS = {
     integre:     { label:'Intégré (manuel)', type:'success', okLabel:'Marquer Intégré',  okIcon:'bi-check-circle-fill' },
@@ -488,7 +553,17 @@ function deselAll() {
     updateBulkBar();
 }
 
-/* ── Actions groupées ── */
+function applyStats(stats) {
+    if (!stats) return;
+    document.getElementById('stat-total').textContent          = stats.total;
+    document.getElementById('stat-integrees').textContent      = stats.integrees;
+    document.getElementById('stat-integrees-vide').textContent = stats.integrees_vide;
+    document.getElementById('stat-ecarts').textContent         = stats.ecarts;
+    document.getElementById('stat-ecarts-valo').textContent    = stats.ecarts_valo;
+    document.getElementById('stat-ignores').textContent        = stats.ignores;
+}
+
+/* ── Actions groupées (sélection visible) ── */
 async function bulkAction(statut) {
     const checked = [...document.querySelectorAll('.row-cb:checked')];
     if (!checked.length) return;
@@ -503,22 +578,68 @@ async function bulkAction(statut) {
     });
     if (!ok) return;
 
-    AppModal.spinner(true, 'Enregistrement…');
-    const results = await Promise.all(checked.map(cb =>
-        fetch(URL_SET, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-            body: JSON.stringify({ cle_facture: cb.dataset.cle, dfac_str: cb.dataset.dfac, cidc: cb.dataset.cidc, statut, note: '' }),
-        }).then(r => r.json())
-    ));
+    AppModal.spinner(true, 'Enregistrement en cours… (peut prendre ~15s)');
+    const items = checked.map(cb => ({
+        cle_facture: cb.dataset.cle,
+        dfac_str:    cb.dataset.dfac,
+        cidc:        cb.dataset.cidc,
+        statut,
+        note: '',
+    }));
+    const result = await fetch(URL_SET_BULK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ items, ...CURRENT_FILTERS }),
+    }).then(r => r.json());
     AppModal.spinner(false);
-    // Supprimer visuellement les lignes traitées sans recharger la page
-    checked.forEach(cb => {
-        const row = cb.closest('tr');
-        if (row) row.remove();
-    });
-    // Mettre à jour le compteur de sélection
+
+    if (!result.ok) {
+        AppModal.alert({ type: 'danger', title: 'Erreur', body: result.error || 'Erreur inconnue' });
+        return;
+    }
+
+    checked.forEach(cb => { const row = cb.closest('tr'); if (row) row.remove(); });
     updateBulkBar();
+    applyStats(result.stats);
+}
+
+/* ── Tout marquer (toutes les factures filtrées, toutes pages) ── */
+async function allFilteredAction(statut) {
+    const { label, okLabel, okIcon } = BULK_LABELS[statut];
+    const isVide   = CURRENT_FILTERS.source_statut === 'integre_vide';
+    const total    = parseInt(isVide
+        ? document.getElementById('stat-integrees-vide').textContent
+        : document.getElementById('stat-ecarts').textContent) || 0;
+    const typeLabel = isVide ? 'factures à vide' : 'factures non intégrées';
+
+    const ok = await AppModal.confirm({
+        type: 'warning',
+        title: `Tout marquer — ${total} facture${total > 1 ? 's' : ''}`,
+        body:  `Appliquer <strong>${label}</strong> à toutes les <strong>${total}</strong> ${typeLabel} correspondant aux filtres actifs ?<br><small class="text-muted">Cette opération peut prendre ~15 secondes.</small>`,
+        okLabel, okIcon,
+    });
+    if (!ok) return;
+
+    AppModal.spinner(true, 'Enregistrement en cours… (peut prendre ~15s)');
+    const result = await fetch(URL_SET_BULK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ all_filtered: true, statut, note: '', ...CURRENT_FILTERS }),
+    }).then(r => r.json());
+    AppModal.spinner(false);
+
+    if (!result.ok) {
+        AppModal.alert({ type: 'danger', title: 'Erreur', body: result.error || 'Erreur inconnue' });
+        return;
+    }
+
+    // Vider tout le tableau (toutes les lignes non intégrées ont été traitées)
+    document.querySelectorAll('#mainTable tbody tr').forEach(r => r.remove());
+    updateBulkBar();
+    applyStats(result.stats);
+    // Masquer le bouton "Tout intégré" puisqu'il n'y a plus rien
+    const btn = document.getElementById('btnToutIntegre');
+    if (btn) btn.closest('div').remove();
 }
 
 /* ── Modal statut individuel ── */
@@ -561,6 +682,7 @@ async function saveStatut() {
             const row = document.querySelector(`tr[data-cle="${_modal.cle}"]`);
             if (row) row.remove();
             updateBulkBar();
+            waitRefreshThenStats();
         } else {
             AppModal.spinner(false);
             AppModal.alert({ type: 'danger', title: 'Erreur', body: data.error || 'Erreur inconnue' });

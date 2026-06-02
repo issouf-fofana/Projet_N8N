@@ -2954,6 +2954,11 @@ def configuration_systeme(request):
 
     config_path = Path(settings.BASE_DIR) / 'config.env'
 
+    CHAMPS_IA = [
+        ('GEMINI_API_KEY',       'Clé API Gemini',          'password'),
+        ('GEMINI_MODEL_DEFAULT', 'Modèle Gemini',           'text'),
+    ]
+
     CHAMPS = [
         ('MEDIA_ROOT',                  'Dossier média racine',             'folder'),
         ('DOSSIER_COMMANDES_ASTEN',     'Commandes Asten',                  'folder'),
@@ -3030,6 +3035,23 @@ def configuration_systeme(request):
             messages.success(request, "Configuration des erreurs enregistrée.")
             return redirect('dashboard:configuration_systeme')
 
+        if action == 'ia':
+            if not peut_configurer_systeme:
+                messages.error(request, "Permission insuffisante.")
+                return redirect('dashboard:configuration_systeme')
+            for key, label, _ in CHAMPS_IA:
+                new_val = request.POST.get(key, '').strip()
+                if new_val:
+                    update_config(key, new_val)
+                    setattr(settings, key, new_val)
+                    # Propager aussi sous le nom utilisé dans ai_service
+                    if key == 'GEMINI_API_KEY':
+                        setattr(settings, 'GEMINI_API_KEY', new_val)
+                    elif key == 'GEMINI_MODEL_DEFAULT':
+                        setattr(settings, 'GEMINI_MODEL', new_val)
+            messages.success(request, "Configuration IA enregistrée.")
+            return redirect('dashboard:configuration_systeme')
+
         vals = read_config()
         changed = []
         for key, label, _ in CHAMPS:
@@ -3056,7 +3078,8 @@ def configuration_systeme(request):
         if val is not None:
             return str(val)
         return ''
-    champs_ctx = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k) or get_default(k)} for k, l, t in CHAMPS]
+    champs_ctx    = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k) or get_default(k)} for k, l, t in CHAMPS]
+    champs_ia_ctx = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k) or get_default(k)} for k, l, t in CHAMPS_IA]
 
     # Charger config types fichiers (initialise si besoin)
     TypeFichierConfig.get_types_actifs()
@@ -3069,6 +3092,7 @@ def configuration_systeme(request):
 
     return render(request, 'dashboard/configuration_systeme.html', {
         'champs': champs_ctx,
+        'champs_ia': champs_ia_ctx,
         'types_fichiers': types_fichiers_ctx,
         'erreurs_ignorees': erreurs_ignorees_ctx,
         'peut_configurer_systeme':    peut_configurer_systeme,
@@ -4528,16 +4552,198 @@ def set_statut_facture_ecart(request):
             cidc=cidc,
             defaults={'statut': statut, 'note': note},
         )
-        import threading, django.db
-        def _refresh():
+        _refresh_mv_background()
+        return JsonResponse({'ok': True, 'statut': statut, 'created': created})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+def set_statut_facture_ecart_bulk(request):
+    """API POST bulk : enregistre plusieurs statuts + REFRESH synchrone + retourne les stats à jour."""
+    from core.permissions import user_has_perm
+    from django.http import JsonResponse
+    if not user_has_perm(request.user, 'modifier_statuts'):
+        return JsonResponse({'error': 'Non autorisé'}, status=403)
+    import json
+    from django.db import connection
+    from imports.models import FactureEcartStatut
+    from core.models import Magasin as MagasinModel
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Méthode non autorisée'}, status=405)
+    try:
+        data  = json.loads(request.body)
+        items = data.get('items', [])
+        # Mode "tout filtré" : on reçoit les filtres actuels + statut, sans liste d'items
+        all_filtered = data.get('all_filtered', False)
+
+        if all_filtered:
+            # Marquer toutes les factures non-intégrées visibles (selon les filtres)
+            statut    = (data.get('statut') or '').strip()
+            note      = (data.get('note') or '').strip()
+            f_magasin = (data.get('magasin') or '').strip()
+            f_nsee    = (data.get('nsee') or '').strip()
+            f_date_debut = (data.get('date_debut') or '').strip()
+            f_date_fin   = (data.get('date_fin') or '').strip()
+            f_search     = (data.get('search') or '').strip()
+            f_full_asten = (data.get('full_asten') or '').strip()
+            if not statut or statut not in ('non_integre', 'integre', 'ignore'):
+                return JsonResponse({'ok': False, 'error': 'Statut invalide'}, status=400)
+
+            # Récupérer toutes les clés filtrées depuis la MV
+            exclu_codes       = list(MagasinModel.objects.filter(exclure_factures=True).values_list('code', flat=True))
+            full_asten_codes  = list(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
+            # Déterminer quel statut source on cible (non_integre ou integre_vide)
+            source_statut = (data.get('source_statut') or 'non_integre').strip()
+            if source_statut not in ('non_integre', 'integre_vide'):
+                source_statut = 'non_integre'
+            where  = [f"statut_effectif = '{source_statut}'"]
+            params = []
+            if exclu_codes:
+                where.append("cidc != ALL(%s)"); params.append(exclu_codes)
+            if f_full_asten == '1' and full_asten_codes:
+                where.append("cidc = ANY(%s)"); params.append(full_asten_codes)
+            if f_magasin:
+                where.append("cidc = %s"); params.append(f_magasin)
+            if f_nsee:
+                where.append("nsee = %s"); params.append(f_nsee)
+            if f_date_debut:
+                where.append("dfac_date >= %s"); params.append(f_date_debut)
+            if f_date_fin:
+                where.append("dfac_date <= %s"); params.append(f_date_fin)
+            if f_search:
+                where.append("(UPPER(cle_facture) LIKE %s OR UPPER(nfac) LIKE %s)")
+                s = f_search.upper(); params += [f'%{s}%', f'%{s}%']
+            where_sql = "WHERE " + " AND ".join(where)
+            with connection.cursor() as cur:
+                cur.execute(f"SELECT cle_facture, dfac_str, cidc FROM mv_factures_joined {where_sql}", params)
+                rows = cur.fetchall()
+            items = [{'cle_facture': r[0], 'dfac_str': r[1], 'cidc': r[2], 'statut': statut, 'note': note} for r in rows]
+
+        if not items:
+            return JsonResponse({'ok': False, 'error': 'Aucune facture à traiter'}, status=400)
+
+        updated = 0
+        for item in items:
+            cle      = (item.get('cle_facture') or '').strip()
+            dfac_str = (item.get('dfac_str') or '').strip()
+            cidc     = (item.get('cidc') or '').strip()
+            statut   = (item.get('statut') or '').strip()
+            note     = (item.get('note') or '').strip()
+            if not cle or not cidc or statut not in ('non_integre', 'integre', 'ignore'):
+                continue
+            FactureEcartStatut.objects.update_or_create(
+                cle_facture=cle, dfac_str=dfac_str, cidc=cidc,
+                defaults={'statut': statut, 'note': note},
+            )
+            updated += 1
+
+        # REFRESH synchrone pour que les stats retournées soient à jour
+        with connection.cursor() as cur:
+            cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
+
+        # Retourner les stats fraîches directement dans la réponse
+        exclu_codes      = list(MagasinModel.objects.filter(exclure_factures=True).values_list('code', flat=True))
+        full_asten_codes = list(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
+        f_full_asten     = (data.get('full_asten') or '').strip()
+        base_where  = ["statut_effectif != 'ignore'"]
+        base_params = []
+        if exclu_codes:
+            base_where.append("cidc != ALL(%s)"); base_params.append(exclu_codes)
+        if f_full_asten == '1' and full_asten_codes:
+            base_where.append("cidc = ANY(%s)"); base_params.append(full_asten_codes)
+        with connection.cursor() as cur:
+            cur.execute(f"""
+                SELECT COUNT(*),
+                    SUM(CASE WHEN statut_effectif='integre'      THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN statut_effectif='integre_vide' THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN statut_effectif='non_integre'  THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN has_ecart_valo                 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN statut_effectif='ignore'       THEN 1 ELSE 0 END)
+                FROM mv_factures_joined WHERE {" AND ".join(base_where)}
+            """, base_params)
+            r = cur.fetchone()
+        stats = {
+            'total': r[0] or 0, 'integrees': r[1] or 0, 'integrees_vide': r[2] or 0,
+            'ecarts': r[3] or 0, 'ecarts_valo': r[4] or 0, 'ignores': r[5] or 0,
+        }
+        return JsonResponse({'ok': True, 'updated': updated, 'stats': stats})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+def api_factures_backup_stats(request):
+    """Retourne les compteurs globaux de mv_factures_joined (pour mise à jour live des stats)."""
+    from django.db import connection
+    from django.http import JsonResponse
+    from core.models import Magasin as MagasinModel
+    f_full_asten = request.GET.get('full_asten', '').strip()
+    try:
+        full_asten_codes = list(MagasinModel.objects.filter(full_asten=True).values_list('code', flat=True))
+        exclu_codes = list(MagasinModel.objects.filter(exclure_factures=True).values_list('code', flat=True))
+        base_where = ["statut_effectif != 'ignore'"]
+        base_params = []
+        if exclu_codes:
+            base_where.append("cidc != ALL(%s)"); base_params.append(exclu_codes)
+        if f_full_asten == '1' and full_asten_codes:
+            base_where.append("cidc = ANY(%s)"); base_params.append(full_asten_codes)
+        base_sql = "WHERE " + " AND ".join(base_where)
+        with connection.cursor() as cur:
+            cur.execute(f"""
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN statut_effectif='integre'      THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN statut_effectif='integre_vide' THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN statut_effectif='non_integre'  THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN has_ecart_valo                 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN statut_effectif='ignore'       THEN 1 ELSE 0 END)
+                FROM mv_factures_joined {base_sql}
+            """, base_params)
+            r = cur.fetchone()
+        return JsonResponse({'ok': True, 'stats': {
+            'total': r[0] or 0, 'integrees': r[1] or 0,
+            'integrees_vide': r[2] or 0, 'ecarts': r[3] or 0,
+            'ecarts_valo': r[4] or 0, 'ignores': r[5] or 0,
+        }})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+def _refresh_mv_background():
+    """Lance un REFRESH MATERIALIZED VIEW dans un thread daemon, en évitant les doublons."""
+    import threading, django.db, time
+
+    _refresh_mv_background._lock      = getattr(_refresh_mv_background, '_lock', threading.Lock())
+    _refresh_mv_background._pending   = getattr(_refresh_mv_background, '_pending', False)
+    _refresh_mv_background._last_done = getattr(_refresh_mv_background, '_last_done', 0)
+
+    with _refresh_mv_background._lock:
+        if _refresh_mv_background._pending:
+            return
+        _refresh_mv_background._pending = True
+
+    def _run():
+        try:
             django.db.close_old_connections()
             from django.db import connection as _conn
             with _conn.cursor() as _cur:
                 _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
-        threading.Thread(target=_refresh, daemon=True).start()
-        return JsonResponse({'ok': True, 'statut': statut, 'created': created})
-    except Exception as e:
-        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+            _refresh_mv_background._last_done = time.time()
+        finally:
+            with _refresh_mv_background._lock:
+                _refresh_mv_background._pending = False
+            django.db.close_old_connections()
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def api_mv_refresh_status(request):
+    """Retourne si le REFRESH est en cours et le timestamp de la dernière fin."""
+    from django.http import JsonResponse
+    import time
+    pending   = getattr(_refresh_mv_background, '_pending', False)
+    last_done = getattr(_refresh_mv_background, '_last_done', 0)
+    return JsonResponse({'pending': pending, 'last_done': last_done})
 
 
 def api_last_import(request):

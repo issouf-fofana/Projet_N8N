@@ -120,6 +120,63 @@
     </form>
     {% endif %}
 
+{% if peut_configurer_systeme %}
+<!-- ── Configuration IA (Gemini) ──────────────────────────────────────── -->
+<div class="config-card mt-4" id="config-ia">
+    <div class="config-card-header" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">
+        <i class="bi bi-robot"></i>
+        <div>
+            <h5>Assistant IA — Gemini</h5>
+            <small>Clé API et modèle utilisés par l'assistant IA</small>
+        </div>
+    </div>
+    <form method="post" class="p-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="ia">
+        <div class="row g-3">
+            {% for champ in champs_ia %}
+            <div class="col-md-6">
+                <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.05em">
+                    {{ champ.label }}
+                </label>
+                <div class="position-relative">
+                    {% if champ.type == 'password' %}
+                    <input type="password" class="form-control" name="{{ champ.key }}" id="ia_{{ champ.key }}"
+                        placeholder="Clé actuelle masquée"
+                        autocomplete="new-password">
+                    <button type="button" class="btn btn-sm btn-outline-secondary position-absolute"
+                        style="right:6px;top:50%;transform:translateY(-50%);padding:2px 8px;font-size:0.75rem"
+                        onclick="togglePwd('ia_{{ champ.key }}')">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    {% if champ.value %}
+                    <div class="form-text text-success"><i class="bi bi-check-circle-fill me-1"></i>Clé configurée — laissez vide pour ne pas modifier</div>
+                    {% else %}
+                    <div class="form-text text-danger"><i class="bi bi-exclamation-circle me-1"></i>Aucune clé configurée</div>
+                    {% endif %}
+                    {% else %}
+                    <input type="text" class="form-control" name="{{ champ.key }}"
+                        value="{{ champ.value }}" placeholder="{{ champ.label }}">
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-sm px-4" style="background:#7c3aed;color:#fff">
+                <i class="bi bi-save me-1"></i> Enregistrer la config IA
+            </button>
+        </div>
+    </form>
+</div>
+<script>
+function togglePwd(id) {
+    const el = document.getElementById(id);
+    el.type = el.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endif %}
+
 {% if peut_configurer_integration %}
 <!-- ── Types de fichiers journal (Intégration RPOS) ─────────────────── -->
 <div class="config-card mt-4" id="types-fichiers">

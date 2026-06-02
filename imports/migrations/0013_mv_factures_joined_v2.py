@@ -40,16 +40,16 @@ class Migration(migrations.Migration):
                     -- statut manuel (ignore / integre) depuis la table de surcharge
                     MAX(es.statut)                                       AS statut_manuel,
 
-                    -- colonnes calculées
+                    -- colonnes calculées (statut_manuel prioritaire sur integre_vide)
                     CASE
-                        WHEN MAX(a.n_bon_livraison) IS NOT NULL AND COALESCE(MAX(a.quantite_totale)::numeric, 0) > 0
-                            THEN 'integre'
-                        WHEN MAX(a.n_bon_livraison) IS NOT NULL
-                            THEN 'integre_vide'
                         WHEN MAX(es.statut) = 'integre'
                             THEN 'integre'
                         WHEN MAX(es.statut) = 'ignore'
                             THEN 'ignore'
+                        WHEN MAX(a.n_bon_livraison) IS NOT NULL AND COALESCE(MAX(a.quantite_totale)::numeric, 0) > 0
+                            THEN 'integre'
+                        WHEN MAX(a.n_bon_livraison) IS NOT NULL
+                            THEN 'integre_vide'
                         ELSE 'non_integre'
                     END                                                  AS statut_effectif,
 
