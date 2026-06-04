@@ -1,389 +1,267 @@
-# Plateforme de Vérification d'Intégration des Commandes Asten → Cyrus
+# Plateforme de Vérification — Prosuma
 
-Plateforme Django + PostgreSQL pour le contrôle et le rapprochement automatique entre les systèmes Asten et Cyrus.
+Application Django + PostgreSQL pour le contrôle et le rapprochement des commandes, factures et bons de réception entre les systèmes Asten et Cyrus.
 
-## 🚀 Installation
+---
+
+## Stack technique
+
+- **Backend** : Django 4.x / Python 3.12
+- **Base de données** : PostgreSQL 15+
+- **IA** : Google Gemini (Text-to-SQL)
+- **Serveur production** : Gunicorn + Nginx
+- **Surveillance fichiers** : run_auto.py (daemon SMB)
+
+---
+
+## Installation (développement local)
 
 ### Prérequis
 
 - Python 3.12+
-- SQLite3 (inclus avec Python)
-- Virtualenv (recommandé)
+- PostgreSQL 15+ démarré
+- Accès au partage SMB (optionnel en local)
 
-### Étapes d'installation
+### 1. Cloner et configurer
 
-1. **Cloner ou naviguer vers le projet**
 ```bash
 cd /home/youssef/Documents/traitement_n8n
-```
-
-2. **Activer l'environnement virtuel**
-```bash
-source venv/bin/activate
-```
-
-3. **Installer les dépendances**
-```bash
+python3 -m venv env
+source env/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **Créer les migrations et appliquer**
+### 2. Configurer config.env
 
-La base de données SQLite sera créée automatiquement lors de la première migration.
+Copier et adapter :
 ```bash
-python manage.py makemigrations
+cp config.env.example config.env  # ou éditer directement config.env
+```
+
+Variables importantes :
+```env
+POSTGRES_DB=traitement_n8n
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=xxx
+POSTGRES_HOST=localhost
+
+GEMINI_API_KEY=AIza...          # Clé API Google Gemini
+GEMINI_MODEL_DEFAULT=gemini-2.5-flash-lite
+
+DOSSIER_COMMANDES_ASTEN=...     # Chemin dossier SMB ou local
+DOSSIER_FACTURES_ASTEN=...
+# etc.
+```
+
+> ⚠️ `config.env` est dans `.gitignore` — ne jamais le commiter.
+
+### 3. Migrations et démarrage
+
+```bash
 python manage.py migrate
-```
-
-5. **Charger les magasins depuis magasin.json**
-```bash
-python manage.py load_magasins
-```
-
-6. **Créer un superutilisateur (optionnel)**
-```bash
+python manage.py load_magasins   # charger les magasins depuis magasin.json
 python manage.py createsuperuser
-```
-
-7. **Lancer le serveur de développement**
-```bash
 python manage.py runserver
 ```
 
-Accédez à l'application : http://127.0.0.1:8000/
+Accès : http://127.0.0.1:8000/
 
-## 📁 Structure des dossiers
+---
 
-```
-/media/
- ├── commande_asten/
- │     ├── asten_2024_01.csv
- │     ├── asten_2024_02.csv
- ├── commande_cyrus/
- │     ├── cyrus_2024_01.csv
-```
+## Fonctionnalités
 
-## 📊 Format des fichiers CSV
+### Commandes
+- **Asten / GPV / Legend / Cyrus** : import CSV automatique, comparaison, détection d'écarts
+- Écarts par source avec statut `ouvert / resolu / en_cours`
+- Filtres par période, magasin, statut
 
-### Format Asten (commande_asten/*.csv)
-```csv
-date_commande,numero_commande,code_magasin,montant,statut
-2024-01-15,CMD001,030,1500.00,valide
-2024-01-16,CMD002,050,2000.00,valide
-```
+### Factures (Cyrus ↔ Asten)
+- Vue matérialisée `mv_factures_joined` : jointure Cyrus + Asten par clé facture + magasin
+- Statuts : `integre` / `integre_vide` (qt=0) / `non_integre` / `ignore`
+- **Priorité statut manuel** sur le statut calculé (une facture marquée manuellement intégrée reste intégrée même si Asten a qt=0)
+- Actions bulk : cocher N factures → "Marquer Intégré" en un appel (1 seul REFRESH)
+- **"Tout marquer Intégré"** : traite toutes les factures filtrées (toutes pages) en une seule requête
+- Stats live sans rechargement de page (polling sur `/factures/backup/mv-status/`)
+- Filtre **Full Asten** (magasins `full_asten=True`)
+- Filtre **Exclure certains magasins** (`exclure_factures=True`)
 
-### Format Cyrus (commande_cyrus/*.csv)
-```csv
-date_commande,numero_commande,code_magasin,montant,statut
-2024-01-15,CMD001,030,1500.00,valide
-2024-01-16,CMD002,050,2000.00,valide
-```
+### Bons de réception (BR)
+- BR Asten et BR IC
+- Suivi intégration `ic_integre` (bool)
+- Gestion anomalies
 
-## 🔑 Clé de rapprochement
-
-Une commande est considérée identique entre Asten et Cyrus si :
-- `date_commande`
-- `numero_commande`
-- `code_magasin`
-
-**Règle importante** : Un magasin ne peut pas avoir deux fois le même numéro de commande. Plusieurs magasins peuvent avoir le même numéro de commande.
-
-## 🎯 Utilisation
-
-### 1. Déposer les fichiers
-
-Placez vos fichiers CSV dans :
-- `/media/commande_asten/` pour les fichiers Asten
-- `/media/commande_cyrus/` pour les fichiers Cyrus
-
-### 2. Actualiser les données
-
-Depuis le dashboard, cliquez sur **"Actualiser / Recalculer"**. Le système :
-- Lit les nouveaux fichiers
-- Insère les commandes dans la base
-- Recalcule automatiquement les écarts
-
-### 3. Consulter les résultats
-
-Le dashboard affiche :
-- Nombre total de commandes Asten
-- Nombre total de commandes Cyrus
-- Nombre de commandes intégrées
-- Nombre de commandes non intégrées (écarts)
-- Tableau comparatif avec filtres
-
-## 📋 Fonctionnalités
+### Assistant IA
+- Questions en français → SQL généré par Gemini → exécution → réponse naturelle
+- Schéma métier complet : commandes, factures, BR, tickets, écarts
+- Règles métier embarquées (vraies valeurs de statut, vraie logique d'intégration)
+- Clé API et modèle configurables depuis l'UI (Paramètres → Configuration IA)
 
 ### Dashboard
-- Vue d'ensemble des statistiques
-- Tableau comparatif Asten vs Cyrus
-- Filtres par période et magasin
-- Bouton d'actualisation/recalcul
+- Vue d'ensemble par source de données
+- Comparaison semaine courante / semaine précédente
+- Saisie manuelle (override) des stats affichées : intégrées, **à vide**, en écart, total
+- Graphiques par magasin
 
-### Liste des écarts
-- Affichage de tous les écarts détectés
-- Filtres par date, magasin, statut
-- Détail de chaque écart
+### Versions Asten
+- Snapshots des versions `prdP2A` depuis le SMB
+- Suivi conformité (nb assortiments OK/incomplet/absent)
 
-### Sidebar modulaire
-- Dashboard
-- Écarts
-- Commandes (à venir)
-- Factures (à venir)
-- BR (à venir)
-- Paramètres (à venir)
-- Rapports (à venir)
+### Tickets
+- Incidents et demandes magasins
+- Statuts : `en_attente` / `resolu`
+- Urgences : `tres_basse / basse / moyenne / haute`
 
-## 🏗️ Architecture
+### Paramètres
+- Gestion magasins (full_asten, exclure_factures)
+- Configuration chemins SMB/dossiers
+- **Configuration IA** : clé Gemini + modèle (sans redémarrage)
+- Gestion utilisateurs et permissions
+
+---
+
+## Architecture
 
 ### Apps Django
-- `core/` : Modèles de base (Magasin)
-- `imports/` : Logique d'import des fichiers
-- `asten/` : Modèles et gestion des commandes Asten
-- `cyrus/` : Modèles et gestion des commandes Cyrus
-- `ecarts/` : Détection et gestion des écarts
-- `dashboard/` : Interface utilisateur
 
-### Modèles principaux
-- `Magasin` : Liste des magasins
-- `CommandeAsten` : Commandes du système Asten
-- `CommandeCyrus` : Commandes du système Cyrus
-- `EcartCommande` : Écarts détectés
-- `ImportFichier` : Historique des imports
+| App | Rôle |
+|-----|------|
+| `core/` | Modèle Magasin, permissions, context processors |
+| `asten/` | Commandes Asten |
+| `cyrus/` | Commandes Cyrus |
+| `gpv/` | Commandes GPV |
+| `legend/` | Commandes Legend |
+| `ecarts/` | Écarts toutes sources |
+| `br/` | Bons de réception Asten + IC |
+| `imports/` | Import fichiers CSV, modèles factures, vue MV |
+| `dashboard/` | UI principale, APIs, assistant IA |
+| `tickets/` | Tickets magasins |
+| `entree_journal/` | Journal d'intégration RPOS |
 
-**Note** : La base de données utilise SQLite par défaut. Voir la section ci-dessous pour migrer vers PostgreSQL avec Docker.
+### Vue matérialisée `mv_factures_joined`
 
-## 🔧 Commandes de gestion
-
-```bash
-# Charger les magasins
-python manage.py load_magasins
-
-# Accéder à l'admin Django
-python manage.py createsuperuser
-# Puis http://127.0.0.1:8000/admin/
+```sql
+-- Jointure Cyrus ↔ Asten ↔ statuts manuels
+-- Ordre CASE (priorité) :
+--   1. statut_manuel = 'integre'   → 'integre'
+--   2. statut_manuel = 'ignore'    → 'ignore'
+--   3. Asten présent + qt > 0      → 'integre'
+--   4. Asten présent + qt = 0      → 'integre_vide'
+--   5. Asten absent                → 'non_integre'
 ```
 
-## 📝 Notes importantes
+Refresh déclenché automatiquement après chaque import ou changement de statut.
 
-- Les fichiers déjà importés ne seront pas réimportés (vérification par nom de fichier)
-- Les doublons sont automatiquement évités grâce à la clé unique composite
-- Le recalcul des écarts supprime et recrée tous les écarts à chaque fois
-- Les magasins doivent exister dans la base avant l'import des commandes
+### APIs internes
 
-## 🚧 Évolutivité
-
-L'architecture est conçue pour être extensible :
-- Ajout futur de modules Factures, BR, etc.
-- Même logique : Import → table → comparaison → écart
-- Sidebar modulaire prête pour de nouveaux modules
-
-## 🐘 Migration SQLite → PostgreSQL (Docker)
-
-### Prérequis
-- Docker et Docker Compose installés
-
-### Étape 1 — Sauvegarder les données existantes
-
-```bash
-source env/bin/activate
-python manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.Permission > backup.json
-```
-
-### Étape 2 — Créer le fichier `docker-compose.yml` à la racine du projet
-
-```yaml
-services:
-  db:
-    image: postgres:16
-    restart: always
-    environment:
-      POSTGRES_DB: verification_db
-      POSTGRES_USER: django_user
-      POSTGRES_PASSWORD: motdepasse
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-### Étape 3 — Lancer le conteneur PostgreSQL
-
-```bash
-docker-compose up -d
-```
-
-Vérifier que le conteneur tourne :
-```bash
-docker ps
-```
-
-### Étape 4 — Installer le driver Python
-
-```bash
-pip install psycopg2-binary
-```
-
-### Étape 5 — Modifier `verification_commande/settings.py`
-
-Remplacer le bloc `DATABASES` :
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'verification_db',
-        'USER': 'django_user',
-        'PASSWORD': 'motdepasse',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-```
-
-### Étape 6 — Appliquer les migrations
-
-```bash
-python manage.py migrate
-```
-
-### Étape 7 — Recharger les données
-
-```bash
-python manage.py loaddata backup.json
-```
-
-### Étape 8 — Recharger les magasins (si nécessaire)
-
-```bash
-python manage.py load_magasins
-```
-
-### Étape 9 — Lancer le serveur et vérifier
-
-```bash
-python manage.py runserver
-```
-
-Accédez à http://127.0.0.1:8000/ et vérifiez que tout fonctionne.
+| Endpoint | Rôle |
+|----------|------|
+| `GET /api/import-status/` | Statut import en cours |
+| `GET /api/activite/` | Journal activité live |
+| `GET /factures/backup/stats/` | Stats MV live (pour mise à jour sans reload) |
+| `GET /factures/backup/mv-status/` | État du REFRESH en cours |
+| `POST /factures/backup/set-statut/` | Changer statut 1 facture |
+| `POST /factures/backup/set-statut-bulk/` | Changer statut N factures + REFRESH synchrone |
 
 ---
 
-> **Tip** : Pour arrêter/relancer PostgreSQL Docker :
-> ```bash
-> docker-compose stop    # arrêter
-> docker-compose start   # relancer
-> docker-compose down    # supprimer le conteneur (les données sont conservées dans le volume)
-> ```
+## Déploiement production (/opt/Projet_N8N)
 
-## 📞 Support
+### Services
 
-Pour toute question ou problème, consultez la documentation Django ou les logs de l'application.
-
-
-
-
-## Pour démarrer après avoir allumé le PC
-1. PostgreSQL démarre automatiquement
-PostgreSQL se lance tout seul au démarrage du PC — tu n'as rien à faire.
-
-## que c'est bien configuré :
-
-
-sudo systemctl is-enabled postgresql
-Doit afficher enabled. Si ce n'est pas le cas :
-
-sudo systemctl enable postgresql
-
-## 2. Pour lancer le site
-
-cd ~/Documents/traitement_n8n
-source env/bin/activate
-python3 manage.py runserver
-Pour la production (serveur dédié)
-
-## Si tu mets ça sur un vrai serveur, tu n'utilises plus runserver — tu utilises Gunicorn + Nginx qui démarrent automatiquement comme services. Mais pour l'instant en local, les 3 commandes ci-dessus suffisent.
-
-
----
-
-## ⚙️ Configuration serveur de production (/opt/Projet_N8N)
-
-### Services qui tournent
-
-| Service | Rôle | Commande |
-|---|---|---|
+| Service | Rôle | Gestion |
+|---------|------|---------|
 | `gunicorn` | Serveur Django | `sudo systemctl restart gunicorn` |
-| `run_auto.py` | Surveillance SMB → copie media/ | Daemon manuel (voir ci-dessous) |
+| `run_auto.py` | Surveillance SMB → copie media/ | Daemon (voir ci-dessous) |
 | cron `auto_import` | Import fichiers + recalcul écarts | Toutes les 5 min |
 
----
+### Déployer une mise à jour
 
-### 1. run_auto.py — Surveillance des fichiers SMB
-
-Tourne en **daemon** en arrière-plan. Surveille les dossiers SMB et copie les nouveaux fichiers (≤ 7 jours) dans `media/` toutes les 2 minutes.
-
-**Vérifier s'il tourne :**
 ```bash
+# Sur le serveur
+git stash          # préserver config.env local
+git pull
+git stash pop      # remettre config.env local
+
+source env/bin/activate
+python manage.py migrate          # appliquer les nouvelles migrations
+sudo systemctl restart gunicorn
+```
+
+### run_auto.py — Surveillance SMB
+
+```bash
+# Vérifier s'il tourne
 ps aux | grep run_auto
-```
 
-**S'il ne tourne pas, le relancer :**
-```bash
+# Relancer si arrêté
 mkdir -p /opt/Projet_N8N/logs
-nohup /opt/Projet_N8N/env/bin/python /opt/Projet_N8N/run_auto.py --interval 2 > /opt/Projet_N8N/logs/run_auto.log 2>&1 &
-```
+nohup /opt/Projet_N8N/env/bin/python /opt/Projet_N8N/run_auto.py --interval 2 \
+  > /opt/Projet_N8N/logs/run_auto.log 2>&1 &
 
-**Voir ses logs :**
-```bash
+# Logs
 tail -f /opt/Projet_N8N/logs/run_auto.log
 ```
 
-**En cas de double instance, tuer et relancer :**
-```bash
-pkill -f run_auto.py
-# puis relancer avec nohup ci-dessus
-```
+### Cron auto_import
 
----
-
-### 2. Cron auto_import — Import + recalcul écarts
-
-Configuré dans `crontab -e` :
 ```cron
 */5 * * * * cd /opt/Projet_N8N && env/bin/python manage.py auto_import >> /opt/Projet_N8N/logs/auto_import.log 2>&1
 ```
 
-**Lancer manuellement :**
 ```bash
+# Lancer manuellement
 cd /opt/Projet_N8N && env/bin/python manage.py auto_import
-```
 
-**Recalculer les écarts manuellement :**
-```bash
-cd /opt/Projet_N8N && env/bin/python manage.py shell -c "from ecarts.services import recalculer_ecarts; r = recalculer_ecarts(); print(r)"
-```
-
-**Voir les logs :**
-```bash
+# Logs
 tail -f /opt/Projet_N8N/logs/auto_import.log
+```
+
+### Démarrage local (après redémarrage PC)
+
+PostgreSQL démarre automatiquement. Pour le serveur Django :
+
+```bash
+cd ~/Documents/traitement_n8n
+source env/bin/activate
+python manage.py runserver
 ```
 
 ---
 
-### 3. Déployer une mise à jour
+## Logique métier — Intégration
 
-```bash
-sudo git pull
-sudo env/bin/python manage.py migrate   # si nouvelles migrations
-sudo systemctl restart gunicorn
+### Commandes non intégrées (source de vérité = tables d'écarts)
+
+```sql
+-- Asten non intégrées
+SELECT COUNT(*) FROM ecarts_ecartcommande WHERE statut='ouvert';   -- ex: 14
+
+-- GPV non intégrées
+SELECT COUNT(*) FROM ecarts_ecartgpv WHERE statut='ouvert';        -- ex: 14
+
+-- Legend non intégrées
+SELECT COUNT(*) FROM ecarts_ecartlegend WHERE statut='ouvert';     -- ex: 50
+
+-- BR non intégrés
+SELECT COUNT(*) FROM br_brasten WHERE ic_integre=FALSE;            -- ex: 5
 ```
 
-### 4. Page "Activité en direct"
+> ⚠️ Les colonnes `statut` de `asten_commandeasten` et `gpv_commandegpv` ne contiennent **pas** `'Intégré'` — utiliser les tables d'écarts.
 
-Accessible dans le menu **Paramètres → Activité en direct**.  
-Affiche en temps réel les imports en base + les logs de `run_auto.py`.  
-Se rafraîchit automatiquement toutes les 5 secondes.
+### Factures non intégrées
+
+```sql
+SELECT statut_effectif, COUNT(*)
+FROM mv_factures_joined
+GROUP BY statut_effectif;
+-- integre: 55501 | integre_vide: 578 | non_integre: 0 | ignore: 0
+```
+
+---
+
+## Notes importantes
+
+- `config.env` est **ignoré par git** — chaque environnement a le sien
+- Le quota Gemini free tier est limité (20 req/jour sur `gemini-2.5-flash-lite`) — activer la facturation sur [aistudio.google.com](https://aistudio.google.com) pour une utilisation normale
+- Le REFRESH de `mv_factures_joined` prend ~15s — c'est normal, il est synchrone dans le bulk pour garantir des stats à jour
+- Les connexions PostgreSQL orphelines : redémarrer Django libère les connexions bloquées (`pg_terminate_backend`)

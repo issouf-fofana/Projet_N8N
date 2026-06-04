@@ -1594,6 +1594,29 @@ def scanner_et_importer_fichiers():
         )
         for f_ic in fichiers_ic:
             try:
+                if not f_ic.exists():
+                    continue
+
+                date_modif_fichier = datetime.fromtimestamp(f_ic.stat().st_mtime)
+                date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
+
+                import_existant = ImportFichier.objects.filter(
+                    type_fichier='br_ic',
+                    nom_fichier=f_ic.name,
+                ).first()
+
+                # Importer seulement si : jamais importé OU fichier modifié depuis le dernier import
+                if import_existant and date_modif_fichier_tz <= import_existant.date_import:
+                    # Fichier déjà importé et non modifié — supprimer et passer
+                    if import_existant.statut == 'termine':
+                        supprimer_fichier_source(f_ic)
+                    print(f"[BR IC] {f_ic.name} → déjà importé, non modifié, ignoré.")
+                    continue
+
+                # Supprimer l'ancien import si fichier modifié
+                if import_existant:
+                    import_existant.delete()
+
                 import_obj = ImportFichier.objects.create(
                     type_fichier='br_ic',
                     nom_fichier=f_ic.name,
@@ -1608,9 +1631,13 @@ def scanner_et_importer_fichiers():
                 print(f"[BR IC] {f_ic.name} → {nb} nouvelles lignes en base")
                 supprimer_fichier_source(f_ic)
             except Exception as e:
-                if 'import_obj' in dir():
-                    import_obj.statut = 'erreur'
-                    import_obj.save(update_fields=['statut'])
+                try:
+                    imp = ImportFichier.objects.filter(type_fichier='br_ic', nom_fichier=f_ic.name, statut='en_cours').first()
+                    if imp:
+                        imp.statut = 'erreur'
+                        imp.save(update_fields=['statut'])
+                except Exception:
+                    pass
                 print(f"Erreur import BR IC {f_ic.name}: {e}")
         comparer_br_asten_ic()
     except Exception as e:
