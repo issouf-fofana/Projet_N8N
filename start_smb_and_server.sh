@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # ---- Config ----
 PROJECT_DIR="/home/youssef/Documents/traitement_n8n"
@@ -37,15 +37,18 @@ mount_share() {
   local share="$1"
   local mount_point="$2"
 
-  sudo mkdir -p "$mount_point"
-  if mountpoint -q "$mount_point"; then
+  sudo mkdir -p "$mount_point" 2>/dev/null || true
+  if mountpoint -q "$mount_point" 2>/dev/null; then
     echo "Déjà monté: $mount_point"
     return 0
   fi
 
-  sudo mount -t cifs "$share" "$mount_point" \
-    -o "username=${SMB_USER},password=${SMB_PASS},domain=${SMB_DOMAIN},${SMB_OPTS_BASE}"
-  echo "Monté: $share -> $mount_point"
+  if sudo mount -t cifs "$share" "$mount_point" \
+    -o "username=${SMB_USER},password=${SMB_PASS},domain=${SMB_DOMAIN},${SMB_OPTS_BASE}" 2>/dev/null; then
+    echo "✓ Monté: $share -> $mount_point"
+  else
+    echo "✗ Echec montage (hôte inaccessible ?): $share -> $mount_point"
+  fi
 }
 
 # ---- Mount SMB shares ----
