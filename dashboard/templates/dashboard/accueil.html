@@ -322,6 +322,33 @@ body { background: #f0f2f8 !important; }
             </div>
         </div>
 
+        <!-- Magasins ayant commandé (GPV) -->
+        <div class="acc-card gpv-theme">
+            <div class="acc-card-head">
+                <span class="head-icon"><i class="bi bi-shop"></i></span>
+                <span class="head-title">Magasins — Commandes GPV</span>
+                {% if stats_magasins_gpv.nb_sans_commande %}<span class="head-badge ko">{{ stats_magasins_gpv.nb_sans_commande }} sans cmd</span>{% endif %}
+            </div>
+            <div class="acc-card-body">
+                <div class="acc-stats-row">
+                    <i class="bi bi-check-circle-fill sr-icon" style="color:#16a34a;"></i>
+                    <span class="sr-label">Ont commandé (période)</span>
+                    <span class="sr-val green">{{ stats_magasins_gpv.nb_avec_commande|default:0 }}</span>
+                </div>
+                <div class="acc-stats-row">
+                    <i class="bi bi-exclamation-triangle-fill sr-icon" style="color:#dc2626;"></i>
+                    <span class="sr-label">N'ont pas commandé</span>
+                    <span class="sr-val red">{{ stats_magasins_gpv.nb_sans_commande|default:0 }}</span>
+                </div>
+                <div class="acc-stats-row">
+                    <i class="bi bi-hourglass-split sr-icon" style="color:#f59e0b;"></i>
+                    <span class="sr-label">Commandes en statut VALIDEE</span>
+                    <span class="sr-val" style="color:#f59e0b;">{{ stats_magasins_gpv.nb_validees|default:0 }}</span>
+                </div>
+                <a href="{% url 'dashboard:magasins_par_commande' %}?source=commandes_gpv{% if periode %}&periode={{ periode }}{% endif %}{% if date_debut %}&date_debut={{ date_debut }}{% endif %}{% if date_fin %}&date_fin={{ date_fin }}{% endif %}" class="acc-card-btn">Voir la liste <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+
         <!-- Commandes Legend -->
         <div class="acc-card legend-theme">
             <div class="acc-card-head">

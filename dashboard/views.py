@@ -71,6 +71,98 @@ from pathlib import Path
 from tickets.models import Ticket
 
 
+def _magasins_commande_counts(source, date_debut=None, date_fin=None):
+    """
+    Retourne (nb_avec, nb_sans) magasins ayant/n'ayant pas passé de commande
+    sur la période pour la source donnée ('commandes_asten' / 'commandes_gpv' / 'commandes_legend').
+    Pour 'commandes_legend', retourne le nb de dépôts distincts ayant commandé (nb_sans = None).
+    """
+    if source == 'commandes_asten':
+        filtres = {}
+        if date_debut:
+            filtres['date_commande__gte'] = date_debut
+        if date_fin:
+            filtres['date_commande__lte'] = date_fin
+        codes = set(CommandeAsten.objects.filter(**filtres).values_list('code_magasin', flat=True).distinct())
+        total = Magasin.objects.count()
+        return len(codes), total - len(codes)
+
+    if source == 'commandes_gpv':
+        filtres = {}
+        if date_debut:
+            filtres['date_creation__date__gte'] = date_debut
+        if date_fin:
+            filtres['date_creation__date__lte'] = date_fin
+        codes = set(CommandeGPV.objects.filter(**filtres).values_list('code_magasin', flat=True).distinct())
+        total = Magasin.objects.count()
+        return len(codes), total - len(codes)
+
+    if source == 'commandes_legend':
+        filtres = {}
+        if date_debut:
+            filtres['date_commande__gte'] = date_debut
+        if date_fin:
+            filtres['date_commande__lte'] = date_fin
+        depots = set(
+            CommandeLegend.objects.filter(**filtres)
+            .exclude(depot_destination__isnull=True).exclude(depot_destination='')
+            .values_list('depot_destination', flat=True).distinct()
+        )
+        return len(depots), None
+
+    return 0, 0
+
+
+def _magasins_commande_listes(source, date_debut=None, date_fin=None):
+    """
+    Retourne (liste_avec, liste_sans) pour la page de détail.
+    Pour 'commandes_legend' : liste_avec = noms de dépôts, liste_sans = [].
+    Pour asten/gpv : liste_avec/liste_sans = objets Magasin.
+    """
+    if source == 'commandes_asten':
+        filtres = {}
+        if date_debut:
+            filtres['date_commande__gte'] = date_debut
+        if date_fin:
+            filtres['date_commande__lte'] = date_fin
+        counts = dict(
+            CommandeAsten.objects.filter(**filtres)
+            .values('code_magasin').annotate(n=Count('id')).values_list('code_magasin', 'n')
+        )
+    elif source == 'commandes_gpv':
+        filtres = {}
+        if date_debut:
+            filtres['date_creation__date__gte'] = date_debut
+        if date_fin:
+            filtres['date_creation__date__lte'] = date_fin
+        counts = dict(
+            CommandeGPV.objects.filter(**filtres)
+            .values('code_magasin').annotate(n=Count('id')).values_list('code_magasin', 'n')
+        )
+    elif source == 'commandes_legend':
+        filtres = {}
+        if date_debut:
+            filtres['date_commande__gte'] = date_debut
+        if date_fin:
+            filtres['date_commande__lte'] = date_fin
+        depot_counts = (
+            CommandeLegend.objects.filter(**filtres)
+            .exclude(depot_destination__isnull=True).exclude(depot_destination='')
+            .values('depot_destination').annotate(n=Count('id')).order_by('depot_destination')
+        )
+        depots = [{'nom': d['depot_destination'], 'nb_commandes': d['n']} for d in depot_counts]
+        depots.sort(key=lambda x: x['nb_commandes'], reverse=True)
+        return depots, []
+    else:
+        return [], []
+
+    tous_magasins = list(Magasin.objects.all().order_by('nom'))
+    avec = [{'magasin': m, 'nb_commandes': counts[m.code]} for m in tous_magasins if m.code in counts]
+    avec.sort(key=lambda x: x['nb_commandes'], reverse=True)
+    sans = [{'magasin': m, 'nb_commandes': 0} for m in tous_magasins if m.code not in counts]
+    return avec, sans
+
+
 def _get_semaine_comparison(periode='semaine'):
     """Retourne les stats comparées période courante vs période précédente pour tous les types."""
     from datetime import date, timedelta
@@ -413,6 +505,9 @@ def dashboard(request):
         
         # Normaliser les statistiques pour correspondre au template
         # Utiliser total_asten_pour_stats pour exclure les quantite_0 du total affiché
+        _magasins_avec_asten, _magasins_sans_asten = _magasins_commande_counts(
+            'commandes_asten', date_debut_parsed, date_fin_parsed
+        )
         stats = {
             'total_source': total_asten_pour_stats,  # Total sans les quantite_0
             'total_target': total_cyrus,
@@ -420,6 +515,8 @@ def dashboard(request):
             'non_integres': commandes_non_integres,  # Utiliser le calcul réel, pas les écarts
             'taux_integration': taux_integration,
             'taux_non_integration': taux_non_integration,
+            'magasins_avec': _magasins_avec_asten,
+            'magasins_sans': _magasins_sans_asten,
         }
         
         # Queryset ordonné : non-intégrés (écart ouvert) d'abord, puis intégrés
@@ -560,6 +657,9 @@ def dashboard(request):
         
         # Normaliser les statistiques pour correspondre au template
         # Utiliser total_gpv_pour_stats pour exclure les quantite_0 du total affiché
+        _magasins_avec_gpv, _magasins_sans_gpv = _magasins_commande_counts(
+            'commandes_gpv', date_debut_parsed, date_fin_parsed
+        )
         stats = {
             'total_source': total_gpv_pour_stats,  # Total sans les quantite_0
             'total_target': total_cyrus,
@@ -567,6 +667,8 @@ def dashboard(request):
             'non_integres': commandes_non_integres,  # Calcul réel : total - intégrées
             'taux_integration': taux_integration,
             'taux_non_integration': taux_non_integration,
+            'magasins_avec': _magasins_avec_gpv,
+            'magasins_sans': _magasins_sans_gpv,
         }
         
         # Queryset GPV ordonné : non-intégrés (écart ouvert) d'abord
@@ -663,6 +765,9 @@ def dashboard(request):
         taux_integration    = round(commandes_integres     / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
         taux_non_integration = round(commandes_non_integres / total_legend_pour_stats * 100, 2) if total_legend_pour_stats else 0
 
+        _depots_avec_legend, _ = _magasins_commande_counts(
+            'commandes_legend', date_debut_parsed, date_fin_parsed
+        )
         stats = {
             'total_source': total_legend_pour_stats,
             'total_target': CommandeGPV.objects.count(),
@@ -670,6 +775,7 @@ def dashboard(request):
             'non_integres': commandes_non_integres,
             'taux_integration': taux_integration,
             'taux_non_integration': taux_non_integration,
+            'depots_avec': _depots_avec_legend,
         }
 
         def normalize_numero(numero):
@@ -1591,6 +1697,39 @@ def accueil(request):
     except Exception:
         stats_version = {'derniere_import': None, 'nom_fichier': None}
 
+    # MAGASINS AYANT/N'AYANT PAS PASSÉ COMMANDE GPV SUR LA PÉRIODE
+    try:
+        from gpv.models import CommandeGPV
+        from core.models import Magasin
+
+        filtres_periode = {}
+        if date_debut:
+            filtres_periode['date_creation__date__gte'] = date_debut
+        if date_fin:
+            filtres_periode['date_creation__date__lte'] = date_fin
+
+        codes_avec_commande = set(
+            CommandeGPV.objects.filter(**filtres_periode)
+            .values_list('code_magasin', flat=True)
+            .distinct()
+        )
+        tous_magasins = list(Magasin.objects.all().order_by('nom'))
+        magasins_sans_commande = [m for m in tous_magasins if m.code not in codes_avec_commande]
+
+        stats_magasins_gpv = {
+            'nb_avec_commande': len(codes_avec_commande),
+            'nb_sans_commande': len(magasins_sans_commande),
+            'magasins_sans_commande': magasins_sans_commande,
+            'nb_validees': CommandeGPV.objects.filter(statut='VALIDEE').count(),
+        }
+    except Exception:
+        stats_magasins_gpv = {
+            'nb_avec_commande': 0,
+            'nb_sans_commande': 0,
+            'magasins_sans_commande': [],
+            'nb_validees': 0,
+        }
+
     context = {
         'stats_asten': stats_asten,
         'stats_gpv': stats_gpv,
@@ -1600,6 +1739,7 @@ def accueil(request):
         'stats_facture_sage': stats_facture_sage,
         'stats_version': stats_version,
         'stats_remontees': stats_remontees,
+        'stats_magasins_gpv': stats_magasins_gpv,
         'ia_rpos': ia_rpos,
         'evolution_journaliere': evolution_journaliere,
         'periode': periode,
@@ -4926,3 +5066,55 @@ def assistant_ia(request):
         'current_chat': current_chat,
         'conversation': current_chat.get('turns', []),
     })
+
+
+def magasins_par_commande(request):
+    """Page dédiée : magasins ayant / n'ayant pas passé commande sur une période, par source."""
+    from datetime import timedelta
+
+    source = request.GET.get('source', 'commandes_asten')
+    if source not in ('commandes_asten', 'commandes_gpv', 'commandes_legend'):
+        source = 'commandes_asten'
+
+    periode = request.GET.get('periode', '')
+    date_debut = None
+    date_fin = None
+
+    if periode == 'aujourdhui':
+        date_debut = timezone.now().date()
+        date_fin = timezone.now().date()
+    elif periode == 'hier':
+        date_debut = timezone.now().date() - timedelta(days=1)
+        date_fin = timezone.now().date() - timedelta(days=1)
+    elif periode == 'semaine':
+        date_fin = timezone.now().date()
+        date_debut = date_fin - timedelta(days=7)
+    elif periode == 'mois':
+        date_fin = timezone.now().date()
+        date_debut = date_fin - timedelta(days=30)
+    elif periode == '3mois':
+        date_fin = timezone.now().date()
+        date_debut = date_fin - timedelta(days=90)
+    elif periode == 'annee':
+        date_fin = timezone.now().date()
+        date_debut = date_fin.replace(month=1, day=1)
+    elif periode == 'personnalise':
+        date_debut_str = request.GET.get('date_debut', '')
+        date_fin_str = request.GET.get('date_fin', '')
+        if date_debut_str:
+            date_debut = parse_date(date_debut_str)
+        if date_fin_str:
+            date_fin = parse_date(date_fin_str)
+
+    liste_avec, liste_sans = _magasins_commande_listes(source, date_debut, date_fin)
+
+    context = {
+        'source': source,
+        'periode': periode,
+        'date_debut': date_debut.strftime('%Y-%m-%d') if date_debut else '',
+        'date_fin': date_fin.strftime('%Y-%m-%d') if date_fin else '',
+        'liste_avec': liste_avec,
+        'liste_sans': liste_sans,
+        'is_legend': source == 'commandes_legend',
+    }
+    return render(request, 'dashboard/magasins_par_commande.html', context)
