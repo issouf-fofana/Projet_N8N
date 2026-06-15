@@ -22,9 +22,10 @@ def recalculer_ecarts():
     with transaction.atomic():
 
         # ── 1. ÉCARTS ASTEN ──────────────────────────────────────────────────
-        # Set de (numero_commande, code_magasin_id) présents dans Cyrus — values_list = pas d'objets
+        # Set de (numero_commande, code_magasin_id) présents dans Cyrus pour la source Asten
+        # (la table Cyrus contient aussi les commandes GPV, distinguées par type_commande='AST'/'GPV')
         cyrus_keys = set(
-            CommandeCyrus.objects.values_list('numero_commande', 'code_magasin')
+            CommandeCyrus.objects.filter(type_commande='AST').values_list('numero_commande', 'code_magasin')
         )
 
         ecarts_crees = 0
@@ -67,6 +68,11 @@ def recalculer_ecarts():
             EcartCommande.objects.bulk_create(a_creer, ignore_conflicts=True)
 
         # ── 2. ÉCARTS GPV ────────────────────────────────────────────────────
+        # Set Cyrus dédié GPV (type_commande='GPV'), distinct du set Asten ci-dessus
+        cyrus_keys_gpv = set(
+            CommandeCyrus.objects.filter(type_commande='GPV').values_list('numero_commande', 'code_magasin')
+        )
+
         ecarts_gpv_crees = 0
         ecarts_gpv_resolus = 0
 
@@ -96,7 +102,7 @@ def recalculer_ecarts():
                 continue
 
             key = (num_cmd, mag_id)
-            existe_cyrus = key in cyrus_keys
+            existe_cyrus = key in cyrus_keys_gpv
 
             if statut_ecart is not None:
                 # resolu/ignore = modifié manuellement, on ne touche pas

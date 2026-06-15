@@ -84,8 +84,9 @@ def _magasins_commande_counts(source, date_debut=None, date_fin=None):
         if date_fin:
             filtres['date_commande__lte'] = date_fin
         codes = set(CommandeAsten.objects.filter(**filtres).values_list('code_magasin', flat=True).distinct())
-        total = Magasin.objects.count()
-        return len(codes), total - len(codes)
+        total = Magasin.objects.filter(magasin_asten=True).count()
+        nb_avec = len(codes & set(Magasin.objects.filter(magasin_asten=True).values_list('code', flat=True)))
+        return nb_avec, total - nb_avec
 
     if source == 'commandes_gpv':
         filtres = {}
@@ -139,6 +140,11 @@ def _magasins_commande_listes(source, date_debut=None, date_fin=None):
             CommandeGPV.objects.filter(**filtres)
             .values('code_magasin').annotate(n=Count('id')).values_list('code_magasin', 'n')
         )
+        tous_magasins = list(Magasin.objects.all().order_by('nom'))
+        avec = [{'magasin': m, 'nb_commandes': counts[m.code]} for m in tous_magasins if m.code in counts]
+        avec.sort(key=lambda x: x['nb_commandes'], reverse=True)
+        sans = [{'magasin': m, 'nb_commandes': 0} for m in tous_magasins if m.code not in counts]
+        return avec, sans
     elif source == 'commandes_legend':
         filtres = {}
         if date_debut:
@@ -156,7 +162,8 @@ def _magasins_commande_listes(source, date_debut=None, date_fin=None):
     else:
         return [], []
 
-    tous_magasins = list(Magasin.objects.all().order_by('nom'))
+    # Pour Asten : ne comparer que les magasins marqués "Magasin Asten"
+    tous_magasins = list(Magasin.objects.filter(magasin_asten=True).order_by('nom'))
     avec = [{'magasin': m, 'nb_commandes': counts[m.code]} for m in tous_magasins if m.code in counts]
     avec.sort(key=lambda x: x['nb_commandes'], reverse=True)
     sans = [{'magasin': m, 'nb_commandes': 0} for m in tous_magasins if m.code not in counts]
@@ -3285,6 +3292,7 @@ def gestion_magasins(request):
                     magasin = Magasin.objects.get(code=original_code)
                     magasin.nom = nom
                     magasin.full_asten = request.POST.get('full_asten') == '1'
+                    magasin.magasin_asten = request.POST.get('magasin_asten') == '1'
                     nouvel_exclu = request.POST.get('exclure_factures') == '1'
                     ancien_exclu = magasin.exclure_factures
                     magasin.exclure_factures = nouvel_exclu
@@ -3311,6 +3319,13 @@ def gestion_magasins(request):
             Magasin.objects.all().update(full_asten=val)
             label = "cochés" if val else "décochés"
             messages.success(request, f"Tous les magasins ont été {label} (Full Asten).")
+            return redirect('dashboard:gestion_magasins')
+        elif action == 'toggle_magasin_asten':
+            # Cocher ou décocher tous les magasins d'un coup (Magasin Asten)
+            val = request.POST.get('magasin_asten_val') == '1'
+            Magasin.objects.all().update(magasin_asten=val)
+            label = "cochés" if val else "décochés"
+            messages.success(request, f"Tous les magasins ont été {label} (Magasin Asten).")
             return redirect('dashboard:gestion_magasins')
         elif action == 'toggle_one':
             # Basculer Full Asten ou exclure_factures d'un seul magasin (appel AJAX)
@@ -3339,6 +3354,11 @@ def gestion_magasins(request):
                                 cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
                         from django.http import JsonResponse
                         return JsonResponse({'ok': True, 'exclure_factures': magasin.exclure_factures, 'nb_ignores': nb_ignores})
+                    elif field == 'magasin_asten':
+                        magasin.magasin_asten = not magasin.magasin_asten
+                        magasin.save()
+                        from django.http import JsonResponse
+                        return JsonResponse({'ok': True, 'magasin_asten': magasin.magasin_asten})
                     else:
                         magasin.full_asten = not magasin.full_asten
                         magasin.save()
@@ -3357,7 +3377,8 @@ def gestion_magasins(request):
                 try:
                     full_asten = request.POST.get('full_asten') == '1'
                     exclure_factures = request.POST.get('exclure_factures') == '1'
-                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten, exclure_factures=exclure_factures)
+                    magasin_asten = request.POST.get('magasin_asten') == '1'
+                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten, exclure_factures=exclure_factures, magasin_asten=magasin_asten)
                     messages.success(request, f"Magasin {code} - {nom} ajouté avec succès.")
                     return redirect('dashboard:gestion_magasins')
                 except IntegrityError:
@@ -3371,6 +3392,7 @@ def gestion_magasins(request):
             'magasins':      magasins,
             'magasin_edit':  magasin_edit,
             'nb_full_asten': magasins.filter(full_asten=True).count(),
+            'nb_magasin_asten': magasins.filter(magasin_asten=True).count(),
         },
     )
 

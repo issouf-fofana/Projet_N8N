@@ -73,6 +73,16 @@
                 <input type="hidden" name="exclure_factures" id="exclure_factures_hidden" value="{% if magasin_edit and magasin_edit.exclure_factures %}1{% else %}0{% endif %}">
                 <small class="text-muted">Exclure des stats factures</small>
             </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small text-uppercase">Magasin Asten</label>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <input type="checkbox" name="magasin_asten" id="magasin_asten_input" value="1" class="form-check-input" style="width:20px;height:20px;cursor:pointer"
+                        {% if magasin_edit and magasin_edit.magasin_asten %}checked{% endif %}>
+                    <label for="magasin_asten_input" class="form-check-label fw-semibold" style="cursor:pointer">Oui</label>
+                </div>
+                <input type="hidden" name="magasin_asten" id="magasin_asten_hidden" value="{% if magasin_edit and magasin_edit.magasin_asten %}1{% else %}0{% endif %}">
+                <small class="text-muted">Passe commande Asten</small>
+            </div>
             <div class="col-md-3 d-flex align-items-end">
                 {% if magasin_edit %}
                     <input type="hidden" name="action" value="update">
@@ -101,9 +111,10 @@
             <span class="text-muted fw-normal" style="font-size:0.85rem">
                 — {{ magasins|length }} magasin{{ magasins|length|pluralize }}
                 · <span style="color:#10b981;font-weight:700">{{ nb_full_asten }}</span> Full Asten
+                · <span style="color:#0ea5e9;font-weight:700">{{ nb_magasin_asten }}</span> Magasin Asten
             </span>
         </h5>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
             <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="toggle_full_asten">
@@ -120,6 +131,22 @@
                     <i class="bi bi-x-square me-1"></i>Tout décocher
                 </button>
             </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_magasin_asten">
+                <input type="hidden" name="magasin_asten_val" value="1">
+                <button type="submit" class="btn btn-sm btn-info">
+                    <i class="bi bi-check-all me-1"></i>Tout cocher Magasin Asten
+                </button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_magasin_asten">
+                <input type="hidden" name="magasin_asten_val" value="0">
+                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-square me-1"></i>Tout décocher
+                </button>
+            </form>
         </div>
     </div>
     <div class="card-body p-0">
@@ -131,6 +158,7 @@
                         <th>Nom</th>
                         <th class="text-center">Full Asten</th>
                         <th class="text-center">Excl. Factures</th>
+                        <th class="text-center">Magasin Asten</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -161,6 +189,17 @@
                                     {% if mag.exclure_factures %}Exclu{% else %}Inclus{% endif %}
                                 </span>
                             </td>
+                            <td class="text-center">
+                                <button type="button"
+                                    class="toggle-fa {% if mag.magasin_asten %}on{% else %}off{% endif %}"
+                                    data-code="{{ mag.code }}" data-field="magasin_asten"
+                                    title="{% if mag.magasin_asten %}Magasin Asten — cliquer pour désactiver{% else %}Pas Magasin Asten — cliquer pour activer{% endif %}"
+                                    style="background:{% if mag.magasin_asten %}#0ea5e9{% else %}#d1d5db{% endif %}">
+                                </button>
+                                <span id="badge-ma-{{ mag.code }}" class="ms-2 badge {% if mag.magasin_asten %}bg-info text-dark{% else %}bg-light text-dark border{% endif %}" style="font-size:0.75rem">
+                                    {% if mag.magasin_asten %}Oui{% else %}Non{% endif %}
+                                </span>
+                            </td>
                             <td class="text-end">
                                 <a href="{% url 'dashboard:gestion_magasins' %}?edit={{ mag.code }}"
                                    class="btn btn-sm btn-outline-primary me-1">
@@ -180,7 +219,7 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">
+                            <td colspan="5" class="text-center py-4 text-muted">
                                 <i class="bi bi-inbox"></i> Aucun magasin trouvé.
                             </td>
                         </tr>
@@ -207,6 +246,11 @@ document.getElementById('exclure_factures_input')?.addEventListener('change', fu
     document.getElementById('exclure_factures_hidden').value = this.checked ? '1' : '0';
 });
 
+// Synchronise checkbox magasin_asten avec le hidden field
+document.getElementById('magasin_asten_input')?.addEventListener('change', function() {
+    document.getElementById('magasin_asten_hidden').value = this.checked ? '1' : '0';
+});
+
 // Toggle individuel via AJAX
 document.querySelectorAll('.toggle-fa').forEach(btn => {
     btn.addEventListener('click', async function() {
@@ -230,6 +274,14 @@ document.querySelectorAll('.toggle-fa').forEach(btn => {
                 if (isOn && data.nb_ignores > 0) {
                     alert(`✓ ${data.nb_ignores} facture(s) de ce magasin ignorées automatiquement.`);
                 }
+            } else if (field === 'magasin_asten') {
+                const isOn = data.magasin_asten;
+                this.style.background = isOn ? '#0ea5e9' : '#d1d5db';
+                this.className = 'toggle-fa ' + (isOn ? 'on' : 'off');
+                this.title = isOn ? 'Magasin Asten — cliquer pour désactiver' : 'Pas Magasin Asten — cliquer pour activer';
+                const badge = document.getElementById('badge-ma-' + code);
+                badge.className = 'ms-2 badge ' + (isOn ? 'bg-info text-dark' : 'bg-light text-dark border');
+                badge.textContent = isOn ? 'Oui' : 'Non';
             } else {
                 const isOn = data.full_asten;
                 this.className = 'toggle-fa ' + (isOn ? 'on' : 'off');
