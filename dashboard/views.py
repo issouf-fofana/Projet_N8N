@@ -95,8 +95,11 @@ def _magasins_commande_counts(source, date_debut=None, date_fin=None):
         if date_fin:
             filtres['date_creation__date__lte'] = date_fin
         codes = set(CommandeGPV.objects.filter(**filtres).values_list('code_magasin', flat=True).distinct())
-        total = Magasin.objects.count()
-        return len(codes), total - len(codes)
+        # Exclure les magasins "Asten" (ne sont pas censés passer de commande GPV)
+        magasins_gpv = Magasin.objects.exclude(magasin_asten=True)
+        total = magasins_gpv.count()
+        nb_avec = len(codes & set(magasins_gpv.values_list('code', flat=True)))
+        return nb_avec, total - nb_avec
 
     if source == 'commandes_legend':
         filtres = {}
@@ -140,7 +143,8 @@ def _magasins_commande_listes(source, date_debut=None, date_fin=None):
             CommandeGPV.objects.filter(**filtres)
             .values('code_magasin').annotate(n=Count('id')).values_list('code_magasin', 'n')
         )
-        tous_magasins = list(Magasin.objects.all().order_by('nom'))
+        # Exclure les magasins "Asten" (ne sont pas censés passer de commande GPV)
+        tous_magasins = list(Magasin.objects.exclude(magasin_asten=True).order_by('nom'))
         avec = [{'magasin': m, 'nb_commandes': counts[m.code]} for m in tous_magasins if m.code in counts]
         avec.sort(key=lambda x: x['nb_commandes'], reverse=True)
         sans = [{'magasin': m, 'nb_commandes': 0} for m in tous_magasins if m.code not in counts]
