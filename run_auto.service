@@ -1,0 +1,16 @@
+[Unit]
+Description=Run Auto — copie SMB → media en boucle
+After=network.target
+
+[Service]
+Type=simple
+User=ifofana
+WorkingDirectory=/opt/Projet_N8N
+ExecStart=/opt/Projet_N8N/env/bin/python /opt/Projet_N8N/run_auto.py --interval 2
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
