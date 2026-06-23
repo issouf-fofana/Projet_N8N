@@ -1,8 +1,8 @@
 """
 watcher.py — Surveille les dossiers SMB en permanence.
-Dès qu'un fichier est déposé :
-  1. Lance run_auto.py pour copier les fichiers vers media/
-  2. Lance la commande Django auto_import pour importer + recalculer les écarts
+Dès qu'un fichier est déposé, lance la commande Django auto_import
+pour importer + recalculer les écarts.
+La copie SMB → media/ est gérée séparément par run_auto.service (boucle continue).
 """
 import os
 import sys
@@ -33,7 +33,6 @@ DOSSIERS_SURVEILLES = [
 DEBOUNCE_SECONDS = 30
 
 SCRIPT_DIR  = Path(__file__).parent
-RUN_AUTO    = SCRIPT_DIR / "run_auto.py"
 PYTHON      = sys.executable
 MANAGE_PY   = SCRIPT_DIR / "manage.py"
 
@@ -85,20 +84,8 @@ class NouveauFichierHandler(FileSystemEventHandler):
 
 
 def lancer_import():
-    """Lance run_auto.py puis auto_import."""
+    """Lance auto_import (la copie SMB → media est gérée par run_auto.service)."""
     log.info("=" * 50)
-    log.info("Lancement de run_auto.py...")
-    try:
-        r = subprocess.run(
-            [PYTHON, str(RUN_AUTO)],
-            capture_output=True, text=True, timeout=300
-        )
-        log.info(r.stdout.strip() or "(pas de sortie)")
-        if r.returncode != 0:
-            log.warning(f"run_auto.py a retourné code {r.returncode} : {r.stderr.strip()}")
-    except Exception as e:
-        log.error(f"Erreur run_auto.py : {e}")
-
     log.info("Lancement de auto_import (Django)...")
     try:
         r = subprocess.run(
