@@ -4954,12 +4954,23 @@ def api_activite(request):
             pass
 
     # ── Statut run_auto (en cours ou arrêté) ──────────────────────────────
-    import subprocess
+    # Lecture directe de /proc (pas de fork de process comme pgrep, beaucoup plus rapide
+    # et appelé toutes les 5s par le polling de la page Activité en direct).
+    run_auto_actif = False
     try:
-        out = subprocess.check_output(['pgrep', '-f', 'run_auto.py'], text=True)
-        run_auto_actif = bool(out.strip())
-    except subprocess.CalledProcessError:
-        run_auto_actif = False
+        for pid in os.listdir('/proc'):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f'/proc/{pid}/cmdline', 'rb') as f:
+                    cmdline = f.read().decode('utf-8', errors='replace')
+                if 'run_auto.py' in cmdline:
+                    run_auto_actif = True
+                    break
+            except (FileNotFoundError, ProcessLookupError, PermissionError):
+                continue
+    except Exception:
+        pass
 
     with _import_lock:
         import_bg = dict(_import_state)
