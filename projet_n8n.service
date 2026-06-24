@@ -1,0 +1,13 @@
+[Unit]
+Description=Projet N8N Django (gunicorn)
+After=network.target postgresql.service
+
+[Service]
+User=ifofana
+WorkingDirectory=/opt/Projet_N8N
+ExecStart=/opt/Projet_N8N/env/bin/gunicorn verification_commande.wsgi:application --bind 0.0.0.0:1212 --workers 3 --timeout 120
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
