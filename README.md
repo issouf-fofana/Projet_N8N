@@ -9,8 +9,8 @@ Application Django + PostgreSQL pour le contrôle et le rapprochement des comman
 - **Backend** : Django 4.x / Python 3.12
 - **Base de données** : PostgreSQL 15+
 - **IA** : Google Gemini (Text-to-SQL)
-- **Serveur production** : Gunicorn + Nginx
-- **Surveillance fichiers** : run_auto.py (daemon SMB)
+- **Serveur production** : Gunicorn (service systemd `projet_n8n`)
+- **Surveillance fichiers** : `watcher.service` (watchdog, déclenche les imports) + `run_auto.service` (copie SMB → media en boucle)
 
 ---
 
@@ -166,57 +166,92 @@ Refresh déclenché automatiquement après chaque import ou changement de statut
 
 ## Déploiement production (/opt/Projet_N8N)
 
-### Services
+### Services systemd
 
-| Service | Rôle | Gestion |
-|---------|------|---------|
-| `gunicorn` | Serveur Django | `sudo systemctl restart gunicorn` |
-| `run_auto.py` | Surveillance SMB → copie media/ | Daemon (voir ci-dessous) |
-| cron `auto_import` | Import fichiers + recalcul écarts | Toutes les 5 min |
+Trois services tournent en permanence, chacun avec un rôle distinct (`Restart=always` : redémarrage auto en cas de crash et au reboot du serveur) :
+
+| Service | Rôle | Fichier unit |
+|---------|------|--------------|
+| `projet_n8n.service` | Serveur Django (gunicorn, 3 workers) | `projet_n8n.service` |
+| `watcher.service` | Surveille les dossiers SMB (watchdog), déclenche `manage.py auto_import` à chaque nouveau fichier (debounce 30s) | `watcher.service` |
+| `run_auto.service` | Copie en boucle (toutes les 2 min) les fichiers SMB → `media/` | `run_auto.service` |
+
+> ⚠️ `projet_n8n.service` doit lancer **gunicorn**, jamais `manage.py runserver` (mono-thread, fuite mémoire en continu sous charge — a déjà provoqué un swap de 8 Go et un load average > 28 en production).
+
+> ℹ️ `watcher.service` ne fait **que** déclencher l'import Django (`auto_import`) sur détection de fichier — il ne relance plus `run_auto.py` lui-même, pour éviter le double travail avec `run_auto.service` qui tourne déjà en boucle indépendamment.
+
+### Première installation des services sur le serveur
+
+```bash
+cd /opt/Projet_N8N
+source env/bin/activate
+pip install -r requirements.txt   # inclut gunicorn et watchdog
+
+sudo cp projet_n8n.service /etc/systemd/system/projet_n8n.service
+sudo cp watcher.service    /etc/systemd/system/watcher.service
+sudo cp run_auto.service   /etc/systemd/system/run_auto.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable projet_n8n watcher run_auto
+sudo systemctl start projet_n8n watcher run_auto
+
+# Vérifier que tout est "active (running)"
+sudo systemctl status projet_n8n watcher run_auto
+```
+
+> Les partages SMB (`/mnt/partage-share`, `/mnt/asten`, etc.) doivent être montés **avant** de démarrer `watcher`/`run_auto`, sinon ils tournent "à vide" sans trouver les dossiers source. Voir `start_smb_and_server.sh` (montage interactif, demande les identifiants SMB). Ce montage n'est **pas persistant après un reboot** du serveur — à refaire manuellement si le serveur redémarre.
 
 ### Déployer une mise à jour
 
 ```bash
-# Sur le serveur
-git stash          # préserver config.env local
+cd /opt/Projet_N8N
 git pull
-git stash pop      # remettre config.env local
 
 source env/bin/activate
+pip install -r requirements.txt   # si de nouvelles dépendances ont été ajoutées
 python manage.py migrate          # appliquer les nouvelles migrations
-sudo systemctl restart gunicorn
+
+# Si projet_n8n.service ou watcher.service ou run_auto.service ont changé :
+sudo cp projet_n8n.service /etc/systemd/system/projet_n8n.service
+sudo cp watcher.service    /etc/systemd/system/watcher.service
+sudo cp run_auto.service   /etc/systemd/system/run_auto.service
+sudo systemctl daemon-reload
+
+sudo systemctl restart projet_n8n watcher run_auto
+sudo systemctl status projet_n8n watcher run_auto
 ```
 
-### run_auto.py — Surveillance SMB
+> `config.env` est dans `.gitignore` et n'est jamais affecté par `git pull` — pas besoin de stash.
+
+### Diagnostiquer un service
 
 ```bash
-# Vérifier s'il tourne
-ps aux | grep run_auto
+# État + dernières lignes de log
+sudo systemctl status projet_n8n
+sudo systemctl status watcher
+sudo systemctl status run_auto
 
-# Relancer si arrêté
-mkdir -p /opt/Projet_N8N/logs
-nohup /opt/Projet_N8N/env/bin/python /opt/Projet_N8N/run_auto.py --interval 2 \
-  > /opt/Projet_N8N/logs/run_auto.log 2>&1 &
-
-# Logs
-tail -f /opt/Projet_N8N/logs/run_auto.log
+# Suivre les logs en direct (Ctrl+C pour sortir sans arrêter le service)
+journalctl -u projet_n8n -f
+journalctl -u watcher -f
+journalctl -u run_auto -f
 ```
 
-### Cron auto_import
-
-```cron
-*/5 * * * * cd /opt/Projet_N8N && env/bin/python manage.py auto_import >> /opt/Projet_N8N/logs/auto_import.log 2>&1
-```
+Si `watcher` ou `run_auto` boucle en "activating (auto-restart)" avec des erreurs `ModuleNotFoundError`, le venv du serveur n'a probablement pas toutes les dépendances :
 
 ```bash
-# Lancer manuellement
-cd /opt/Projet_N8N && env/bin/python manage.py auto_import
-
-# Logs
-tail -f /opt/Projet_N8N/logs/auto_import.log
+cd /opt/Projet_N8N
+source env/bin/activate
+pip install -r requirements.txt
+sudo systemctl restart watcher run_auto
 ```
 
-### Démarrage local (après redémarrage PC)
+### Charge serveur — points de vigilance
+
+- Surveiller `free -h` et `top` après un déploiement : un load average élevé (>10) avec beaucoup de swap utilisé indique souvent que `projet_n8n.service` tourne encore en mode `runserver` au lieu de gunicorn (voir plus haut).
+- La page **Activité en direct** (`/activite/`) fait du polling toutes les 5s sur `GET /api/activite/` — cette vue lit `/proc` pour détecter `run_auto.py` (pas de fork de process type `pgrep`, volontairement, pour rester rapide même sous charge).
+
+### Démarrage en local (développement, après redémarrage PC)
 
 PostgreSQL démarre automatiquement. Pour le serveur Django :
 
@@ -225,6 +260,8 @@ cd ~/Documents/traitement_n8n
 source env/bin/activate
 python manage.py runserver
 ```
+
+> En local (dev), `runserver` est approprié. C'est uniquement en production qu'il faut gunicorn.
 
 ---
 
