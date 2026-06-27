@@ -187,7 +187,7 @@ def _call_gemini(api_key: str, model_name: str, system: str, prompt: str) -> str
 def _call_nvidia(api_key: str, model_name: str, system: str, prompt: str) -> str:
     """Appelle un modèle NVIDIA NIM (API compatible OpenAI — build.nvidia.com)."""
     from openai import OpenAI
-    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key, timeout=60.0)
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
