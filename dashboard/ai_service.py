@@ -170,6 +170,13 @@ def _extract_json(text: str) -> dict:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         pass
+    # Certains modèles (ex: Llama) échappent des caractères SQL invalides en JSON
+    # (ex: \* pour COUNT(*)) — on retire les échappements non standard avant de re-essayer.
+    repaired = re.sub(r'\\([*])', r'\1', cleaned)
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        pass
 
     # 2) Un bloc ```json ... ``` isolé au milieu d'un texte plus long
     #    (certains modèles, ex: llama via NVIDIA, ajoutent du texte explicatif
@@ -270,7 +277,37 @@ def _call_ia(system: str, prompt: str, provider: str = None) -> str:
     return _call_gemini(api_key, model_name, system, prompt)
 
 
-def query_with_gemini(question: str, provider: str = None) -> dict:
+def _construire_contexte_historique(historique: list) -> str:
+    """
+    Construit un résumé des derniers échanges (question + réponse en français,
+    sans le SQL ni les données brutes) pour permettre à l'IA de résoudre les
+    questions de suivi ("et pour Legend ?", "et la semaine dernière ?").
+    `historique` : liste de dicts {'question': str, 'result': dict} dans l'ordre
+    chronologique, déjà tronquée aux N derniers échanges par l'appelant.
+    """
+    if not historique:
+        return ''
+    blocs = []
+    for turn in historique:
+        q = turn.get('question', '')
+        r = turn.get('result') or {}
+        reponse = r.get('reponse') or r.get('erreur') or ''
+        if not q or not reponse:
+            continue
+        blocs.append(f"Q: {q}\nR: {reponse}")
+    if not blocs:
+        return ''
+    return (
+        "\n\n━━━ HISTORIQUE DE LA CONVERSATION (contexte) ━━━\n"
+        "Voici les échanges précédents de cette conversation — utilise-les pour "
+        "comprendre les questions de suivi qui font référence au contexte précédent "
+        "(ex: \"et pour X ?\", \"et la semaine dernière ?\"). La nouvelle question peut "
+        "porter sur un sujet totalement différent, dans ce cas ignore l'historique :\n\n"
+        + "\n\n".join(blocs)
+    )
+
+
+def query_with_gemini(question: str, provider: str = None, historique: list = None) -> dict:
     """
     Prend une question en français, retourne:
     {
@@ -285,16 +322,20 @@ def query_with_gemini(question: str, provider: str = None) -> dict:
     }
     `provider` ('gemini' ou 'nvidia') permet de forcer un fournisseur pour cet
     appel précis, sans changer la configuration globale (Paramètres).
+    `historique` : derniers échanges de la conversation (liste de {'question','result'}),
+    injectés comme contexte pour les questions de suivi.
     """
     # Étape 1 : générer le SQL
     # Enrichir le prompt avec les exemples les plus pertinents de la base de
-    # connaissance (RAG), trouvés par similarité sémantique avec la question.
+    # connaissance (RAG), trouvés par similarité sémantique avec la question,
+    # et avec l'historique récent de la conversation pour les questions de suivi.
     try:
         from dashboard.ai_knowledge import construire_contexte_rag
         contexte_rag = construire_contexte_rag(question)
     except Exception:
         contexte_rag = ''
-    system_prompt = SYSTEM_PROMPT + contexte_rag
+    contexte_historique = _construire_contexte_historique(historique or [])
+    system_prompt = SYSTEM_PROMPT + contexte_historique + contexte_rag
 
     try:
         raw = _call_ia(system_prompt, question, provider)

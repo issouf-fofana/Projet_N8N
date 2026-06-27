@@ -5102,8 +5102,9 @@ def assistant_ia(request):
         question = request.POST.get('question', '').strip()
         if question:
             from dashboard.ai_service import query_with_gemini
-            result = query_with_gemini(question, provider=ai_provider_choice)
             turns = current_chat.get('turns', [])
+            historique = turns[-10:]
+            result = query_with_gemini(question, provider=ai_provider_choice, historique=historique)
             turns.append({'question': question, 'result': result})
             if len(turns) > 20:
                 turns = turns[-20:]
