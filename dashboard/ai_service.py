@@ -25,6 +25,7 @@ gpv_commandegpv: id, numero_commande, date_creation(TIMESTAMP), code_magasin(FK�
 
 legend_commandelegend: id, date_commande(date), numero_commande, depot_destination, depot_origine, exportee(bool)
   exportee: TRUE=intégrée, FALSE=non intégrée
+  ⚠ PAS de colonne code_magasin ni magasin_id — depot_destination est un texte libre, pas lié à core_magasin
 
 cyrus_commandecyrus: id, date_commande, numero_commande, montant, code_magasin, nom_magasin
 
@@ -114,6 +115,10 @@ core_magasin: JOIN ON m.code = t.code_magasin  (asten/gpv/br/cyrus/legend)
    - LIMIT max 200 lignes obligatoire
    - Utiliser des alias clairs (COUNT(*) AS total_non_integrees, etc.)
    - NE PAS utiliser imports_facturecyrusligne/imports_factureastenligne pour les stats d'intégration factures
+   - Si plusieurs tables ont une colonne de même nom (ex: date_commande, date_creation), TOUJOURS préfixer
+     par l'alias de table (ex: a.date_commande, g.date_creation) pour éviter "column reference is ambiguous"
+   - Ne jamais inventer de colonne qui n'est pas listée explicitement dans le schéma ci-dessus
+   - legend_commandelegend n'a PAS de code_magasin : ne pas la joindre à core_magasin par ce biais
 """
 
 SYSTEM_PROMPT = f"""Tu es un assistant expert SQL pour une application Django/PostgreSQL.
