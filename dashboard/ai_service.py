@@ -181,9 +181,10 @@ def _call_nvidia(api_key: str, model_name: str, system: str, prompt: str) -> str
     return response.choices[0].message.content.strip()
 
 
-def _call_ia(system: str, prompt: str) -> str:
-    """Route l'appel vers le fournisseur IA configuré (gemini ou nvidia)."""
-    provider = getattr(settings, 'AI_PROVIDER', 'gemini')
+def _call_ia(system: str, prompt: str, provider: str = None) -> str:
+    """Route l'appel vers le fournisseur IA (gemini ou nvidia).
+    Si provider n'est pas précisé, utilise celui configuré dans Paramètres."""
+    provider = provider or getattr(settings, 'AI_PROVIDER', 'gemini')
     if provider == 'nvidia':
         api_key = getattr(settings, 'NVIDIA_API_KEY', '')
         model_name = getattr(settings, 'NVIDIA_MODEL', 'meta/llama-3.1-70b-instruct')
@@ -198,7 +199,7 @@ def _call_ia(system: str, prompt: str) -> str:
     return _call_gemini(api_key, model_name, system, prompt)
 
 
-def query_with_gemini(question: str) -> dict:
+def query_with_gemini(question: str, provider: str = None) -> dict:
     """
     Prend une question en français, retourne:
     {
@@ -211,10 +212,12 @@ def query_with_gemini(question: str) -> dict:
       'reponse': str,
       'erreur': str|None
     }
+    `provider` ('gemini' ou 'nvidia') permet de forcer un fournisseur pour cet
+    appel précis, sans changer la configuration globale (Paramètres).
     """
     # Étape 1 : générer le SQL
     try:
-        raw = _call_ia(SYSTEM_PROMPT, question)
+        raw = _call_ia(SYSTEM_PROMPT, question, provider)
         parsed = _extract_json(raw)
         sql = parsed.get('sql', '').strip()
         explication = parsed.get('explication', '')
@@ -257,7 +260,7 @@ def query_with_gemini(question: str) -> dict:
             f"Si c'est une liste, résume les points clés. Ne mentionne pas le SQL."
         )
         try:
-            reponse = _call_ia('', reformulation_prompt)
+            reponse = _call_ia('', reformulation_prompt, provider)
         except Exception:
             reponse = f"{nombre} résultat(s) trouvé(s)."
     else:

@@ -462,6 +462,12 @@
                         <textarea name="question" id="aia-question" class="aia-textarea"
                             placeholder="Posez une question… (Entrée pour envoyer)" rows="1" autofocus></textarea>
                         <div class="aia-input-foot">
+                            <select name="ai_provider" id="aia-provider" class="form-select form-select-sm"
+                                style="width:auto;display:inline-block;font-size:.78rem;padding:2px 24px 2px 8px;border-radius:8px;"
+                                onchange="document.getElementById('aia-form').submit()">
+                                <option value="gemini" {% if ai_provider_choice == 'gemini' %}selected{% endif %}>Gemini</option>
+                                <option value="nvidia" {% if ai_provider_choice == 'nvidia' %}selected{% endif %}>NVIDIA</option>
+                            </select>
                             <button type="submit" class="aia-send-btn" id="aia-send" title="Envoyer">
                                 <i class="bi bi-send-fill" style="font-size:.76rem;"></i>
                             </button>
@@ -469,7 +475,7 @@
                     </div>
                 </form>
             </div>
-            <span class="aia-hint">Maj+Entrée pour aller à la ligne</span>
+            <span class="aia-hint">Maj+Entrée pour aller à la ligne · Fournisseur IA : {{ ai_provider_choice|title }}</span>
         </div>
 
     </div><!-- /.aia-main -->

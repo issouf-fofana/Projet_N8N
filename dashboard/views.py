@@ -5091,12 +5091,18 @@ def assistant_ia(request):
 
     current_chat = next(c for c in chats if c['id'] == current_id)
 
+    # ── Fournisseur IA choisi pour cette session de chat ──────────────
+    PROVIDER_KEY = 'ai_provider_choice'
+    if request.POST.get('ai_provider') in ('gemini', 'nvidia'):
+        request.session[PROVIDER_KEY] = request.POST.get('ai_provider')
+    ai_provider_choice = request.session.get(PROVIDER_KEY) or getattr(settings, 'AI_PROVIDER', 'gemini')
+
     # ── POST : question ───────────────────────────────────────────────
     if request.method == 'POST':
         question = request.POST.get('question', '').strip()
         if question:
             from dashboard.ai_service import query_with_gemini
-            result = query_with_gemini(question)
+            result = query_with_gemini(question, provider=ai_provider_choice)
             turns = current_chat.get('turns', [])
             turns.append({'question': question, 'result': result})
             if len(turns) > 20:
@@ -5111,6 +5117,7 @@ def assistant_ia(request):
         'chats': chats,
         'current_chat': current_chat,
         'conversation': current_chat.get('turns', []),
+        'ai_provider_choice': ai_provider_choice,
     })
 
 
