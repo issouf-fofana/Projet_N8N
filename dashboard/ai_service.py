@@ -137,10 +137,29 @@ RÉPONSE FORMAT JSON strict (rien d'autre):
 
 
 def _extract_json(text: str) -> dict:
-    """Extrait le JSON de la réponse Gemini (qui peut contenir du markdown)."""
-    text = re.sub(r'```(?:json)?\s*', '', text).strip()
-    text = re.sub(r'```\s*$', '', text).strip()
-    return json.loads(text)
+    """
+    Extrait le JSON de la réponse du modèle IA.
+    Gemini respecte le format JSON strict demandé. D'autres modèles (ex: Llama
+    via NVIDIA NIM) répondent parfois en texte libre avec un bloc ```sql``` —
+    on reconstruit alors un JSON équivalent à partir de ce texte.
+    """
+    cleaned = re.sub(r'```(?:json)?\s*', '', text).strip()
+    cleaned = re.sub(r'```\s*$', '', cleaned).strip()
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback : réponse en texte libre avec un bloc ```sql ... ```
+    sql_match = re.search(r'```sql\s*(.*?)```', text, re.DOTALL | re.IGNORECASE)
+    if not sql_match:
+        # Dernier recours : chercher un SELECT direct dans le texte
+        sql_match = re.search(r'(SELECT\b.*?;)', text, re.DOTALL | re.IGNORECASE)
+    if sql_match:
+        sql = sql_match.group(1).strip()
+        return {'sql': sql, 'explication': '', 'hypothese': None}
+
+    raise ValueError(f"Impossible d'extraire une requête SQL de la réponse : {text[:200]!r}")
 
 
 def _is_safe_sql(sql: str) -> bool:
