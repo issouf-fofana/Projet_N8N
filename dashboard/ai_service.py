@@ -216,6 +216,15 @@ def _extract_json(text: str) -> dict:
         sql = sql_match.group(1).strip()
         return {'sql': sql, 'explication': '', 'hypothese': None}
 
+    # 4) Réponse coupée en plein milieu (max_tokens atteint) : récupérer le SELECT
+    # même sans fermeture (pas de ```, pas de ;, pas de guillemet fermant).
+    truncated_match = re.search(r'SELECT\b.*', text, re.DOTALL | re.IGNORECASE)
+    if truncated_match:
+        sql = truncated_match.group(0).strip().rstrip('"').rstrip('`').strip()
+        raise ValueError(
+            f"Réponse du modèle coupée avant la fin (requête incomplète) : {sql[:150]!r}..."
+        )
+
     raise ValueError(f"Impossible d'extraire une requête SQL de la réponse : {text[:200]!r}")
 
 
@@ -245,9 +254,10 @@ def _call_nvidia(api_key: str, model_name: str, system: str, prompt: str) -> str
     """Appelle un modèle NVIDIA NIM (API compatible OpenAI — build.nvidia.com)."""
     from openai import OpenAI
     # max_retries=0 : le SDK OpenAI retente automatiquement 2 fois par défaut en cas de
-    # timeout, ce qui peut tripler le temps d'attente total (30s x 3 = 90s par appel,
-    # jusqu'à 180s avec génération + reformulation). On gère nous-même les erreurs.
-    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key, timeout=30.0, max_retries=0)
+    # timeout, ce qui peut tripler le temps d'attente total (60s x 3 = 180s par appel).
+    # On gère nous-même les erreurs. Le prompt RAG complet (schéma + exemples + historique)
+    # fait ~10k caractères, ce qui peut dépasser 30s avec Mixtral — 60s donne de la marge.
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key, timeout=60.0, max_retries=0)
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
