@@ -180,8 +180,10 @@ def _extract_json(text: str) -> dict:
     except json.JSONDecodeError:
         pass
     # Certains modèles (ex: Llama) échappent des caractères SQL invalides en JSON
-    # (ex: \* pour COUNT(*)) — on retire les échappements non standard avant de re-essayer.
-    repaired = re.sub(r'\\([*])', r'\1', cleaned)
+    # (ex: \* pour COUNT(*), \_ dans les noms de table/colonne) — on retire ces
+    # échappements non standard avant de re-essayer. On préserve les échappements
+    # JSON valides (\", \\, \n, \t, \r, \/, \uXXXX).
+    repaired = re.sub(r'\\(?!["\\/bfnrtu])(.)', r'\1', cleaned)
     try:
         return json.loads(repaired)
     except json.JSONDecodeError:
@@ -202,6 +204,12 @@ def _extract_json(text: str) -> dict:
         # l'intérieur de la valeur ("a" + \n "b") au lieu d'une chaîne JSON valide.
         # On retire ces concatenations avant de re-essayer.
         repaired = re.sub(r'"\s*\+\s*\n?\s*"', '', block)
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            pass
+        # Échappements invalides (\* , \_) comme en étape 1.
+        repaired = re.sub(r'\\(?!["\\/bfnrtu])(.)', r'\1', repaired)
         try:
             return json.loads(repaired)
         except json.JSONDecodeError:
