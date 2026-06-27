@@ -165,6 +165,39 @@ def _call_gemini(api_key: str, model_name: str, system: str, prompt: str) -> str
     return response.text.strip()
 
 
+def _call_nvidia(api_key: str, model_name: str, system: str, prompt: str) -> str:
+    """Appelle un modèle NVIDIA NIM (API compatible OpenAI — build.nvidia.com)."""
+    from openai import OpenAI
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        temperature=0.2,
+    )
+    return response.choices[0].message.content.strip()
+
+
+def _call_ia(system: str, prompt: str) -> str:
+    """Route l'appel vers le fournisseur IA configuré (gemini ou nvidia)."""
+    provider = getattr(settings, 'AI_PROVIDER', 'gemini')
+    if provider == 'nvidia':
+        api_key = getattr(settings, 'NVIDIA_API_KEY', '')
+        model_name = getattr(settings, 'NVIDIA_MODEL', 'meta/llama-3.1-70b-instruct')
+        if not api_key:
+            raise RuntimeError('Clé API NVIDIA non configurée.')
+        return _call_nvidia(api_key, model_name, system, prompt)
+
+    api_key = getattr(settings, 'GEMINI_API_KEY', '')
+    model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-2.5-flash-lite')
+    if not api_key:
+        raise RuntimeError('Clé API Gemini non configurée.')
+    return _call_gemini(api_key, model_name, system, prompt)
+
+
 def query_with_gemini(question: str) -> dict:
     """
     Prend une question en français, retourne:
@@ -179,15 +212,9 @@ def query_with_gemini(question: str) -> dict:
       'erreur': str|None
     }
     """
-    api_key = getattr(settings, 'GEMINI_API_KEY', '')
-    model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-2.5-flash-lite')
-
-    if not api_key:
-        return {'erreur': 'Clé API Gemini non configurée.'}
-
     # Étape 1 : générer le SQL
     try:
-        raw = _call_gemini(api_key, model_name, SYSTEM_PROMPT, question)
+        raw = _call_ia(SYSTEM_PROMPT, question)
         parsed = _extract_json(raw)
         sql = parsed.get('sql', '').strip()
         explication = parsed.get('explication', '')
@@ -230,7 +257,7 @@ def query_with_gemini(question: str) -> dict:
             f"Si c'est une liste, résume les points clés. Ne mentionne pas le SQL."
         )
         try:
-            reponse = _call_gemini(api_key, model_name, '', reformulation_prompt)
+            reponse = _call_ia('', reformulation_prompt)
         except Exception:
             reponse = f"{nombre} résultat(s) trouvé(s)."
     else:

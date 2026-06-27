@@ -121,18 +121,30 @@
     {% endif %}
 
 {% if peut_configurer_systeme %}
-<!-- ── Configuration IA (Gemini) ──────────────────────────────────────── -->
+<!-- ── Configuration IA (Gemini / NVIDIA) ─────────────────────────────── -->
 <div class="config-card mt-4" id="config-ia">
     <div class="config-card-header" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">
         <i class="bi bi-robot"></i>
         <div>
-            <h5>Assistant IA — Gemini</h5>
-            <small>Clé API et modèle utilisés par l'assistant IA</small>
+            <h5>Assistant IA</h5>
+            <small>Fournisseur, clé API et modèle utilisés par l'assistant IA</small>
         </div>
     </div>
     <form method="post" class="p-4">
         {% csrf_token %}
         <input type="hidden" name="action" value="ia">
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.05em">
+                Fournisseur IA
+            </label>
+            <select class="form-select" name="AI_PROVIDER" style="max-width:320px">
+                <option value="gemini" {% if ai_provider == 'gemini' %}selected{% endif %}>Google Gemini</option>
+                <option value="nvidia" {% if ai_provider == 'nvidia' %}selected{% endif %}>NVIDIA NIM</option>
+            </select>
+            <div class="form-text">Le fournisseur sélectionné est utilisé par l'Assistant IA — les clés des deux fournisseurs restent enregistrées même si un seul est actif.</div>
+        </div>
+
         <div class="row g-3">
             {% for champ in champs_ia %}
             <div class="col-md-6">

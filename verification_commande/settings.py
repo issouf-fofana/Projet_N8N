@@ -231,6 +231,13 @@ DOSSIER_FACTURES_ASTEN_CSV_PATH = get_dossier_path(DOSSIER_FACTURES_ASTEN_CSV)
 
 CSRF_TRUSTED_ORIGINS = ['http://10.0.70.27:1212', 'http://proserv-suivi.lan', 'http://proserv-suivi.lan:1212']
 
+# Assistant IA — fournisseur configurable (gemini / nvidia)
+AI_PROVIDER = config('AI_PROVIDER', default='gemini')
+
 # Gemini AI
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 GEMINI_MODEL = config('GEMINI_MODEL_DEFAULT', default='gemini-2.5-flash')
+
+# NVIDIA NIM (API compatible OpenAI — https://build.nvidia.com)
+NVIDIA_API_KEY = config('NVIDIA_API_KEY', default='')
+NVIDIA_MODEL = config('NVIDIA_MODEL_DEFAULT', default='meta/llama-3.1-70b-instruct')

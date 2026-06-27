@@ -3108,6 +3108,8 @@ def configuration_systeme(request):
     CHAMPS_IA = [
         ('GEMINI_API_KEY',       'Clé API Gemini',          'password'),
         ('GEMINI_MODEL_DEFAULT', 'Modèle Gemini',           'text'),
+        ('NVIDIA_API_KEY',       'Clé API NVIDIA',          'password'),
+        ('NVIDIA_MODEL_DEFAULT', 'Modèle NVIDIA',           'text'),
     ]
 
     CHAMPS = [
@@ -3190,16 +3192,20 @@ def configuration_systeme(request):
             if not peut_configurer_systeme:
                 messages.error(request, "Permission insuffisante.")
                 return redirect('dashboard:configuration_systeme')
+            provider = request.POST.get('AI_PROVIDER', 'gemini').strip()
+            if provider in ('gemini', 'nvidia'):
+                update_config('AI_PROVIDER', provider)
+                setattr(settings, 'AI_PROVIDER', provider)
             for key, label, _ in CHAMPS_IA:
                 new_val = request.POST.get(key, '').strip()
                 if new_val:
                     update_config(key, new_val)
                     setattr(settings, key, new_val)
                     # Propager aussi sous le nom utilisé dans ai_service
-                    if key == 'GEMINI_API_KEY':
-                        setattr(settings, 'GEMINI_API_KEY', new_val)
-                    elif key == 'GEMINI_MODEL_DEFAULT':
+                    if key == 'GEMINI_MODEL_DEFAULT':
                         setattr(settings, 'GEMINI_MODEL', new_val)
+                    elif key == 'NVIDIA_MODEL_DEFAULT':
+                        setattr(settings, 'NVIDIA_MODEL', new_val)
             messages.success(request, "Configuration IA enregistrée.")
             return redirect('dashboard:configuration_systeme')
 
@@ -3241,9 +3247,12 @@ def configuration_systeme(request):
     ErreurIgnoreeConfig.decouvrir_nouveaux_patterns()
     erreurs_ignorees_ctx = list(ErreurIgnoreeConfig.objects.order_by('ignorer', 'pattern'))
 
+    ai_provider = vals.get('AI_PROVIDER') or get_default('AI_PROVIDER') or 'gemini'
+
     return render(request, 'dashboard/configuration_systeme.html', {
         'champs': champs_ctx,
         'champs_ia': champs_ia_ctx,
+        'ai_provider': ai_provider,
         'types_fichiers': types_fichiers_ctx,
         'erreurs_ignorees': erreurs_ignorees_ctx,
         'peut_configurer_systeme':    peut_configurer_systeme,
