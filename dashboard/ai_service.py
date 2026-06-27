@@ -2,10 +2,19 @@
 Service Text-to-SQL avec Gemini.
 Reçoit une question en français, génère le SQL, l'exécute, reformule la réponse.
 """
+import datetime
+import decimal
 import json
 import re
 from django.db import connection
 from django.conf import settings
+
+
+def _json_safe(value):
+    """Convertit les types non sérialisables en JSON (date, datetime, Decimal) en str."""
+    if isinstance(value, (datetime.date, datetime.datetime, decimal.Decimal)):
+        return str(value)
+    return value
 
 DB_SCHEMA = """
 PostgreSQL. Application de gestion d'une chaîne de distribution (Prosuma).
@@ -308,7 +317,7 @@ def query_with_gemini(question: str, provider: str = None) -> dict:
             cursor.execute(sql)
             colonnes = [desc[0] for desc in cursor.description] if cursor.description else []
             lignes = cursor.fetchmany(200)
-            lignes = [list(row) for row in lignes]
+            lignes = [[_json_safe(v) for v in row] for row in lignes]
             nombre = len(lignes)
     except Exception as e:
         return {
