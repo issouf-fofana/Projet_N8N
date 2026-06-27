@@ -278,8 +278,17 @@ def query_with_gemini(question: str, provider: str = None) -> dict:
     appel précis, sans changer la configuration globale (Paramètres).
     """
     # Étape 1 : générer le SQL
+    # Enrichir le prompt avec les exemples les plus pertinents de la base de
+    # connaissance (RAG), trouvés par similarité sémantique avec la question.
     try:
-        raw = _call_ia(SYSTEM_PROMPT, question, provider)
+        from dashboard.ai_knowledge import construire_contexte_rag
+        contexte_rag = construire_contexte_rag(question)
+    except Exception:
+        contexte_rag = ''
+    system_prompt = SYSTEM_PROMPT + contexte_rag
+
+    try:
+        raw = _call_ia(system_prompt, question, provider)
         parsed = _extract_json(raw)
         sql = parsed.get('sql', '').strip()
         explication = parsed.get('explication', '')
