@@ -212,18 +212,26 @@ def _extract_json(text: str) -> dict:
     if not sql_match:
         # Dernier recours : chercher un SELECT direct dans le texte
         sql_match = re.search(r'(SELECT\b.*?;)', text, re.DOTALL | re.IGNORECASE)
+    if not sql_match:
+        # Modèle qui oublie d'ouvrir le bloc ```sql (juste un ``` orphelin en fermeture) :
+        # un SELECT en clair, terminé par une ligne ``` seule ou par une ligne vide suivie
+        # de texte explicatif (Explanation:/Explication:/Cette requête...). On exige une
+        # de ces fins explicites pour ne pas confondre avec une vraie réponse tronquée
+        # (sinon on risquerait d'exécuter un SQL incomplet sans erreur claire).
+        sql_match = re.search(
+            r'(SELECT\b.*?)(?:\n```|\n\s*\n\s*(?:Explanation|Explication|Cette requ[êe]te)\b)',
+            text, re.DOTALL | re.IGNORECASE
+        )
     if sql_match:
-        sql = sql_match.group(1).strip()
+        sql = sql_match.group(1).strip().rstrip(';').strip()
         return {'sql': sql, 'explication': '', 'hypothese': None}
 
-    # 4) Réponse coupée en plein milieu (max_tokens atteint) : récupérer le SELECT
-    # même sans fermeture (pas de ```, pas de ;, pas de guillemet fermant).
+    # Réponse coupée en plein milieu (max_tokens atteint ou flux interrompu) : le SELECT
+    # existe mais n'a aucune fin reconnaissable — on le signale plutôt que de l'exécuter.
     truncated_match = re.search(r'SELECT\b.*', text, re.DOTALL | re.IGNORECASE)
     if truncated_match:
-        sql = truncated_match.group(0).strip().rstrip('"').rstrip('`').strip()
-        raise ValueError(
-            f"Réponse du modèle coupée avant la fin (requête incomplète) : {sql[:150]!r}..."
-        )
+        sql_preview = truncated_match.group(0).strip()[:150]
+        raise ValueError(f"Réponse du modèle coupée avant la fin (requête incomplète) : {sql_preview!r}...")
 
     raise ValueError(f"Impossible d'extraire une requête SQL de la réponse : {text[:200]!r}")
 
