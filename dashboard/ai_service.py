@@ -136,6 +136,15 @@ core_magasin: JOIN ON m.code = t.code_magasin  (asten/gpv/br/cyrus/legend)
      SELECT m.code, m.nom, MAX(a.date_commande) AS derniere_commande
      FROM core_magasin m LEFT JOIN asten_commandeasten a ON m.code = a.code_magasin
      GROUP BY m.code, m.nom ORDER BY derniere_commande ASC NULLS FIRST LIMIT 200;
+   - Si la question demande un résultat "par source/à part" pour plusieurs sources (ex: "Legend à part,
+     Asten à part, GPV à part" / "détail par source"), TOUJOURS faire UNE SEULE requête avec UNION ALL,
+     une colonne "source" (libellé textuel) et la même colonne de mesure dans chaque branche — JAMAIS
+     une requête scalaire unique qui mélange ou n'additionne qu'une seule source. Exemple :
+     SELECT 'Legend' AS source, COUNT(*) AS total_non_integrees FROM ecarts_ecartlegend WHERE statut = 'ouvert'
+     UNION ALL
+     SELECT 'Asten' AS source, COUNT(*) AS total_non_integrees FROM ecarts_ecartcommande WHERE statut = 'ouvert'
+     UNION ALL
+     SELECT 'GPV' AS source, COUNT(*) AS total_non_integrees FROM ecarts_ecartgpv WHERE statut = 'ouvert';
 """
 
 SYSTEM_PROMPT = f"""Tu es un assistant expert SQL pour une application Django/PostgreSQL.
@@ -386,8 +395,13 @@ def query_with_gemini(question: str, provider: str = None, historique: list = No
         reformulation_prompt = (
             f"Question posée: {question}\n\n"
             f"Résultat ({nombre} ligne(s)):\n{data_preview}\n\n"
-            f"Réponds à la question en français, clairement et directement. "
-            f"Si c'est une liste, résume les points clés. Ne mentionne pas le SQL."
+            f"Réponds UNIQUEMENT en français (jamais en anglais), clairement et directement. "
+            f"Base-toi UNIQUEMENT sur les colonnes et valeurs ci-dessus : une colonne 'source' "
+            f"donne le nom de la source de données, une colonne commençant par 'total_' ou "
+            f"'nombre_' est un nombre de lignes/commandes (PAS une notion mathématique comme "
+            f"'entier/non-entier' — ignore le nom littéral de la colonne et déduis son sens du "
+            f"contexte de la question). Si plusieurs lignes représentent des sources différentes, "
+            f"donne le détail pour chacune. Ne mentionne pas le SQL."
         )
         try:
             reponse = _call_ia('', reformulation_prompt, provider)
