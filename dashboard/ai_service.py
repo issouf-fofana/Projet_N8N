@@ -41,12 +41,19 @@ cyrus_commandecyrus: id, date_commande, numero_commande, montant, code_magasin, 
 ── ÉCARTS COMMANDES ──
 ecarts_ecartcommande: id, commande_asten_id(FK→asten_commandeasten.id), statut, commentaire, date_creation
   statut: 'ouvert'=non intégré / 'resolu'=intégré / 'en_cours'
+  ⚠ PAS de code_magasin directement sur cette table : pour retrouver le magasin, JOINDRE
+  asten_commandeasten via commande_asten_id, PUIS core_magasin via son code_magasin.
+  JAMAIS de notation pointée style ORM (ex: e.commande_asten_id.code_magasin) — invalide en SQL.
+  Exemple correct : ... FROM ecarts_ecartcommande e JOIN asten_commandeasten a ON e.commande_asten_id = a.id
+  JOIN core_magasin m ON a.code_magasin = m.code WHERE e.statut = 'ouvert' ...
 
 ecarts_ecartgpv: id, commande_gpv_id(FK→gpv_commandegpv.id), statut, commentaire, date_creation
   statut: 'ouvert' / 'resolu' / 'en_cours'
+  ⚠ Même règle : JOINDRE gpv_commandegpv via commande_gpv_id pour accéder à code_magasin.
 
 ecarts_ecartlegend: id, commande_legend_id(FK→legend_commandelegend.id), statut, type_ecart, date_creation
   statut: 'ouvert' / 'resolu' / 'en_cours'
+  ⚠ legend_commandelegend n'a pas de code_magasin (voir plus haut) : impossible de relier à un magasin.
 
 ── BONS DE RÉCEPTION ──
 br_brasten: id, numero_br, date_br(date), ic_integre(bool), statut_ic, en_anomalie(bool), code_magasin(FK→core_magasin.code)
