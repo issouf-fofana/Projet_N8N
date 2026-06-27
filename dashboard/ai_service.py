@@ -372,35 +372,63 @@ def query_with_gemini(question: str, provider: str = None, historique: list = No
     contexte_historique = _construire_contexte_historique(historique or [])
     system_prompt = SYSTEM_PROMPT + contexte_historique + contexte_rag
 
-    try:
-        raw = _call_ia(system_prompt, question, provider)
-        parsed = _extract_json(raw)
-        sql = parsed.get('sql', '').strip()
-        explication = parsed.get('explication', '')
-        hypothese = parsed.get('hypothese')
-    except Exception as e:
-        return {'erreur': f'Erreur génération SQL : {e}'}
+    erreur_precedente = None
+    sql = explication = hypothese = sql_echoue = None
+    colonnes = lignes = None
+    nombre = 0
 
-    if not sql:
-        return {'erreur': "Gemini n'a pas pu générer de requête SQL pour cette question."}
+    # Jusqu'à 2 tentatives : si la génération ou l'exécution échoue, on relance une fois
+    # en informant le modèle de l'erreur précise pour qu'il se corrige (les modèles NVIDIA
+    # ne sont pas déterministes à 100%, un raté ponctuel se corrige souvent au 2e essai).
+    for tentative in range(2):
+        prompt_question = question
+        if erreur_precedente:
+            prompt_question = (
+                f"{question}\n\n"
+                f"(Ta tentative précédente a échoué avec cette erreur, corrige-la : "
+                f"{erreur_precedente})"
+            )
 
-    if not _is_safe_sql(sql):
-        return {'erreur': 'Requête non autorisée (écriture refusée).'}
+        try:
+            raw = _call_ia(system_prompt, prompt_question, provider)
+            parsed = _extract_json(raw)
+            sql = parsed.get('sql', '').strip()
+            explication = parsed.get('explication', '')
+            hypothese = parsed.get('hypothese')
+        except Exception as e:
+            erreur_precedente = f"Erreur génération SQL : {e}"
+            sql = None
+            continue
 
-    # Étape 2 : exécuter le SQL
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(sql)
-            colonnes = [desc[0] for desc in cursor.description] if cursor.description else []
-            lignes = cursor.fetchmany(200)
-            lignes = [[_json_safe(v) for v in row] for row in lignes]
-            nombre = len(lignes)
-    except Exception as e:
+        if not sql:
+            erreur_precedente = "Aucune requête SQL générée."
+            continue
+
+        if not _is_safe_sql(sql):
+            return {'erreur': 'Requête non autorisée (écriture refusée).'}
+
+        # Étape 2 : exécuter le SQL
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
+                colonnes = [desc[0] for desc in cursor.description] if cursor.description else []
+                lignes = cursor.fetchmany(200)
+                lignes = [[_json_safe(v) for v in row] for row in lignes]
+                nombre = len(lignes)
+            erreur_precedente = None
+            break
+        except Exception as e:
+            erreur_precedente = f"Erreur SQL : {e}"
+            sql_echoue = sql
+            sql = None
+            continue
+
+    if erreur_precedente:
         return {
-            'sql': sql,
+            'sql': sql_echoue,
             'explication': explication,
             'hypothese': hypothese,
-            'erreur': f'Erreur SQL : {e}',
+            'erreur': erreur_precedente,
         }
 
     # Étape 3 : reformuler la réponse en français
