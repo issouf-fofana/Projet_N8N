@@ -177,8 +177,16 @@ def _call_nvidia(api_key: str, model_name: str, system: str, prompt: str) -> str
         model=model_name,
         messages=messages,
         temperature=0.2,
+        max_tokens=2048,
     )
-    return response.choices[0].message.content.strip()
+    content = response.choices[0].message.content
+    finish_reason = response.choices[0].finish_reason
+    if not content:
+        raise RuntimeError(
+            f"Réponse vide du modèle NVIDIA '{model_name}' (finish_reason={finish_reason}). "
+            f"Vérifiez que le nom du modèle est correct sur build.nvidia.com."
+        )
+    return content.strip()
 
 
 def _call_ia(system: str, prompt: str, provider: str = None) -> str:
