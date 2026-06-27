@@ -83,31 +83,25 @@ core_magasin: JOIN ON m.code = t.code_magasin  (asten/gpv/br/cyrus/legend)
 ━━━ RÈGLES MÉTIER CRITIQUES ━━━
 
 1. COMMANDES NON INTÉGRÉES → utiliser UNIQUEMENT les tables d'écarts (jamais le statut des commandes):
-   Asten  : SELECT COUNT(*) FROM ecarts_ecartcommande WHERE statut='ouvert'   → 14 actuellement
-   GPV    : SELECT COUNT(*) FROM ecarts_ecartgpv WHERE statut='ouvert'        → 14 actuellement
-   Legend : SELECT COUNT(*) FROM ecarts_ecartlegend WHERE statut='ouvert'     → 50 actuellement
-   Total commandes non intégrées toutes sources = 14+14+50 = 78
+   Asten  : SELECT COUNT(*) FROM ecarts_ecartcommande WHERE statut='ouvert'
+   GPV    : SELECT COUNT(*) FROM ecarts_ecartgpv WHERE statut='ouvert'
+   Legend : SELECT COUNT(*) FROM ecarts_ecartlegend WHERE statut='ouvert'
 
-2. COMMANDES INTÉGRÉES:
-   Asten  : COUNT(asten) - COUNT(ecarts ouverts) = 662-14 = 648
-   GPV    : COUNT(gpv transmises) - COUNT(ecarts ouverts) = 6026-14 = 6012
-   Legend : COUNT(legend exportee=TRUE) = 183
+2. COMMANDES INTÉGRÉES = total source - écarts ouverts (Asten/GPV) ou exportee=TRUE (Legend).
 
 3. BONS DE RÉCEPTION:
-   Non intégrés : SELECT COUNT(*) FROM br_brasten WHERE ic_integre=FALSE  → 5
-   Intégrés     : SELECT COUNT(*) FROM br_brasten WHERE ic_integre=TRUE   → 14734
-   Total        : 14739
+   Non intégrés : SELECT COUNT(*) FROM br_brasten WHERE ic_integre=FALSE
+   Intégrés     : SELECT COUNT(*) FROM br_brasten WHERE ic_integre=TRUE
 
 4. FACTURES → utiliser UNIQUEMENT mv_factures_joined (jamais les tables brutes):
-   Non intégrées : WHERE statut_effectif='non_integre'   → 0 actuellement
-   Intégrées     : WHERE statut_effectif='integre'       → 55501
-   À vide (qt=0) : WHERE statut_effectif='integre_vide'  → 578
-   Total actif   : WHERE statut_effectif != 'ignore'     → 56079
+   Non intégrées : WHERE statut_effectif='non_integre'
+   Intégrées     : WHERE statut_effectif='integre'
+   À vide (qt=0) : WHERE statut_effectif='integre_vide'
+   Total actif   : WHERE statut_effectif != 'ignore'
 
 5. TICKETS:
-   En attente : SELECT COUNT(*) FROM tickets_ticket WHERE statut='en_attente'  → 1
-   Résolus    : SELECT COUNT(*) FROM tickets_ticket WHERE statut='resolu'       → 3
-   Total      : 4
+   En attente : SELECT COUNT(*) FROM tickets_ticket WHERE statut='en_attente'
+   Résolus    : SELECT COUNT(*) FROM tickets_ticket WHERE statut='resolu'
 
 6. JOURNAL INTÉGRATION:
    Erreurs  : WHERE status_value=0
@@ -275,7 +269,16 @@ def query_with_gemini(question: str, provider: str = None) -> dict:
         }
 
     # Étape 3 : reformuler la réponse en français
-    if lignes:
+    # NVIDIA (Llama) est sensiblement plus lent que Gemini sur ce 2e appel — pour les
+    # résultats simples (1 ligne / 1-2 colonnes), on formule directement sans appel IA
+    # supplémentaire. Pour les résultats plus complexes, on repasse par l'IA.
+    actual_provider = provider or getattr(settings, 'AI_PROVIDER', 'gemini')
+    if not lignes:
+        reponse = "Aucun résultat trouvé pour cette question."
+    elif actual_provider == 'nvidia' and nombre == 1 and len(colonnes) <= 2:
+        valeurs = ', '.join(f"{c} = {v}" for c, v in zip(colonnes, lignes[0]))
+        reponse = valeurs
+    else:
         data_preview = json.dumps(
             {'colonnes': colonnes, 'lignes': lignes[:20], 'total': nombre},
             ensure_ascii=False, default=str
@@ -290,8 +293,6 @@ def query_with_gemini(question: str, provider: str = None) -> dict:
             reponse = _call_ia('', reformulation_prompt, provider)
         except Exception:
             reponse = f"{nombre} résultat(s) trouvé(s)."
-    else:
-        reponse = "Aucun résultat trouvé pour cette question."
 
     return {
         'sql': sql,
