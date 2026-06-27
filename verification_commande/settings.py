@@ -239,7 +239,9 @@ GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 GEMINI_MODEL = config('GEMINI_MODEL_DEFAULT', default='gemini-2.5-flash')
 
 # NVIDIA NIM (API compatible OpenAI — https://build.nvidia.com)
-# llama-3.1-8b-instruct : ~3s par appel avec le schéma DB complet en prompt système
-# (le 70b-instruct prend ~25s pour la même requête — bien plus lourd à traiter)
+# mixtral-8x7b-instruct : meilleur compromis vitesse/fiabilité observé (~11-20s,
+# JSON valide de façon consistante avec le prompt durci). llama-3.1-70b est plus
+# précis mais prend 20-40s (cause des timeouts) ; llama-3.1-8b est plus rapide
+# mais génère du JSON mal formé de façon inconsistante.
 NVIDIA_API_KEY = config('NVIDIA_API_KEY', default='')
-NVIDIA_MODEL = config('NVIDIA_MODEL_DEFAULT', default='meta/llama-3.1-8b-instruct')
+NVIDIA_MODEL = config('NVIDIA_MODEL_DEFAULT', default='mistralai/mixtral-8x7b-instruct-v0.1')

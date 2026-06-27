@@ -132,6 +132,10 @@ RÉPONSE FORMAT JSON strict (rien d'autre):
   "explication": "Ce que la requête fait en une phrase",
   "hypothese": "Si tu as fait une hypothèse, indique-la ici (sinon null)"
 }}
+
+IMPORTANT : la valeur de "sql" doit être UNE SEULE chaîne JSON sur une seule ligne logique
+(remplace les retours à la ligne par des espaces). N'utilise JAMAIS la concatenation de chaînes
+(pas de "a" + "b", pas de \\ en fin de ligne) à l'intérieur de la valeur JSON.
 """
 
 
@@ -142,6 +146,7 @@ def _extract_json(text: str) -> dict:
     via NVIDIA NIM) répondent parfois en texte libre avec un bloc ```sql``` —
     on reconstruit alors un JSON équivalent à partir de ce texte.
     """
+    # 1) Réponse JSON pure (rien d'autre autour) — cas Gemini standard
     cleaned = re.sub(r'```(?:json)?\s*', '', text).strip()
     cleaned = re.sub(r'```\s*$', '', cleaned).strip()
     try:
@@ -149,7 +154,27 @@ def _extract_json(text: str) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # Fallback : réponse en texte libre avec un bloc ```sql ... ```
+    # 2) Un bloc ```json ... ``` isolé au milieu d'un texte plus long
+    #    (certains modèles, ex: llama via NVIDIA, ajoutent du texte explicatif
+    #    avant/après et parfois AUSSI un bloc ```sql``` séparé — chercher le
+    #    bloc json en premier évite de mélanger les deux).
+    json_match = re.search(r'```json\s*(\{.*?\})\s*```', text, re.DOTALL | re.IGNORECASE)
+    if json_match:
+        block = json_match.group(1)
+        try:
+            return json.loads(block)
+        except json.JSONDecodeError:
+            pass
+        # Certains modèles (ex: Mixtral) concatènent des chaînes JS-style à
+        # l'intérieur de la valeur ("a" + \n "b") au lieu d'une chaîne JSON valide.
+        # On retire ces concatenations avant de re-essayer.
+        repaired = re.sub(r'"\s*\+\s*\n?\s*"', '', block)
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            pass
+
+    # 3) Fallback : réponse en texte libre avec un bloc ```sql ... ```
     sql_match = re.search(r'```sql\s*(.*?)```', text, re.DOTALL | re.IGNORECASE)
     if not sql_match:
         # Dernier recours : chercher un SELECT direct dans le texte
