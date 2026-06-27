@@ -119,6 +119,9 @@ core_magasin: JOIN ON m.code = t.code_magasin  (asten/gpv/br/cyrus/legend)
      par l'alias de table (ex: a.date_commande, g.date_creation) pour éviter "column reference is ambiguous"
    - Ne jamais inventer de colonne qui n'est pas listée explicitement dans le schéma ci-dessus
    - legend_commandelegend n'a PAS de code_magasin : ne pas la joindre à core_magasin par ce biais
+   - "Depuis quand X n'a pas commandé / dernière commande de X" → utiliser MAX(date_commande) par magasin
+     (avec LEFT JOIN core_magasin pour inclure ceux qui n'ont jamais commandé, date NULL dans ce cas),
+     PAS MIN(date_commande) qui donnerait la première commande au lieu de la dernière
 """
 
 SYSTEM_PROMPT = f"""Tu es un assistant expert SQL pour une application Django/PostgreSQL.
@@ -211,7 +214,10 @@ def _call_gemini(api_key: str, model_name: str, system: str, prompt: str) -> str
 def _call_nvidia(api_key: str, model_name: str, system: str, prompt: str) -> str:
     """Appelle un modèle NVIDIA NIM (API compatible OpenAI — build.nvidia.com)."""
     from openai import OpenAI
-    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key, timeout=60.0)
+    # max_retries=0 : le SDK OpenAI retente automatiquement 2 fois par défaut en cas de
+    # timeout, ce qui peut tripler le temps d'attente total (30s x 3 = 90s par appel,
+    # jusqu'à 180s avec génération + reformulation). On gère nous-même les erreurs.
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key, timeout=30.0, max_retries=0)
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
