@@ -119,9 +119,14 @@ core_magasin: JOIN ON m.code = t.code_magasin  (asten/gpv/br/cyrus/legend)
      par l'alias de table (ex: a.date_commande, g.date_creation) pour éviter "column reference is ambiguous"
    - Ne jamais inventer de colonne qui n'est pas listée explicitement dans le schéma ci-dessus
    - legend_commandelegend n'a PAS de code_magasin : ne pas la joindre à core_magasin par ce biais
-   - "Depuis quand X n'a pas commandé / dernière commande de X" → utiliser MAX(date_commande) par magasin
-     (avec LEFT JOIN core_magasin pour inclure ceux qui n'ont jamais commandé, date NULL dans ce cas),
-     PAS MIN(date_commande) qui donnerait la première commande au lieu de la dernière
+   - "Depuis quand X n'a pas commandé / dernière commande de X" : calculer MAX(date_commande) par
+     magasin et TRIER par cette date croissante (les plus anciennes en premier = ceux qui n'ont pas
+     commandé depuis le plus longtemps). NE JAMAIS ajouter un filtre WHERE avec une date fixe
+     inventée (ex: "depuis le 1er janvier 2022") — aucune date de seuil n'est donnée dans la question,
+     n'en invente aucune. Exemple de requête correcte pour Asten :
+     SELECT m.code, m.nom, MAX(a.date_commande) AS derniere_commande
+     FROM core_magasin m LEFT JOIN asten_commandeasten a ON m.code = a.code_magasin
+     GROUP BY m.code, m.nom ORDER BY derniere_commande ASC NULLS FIRST LIMIT 200;
 """
 
 SYSTEM_PROMPT = f"""Tu es un assistant expert SQL pour une application Django/PostgreSQL.
