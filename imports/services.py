@@ -1568,12 +1568,9 @@ def scanner_et_importer_fichiers():
                     if import_obj.nombre_lignes > 0:
                         print(f"[BR Asten] {fichier.name} → {import_obj.nombre_lignes} lignes importées")
                     else:
-                        print(f"[BR Asten] {fichier.name} → 0 nouvelles lignes (déjà en base), fichier supprimé.")
-                    supprimer_fichier_source(fichier)
+                        print(f"[BR Asten] {fichier.name} → 0 nouvelles lignes (déjà en base).")
                 elif import_obj:
                     print(f"[BR Asten] {fichier.name} → Erreur : {import_obj.statut}")
-            elif import_existant and import_existant.statut == 'termine':
-                supprimer_fichier_source(fichier)
         except Exception as e:
             print(f"Erreur import fichier BR Asten {fichier.name}: {e}")
             # Marquer l'import comme erreur pour éviter les tentatives répétées
@@ -1607,9 +1604,6 @@ def scanner_et_importer_fichiers():
 
                 # Importer seulement si : jamais importé OU fichier modifié depuis le dernier import
                 if import_existant and date_modif_fichier_tz <= import_existant.date_import:
-                    # Fichier déjà importé et non modifié — supprimer et passer
-                    if import_existant.statut == 'termine':
-                        supprimer_fichier_source(f_ic)
                     print(f"[BR IC] {f_ic.name} → déjà importé, non modifié, ignoré.")
                     continue
 
@@ -1629,7 +1623,6 @@ def scanner_et_importer_fichiers():
                 import_obj.statut = 'termine'
                 import_obj.save(update_fields=['nombre_lignes', 'nombre_nouveaux', 'statut'])
                 print(f"[BR IC] {f_ic.name} → {nb} nouvelles lignes en base")
-                supprimer_fichier_source(f_ic)
             except Exception as e:
                 try:
                     imp = ImportFichier.objects.filter(type_fichier='br_ic', nom_fichier=f_ic.name, statut='en_cours').first()
