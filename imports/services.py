@@ -856,12 +856,16 @@ def comparer_br_asten_ic():
     ids_integres = []
     ids_integres_corriges = []  # list of (id, nouveau_numero_br)
     ids_non_integres = []
+    from core.models import Magasin
+    codes_br_exclus = set(Magasin.objects.filter(magasin_br=False).values_list('code', flat=True))
     br_qs = BRAsten.objects.only(
         'id', 'numero_br', 'commande_fournisseur', 'ic_integre', 'statut_ic',
-        'override_statut_ic', 'numero_br_corrige'
+        'override_statut_ic', 'numero_br_corrige', 'code_magasin_id'
     )
     for br in br_qs.iterator():
         if not br.numero_br or not br.commande_fournisseur:
+            continue
+        if br.code_magasin_id in codes_br_exclus:
             continue
         nb = normalize_numero_br(br.numero_br)
         cf = normalize_commande_fournisseur(br.commande_fournisseur)

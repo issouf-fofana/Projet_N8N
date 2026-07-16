@@ -3306,6 +3306,7 @@ def gestion_magasins(request):
                     magasin.nom = nom
                     magasin.full_asten = request.POST.get('full_asten') == '1'
                     magasin.magasin_asten = request.POST.get('magasin_asten') == '1'
+                    magasin.magasin_br = request.POST.get('magasin_br') == '1'
                     nouvel_exclu = request.POST.get('exclure_factures') == '1'
                     ancien_exclu = magasin.exclure_factures
                     magasin.exclure_factures = nouvel_exclu
@@ -3334,11 +3335,16 @@ def gestion_magasins(request):
             messages.success(request, f"Tous les magasins ont été {label} (Full Asten).")
             return redirect('dashboard:gestion_magasins')
         elif action == 'toggle_magasin_asten':
-            # Cocher ou décocher tous les magasins d'un coup (Magasin Asten)
             val = request.POST.get('magasin_asten_val') == '1'
             Magasin.objects.all().update(magasin_asten=val)
             label = "cochés" if val else "décochés"
             messages.success(request, f"Tous les magasins ont été {label} (Magasin Asten).")
+            return redirect('dashboard:gestion_magasins')
+        elif action == 'toggle_magasin_br':
+            val = request.POST.get('magasin_br_val') == '1'
+            Magasin.objects.all().update(magasin_br=val)
+            label = "cochés" if val else "décochés"
+            messages.success(request, f"Tous les magasins ont été {label} (Magasin BR).")
             return redirect('dashboard:gestion_magasins')
         elif action == 'toggle_one':
             # Basculer Full Asten ou exclure_factures d'un seul magasin (appel AJAX)
@@ -3372,6 +3378,11 @@ def gestion_magasins(request):
                         magasin.save()
                         from django.http import JsonResponse
                         return JsonResponse({'ok': True, 'magasin_asten': magasin.magasin_asten})
+                    elif field == 'magasin_br':
+                        magasin.magasin_br = not magasin.magasin_br
+                        magasin.save()
+                        from django.http import JsonResponse
+                        return JsonResponse({'ok': True, 'magasin_br': magasin.magasin_br})
                     else:
                         magasin.full_asten = not magasin.full_asten
                         magasin.save()
@@ -3391,7 +3402,8 @@ def gestion_magasins(request):
                     full_asten = request.POST.get('full_asten') == '1'
                     exclure_factures = request.POST.get('exclure_factures') == '1'
                     magasin_asten = request.POST.get('magasin_asten') == '1'
-                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten, exclure_factures=exclure_factures, magasin_asten=magasin_asten)
+                    magasin_br = request.POST.get('magasin_br') == '1'
+                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten, exclure_factures=exclure_factures, magasin_asten=magasin_asten, magasin_br=magasin_br)
                     messages.success(request, f"Magasin {code} - {nom} ajouté avec succès.")
                     return redirect('dashboard:gestion_magasins')
                 except IntegrityError:
@@ -3406,6 +3418,7 @@ def gestion_magasins(request):
             'magasin_edit':  magasin_edit,
             'nb_full_asten': magasins.filter(full_asten=True).count(),
             'nb_magasin_asten': magasins.filter(magasin_asten=True).count(),
+            'nb_magasin_br': magasins.filter(magasin_br=True).count(),
         },
     )
 

@@ -9,6 +9,7 @@ class Magasin(models.Model):
     full_asten = models.BooleanField(default=False, verbose_name="Full Asten")
     exclure_factures = models.BooleanField(default=False, verbose_name="Exclure des stats factures")
     magasin_asten = models.BooleanField(default=False, verbose_name="Magasin Asten (passe commande Asten)")
+    magasin_br = models.BooleanField(default=True, verbose_name="Magasin BR (suivi des bons de réception)")
     date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
     date_modification = models.DateTimeField(auto_now=True, verbose_name="Date de modification")
 
