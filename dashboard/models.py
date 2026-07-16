@@ -1,5 +1,4 @@
 from django.db import models
-from pgvector.django import VectorField
 
 
 class AIKnowledgeEntry(models.Model):
@@ -14,7 +13,7 @@ class AIKnowledgeEntry(models.Model):
     question = models.TextField(verbose_name="Question type (en français)")
     sql = models.TextField(verbose_name="Requête SQL correcte associée")
     note = models.TextField(blank=True, default='', verbose_name="Explication / piège à éviter")
-    embedding = VectorField(dimensions=1024, null=True, blank=True)
+    embedding = models.JSONField(null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
 

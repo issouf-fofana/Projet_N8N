@@ -34,16 +34,24 @@ def ajouter_connaissance(question: str, sql: str, note: str = '') -> 'AIKnowledg
     return AIKnowledgeEntry.objects.create(question=question, sql=sql, note=note, embedding=embedding)
 
 
+def _cosine_similarity(a: list, b: list) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(x * x for x in b) ** 0.5
+    if na == 0 or nb == 0:
+        return 0.0
+    return dot / (na * nb)
+
+
 def rechercher_connaissances_proches(question: str, k: int = 5) -> list:
     """
-    Retourne les k entrées de la base de connaissance les plus proches sémantiquement
-    de la question posée (distance cosinus via pgvector). Liste vide si la base de
-    connaissance est vide ou si la génération d'embedding échoue.
+    Retourne les k entrées les plus proches sémantiquement (similarité cosinus en Python).
+    Liste vide si la base est vide ou si la génération d'embedding échoue.
     """
     from dashboard.models import AIKnowledgeEntry
-    from pgvector.django import CosineDistance
 
-    if not AIKnowledgeEntry.objects.exists():
+    entries = list(AIKnowledgeEntry.objects.filter(embedding__isnull=False))
+    if not entries:
         return []
 
     try:
@@ -51,12 +59,8 @@ def rechercher_connaissances_proches(question: str, k: int = 5) -> list:
     except Exception:
         return []
 
-    return list(
-        AIKnowledgeEntry.objects
-        .filter(embedding__isnull=False)
-        .annotate(distance=CosineDistance('embedding', query_embedding))
-        .order_by('distance')[:k]
-    )
+    scored = sorted(entries, key=lambda e: _cosine_similarity(e.embedding, query_embedding), reverse=True)
+    return scored[:k]
 
 
 def construire_contexte_rag(question: str, k: int = 5) -> str:
