@@ -1556,10 +1556,8 @@ def scanner_et_importer_fichiers():
                 nom_fichier=fichier.name
             ).first()
 
-            no_records = BRAsten.objects.filter(fichier_source=fichier.name).count() == 0
-            if not import_existant or no_records:
+            if not import_existant or import_existant.statut != 'termine':
                 if import_existant:
-                    BRAsten.objects.filter(fichier_source=fichier.name).delete()
                     import_existant.delete()
 
                 import_obj = importer_fichier_br_asten(str(fichier))
