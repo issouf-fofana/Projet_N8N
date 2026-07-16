@@ -20,8 +20,10 @@ from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
 
-# Ne copier que les fichiers d'aujourd'hui
-JOURS_MAX = 0  # 0 = aujourd'hui uniquement
+# Fenêtre de rétention : copier les fichiers des N derniers jours (0 = aujourd'hui seulement,
+# 7 = 7 jours glissants). Augmenter si des fichiers déposés la veille ou le week-end
+# ne sont pas récupérés au démarrage du lendemain.
+JOURS_MAX = 7  # 7 jours glissants
 
 SOURCE_BASE = "/mnt/partage-share"
 
@@ -44,9 +46,9 @@ EXTENSIONS = {
     "br_ic": (".csv", ".xlsx"),
 }
 
-# Ces dossiers sont toujours recopiés (pas de filtre par nouveauté)
-# br_ic : fichier mis à jour régulièrement, même nom ou date ancienne — toujours recopier si modifié
-COPY_ALWAYS = {"anomalie_br", "facture_asten", "facture_cyrus", "br_ic"}
+# Ces dossiers sont toujours recopiés (pas de filtre par nouveauté/date)
+# br_ic / br_asten : fichiers mis à jour régulièrement, toujours recopier si modifié
+COPY_ALWAYS = {"anomalie_br", "facture_asten", "facture_cyrus", "br_ic", "br_asten"}
 
 DEDUP_PATTERNS = {
     "commande_asten":  re.compile(r'^export_commande_reassort_(\d+)_(\d{8})_(\d{6})'),
@@ -102,9 +104,10 @@ def scan_source(source_dir, dest_dir, folder_name, known_files):
     if not os.path.isdir(source_dir):
         return 0
 
+    from datetime import timedelta
     extensions = EXTENSIONS.get(folder_name, (".csv",))
     always = folder_name in COPY_ALWAYS
-    cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=JOURS_MAX)
     copied = 0
 
     for root, _, files in os.walk(source_dir):
