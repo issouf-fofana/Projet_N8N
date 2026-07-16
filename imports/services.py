@@ -1557,7 +1557,7 @@ def scanner_et_importer_fichiers():
             ).first()
 
             no_records = BRAsten.objects.filter(fichier_source=fichier.name).count() == 0
-            if not import_existant or date_modif_fichier_tz > import_existant.date_import or no_records:
+            if not import_existant or no_records:
                 if import_existant:
                     BRAsten.objects.filter(fichier_source=fichier.name).delete()
                     import_existant.delete()
