@@ -1696,7 +1696,7 @@ def scanner_et_importer_fichiers():
             from django.db import connection as _conn
             from django.core.cache import cache as _cache
             with _conn.cursor() as _cur:
-                _cur.execute('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_factures_joined')
+                _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
             _cache.delete('factures_verification_v1')
             _cache.delete('factures_stats_sql_v1')
             print("[MV] mv_factures_joined rafraîchie, cache vidé")
@@ -2802,9 +2802,8 @@ def importer_factures_cyrus_en_base():
 
     for csv_path in sorted(dossier.glob('*.csv')):
         fichier = csv_path.name
-        # Déjà importé ?
+        # Déjà importé — garder le fichier comme marqueur pour éviter recopie SMB en boucle.
         if FactureCyrusLigne.objects.filter(fichier=fichier).exists():
-            csv_path.unlink(missing_ok=True)
             continue
         lignes = []
         try:
@@ -2872,7 +2871,8 @@ def importer_factures_asten_en_base():
     for csv_path in sorted(dossier.glob('*.csv')):
         fichier = csv_path.name
         if FactureAstenLigne.objects.filter(fichier=fichier).exists():
-            csv_path.unlink(missing_ok=True)
+            # Déjà importé — on garde le fichier en place comme marqueur "traité"
+            # pour que run_auto.py ne le recopie pas en boucle depuis le SMB.
             continue
         lignes = []
         try:
