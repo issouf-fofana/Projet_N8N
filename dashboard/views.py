@@ -1107,7 +1107,7 @@ def dashboard(request):
         if date_fin_parsed:
             filtres_br_global['date_br__lte'] = date_fin_parsed
         
-        br_queryset_global = BRAsten.objects.filter(**filtres_br_global)
+        br_queryset_global = BRAsten.objects.filter(**filtres_br_global).filter(code_magasin__magasin_br=True)
         br_quantite_0_global = br_queryset_global.filter(
             Q(statut_ic__icontains='Quantité 0') | 
             Q(statut_ic__icontains='quantite_0') |
@@ -2340,7 +2340,7 @@ def liste_br_asten(request):
     elif statut_ic == 'non_integre':
         filtres['ic_integre'] = False
 
-    brs = BRAsten.objects.filter(**filtres).select_related('code_magasin').order_by('-date_br', 'numero_br')
+    brs = BRAsten.objects.filter(**filtres).filter(code_magasin__magasin_br=True).select_related('code_magasin').order_by('-date_br', 'numero_br')
 
     per_page = int(request.GET.get('per_page', 30))
     if per_page not in [30, 50, 100, 200]:
@@ -2417,7 +2417,7 @@ def liste_br_ecart(request):
     if numero_br:
         filtres['numero_br__icontains'] = numero_br
 
-    brs = BRAsten.objects.filter(**filtres).select_related('code_magasin').order_by('-date_br', 'numero_br')
+    brs = BRAsten.objects.filter(**filtres).filter(code_magasin__magasin_br=True).select_related('code_magasin').order_by('-date_br', 'numero_br')
     per_page = int(request.GET.get('per_page', 30))
     if per_page not in [30, 50, 100, 200]:
         per_page = 30
