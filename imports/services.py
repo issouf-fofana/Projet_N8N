@@ -1595,19 +1595,8 @@ def scanner_et_importer_fichiers():
                 date_modif_fichier = datetime.fromtimestamp(f_ic.stat().st_mtime)
                 date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
 
-                import_existant = ImportFichier.objects.filter(
-                    type_fichier='br_ic',
-                    nom_fichier=f_ic.name,
-                ).first()
-
-                # Importer seulement si : jamais importé OU fichier modifié depuis le dernier import
-                if import_existant and date_modif_fichier_tz <= import_existant.date_import:
-                    print(f"[BR IC] {f_ic.name} → déjà importé, non modifié, ignoré.")
-                    continue
-
-                # Supprimer l'ancien import si fichier modifié
-                if import_existant:
-                    import_existant.delete()
+                # BR IC : toujours réimporter (fichier mis à jour en continu, même nom)
+                ImportFichier.objects.filter(type_fichier='br_ic', nom_fichier=f_ic.name).delete()
 
                 import_obj = ImportFichier.objects.create(
                     type_fichier='br_ic',
