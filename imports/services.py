@@ -1596,7 +1596,9 @@ def scanner_et_importer_fichiers():
                 date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
 
                 # BR IC : toujours réimporter (fichier mis à jour en continu, même nom)
+                from br.models import BRICLigne
                 ImportFichier.objects.filter(type_fichier='br_ic', nom_fichier=f_ic.name).delete()
+                BRICLigne.objects.all().delete()
 
                 import_obj = ImportFichier.objects.create(
                     type_fichier='br_ic',
@@ -1605,11 +1607,10 @@ def scanner_et_importer_fichiers():
                     statut='en_cours',
                 )
                 nb = importer_br_ic_en_base(str(f_ic))
-                import_obj.nombre_lignes = nb
-                import_obj.nombre_nouveaux = nb
-                import_obj.statut = 'termine'
-                import_obj.save(update_fields=['nombre_lignes', 'nombre_nouveaux', 'statut'])
-                print(f"[BR IC] {f_ic.name} → {nb} nouvelles lignes en base")
+                ImportFichier.objects.filter(pk=import_obj.pk).update(
+                    nombre_lignes=nb, nombre_nouveaux=nb, statut='termine'
+                )
+                print(f"[BR IC] {f_ic.name} → {nb} lignes en base")
             except Exception as e:
                 try:
                     imp = ImportFichier.objects.filter(type_fichier='br_ic', nom_fichier=f_ic.name, statut='en_cours').first()
