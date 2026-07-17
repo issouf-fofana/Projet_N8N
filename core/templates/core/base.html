@@ -1640,7 +1640,7 @@
     })();
     </script>
     <script>
-    // Dot run_auto dans la sidebar — polling toutes les 15s
+    // Dot run_auto dans la sidebar — polling toutes les 60s
     (function() {
         var dot = document.getElementById('run-dot-sidebar');
         if (!dot) return;
@@ -1654,11 +1654,11 @@
                 .catch(function(){});
         }
         checkRunAuto();
-        setInterval(checkRunAuto, 15000);
+        setInterval(checkRunAuto, 60000);
     })();
     </script>
     <script>
-    // Bandeau import en arrière-plan — polling toutes les 3s
+    // Bandeau import en arrière-plan — polling toutes les 30s
     (function() {
         var banner = document.getElementById('import-bg-banner');
         var msg    = document.getElementById('import-bg-msg');
@@ -1681,7 +1681,7 @@
                 .catch(function(){});
         }
         checkImport();
-        setInterval(checkImport, 3000);
+        setInterval(checkImport, 30000);
     })();
     </script>
 </body>
