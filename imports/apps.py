@@ -8,20 +8,27 @@ class ImportsConfig(AppConfig):
     name = 'imports'
 
     def ready(self):
-        # Ne pas démarrer le scheduler dans les commandes de gestion (migrations, etc.)
-        import sys
-        if 'runserver' not in sys.argv and 'gunicorn' not in ' '.join(sys.argv) and 'uvicorn' not in ' '.join(sys.argv):
+        # Ne démarrer le scheduler que dans le worker gunicorn numéro 1 (pas tous les workers)
+        import sys, os
+        is_gunicorn = 'gunicorn' in ' '.join(sys.argv) or os.environ.get('SERVER_SOFTWARE', '').startswith('gunicorn')
+        is_runserver = 'runserver' in sys.argv and os.environ.get('RUN_MAIN') == 'true'
+        if not (is_gunicorn or is_runserver):
             return
-        # Éviter le double démarrage avec le reloader Django
-        import os
-        if os.environ.get('RUN_MAIN') == 'true' or 'gunicorn' in ' '.join(sys.argv):
-            self._start_scheduler()
+        # Utiliser un fichier verrou pour qu'un seul worker démarre le scheduler
+        lock_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.scheduler.lock')
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            import atexit
+            atexit.register(lambda: os.path.exists(lock_path) and os.remove(lock_path))
+        except FileExistsError:
+            return  # Un autre worker a déjà démarré le scheduler
+        self._start_scheduler()
 
     def _start_scheduler(self):
         try:
             from apscheduler.schedulers.background import BackgroundScheduler
             from apscheduler.triggers.interval import IntervalTrigger
-            from django.conf import settings
 
             scheduler = BackgroundScheduler(timezone='UTC')
             scheduler.add_job(
@@ -34,7 +41,7 @@ class ImportsConfig(AppConfig):
                 misfire_grace_time=60,
             )
             scheduler.start()
-            logger.info("Scheduler d'import automatique démarré (toutes les 2 minutes)")
+            logger.info("Scheduler d'import automatique démarré (toutes les 2 minutes, worker unique)")
         except Exception as e:
             logger.error(f"Impossible de démarrer le scheduler : {e}")
 
@@ -55,11 +62,14 @@ def _job_import_fichiers():
     try:
         from imports.services import scanner_et_importer_fichiers
         from ecarts.services import recalculer_ecarts
-        log.debug("Import automatique : début du scan")
         fichiers = scanner_et_importer_fichiers()
-        log.debug(f"Import automatique : {len(fichiers)} fichier(s) importé(s)")
-        recalculer_ecarts()
-        log.debug("Import automatique : écarts recalculés")
+        if fichiers:
+            log.info(f"Import automatique : {len(fichiers)} fichier(s) importé(s), recalcul écarts…")
+            recalculer_ecarts()
+            from django.core.cache import cache
+            cache.clear()
+        else:
+            log.debug("Import automatique : aucun nouveau fichier, skip écarts")
     except Exception as e:
         log.error(f"Erreur import automatique : {e}", exc_info=True)
     finally:

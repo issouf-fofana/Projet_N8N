@@ -3230,21 +3230,25 @@ def configuration_systeme(request):
             if not peut_configurer_systeme:
                 messages.error(request, "Permission insuffisante.")
                 return redirect('dashboard:configuration_systeme')
-            provider = request.POST.get('AI_PROVIDER', 'gemini').strip()
-            if provider in ('gemini', 'nvidia'):
-                update_config('AI_PROVIDER', provider)
-                setattr(settings, 'AI_PROVIDER', provider)
-            for key, label, _ in CHAMPS_IA:
-                new_val = request.POST.get(key, '').strip()
-                if new_val:
-                    update_config(key, new_val)
-                    setattr(settings, key, new_val)
-                    # Propager aussi sous le nom utilisé dans ai_service
-                    if key == 'GEMINI_MODEL_DEFAULT':
-                        setattr(settings, 'GEMINI_MODEL', new_val)
-                    elif key == 'NVIDIA_MODEL_DEFAULT':
-                        setattr(settings, 'NVIDIA_MODEL', new_val)
-            messages.success(request, "Configuration IA enregistrée.")
+            try:
+                provider = request.POST.get('AI_PROVIDER', 'gemini').strip()
+                if provider in ('gemini', 'nvidia'):
+                    update_config('AI_PROVIDER', provider)
+                    setattr(settings, 'AI_PROVIDER', provider)
+                for key, label, _ in CHAMPS_IA:
+                    new_val = request.POST.get(key, '').strip()
+                    if new_val:
+                        update_config(key, new_val)
+                        setattr(settings, key, new_val)
+                        if key == 'GEMINI_MODEL_DEFAULT':
+                            setattr(settings, 'GEMINI_MODEL', new_val)
+                        elif key == 'NVIDIA_MODEL_DEFAULT':
+                            setattr(settings, 'NVIDIA_MODEL', new_val)
+                messages.success(request, "Configuration IA enregistrée.")
+            except PermissionError:
+                messages.error(request, f"Impossible d'écrire dans config.env — vérifiez les permissions du fichier sur le serveur (chown/chmod).")
+            except Exception as e:
+                messages.error(request, f"Erreur lors de la sauvegarde : {e}")
             return redirect('dashboard:configuration_systeme')
 
         vals = read_config()
