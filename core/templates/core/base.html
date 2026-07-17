@@ -1675,11 +1675,7 @@
                         wasRunning = true;
                     } else {
                         banner.style.display = 'none';
-                        if (wasRunning && d.finished_at) {
-                            // Import terminé → recharger la page pour afficher les nouvelles données
-                            wasRunning = false;
-                            window.location.reload();
-                        }
+                        wasRunning = false;
                     }
                 })
                 .catch(function(){});
