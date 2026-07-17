@@ -2059,6 +2059,11 @@ def liste_ecarts(request):
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed   = parse_date(date_fin)   if date_fin   else None
 
+    # Par défaut : aujourd'hui seulement si aucun filtre date/statut/type
+    if not date_debut_parsed and not date_fin_parsed and not statut and not type_ecart and not code_magasin:
+        from datetime import date as _date
+        date_debut_parsed = date_fin_parsed = _date.today()
+
     # Statuts affichés par défaut (hors 'resolu' et 'quantite_0')
     statuts_actifs = ['ouvert', 'ignore']
 
@@ -2204,8 +2209,8 @@ def liste_ecarts(request):
         'titre': "Liste des Écarts",
         'magasins': magasins,
         'filtres': {
-            'date_debut':  date_debut  or '',
-            'date_fin':    date_fin    or '',
+            'date_debut':  date_debut  or (date_debut_parsed.isoformat() if date_debut_parsed else ''),
+            'date_fin':    date_fin    or (date_fin_parsed.isoformat() if date_fin_parsed else ''),
             'magasin':     code_magasin or '',
             'statut':      statut      or '',
             'type_ecart':  type_ecart  or '',
@@ -2434,6 +2439,12 @@ def liste_br_ecart(request):
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
 
+    # Par défaut : 30 derniers jours si aucun filtre
+    if not date_debut_parsed and not date_fin_parsed and not numero_br and not codes_magasins:
+        from datetime import date as _date, timedelta as _td
+        date_fin_parsed = _date.today()
+        date_debut_parsed = date_fin_parsed - _td(days=30)
+
     filtres = {'ic_integre': False}
     if date_debut_parsed:
         filtres['date_br__gte'] = date_debut_parsed
@@ -2458,8 +2469,8 @@ def liste_br_ecart(request):
         'page_obj': page_obj,
         'magasins': magasins,
         'filtres': {
-            'date_debut': date_debut,
-            'date_fin': date_fin,
+            'date_debut': date_debut or (date_debut_parsed.isoformat() if date_debut_parsed else ''),
+            'date_fin': date_fin or (date_fin_parsed.isoformat() if date_fin_parsed else ''),
             'magasin': codes_magasins,
             'numero_br': numero_br,
             'statut_ic': 'non_integre',
@@ -4435,12 +4446,18 @@ def _paginate(request, rows, per_page=200):
 
 def vue_factures_asten(request):
     from imports.models import FactureAstenLigne
+    from datetime import date as _date, timedelta as _td
     error = None
 
     # Filtres
     f_magasin    = request.GET.get('magasin', '').strip()
     f_date_debut = _factures_parse_date_filter(request.GET.get('date_debut', ''))
     f_date_fin   = _factures_parse_date_filter(request.GET.get('date_fin', ''))
+
+    # Par défaut : 30 derniers jours
+    if not f_date_debut and not f_date_fin and not f_magasin:
+        f_date_fin   = _date.today()
+        f_date_debut = f_date_fin - _td(days=30)
 
     try:
         qs = FactureAstenLigne.objects.order_by('magasin', '-date_reception_date')
@@ -4474,12 +4491,19 @@ def vue_factures_asten(request):
 
 def vue_factures_cyrus(request):
     from django.db import connection
+    from datetime import date as _date, timedelta as _td
     PER_PAGE = 200
 
     f_magasin    = request.GET.get('magasin', '').strip()
     f_nsee       = request.GET.get('nsee', '').strip()
     f_date_debut = request.GET.get('date_debut', '').strip()
     f_date_fin   = request.GET.get('date_fin', '').strip()
+
+    # Par défaut : 30 derniers jours
+    if not f_date_debut and not f_date_fin and not f_magasin and not f_nsee:
+        f_date_fin   = _date.today().isoformat()
+        f_date_debut = (_date.today() - _td(days=30)).isoformat()
+
     try:
         page_num = max(1, int(request.GET.get('page', 1)))
     except (ValueError, TypeError):
@@ -4553,6 +4577,7 @@ def vue_factures_cyrus(request):
 def vue_factures_backup(request):
     from django.db import connection
     from core.models import Magasin as MagasinModel
+    from datetime import date as _date, timedelta as _td
     PER_PAGE = 100
 
     f_statut     = request.GET.get('statut', 'non_integree').strip()
@@ -4561,6 +4586,11 @@ def vue_factures_backup(request):
     f_search     = request.GET.get('search', '').strip()
     f_date_debut = request.GET.get('date_debut', '').strip()
     f_date_fin   = request.GET.get('date_fin', '').strip()
+
+    # Par défaut : 30 derniers jours
+    if not f_date_debut and not f_date_fin and not f_magasin and not f_search:
+        f_date_fin   = _date.today().isoformat()
+        f_date_debut = (_date.today() - _td(days=30)).isoformat()
     f_full_asten = request.GET.get('full_asten', '').strip()
     try:
         page_num = max(1, int(request.GET.get('page', 1)))
