@@ -236,7 +236,7 @@ AI_PROVIDER = config('AI_PROVIDER', default='gemini')
 
 # Gemini AI
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
-GEMINI_MODEL = config('GEMINI_MODEL_DEFAULT', default='gemini-2.5-flash')
+GEMINI_MODEL = config('GEMINI_MODEL_DEFAULT', default='gemini-3.5-flash')
 
 # NVIDIA NIM (API compatible OpenAI — https://build.nvidia.com)
 # mixtral-8x7b-instruct : meilleur compromis vitesse/fiabilité observé (~11-20s,
