@@ -58,6 +58,9 @@ class BRAsten(models.Model):
             models.Index(fields=['numero_br', 'date_br', 'code_magasin']),
             models.Index(fields=['date_br']),
             models.Index(fields=['code_magasin']),
+            models.Index(fields=['ic_integre']),
+            models.Index(fields=['ic_integre', 'date_br']),
+            models.Index(fields=['statut_ic']),
         ]
         ordering = ['-date_br', 'numero_br']
 

@@ -71,6 +71,13 @@ class Command(BaseCommand):
                 )
             except Exception as e:
                 self.stderr.write(self.style.ERROR(f"[auto_import] Erreur recalcul écarts : {e}"))
+
+            # ── Étape 3 : invalider les caches stats après import ──
+            try:
+                from django.core.cache import cache
+                cache.clear()
+            except Exception:
+                pass
         else:
             if verbose:
                 self.stdout.write(f"[auto_import] Aucun nouveau fichier ({duree_import:.1f}s)")

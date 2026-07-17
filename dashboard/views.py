@@ -389,7 +389,7 @@ def dashboard(request):
     date_fin = request.GET.get('date_fin')
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
-    periode = request.GET.get('periode', '')
+    periode = request.GET.get('periode', 'aujourdhui')
     # Pour GPV sans filtre de date : défaut = non_integres (évite de charger les 61k résolus)
     # Avec un filtre de date actif : afficher tout (sinon les nouvelles commandes sans écart calculé sont invisibles)
     _has_date_filter = bool(date_debut or date_fin or periode)
@@ -413,7 +413,29 @@ def dashboard(request):
     # Convertir les dates
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
-    
+
+    # Appliquer la période si aucune date explicite fournie
+    if not date_debut_parsed and not date_fin_parsed and periode:
+        from django.utils import timezone as _tz
+        from datetime import timedelta as _td
+        _today = _tz.now().date()
+        if periode == 'aujourdhui':
+            date_debut_parsed = date_fin_parsed = _today
+        elif periode == 'hier':
+            date_debut_parsed = date_fin_parsed = _today - _td(days=1)
+        elif periode == 'semaine':
+            date_debut_parsed = _today - _td(days=7)
+            date_fin_parsed = _today
+        elif periode == 'mois':
+            date_debut_parsed = _today - _td(days=30)
+            date_fin_parsed = _today
+        elif periode == '3mois':
+            date_debut_parsed = _today - _td(days=90)
+            date_fin_parsed = _today
+        elif periode == 'annee':
+            date_debut_parsed = _today.replace(month=1, day=1)
+            date_fin_parsed = _today
+
     # Liste des magasins pour le filtre
     magasins = Magasin.objects.all().order_by('code')
     
@@ -1095,10 +1117,9 @@ def dashboard(request):
         
     elif type_donnees == 'br':
         # BR ASTEN (statut IC fourni dans le fichier)
-        # IMPORTANT: Les statistiques en haut affichent TOUJOURS le total global (sans filtre de date)
-        # Par défaut, on affiche tous les BR non intégrés (sans filtre de date)
-        
-        # Calculer les statistiques selon les filtres sélectionnés (période/magasin)
+        from django.core.cache import cache as _cache
+        from django.db.models import Count as _Count
+
         filtres_br_global = {}
         if code_magasin:
             filtres_br_global['code_magasin__code__in'] = code_magasin
@@ -1106,35 +1127,36 @@ def dashboard(request):
             filtres_br_global['date_br__gte'] = date_debut_parsed
         if date_fin_parsed:
             filtres_br_global['date_br__lte'] = date_fin_parsed
-        
-        br_queryset_global = BRAsten.objects.filter(**filtres_br_global).filter(code_magasin__magasin_br=True)
-        br_quantite_0_global = br_queryset_global.filter(
-            Q(statut_ic__icontains='Quantité 0') | 
-            Q(statut_ic__icontains='quantite_0') |
-            Q(statut_ic__icontains='Quantite 0')
-        ).count()
-        
-        total_asten_global = br_queryset_global.count()
-        total_asten_pour_stats_global = total_asten_global - br_quantite_0_global
-        
-        br_trouvees_count_global = br_queryset_global.filter(ic_integre=True).exclude(
-            Q(statut_ic__icontains='Quantité 0') | 
-            Q(statut_ic__icontains='quantite_0') |
-            Q(statut_ic__icontains='Quantite 0')
-        ).count()
-        br_non_trouvees_count_global = br_queryset_global.filter(ic_integre=False).exclude(
-            Q(statut_ic__icontains='Quantité 0') | 
-            Q(statut_ic__icontains='quantite_0') |
-            Q(statut_ic__icontains='Quantite 0')
-        ).count()
 
-        # Calculer les taux basés sur le total global
+        _cache_key = 'br_stats_' + '_'.join(sorted(str(v) for v in filtres_br_global.values()))
+        _br_stats = _cache.get(_cache_key)
+        if _br_stats is None:
+            _q0 = (
+                Q(statut_ic__icontains='Quantité 0') |
+                Q(statut_ic__icontains='quantite_0') |
+                Q(statut_ic__icontains='Quantite 0')
+            )
+            _agg = (
+                BRAsten.objects.filter(**filtres_br_global)
+                .filter(code_magasin__magasin_br=True)
+                .aggregate(
+                    total=_Count('id'),
+                    quantite_0=_Count('id', filter=_q0),
+                    trouvees=_Count('id', filter=Q(ic_integre=True) & ~_q0),
+                    non_trouvees=_Count('id', filter=Q(ic_integre=False) & ~_q0),
+                )
+            )
+            _br_stats = _agg
+            _cache.set(_cache_key, _br_stats, 600)  # 10 min
+
+        total_asten_pour_stats_global = _br_stats['total'] - _br_stats['quantite_0']
+        br_trouvees_count_global = _br_stats['trouvees']
+        br_non_trouvees_count_global = _br_stats['non_trouvees']
         taux_integration_global = round((br_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 2)
         taux_non_integration_global = round((br_non_trouvees_count_global / total_asten_pour_stats_global * 100) if total_asten_pour_stats_global > 0 else 0, 2)
 
-        # Statistiques globales pour l'affichage en haut
         stats = {
-            'total_source': total_asten_pour_stats_global,  # Total global sans les quantite_0
+            'total_source': total_asten_pour_stats_global,
             'total_target': br_trouvees_count_global,
             'integres': br_trouvees_count_global,
             'non_integres': br_non_trouvees_count_global,
@@ -1362,9 +1384,10 @@ def accueil(request):
     from django.db.models import Q, Exists, OuterRef
     from datetime import datetime, timedelta
     from django.utils import timezone
-    
+    from django.core.cache import cache as _cache
+
     # Gérer les filtres de période
-    periode = request.GET.get('periode', '')
+    periode = request.GET.get('periode', 'aujourdhui')
     date_debut = None
     date_fin = None
     
@@ -1496,15 +1519,19 @@ def accueil(request):
             filtres_br['date_br__gte'] = date_debut
         if date_fin:
             filtres_br['date_br__lte'] = date_fin
-        
-        from django.db.models import Count, Q as _Q
-        _q0 = _Q(statut_ic__icontains='Quantité 0') | _Q(statut_ic__icontains='quantite_0') | _Q(statut_ic__icontains='Quantite 0')
-        br_agg = BRAsten.objects.filter(**filtres_br).aggregate(
-            total=Count('id'),
-            quantite_0=Count('id', filter=_q0),
-            trouvees=Count('id', filter=_Q(ic_integre=True) & ~_q0),
-            non_trouvees=Count('id', filter=_Q(ic_integre=False) & ~_q0),
-        )
+
+        _ck_br = 'accueil_br_' + str(date_debut) + '_' + str(date_fin)
+        br_agg = _cache.get(_ck_br)
+        if br_agg is None:
+            from django.db.models import Count, Q as _Q
+            _q0 = _Q(statut_ic__icontains='Quantité 0') | _Q(statut_ic__icontains='quantite_0') | _Q(statut_ic__icontains='Quantite 0')
+            br_agg = BRAsten.objects.filter(**filtres_br).filter(code_magasin__magasin_br=True).aggregate(
+                total=Count('id'),
+                quantite_0=Count('id', filter=_q0),
+                trouvees=Count('id', filter=_Q(ic_integre=True) & ~_q0),
+                non_trouvees=Count('id', filter=_Q(ic_integre=False) & ~_q0),
+            )
+            _cache.set(_ck_br, br_agg, 600)
         total_br = br_agg['total']
         br_quantite_0 = br_agg['quantite_0']
         total_br_pour_stats = total_br - br_quantite_0

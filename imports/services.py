@@ -1364,9 +1364,37 @@ def importer_fichier_cyrus(chemin_fichier):
 
 def scanner_et_importer_fichiers():
     """
-    Scanne les dossiers commande_asten/, commande_cyrus/, commande_gpv/, commande_legend/ et br_asten/
-    et importe les nouveaux fichiers ou les fichiers modifiés
+    Scanne les dossiers et importe uniquement les fichiers nouveaux ou modifiés.
+    Un verrou de 60s évite les appels simultanés / trop rapprochés.
     """
+    import hashlib
+    from django.core.cache import cache as _cache
+
+    # Empreinte rapide : liste des (nom, mtime, taille) de tous les fichiers media
+    dossiers_a_scanner = [
+        Path(settings.DOSSIER_COMMANDES_ASTEN_PATH),
+        Path(settings.DOSSIER_COMMANDES_CYRUS_PATH),
+        Path(settings.DOSSIER_COMMANDES_GPV_PATH),
+        Path(settings.DOSSIER_COMMANDES_LEGEND_PATH),
+        Path(settings.DOSSIER_BR_ASTEN_PATH),
+        Path(settings.DOSSIER_BR_IC_PATH),
+    ]
+    _sig_parts = []
+    for _d in dossiers_a_scanner:
+        if _d.exists():
+            for _f in sorted(_d.iterdir()):
+                if _f.is_file():
+                    try:
+                        _st = _f.stat()
+                        _sig_parts.append(f"{_f.name}:{_st.st_mtime:.0f}:{_st.st_size}")
+                    except OSError:
+                        pass
+    _sig = hashlib.md5('\n'.join(_sig_parts).encode()).hexdigest()
+    _cache_key = f'scanner_sig_{_sig}'
+    if _cache.get(_cache_key):
+        return []  # rien n'a changé depuis le dernier import
+    _cache.set(_cache_key, 1, 300)  # valide 5 min — si même signature, skip
+
     # Utiliser les chemins configurables depuis settings
     dossier_asten = Path(settings.DOSSIER_COMMANDES_ASTEN_PATH)
     dossier_cyrus = Path(settings.DOSSIER_COMMANDES_CYRUS_PATH)
