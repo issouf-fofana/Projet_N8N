@@ -4436,7 +4436,7 @@ def _factures_parse_date_filter(date_str):
         return None
 
 
-def _paginate(request, rows, per_page=200):
+def _paginate(request, rows, per_page=50):
     """Pagine une liste. Retourne (page_obj, paginator)."""
     from django.core.paginator import Paginator
     paginator = Paginator(rows, per_page)
@@ -4496,7 +4496,7 @@ def vue_factures_asten(request):
 def vue_factures_cyrus(request):
     from django.db import connection
     from datetime import date as _date, timedelta as _td
-    PER_PAGE = 200
+    PER_PAGE = 50
 
     f_magasin    = request.GET.get('magasin', '').strip()
     f_nsee       = request.GET.get('nsee', '').strip()
@@ -4582,7 +4582,7 @@ def vue_factures_backup(request):
     from django.db import connection
     from core.models import Magasin as MagasinModel
     from datetime import date as _date, timedelta as _td
-    PER_PAGE = 100
+    PER_PAGE = 50
 
     f_statut     = request.GET.get('statut', 'non_integree').strip()
     f_magasin    = request.GET.get('magasin', '').strip()
