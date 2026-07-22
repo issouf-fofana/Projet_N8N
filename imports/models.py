@@ -164,7 +164,11 @@ class FactureCyrusLigne(models.Model):
 
     class Meta:
         verbose_name = "Ligne facture Cyrus"
-        indexes = [models.Index(fields=['cle_facture', 'cidc'])]
+        indexes = [
+            models.Index(fields=['cle_facture', 'cidc']),
+            models.Index(fields=['dfac_date']),
+            models.Index(fields=['cidc', 'dfac_date']),
+        ]
 
 
 class FactureAstenLigne(models.Model):
