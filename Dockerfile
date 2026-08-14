@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Cache-busting — invalide le layer COPY à chaque build
+ARG CACHEBUST=1
 COPY . .
 
 RUN mkdir -p /app/media/commande_asten \
