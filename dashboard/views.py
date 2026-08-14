@@ -5157,8 +5157,7 @@ def api_supprimer_historique(request):
 @require_http_methods(["POST"])
 def api_vider_factures(request):
     """Vide toutes les factures Asten et Cyrus (équivalent vider_factures.sql)."""
-    from core.permissions import get_user_role
-    if get_user_role(request.user) != 'superadmin':
+    if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'ok': False, 'error': 'Non autorisé'}, status=403)
     try:
         from imports.models import FactureAstenLigne, FactureCyrusLigne
@@ -5178,8 +5177,7 @@ def api_vider_factures(request):
 @require_http_methods(["POST"])
 def api_purge_periode(request):
     """Supprime les données (commandes/BR/factures) sur une période donnée."""
-    from core.permissions import get_user_role
-    if get_user_role(request.user) != 'superadmin':
+    if not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'ok': False, 'error': 'Non autorisé'}, status=403)
 
     type_donnee = request.POST.get('type_donnee', '')
