@@ -1,0 +1,13 @@
+env/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+.cache/
+media/
+staticfiles/
+config.env
+.scheduler.lock
+*.log
+node_modules/
+.env

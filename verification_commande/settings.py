@@ -33,7 +33,7 @@ SECRET_KEY = config('SECRET_KEY', default='yz#z7*wk(1isj_m(emr4im=tp^!q2pva6=!xx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['10.10.9.1', 'localhost', '127.0.0.1', '10.0.70.27', 'proserv-suivi.lan']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='10.10.9.1,localhost,127.0.0.1,10.0.70.27,proserv-suivi.lan', cast=Csv())
 
 
 # Application definition
@@ -230,7 +230,11 @@ DOSSIER_FACTURES_ASTEN_CSV = config('DOSSIER_FACTURES_ASTEN', default='facture_a
 DOSSIER_FACTURES_CYRUS_PATH = get_dossier_path(DOSSIER_FACTURES_CYRUS)
 DOSSIER_FACTURES_ASTEN_CSV_PATH = get_dossier_path(DOSSIER_FACTURES_ASTEN_CSV)
 
-CSRF_TRUSTED_ORIGINS = ['http://10.0.70.27:1212', 'http://proserv-suivi.lan', 'http://proserv-suivi.lan:1212']
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://10.0.70.27:1212,http://proserv-suivi.lan,http://proserv-suivi.lan:1212',
+    cast=Csv()
+)
 
 # Assistant IA — fournisseur configurable (gemini / nvidia)
 AI_PROVIDER = config('AI_PROVIDER', default='gemini')
