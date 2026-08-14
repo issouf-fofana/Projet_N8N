@@ -30,4 +30,3 @@ SELECT
     COUNT(*) AS lignes
 FROM public.mv_factures_joined;
 
-sudo -u postgres psql -d traitement_n8n -f vider_factures.sql
