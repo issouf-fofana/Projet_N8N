@@ -39,9 +39,13 @@ def _run_import_background():
         from imports.services import scanner_et_importer_fichiers as _scan
         from ecarts.services import recalculer_ecarts as _recalc
         fichiers = _scan()
-        res = _recalc()
-        crees   = res.get('ecarts_crees', 0)   if isinstance(res, dict) else (res or 0)
-        resolus = res.get('ecarts_resolus', 0) if isinstance(res, dict) else 0
+        crees = resolus = 0
+        if fichiers:
+            res = _recalc()
+            crees   = res.get('ecarts_crees', 0)   if isinstance(res, dict) else (res or 0)
+            resolus = res.get('ecarts_resolus', 0) if isinstance(res, dict) else 0
+            from django.core.cache import cache as _cache
+            _cache.clear()
         with _import_lock:
             _import_state.update({'running': False, 'finished_at': _time.time(),
                                    'imported': len(fichiers),
@@ -1946,6 +1950,9 @@ def actualiser_donnees(request):
     if already_running:
         messages.warning(request, "Un import est déjà en cours, patientez quelques secondes.")
     else:
+        # Vider le cache de signature MD5 pour forcer le re-scan des fichiers déposés
+        from django.core.cache import cache as _c
+        _c.clear()
         t = threading.Thread(target=_run_import_background, daemon=True)
         t.start()
         messages.info(request, "Import lancé en arrière-plan — la page se met à jour automatiquement.")
