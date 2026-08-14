@@ -5100,6 +5100,25 @@ def api_import_status(request):
     return JsonResponse(state)
 
 
+@require_http_methods(["POST"])
+def api_recalcul_ecarts(request):
+    """Lance le recalcul des écarts en arrière-plan."""
+    from core.permissions import user_has_perm
+    if not user_has_perm(request.user, 'actualiser_importer'):
+        return JsonResponse({'ok': False, 'error': 'Non autorisé'}, status=403)
+
+    def _run():
+        from ecarts.services import recalculer_ecarts
+        try:
+            recalculer_ecarts()
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return JsonResponse({'ok': True})
+
+
 def changer_mot_de_passe(request):
     """Vue forcée au premier login si must_change_password=True."""
     from django.contrib.auth import update_session_auth_hash
