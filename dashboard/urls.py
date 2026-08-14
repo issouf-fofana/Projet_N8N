@@ -56,6 +56,8 @@ urlpatterns = [
     path('api/activite/', views.api_activite, name='api_activite'),
     path('api/import-status/', views.api_import_status, name='api_import_status'),
     path('api/recalcul-ecarts/', views.api_recalcul_ecarts, name='api_recalcul_ecarts'),
+    path('api/vider-factures/', views.api_vider_factures, name='api_vider_factures'),
+    path('api/purge-periode/', views.api_purge_periode, name='api_purge_periode'),
     path('assistant-ia/', views.assistant_ia, name='assistant_ia'),
     path('magasins-commandes/', views.magasins_par_commande, name='magasins_par_commande'),
 ]

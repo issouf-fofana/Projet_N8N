@@ -294,5 +294,115 @@ function togglePwd(id) {
 </div>
 {% endif %}
 
+<!-- ═══ SECTION PURGE / MAINTENANCE ═══ -->
+<div class="card mt-4" style="border-radius:14px;border:1px solid #e2e8f0;">
+    <div class="card-header" style="background:#fef2f2;border-radius:14px 14px 0 0;border-bottom:1px solid #fecaca;">
+        <h6 class="mb-0 fw-bold" style="color:#dc2626;"><i class="bi bi-trash3"></i> Maintenance — Purge des données</h6>
+    </div>
+    <div class="card-body">
+
+        <!-- Vider toutes les factures -->
+        <div class="mb-4 p-3" style="background:#fff7ed;border-radius:10px;border:1px solid #fed7aa;">
+            <div class="fw-semibold mb-1" style="color:#c2410c;"><i class="bi bi-file-earmark-x"></i> Vider toutes les factures (Asten + Cyrus)</div>
+            <div class="text-muted small mb-2">Supprime toutes les lignes de factures Asten et Cyrus de la base. Les fichiers source ne sont pas supprimés.</div>
+            <button class="btn btn-sm btn-danger" onclick="viderToutesFactures(this)">
+                <i class="bi bi-trash"></i> Vider toutes les factures
+            </button>
+            <span id="msg-vider-factures" class="ms-2 small"></span>
+        </div>
+
+        <!-- Purge par période -->
+        <div class="p-3" style="background:#fef9f0;border-radius:10px;border:1px solid #e2e8f0;">
+            <div class="fw-semibold mb-2" style="color:#7c3aed;"><i class="bi bi-calendar-x"></i> Purge par période</div>
+            <div class="text-muted small mb-3">Supprime les données d'un type sur une plage de dates précise.</div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Type de données</label>
+                    <select id="purge-type" class="form-select form-select-sm">
+                        <option value="commandes_asten">Commandes Asten</option>
+                        <option value="commandes_cyrus">Commandes Cyrus</option>
+                        <option value="commandes_gpv">Commandes GPV</option>
+                        <option value="commandes_legend">Commandes Legend</option>
+                        <option value="br_asten">Bons de réception Asten</option>
+                        <option value="factures_asten">Factures Asten</option>
+                        <option value="factures_cyrus">Factures Cyrus</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">Du</label>
+                    <input type="date" id="purge-debut" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">Au</label>
+                    <input type="date" id="purge-fin" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-auto">
+                    <button class="btn btn-sm btn-danger" onclick="lancerPurgePeriode(this)">
+                        <i class="bi bi-trash"></i> Supprimer
+                    </button>
+                </div>
+                <div class="col-md-auto">
+                    <span id="msg-purge-periode" class="small"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCsrf() {
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+}
+
+function viderToutesFactures(btn) {
+    if (!confirm('Vider TOUTES les factures Asten et Cyrus ? Cette action est irréversible.')) return;
+    btn.disabled = true; btn.textContent = 'Suppression…';
+    fetch("{% url 'dashboard:api_vider_factures' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCsrf()}
+    })
+    .then(r => r.json())
+    .then(d => {
+        var msg = document.getElementById('msg-vider-factures');
+        if (d.ok) {
+            msg.style.color = 'green';
+            msg.textContent = '✓ Supprimé : ' + d.supprime_asten + ' lignes Asten, ' + d.supprime_cyrus + ' lignes Cyrus';
+        } else {
+            msg.style.color = 'red';
+            msg.textContent = '✗ ' + d.error;
+        }
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-trash"></i> Vider toutes les factures';
+    });
+}
+
+function lancerPurgePeriode(btn) {
+    var type   = document.getElementById('purge-type').value;
+    var debut  = document.getElementById('purge-debut').value;
+    var fin    = document.getElementById('purge-fin').value;
+    var msg    = document.getElementById('msg-purge-periode');
+    if (!debut || !fin) { msg.style.color='red'; msg.textContent='Dates obligatoires'; return; }
+    if (debut > fin)    { msg.style.color='red'; msg.textContent='Date début > date fin'; return; }
+    if (!confirm('Supprimer les ' + type + ' du ' + debut + ' au ' + fin + ' ? Irréversible.')) return;
+    btn.disabled = true; btn.textContent = 'Suppression…';
+    var fd = new FormData();
+    fd.append('type_donnee', type); fd.append('date_debut', debut); fd.append('date_fin', fin);
+    fetch("{% url 'dashboard:api_purge_periode' %}", {
+        method: 'POST', headers: {'X-CSRFToken': getCsrf()}, body: fd
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            msg.style.color = 'green';
+            msg.textContent = '✓ ' + d.supprime + ' ligne(s) supprimée(s)';
+        } else {
+            msg.style.color = 'red';
+            msg.textContent = '✗ ' + d.error;
+        }
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-trash"></i> Supprimer';
+    });
+}
+</script>
+
 </div>
 {% endblock %}

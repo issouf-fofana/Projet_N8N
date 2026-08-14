@@ -2536,7 +2536,15 @@ def detail_br_asten(request, br_id):
             if avis:
                 br.avis = avis
             br.save()
-            
+            # Recalcul des écarts après changement manuel de statut
+            try:
+                from ecarts.services import recalculer_ecarts
+                recalculer_ecarts()
+            except Exception:
+                pass
+            from django.core.cache import cache as _cache
+            _cache.clear()
+
             messages.success(request, f"Le statut du BR {br.numero_br} a été mis à jour avec succès. Les statistiques ont été recalculées.")
             
             # Récupérer les paramètres de filtres depuis la requête pour préserver les filtres
@@ -5117,6 +5125,79 @@ def api_recalcul_ecarts(request):
     t = threading.Thread(target=_run, daemon=True)
     t.start()
     return JsonResponse({'ok': True})
+
+
+@require_http_methods(["POST"])
+def api_vider_factures(request):
+    """Vide toutes les factures Asten et Cyrus (équivalent vider_factures.sql)."""
+    from core.permissions import get_user_role
+    if get_user_role(request.user) != 'superadmin':
+        return JsonResponse({'ok': False, 'error': 'Non autorisé'}, status=403)
+    try:
+        from imports.models import FactureAstenLigne, FactureCyrusLigne
+        from django.db import connection
+        n_asten = FactureAstenLigne.objects.count()
+        n_cyrus = FactureCyrusLigne.objects.count()
+        FactureAstenLigne.objects.all().delete()
+        FactureCyrusLigne.objects.all().delete()
+        ImportFichier.objects.filter(type_fichier__in=['facture_asten', 'facture_cyrus']).delete()
+        from django.core.cache import cache as _c
+        _c.clear()
+        return JsonResponse({'ok': True, 'supprime_asten': n_asten, 'supprime_cyrus': n_cyrus})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+def api_purge_periode(request):
+    """Supprime les données (commandes/BR/factures) sur une période donnée."""
+    from core.permissions import get_user_role
+    if get_user_role(request.user) != 'superadmin':
+        return JsonResponse({'ok': False, 'error': 'Non autorisé'}, status=403)
+
+    type_donnee = request.POST.get('type_donnee', '')
+    date_debut  = request.POST.get('date_debut', '').strip()
+    date_fin    = request.POST.get('date_fin', '').strip()
+
+    if not type_donnee or not date_debut or not date_fin:
+        return JsonResponse({'ok': False, 'error': 'Paramètres manquants'}, status=400)
+
+    try:
+        from datetime import date as _date
+        d1 = _date.fromisoformat(date_debut)
+        d2 = _date.fromisoformat(date_fin)
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'Dates invalides'}, status=400)
+
+    try:
+        count = 0
+        if type_donnee == 'commandes_asten':
+            count, _ = CommandeAsten.objects.filter(date_commande__gte=d1, date_commande__lte=d2).delete()
+        elif type_donnee == 'commandes_cyrus':
+            from cyrus.models import CommandeCyrus
+            count, _ = CommandeCyrus.objects.filter(date_commande__gte=d1, date_commande__lte=d2).delete()
+        elif type_donnee == 'commandes_gpv':
+            from gpv.models import CommandeGPV
+            count, _ = CommandeGPV.objects.filter(date_commande__gte=d1, date_commande__lte=d2).delete()
+        elif type_donnee == 'commandes_legend':
+            from legend.models import CommandeLegend
+            count, _ = CommandeLegend.objects.filter(date_commande__gte=d1, date_commande__lte=d2).delete()
+        elif type_donnee == 'br_asten':
+            count, _ = BRAsten.objects.filter(date_br__gte=d1, date_br__lte=d2).delete()
+        elif type_donnee == 'factures_asten':
+            from imports.models import FactureAstenLigne
+            count, _ = FactureAstenLigne.objects.filter(date_reception_date__gte=d1, date_reception_date__lte=d2).delete()
+        elif type_donnee == 'factures_cyrus':
+            from imports.models import FactureCyrusLigne
+            count, _ = FactureCyrusLigne.objects.filter(dfac_date__gte=d1, dfac_date__lte=d2).delete()
+        else:
+            return JsonResponse({'ok': False, 'error': 'Type inconnu'}, status=400)
+
+        from django.core.cache import cache as _c
+        _c.clear()
+        return JsonResponse({'ok': True, 'supprime': count, 'type': type_donnee, 'de': date_debut, 'a': date_fin})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 
 def changer_mot_de_passe(request):
