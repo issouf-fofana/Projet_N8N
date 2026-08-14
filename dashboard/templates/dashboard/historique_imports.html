@@ -128,13 +128,16 @@
             <label for="date_fin" class="form-label">Date fin</label>
             <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
         </div>
-        <div class="col-md-3 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary me-2">
+        <div class="col-md-3 d-flex align-items-end gap-2 flex-wrap">
+            <button type="submit" class="btn btn-primary">
                 <i class="bi bi-funnel"></i> Filtrer
             </button>
             <a href="{% url 'dashboard:historique_imports' %}" class="btn btn-outline-secondary">
                 <i class="bi bi-x-circle"></i> Réinitialiser
             </a>
+            <button type="button" class="btn btn-danger" onclick="supprimerHistoriqueFiltre()">
+                <i class="bi bi-trash"></i> Supprimer ces entrées
+            </button>
         </div>
     </form>
 </div>
@@ -241,5 +244,40 @@
 </nav>
 {% endif %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function supprimerHistoriqueFiltre() {
+    var type_fichier = document.querySelector('[name=type_fichier]').value;
+    var date_debut   = document.querySelector('[name=date_debut]').value;
+    var date_fin     = document.querySelector('[name=date_fin]').value;
+    var msg = 'Supprimer les entrées d\'historique';
+    if (type_fichier) msg += ' — type : ' + type_fichier;
+    if (date_debut)   msg += ' — du : ' + date_debut;
+    if (date_fin)     msg += ' — au : ' + date_fin;
+    if (!type_fichier && !date_debut && !date_fin) msg += ' (TOUT l\'historique)';
+    msg += ' ?\n⚠ Les données en base ne sont PAS supprimées, uniquement l\'historique des imports.';
+    if (!confirm(msg)) return;
+    var fd = new FormData();
+    if (type_fichier) fd.append('type_fichier', type_fichier);
+    if (date_debut)   fd.append('date_debut', date_debut);
+    if (date_fin)     fd.append('date_fin', date_fin);
+    fetch("{% url 'dashboard:api_supprimer_historique' %}", {
+        method: 'POST',
+        headers: {'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || ''},
+        body: fd
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            alert('✓ ' + d.supprime + ' entrée(s) supprimée(s) de l\'historique.');
+            window.location.reload();
+        } else {
+            alert('✗ ' + d.error);
+        }
+    });
+}
+</script>
 {% endblock %}
 

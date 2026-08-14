@@ -3314,14 +3314,14 @@ def configuration_systeme(request):
     champs_ctx    = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k) or get_default(k)} for k, l, t in CHAMPS]
     champs_ia_ctx = [{'key': k, 'label': l, 'type': t, 'value': vals.get(k) or get_default(k)} for k, l, t in CHAMPS_IA]
 
-    # Charger config types fichiers (initialise si besoin)
-    TypeFichierConfig.get_types_actifs()
-    types_fichiers_ctx = list(TypeFichierConfig.objects.order_by('type_key'))
-
-    # Charger config erreurs ignorées — découverte en arrière-plan pour ne pas bloquer la page
-    ErreurIgnoreeConfig.get_patterns_ignores()
+    # Charger config types fichiers + erreurs ignorées en arrière-plan
     import threading as _th
-    _th.Thread(target=ErreurIgnoreeConfig.decouvrir_nouveaux_patterns, daemon=True).start()
+    def _init_configs():
+        TypeFichierConfig.get_types_actifs()
+        ErreurIgnoreeConfig.get_patterns_ignores()
+        ErreurIgnoreeConfig.decouvrir_nouveaux_patterns()
+    _th.Thread(target=_init_configs, daemon=True).start()
+    types_fichiers_ctx = list(TypeFichierConfig.objects.order_by('type_key'))
     erreurs_ignorees_ctx = list(ErreurIgnoreeConfig.objects.order_by('ignorer', 'pattern'))
 
     ai_provider = vals.get('AI_PROVIDER') or get_default('AI_PROVIDER') or 'gemini'
@@ -5126,6 +5126,32 @@ def api_recalcul_ecarts(request):
     t = threading.Thread(target=_run, daemon=True)
     t.start()
     return JsonResponse({'ok': True})
+
+
+@require_http_methods(["POST"])
+def api_supprimer_historique(request):
+    """Supprime des entrées de l'historique des imports (pas les données en base)."""
+    from core.permissions import get_user_role
+    if get_user_role(request.user) != 'superadmin':
+        return JsonResponse({'ok': False, 'error': 'Non autorisé'}, status=403)
+    ids = request.POST.getlist('ids')
+    type_fichier = request.POST.get('type_fichier', '')
+    date_debut = request.POST.get('date_debut', '')
+    date_fin = request.POST.get('date_fin', '')
+    qs = ImportFichier.objects.all()
+    if ids:
+        qs = qs.filter(id__in=ids)
+    else:
+        if type_fichier:
+            qs = qs.filter(type_fichier=type_fichier)
+        if date_debut:
+            from datetime import date as _d
+            qs = qs.filter(date_import__date__gte=_d.fromisoformat(date_debut))
+        if date_fin:
+            from datetime import date as _d
+            qs = qs.filter(date_import__date__lte=_d.fromisoformat(date_fin))
+    count, _ = qs.delete()
+    return JsonResponse({'ok': True, 'supprime': count})
 
 
 @require_http_methods(["POST"])
