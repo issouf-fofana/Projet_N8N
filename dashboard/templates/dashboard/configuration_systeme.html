@@ -380,14 +380,91 @@ function togglePwd(id) {
 </div>
 
 <!-- ═══ MODAL PERSONNALISÉ ═══ -->
-<div id="purge-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:14px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">
-        <div id="purge-modal-header" style="padding:16px 20px;display:flex;align-items:center;gap:10px;">
+<style>
+#purge-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+#purge-modal-overlay.open {
+    display: flex !important;
+}
+#purge-modal-box {
+    background: #ffffff;
+    border-radius: 0;
+    max-width: 500px;
+    width: 92%;
+    box-shadow: 0 24px 64px rgba(0,0,0,.25);
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+#purge-modal-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #e5e7eb;
+}
+#purge-modal-body {
+    padding: 16px 20px;
+    color: #374151;
+    line-height: 1.65;
+    font-size: .95rem;
+}
+#purge-modal-footer {
+    padding: 12px 20px;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+#purge-modal-footer .pm-btn {
+    padding: 7px 18px;
+    font-size: .88rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: background .15s;
+}
+#purge-modal-footer .pm-btn-cancel {
+    background: #fff;
+    border-color: #d1d5db;
+    color: #374151;
+}
+#purge-modal-footer .pm-btn-cancel:hover { background: #f3f4f6; }
+#purge-modal-footer .pm-btn-confirm {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+#purge-modal-footer .pm-btn-confirm:hover { background: #b91c1c; }
+#purge-modal-footer .pm-btn-ok-success {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+#purge-modal-footer .pm-btn-ok-success:hover { background: #15803d; }
+#purge-modal-footer .pm-btn-ok-error {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+</style>
+
+<div id="purge-modal-overlay">
+    <div id="purge-modal-box">
+        <div id="purge-modal-header">
             <span id="purge-modal-icon" style="font-size:1.4rem;"></span>
             <span id="purge-modal-title" style="font-weight:700;font-size:1.05rem;"></span>
         </div>
-        <div id="purge-modal-body" style="padding:0 20px 16px;color:#374151;line-height:1.6;"></div>
-        <div id="purge-modal-footer" style="padding:12px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:10px;"></div>
+        <div id="purge-modal-body"></div>
+        <div id="purge-modal-footer"></div>
     </div>
 </div>
 
@@ -399,7 +476,6 @@ function getCsrf() {
 
 /* ── Modal helpers ── */
 function purgeModal(opts) {
-    /* opts: { type:'confirm'|'info'|'error', title, body, onConfirm } */
     var overlay = document.getElementById('purge-modal-overlay');
     var header  = document.getElementById('purge-modal-header');
     var icon    = document.getElementById('purge-modal-icon');
@@ -407,41 +483,42 @@ function purgeModal(opts) {
     var body    = document.getElementById('purge-modal-body');
     var footer  = document.getElementById('purge-modal-footer');
 
-    var colors = {confirm:'#dc2626', info:'#16a34a', error:'#dc2626'};
-    var icons  = {confirm:'⚠️', info:'✅', error:'❌'};
+    var bgMap   = {confirm:'#fef2f2', info:'#f0fdf4', error:'#fef2f2'};
+    var iconMap  = {confirm:'⚠️', info:'✅', error:'❌'};
+    var colorMap = {confirm:'#dc2626', info:'#16a34a', error:'#dc2626'};
 
-    header.style.background = opts.type === 'info' ? '#f0fdf4' : opts.type === 'error' ? '#fef2f2' : '#fef2f2';
+    header.style.background   = bgMap[opts.type] || '#fef2f2';
     header.style.borderBottom = '1px solid ' + (opts.type === 'info' ? '#bbf7d0' : '#fecaca');
-    icon.textContent  = icons[opts.type] || '⚠️';
+    icon.textContent  = iconMap[opts.type]  || '⚠️';
     title.textContent = opts.title || '';
-    title.style.color = colors[opts.type] || '#dc2626';
-    body.innerHTML    = opts.body || '';
+    title.style.color = colorMap[opts.type] || '#dc2626';
+    body.innerHTML    = opts.body  || '';
     footer.innerHTML  = '';
+
+    function closeModal() { overlay.classList.remove('open'); }
 
     if (opts.type === 'confirm') {
         var btnAnn = document.createElement('button');
-        btnAnn.className = 'btn btn-sm btn-outline-secondary';
+        btnAnn.className = 'pm-btn pm-btn-cancel';
         btnAnn.textContent = 'Annuler';
-        btnAnn.onclick = function() { overlay.style.display = 'none'; };
+        btnAnn.onclick = closeModal;
 
         var btnConf = document.createElement('button');
-        btnConf.className = 'btn btn-sm btn-danger';
+        btnConf.className = 'pm-btn pm-btn-confirm';
         btnConf.innerHTML = '<i class="bi bi-trash"></i> Confirmer la suppression';
-        btnConf.onclick = function() {
-            overlay.style.display = 'none';
-            if (opts.onConfirm) opts.onConfirm();
-        };
+        btnConf.onclick = function() { closeModal(); if (opts.onConfirm) opts.onConfirm(); };
+
         footer.appendChild(btnAnn);
         footer.appendChild(btnConf);
     } else {
         var btnOk = document.createElement('button');
-        btnOk.className = 'btn btn-sm btn-' + (opts.type === 'info' ? 'success' : 'danger');
+        btnOk.className = 'pm-btn ' + (opts.type === 'info' ? 'pm-btn-ok-success' : 'pm-btn-ok-error');
         btnOk.textContent = 'Fermer';
-        btnOk.onclick = function() { overlay.style.display = 'none'; };
+        btnOk.onclick = function() { closeModal(); if (opts.onClose) opts.onClose(); };
         footer.appendChild(btnOk);
     }
 
-    overlay.style.display = 'flex';
+    overlay.classList.add('open');
 }
 
 /* ── Vider toutes les factures ── */
