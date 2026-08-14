@@ -6,7 +6,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Dépendances système (psycopg, openpyxl, samba/smb)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev gcc g++ \
     smbclient cifs-utils \
@@ -17,15 +16,21 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Collecter les fichiers statiques
-RUN python manage.py collectstatic --noinput || true
+RUN mkdir -p /app/media/commande_asten \
+             /app/media/commande_cyrus \
+             /app/media/commande_gpv \
+             /app/media/commande_legend \
+             /app/media/br_asten \
+             /app/media/br_ic \
+             /app/media/anomalie_br \
+             /app/media/facture_asten \
+             /app/media/facture_cyrus \
+             /app/media/facture_backup \
+             /app/media/tickets \
+             /app/media/remontees \
+             /app/media/entree_journal \
+             /app/.cache
 
 EXPOSE 8000
 
-# Gunicorn : 2 workers, timeout 300s (import lourd)
-CMD ["gunicorn", "verification_commande.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "2", \
-     "--timeout", "300", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

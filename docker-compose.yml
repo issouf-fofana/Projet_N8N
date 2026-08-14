@@ -1,70 +1,120 @@
 services:
 
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-traitement_n8n}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-traitement_n8n}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_net
+
   web:
     build: .
     restart: unless-stopped
     ports:
-      - "1212:8000"
+      - "${APP_PORT:-1212}:8000"
     env_file:
       - config.env
     environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
     volumes:
-      - media_data:/app/media
-      - cache_data:/app/.cache
+      # Dossiers de dépôt des fichiers (commandes, BR, factures...)
+      # Sur le serveur : déposer les CSV dans /opt/data/<dossier>/
+      - commande_asten:/app/media/commande_asten
+      - commande_cyrus:/app/media/commande_cyrus
+      - commande_gpv:/app/media/commande_gpv
+      - commande_legend:/app/media/commande_legend
+      - br_asten:/app/media/br_asten
+      - br_ic:/app/media/br_ic
+      - anomalie_br:/app/media/anomalie_br
+      - facture_asten:/app/media/facture_asten
+      - facture_cyrus:/app/media/facture_cyrus
+      - facture_backup:/app/media/facture_backup
+      - entree_journal:/app/media/entree_journal
+      # Médias utilisateurs (tickets, pièces jointes)
+      - tickets_media:/app/media/tickets
+      - remontees_media:/app/media/remontees
+      # Cache Django (fichiers)
+      - django_cache:/app/.cache
+      # Fichiers statiques servis par whitenoise
       - static_data:/app/staticfiles
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             gunicorn verification_commande.wsgi:application
-             --bind 0.0.0.0:8000
-             --workers 2
-             --timeout 300
-             --access-logfile -
-             --error-logfile -"
+    networks:
+      - app_net
 
-  # Purge automatique chaque nuit à 03h30
+  # Purge automatique — tourne chaque nuit à 03h30
   purge:
     build: .
     restart: unless-stopped
     env_file:
       - config.env
     environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
     volumes:
-      - media_data:/app/media
-      - cache_data:/app/.cache
+      - commande_asten:/app/media/commande_asten
+      - commande_cyrus:/app/media/commande_cyrus
+      - commande_gpv:/app/media/commande_gpv
+      - commande_legend:/app/media/commande_legend
+      - br_asten:/app/media/br_asten
+      - br_ic:/app/media/br_ic
+      - anomalie_br:/app/media/anomalie_br
+      - facture_asten:/app/media/facture_asten
+      - facture_cyrus:/app/media/facture_cyrus
+      - facture_backup:/app/media/facture_backup
+      - entree_journal:/app/media/entree_journal
+      - django_cache:/app/.cache
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - app_net
+    # Boucle : calcule les secondes jusqu'à 03h30, dort, puis purge
+    entrypoint: []
     command: >
-      sh -c "while true; do
-               sleep 3600;
-               python manage.py purge_donnees --mois 2 --no-vacuum-full;
-             done"
-
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: traitement_n8n
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d traitement_n8n"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      sh -c "
+        while true; do
+          NOW=\$$(date +%s)
+          TARGET=\$$(date -d 'tomorrow 03:30' +%s 2>/dev/null || date -v+1d -j -f '%H:%M' '03:30' +%s)
+          SLEEP=\$$((TARGET - NOW))
+          echo \"Prochain purge dans \$$((SLEEP/3600))h \$$(( (SLEEP%3600)/60 ))min\"
+          sleep \$$SLEEP
+          echo \"=== Purge démarrée ===\"
+          python manage.py purge_donnees --mois 2 --no-vacuum-full
+          echo \"=== Purge terminée ===\"
+        done
+      "
 
 volumes:
   postgres_data:
-  media_data:
-  cache_data:
+  commande_asten:
+  commande_cyrus:
+  commande_gpv:
+  commande_legend:
+  br_asten:
+  br_ic:
+  anomalie_br:
+  facture_asten:
+  facture_cyrus:
+  facture_backup:
+  entree_journal:
+  tickets_media:
+  remontees_media:
+  django_cache:
   static_data:
+
+networks:
+  app_net:
+    driver: bridge
