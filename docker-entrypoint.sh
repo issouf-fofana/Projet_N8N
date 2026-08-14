@@ -3,9 +3,9 @@ set -e
 
 echo "==> Attente PostgreSQL..."
 until python -c "
-import os, psycopg
+import os, psycopg2
 try:
-    psycopg.connect(
+    psycopg2.connect(
         host=os.environ.get('POSTGRES_HOST','db'),
         port=os.environ.get('POSTGRES_PORT','5432'),
         dbname=os.environ.get('POSTGRES_DB','traitement_n8n'),
