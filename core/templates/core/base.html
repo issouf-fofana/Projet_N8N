@@ -1193,22 +1193,15 @@
             {% endfor %}
         {% endif %}
         
-        <!-- Bandeau import en arrière-plan -->
+        <!-- Bandeau unique import + prochain + recalcul -->
         <div id="import-bg-banner" style="display:none;"
-             class="alert alert-info d-flex align-items-center gap-2 mb-3 py-2 flex-wrap">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <span id="import-bg-msg">Import en cours…</span>
-            <span id="import-next-run" style="margin-left:8px;font-size:0.85em;opacity:0.75;"></span>
-            <button id="btn-recalcul-ecarts" onclick="lancerRecalculEcarts()" class="btn btn-sm btn-outline-primary ms-auto" style="white-space:nowrap;">
-                ↻ Recalculer les écarts
-            </button>
-        </div>
-        <!-- Bandeau prochain import (quand pas d'import en cours) -->
-        <div id="next-import-banner" style="display:none;"
-             class="alert alert-secondary d-flex align-items-center gap-2 mb-3 py-2 flex-wrap">
-            <i class="bi bi-clock"></i>
-            <span id="next-import-msg"></span>
-            <button id="btn-recalcul-ecarts-2" onclick="lancerRecalculEcarts()" class="btn btn-sm btn-outline-secondary ms-auto" style="white-space:nowrap;">
+             class="alert d-flex align-items-center gap-3 mb-3 py-2 flex-wrap" id="import-bg-banner">
+            <div id="import-spinner" class="spinner-border spinner-border-sm text-primary" role="status" style="display:none;"></div>
+            <i id="import-clock-icon" class="bi bi-clock" style="display:none;"></i>
+            <span id="import-bg-msg"></span>
+            <span style="opacity:0.5;">|</span>
+            <span id="next-import-msg" style="font-size:0.85em;"></span>
+            <button onclick="lancerRecalculEcarts(this)" class="btn btn-sm btn-outline-secondary ms-auto" style="white-space:nowrap;">
                 ↻ Recalculer les écarts
             </button>
         </div>
@@ -1671,71 +1664,74 @@
     })();
     </script>
     <script>
-    // Bandeau import + prochain import + bouton recalcul
     (function() {
-        var banner      = document.getElementById('import-bg-banner');
-        var nextBanner  = document.getElementById('next-import-banner');
-        var msg         = document.getElementById('import-bg-msg');
-        var nextMsg     = document.getElementById('next-import-msg');
+        var banner  = document.getElementById('import-bg-banner');
+        var msg     = document.getElementById('import-bg-msg');
+        var nextMsg = document.getElementById('next-import-msg');
+        var spinner = document.getElementById('import-spinner');
+        var clock   = document.getElementById('import-clock-icon');
         if (!banner) return;
 
-        // Prochain import : crontab toutes les 5 minutes
         function prochainImport() {
             var now = new Date();
-            var secs = now.getSeconds() + now.getMinutes() % 5 * 60;
-            var restant = 300 - (secs % 300);
-            var m = Math.floor(restant / 60);
-            var s = restant % 60;
-            return m > 0 ? 'Prochain import dans ' + m + 'min ' + s + 's' : 'Prochain import dans ' + s + 's';
+            var restant = 300 - ((now.getMinutes() % 5) * 60 + now.getSeconds());
+            var m = Math.floor(restant / 60), s = restant % 60;
+            return 'Prochain import dans ' + (m > 0 ? m + 'min ' : '') + s + 's';
         }
 
+        var isRunning = false;
         function checkImport() {
             fetch("{% url 'dashboard:api_import_status' %}")
                 .then(function(r){ return r.json(); })
                 .then(function(d){
+                    isRunning = d.running;
+                    banner.style.display = '';
                     if (d.running) {
-                        banner.style.display = '';
-                        nextBanner.style.display = 'none';
+                        banner.className = 'alert alert-info d-flex align-items-center gap-3 mb-3 py-2 flex-wrap';
+                        spinner.style.display = '';
+                        clock.style.display = 'none';
                         var elapsed = Math.round((Date.now()/1000) - d.started_at);
-                        msg.textContent = 'Import en cours… (lancé il y a ' + elapsed + 's)';
+                        msg.textContent = 'Import en cours… (' + elapsed + 's)';
                     } else {
-                        banner.style.display = 'none';
-                        nextBanner.style.display = '';
-                        nextMsg.textContent = prochainImport();
+                        banner.className = 'alert alert-secondary d-flex align-items-center gap-3 mb-3 py-2 flex-wrap';
+                        spinner.style.display = 'none';
+                        clock.style.display = '';
+                        msg.textContent = '';
                     }
+                    nextMsg.textContent = prochainImport();
                 })
                 .catch(function(){});
         }
 
         checkImport();
         setInterval(checkImport, 30000);
-        // Mise à jour du compte à rebours chaque seconde
-        setInterval(function() {
-            if (nextBanner && nextBanner.style.display !== 'none' && nextMsg) {
-                nextMsg.textContent = prochainImport();
+        setInterval(function(){
+            nextMsg.textContent = prochainImport();
+            if (isRunning) {
+                fetch("{% url 'dashboard:api_import_status' %}")
+                    .then(function(r){ return r.json(); })
+                    .then(function(d){
+                        if (d.running) {
+                            var elapsed = Math.round((Date.now()/1000) - d.started_at);
+                            msg.textContent = 'Import en cours… (' + elapsed + 's)';
+                        }
+                    }).catch(function(){});
             }
         }, 1000);
     })();
 
-    function lancerRecalculEcarts() {
-        var btns = document.querySelectorAll('#btn-recalcul-ecarts, #btn-recalcul-ecarts-2');
-        btns.forEach(function(b){ b.disabled = true; b.textContent = 'Recalcul…'; });
+    function lancerRecalculEcarts(btn) {
+        btn.disabled = true; btn.textContent = 'Recalcul…';
         fetch("{% url 'dashboard:api_recalcul_ecarts' %}", {
             method: 'POST',
-            headers: {'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''}
+            headers: {'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || ''}
         })
         .then(function(r){ return r.json(); })
         .then(function(d){
-            if (d.ok) {
-                btns.forEach(function(b){ b.textContent = '✓ Lancé'; });
-                setTimeout(function(){
-                    btns.forEach(function(b){ b.disabled = false; b.textContent = '↻ Recalculer les écarts'; });
-                }, 3000);
-            }
+            btn.textContent = d.ok ? '✓ Lancé' : '✗ Erreur';
+            setTimeout(function(){ btn.disabled = false; btn.textContent = '↻ Recalculer les écarts'; }, 3000);
         })
-        .catch(function(){
-            btns.forEach(function(b){ b.disabled = false; b.textContent = '↻ Recalculer les écarts'; });
-        });
+        .catch(function(){ btn.disabled = false; btn.textContent = '↻ Recalculer les écarts'; });
     }
     </script>
 </body>
