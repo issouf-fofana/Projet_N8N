@@ -1393,7 +1393,7 @@ def scanner_et_importer_fichiers():
     _cache_key = f'scanner_sig_{_sig}'
     if _cache.get(_cache_key):
         return []  # rien n'a changé depuis le dernier import
-    _cache.set(_cache_key, 1, 300)  # valide 5 min — si même signature, skip
+    _cache.set(_cache_key, 1, 90)  # valide 90s — scheduler toutes les 2 min
 
     # Utiliser les chemins configurables depuis settings
     dossier_asten = Path(settings.DOSSIER_COMMANDES_ASTEN_PATH)
@@ -1664,6 +1664,11 @@ def scanner_et_importer_fichiers():
         ) if dossier_anomalie.exists() else []
         for f_anom in fichiers_anomalie:
             try:
+                from archives.models import FichierPurge
+                if FichierPurge.objects.filter(type_fichier='br_anomalie', nom_fichier=f_anom.name).exists():
+                    supprimer_fichier_source(f_anom)
+                    print(f"[BR Anomalie] {f_anom.name} ignoré (fichier purgé)")
+                    continue
                 nb = importer_anomalies_br_en_base(str(f_anom))
                 print(f"[BR Anomalie] {f_anom.name} → {nb} nouvelles lignes en base")
                 supprimer_fichier_source(f_anom)
@@ -2809,6 +2814,7 @@ def importer_factures_cyrus_en_base():
     cache.delete('factures_verification_v1')
     cache.delete('factures_stats_sql_v1')
     from imports.models import FactureCyrusLigne
+    from archives.models import FichierPurge
     dossier = Path(settings.DOSSIER_FACTURES_CYRUS_PATH)
     if not dossier.exists():
         return
@@ -2817,6 +2823,11 @@ def importer_factures_cyrus_en_base():
         fichier = csv_path.name
         # Déjà importé — garder le fichier comme marqueur pour éviter recopie SMB en boucle.
         if FactureCyrusLigne.objects.filter(fichier=fichier).exists():
+            continue
+        # Fichier entièrement purgé — ne pas ré-importer (sinon la purge serait annulée).
+        if FichierPurge.objects.filter(type_fichier='facture_cyrus', nom_fichier=fichier).exists():
+            csv_path.unlink(missing_ok=True)
+            print(f"  [Facture Cyrus] {fichier} ignoré (fichier purgé)")
             continue
         lignes = []
         try:
@@ -2877,6 +2888,7 @@ def importer_factures_asten_en_base():
     cache.delete('factures_verification_v1')
     cache.delete('factures_stats_sql_v1')
     from imports.models import FactureAstenLigne
+    from archives.models import FichierPurge
     dossier = Path(settings.DOSSIER_FACTURES_ASTEN_CSV_PATH)
     if not dossier.exists():
         return
@@ -2886,6 +2898,11 @@ def importer_factures_asten_en_base():
         if FactureAstenLigne.objects.filter(fichier=fichier).exists():
             # Déjà importé — on garde le fichier en place comme marqueur "traité"
             # pour que run_auto.py ne le recopie pas en boucle depuis le SMB.
+            continue
+        # Fichier entièrement purgé — ne pas ré-importer (sinon la purge serait annulée).
+        if FichierPurge.objects.filter(type_fichier='facture_asten', nom_fichier=fichier).exists():
+            csv_path.unlink(missing_ok=True)
+            print(f"  [Facture Asten] {fichier} ignoré (fichier purgé)")
             continue
         lignes = []
         try:

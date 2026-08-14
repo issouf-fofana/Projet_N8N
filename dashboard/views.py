@@ -471,10 +471,10 @@ def dashboard(request):
         _dashboard_per_page = 30
 
 
+    from django.core.cache import cache as _dash_cache
+
     # Traiter selon le type de données sélectionné
     if type_donnees == 'commandes_asten':
-        # Récupérer les commandes avec leurs statuts d'intégration
-        # TOUJOURS charger les données existantes en base, même sans actualisation
         filtres_asten = {}
         filtres_cyrus = {}
         if date_debut_parsed:
@@ -484,13 +484,17 @@ def dashboard(request):
             filtres_asten['date_commande__lte'] = date_fin_parsed
             filtres_cyrus['date_commande__lte'] = date_fin_parsed
         if code_magasin:
-            # Gérer la sélection multiple de magasins
             filtres_asten['code_magasin__code__in'] = code_magasin
             filtres_cyrus['code_magasin__code__in'] = code_magasin
-        
-        # Calculer les statistiques avec les filtres appliqués
-        total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
-        total_cyrus = CommandeCyrus.objects.filter(**filtres_cyrus).count()
+
+        _ck_asten_stats = f'dash_asten_stats_{date_debut_parsed}_{date_fin_parsed}_{"_".join(code_magasin or [])}'
+        _asten_stats_cached = _dash_cache.get(_ck_asten_stats)
+        if _asten_stats_cached is not None:
+            total_asten, total_cyrus = _asten_stats_cached
+        else:
+            total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
+            total_cyrus = CommandeCyrus.objects.filter(**filtres_cyrus).count()
+            _dash_cache.set(_ck_asten_stats, (total_asten, total_cyrus), 300)
         
         # Compter les commandes réellement intégrées dans Cyrus (optimisé avec une sous-requête)
         commandes_reellement_integres = CommandeAsten.objects.filter(**filtres_asten).filter(
@@ -1427,13 +1431,26 @@ def accueil(request):
             except:
                 date_fin = None
     
+    # ── Cache global : toutes les stats accueil en une clé par période ──────
+    _ck_accueil = f'accueil_stats_{periode}_{date_debut}_{date_fin}'
+    _cached_ctx = _cache.get(_ck_accueil)
+    if _cached_ctx is not None:
+        _cached_ctx['periode'] = periode
+        _cached_ctx['date_debut'] = date_debut.strftime('%Y-%m-%d') if date_debut else ''
+        _cached_ctx['date_fin'] = date_fin.strftime('%Y-%m-%d') if date_fin else ''
+        if request.GET.get('partial') == 'top':
+            from django.template.loader import render_to_string
+            html = render_to_string('dashboard/_top_magasins.html', _cached_ctx, request=request)
+            return HttpResponse(html)
+        return render(request, 'dashboard/accueil.html', _cached_ctx)
+
     # Calculer les statistiques pour chaque type de données
     stats_asten = {}
     stats_gpv = {}
     stats_legend = {}
     stats_br = {}
     stats_factures = {}
-    
+
     # ASTEN — basé sur EcartCommande (même source que dashboard et page écarts)
     try:
         from ecarts.models import EcartCommande as _EcartCommande, EcartGPV as _EcartGPV
@@ -1793,6 +1810,8 @@ def accueil(request):
         'top_source': request.GET.get('top_source', ''),
         'top_url_base': f"?periode={request.GET.get('periode','')}&date_debut={date_debut or ''}&date_fin={date_fin or ''}&periode_cmp={request.GET.get('periode_cmp','semaine')}",
     }
+    # Mettre en cache 5 minutes (invalidé par cache.clear() après import)
+    _cache.set(_ck_accueil, context, 300)
 
     # Mode partial : retourne uniquement le bloc top magasins (AJAX)
     if request.GET.get('partial') == 'top':
