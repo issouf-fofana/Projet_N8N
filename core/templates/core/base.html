@@ -886,6 +886,340 @@
             border: 1px solid #e2e8f0;
             box-shadow: 0 14px 34px rgba(15,23,42,.12);
         }
+
+        /* ════════════════════════════════════════
+           THÈME NOIR / BLANC — STYLE CARRÉ
+           Fond noir, surfaces #111, texte blanc,
+           accent blanc, zéro border-radius.
+        ════════════════════════════════════════ */
+
+        /* ── Variables de base ── */
+        :root {
+            --t-bg:        #0a0a0a;
+            --t-surface:   #111111;
+            --t-surface2:  #1a1a1a;
+            --t-border:    #2a2a2a;
+            --t-border2:   #222222;
+            --t-tx1:       #f5f5f5;
+            --t-tx2:       #aaaaaa;
+            --t-tx3:       #666666;
+            --t-accent:    #ffffff;
+            --t-accent-bg: #1f1f1f;
+            --t-sidebar:   #0d0d0d;
+            --t-r:         0px;
+        }
+
+        /* ── Page ── */
+        body {
+            background-color: var(--t-bg) !important;
+            color: var(--t-tx1) !important;
+        }
+
+        .main-content {
+            background: var(--t-bg) !important;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            background: var(--t-sidebar) !important;
+            border-right: 1px solid var(--t-border) !important;
+            box-shadow: none !important;
+        }
+
+        .sidebar-header {
+            border-bottom: 1px solid var(--t-border) !important;
+        }
+
+        .sidebar-header h4 { color: var(--t-tx1) !important; }
+
+        .sidebar-menu a,
+        .sidebar-accordion .accordion-button {
+            color: var(--t-tx2) !important;
+            border-left-color: transparent !important;
+            border-radius: 0 !important;
+        }
+
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background: var(--t-accent-bg) !important;
+            border-left-color: var(--t-accent) !important;
+            color: var(--t-tx1) !important;
+        }
+
+        .sidebar-accordion .accordion-button:not(.collapsed) {
+            background: var(--t-accent-bg) !important;
+            border-left-color: var(--t-accent) !important;
+            color: var(--t-tx1) !important;
+        }
+
+        .sidebar-accordion .accordion-body {
+            background: #080808 !important;
+        }
+
+        .sidebar-accordion .accordion-body a {
+            color: var(--t-tx2) !important;
+        }
+
+        .sidebar-accordion .accordion-body a:hover,
+        .sidebar-accordion .accordion-body a.active {
+            background: var(--t-accent-bg) !important;
+            border-left-color: var(--t-accent) !important;
+            color: var(--t-tx1) !important;
+        }
+
+        /* ── Toggle sidebar button ── */
+        #sidebar-toggle {
+            background: var(--t-surface2) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+        }
+        #sidebar-toggle:hover { background: var(--t-accent-bg) !important; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--t-surface) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            box-shadow: none !important;
+        }
+        .card:hover { box-shadow: none !important; }
+
+        .card-header {
+            background: var(--t-surface2) !important;
+            border-bottom: 1px solid var(--t-border) !important;
+            color: var(--t-tx1) !important;
+            border-radius: 0 !important;
+        }
+        .card-header h5, .card-header h6, .card-header .fw-bold { color: var(--t-tx1) !important; }
+        .card-header h5 i, .card-header h6 i { color: var(--t-tx2) !important; }
+
+        /* ── Stat cards ── */
+        .stat-card {
+            background: var(--t-surface) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            box-shadow: none !important;
+            color: var(--t-tx1) !important;
+        }
+        .stat-card:hover { transform: none !important; box-shadow: none !important; }
+        .stat-value { color: var(--t-tx1) !important; }
+        .stat-label { color: var(--t-tx2) !important; }
+        .stat-icon  { color: var(--t-tx3) !important; }
+
+        /* ── Page header ── */
+        .page-header {
+            background: var(--t-surface) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            box-shadow: none !important;
+            color: var(--t-tx1) !important;
+        }
+        .page-header h1, .page-header h3, .page-header p { color: var(--t-tx1) !important; }
+
+        /* ── Boutons ── */
+        .btn {
+            border-radius: var(--t-r) !important;
+            transition: background .15s, border-color .15s !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .btn:hover { transform: none !important; box-shadow: none !important; }
+
+        .btn-primary {
+            background: var(--t-tx1) !important;
+            border-color: var(--t-tx1) !important;
+            color: #000 !important;
+        }
+        .btn-primary:hover { background: #e0e0e0 !important; border-color: #e0e0e0 !important; color: #000 !important; }
+
+        .btn-secondary {
+            background: var(--t-surface2) !important;
+            border-color: var(--t-border) !important;
+            color: var(--t-tx1) !important;
+        }
+        .btn-secondary:hover { background: #2a2a2a !important; }
+
+        .btn-outline-primary {
+            background: transparent !important;
+            border: 1px solid var(--t-border) !important;
+            color: var(--t-tx2) !important;
+        }
+        .btn-outline-primary:hover,
+        .btn-check:checked + .btn-outline-primary {
+            background: var(--t-accent-bg) !important;
+            border-color: var(--t-accent) !important;
+            color: var(--t-tx1) !important;
+        }
+
+        .btn-outline-secondary {
+            background: transparent !important;
+            border-color: var(--t-border) !important;
+            color: var(--t-tx2) !important;
+        }
+        .btn-outline-secondary:hover { background: var(--t-surface2) !important; color: var(--t-tx1) !important; }
+
+        .btn-success  { background: #1a3a1a !important; border-color: #2d5a2d !important; color: #6fcf6f !important; }
+        .btn-success:hover  { background: #224422 !important; }
+        .btn-danger   { background: #3a1a1a !important; border-color: #5a2d2d !important; color: #cf6f6f !important; }
+        .btn-danger:hover   { background: #442222 !important; }
+        .btn-warning  { background: #3a2e1a !important; border-color: #5a481a !important; color: #cfb46f !important; }
+        .btn-warning:hover  { background: #44361e !important; }
+        .btn-info     { background: var(--t-surface2) !important; border-color: var(--t-border) !important; color: var(--t-tx1) !important; }
+
+        .btn-light { background: var(--t-surface2) !important; border-color: var(--t-border) !important; color: var(--t-tx1) !important; }
+        .btn-light:hover { background: #2a2a2a !important; }
+
+        /* ── Formulaires ── */
+        .form-control, .form-select {
+            background: var(--t-surface2) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            color: var(--t-tx1) !important;
+        }
+        .form-control::placeholder { color: var(--t-tx3) !important; }
+        .form-control:focus, .form-select:focus {
+            background: var(--t-surface2) !important;
+            border-color: var(--t-accent) !important;
+            box-shadow: none !important;
+            color: var(--t-tx1) !important;
+        }
+        .form-select option { background: var(--t-surface) !important; color: var(--t-tx1) !important; }
+
+        .form-label { color: var(--t-tx2) !important; }
+        .input-group-text {
+            background: var(--t-surface2) !important;
+            border-color: var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            color: var(--t-tx2) !important;
+        }
+
+        /* ── Tableaux ── */
+        .table {
+            background: var(--t-surface) !important;
+            border-color: var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            color: var(--t-tx1) !important;
+        }
+        .table thead th {
+            background: var(--t-surface2) !important;
+            border-bottom: 1px solid var(--t-border) !important;
+            color: var(--t-tx2) !important;
+        }
+        .table tbody tr { border-color: var(--t-border2) !important; }
+        .table tbody tr:hover { background: var(--t-accent-bg) !important; }
+        .table td, .table th { color: var(--t-tx1) !important; border-color: var(--t-border2) !important; }
+        .table-imports { background: var(--t-surface) !important; }
+
+        /* Row colors */
+        .table-row-success { background: #0d1a0d !important; }
+        .table-row-success:hover { background: #111f11 !important; }
+        .table-row-danger  { background: #1a0d0d !important; }
+        .table-row-danger:hover  { background: #1f1111 !important; }
+
+        /* ── Badges ── */
+        .badge {
+            border-radius: var(--t-r) !important;
+        }
+        .badge.bg-primary   { background: var(--t-surface2) !important; color: var(--t-tx1) !important; border: 1px solid var(--t-border) !important; }
+        .badge.bg-secondary { background: #222 !important; color: var(--t-tx2) !important; border: 1px solid var(--t-border2) !important; }
+        .badge.bg-success   { background: #1a3a1a !important; color: #6fcf6f !important; }
+        .badge.bg-danger    { background: #3a1a1a !important; color: #cf6f6f !important; }
+        .badge.bg-warning   { background: #3a2e1a !important; color: #cfb46f !important; }
+        .badge.bg-info      { background: var(--t-surface2) !important; color: var(--t-tx2) !important; }
+
+        /* Badge-statut custom */
+        .badge-termine  { background: #1a3a1a !important; color: #6fcf6f !important; border-radius: var(--t-r) !important; }
+        .badge-erreur   { background: #3a1a1a !important; color: #cf6f6f !important; border-radius: var(--t-r) !important; }
+        .badge-en-cours { background: #1a1a3a !important; color: #6f9fcf !important; border-radius: var(--t-r) !important; }
+
+        /* ── Dropdown ── */
+        .dropdown-menu {
+            background: var(--t-surface) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,.6) !important;
+        }
+        .dropdown-item { color: var(--t-tx2) !important; }
+        .dropdown-item:hover { background: var(--t-accent-bg) !important; color: var(--t-tx1) !important; }
+        .dropdown-divider { border-color: var(--t-border) !important; }
+
+        /* ── Liens ── */
+        a { color: var(--t-tx2) !important; }
+        a:hover { color: var(--t-tx1) !important; }
+
+        .text-primary, strong.text-primary, a.text-primary { color: var(--t-tx1) !important; }
+        .text-muted  { color: var(--t-tx3) !important; }
+        .text-secondary { color: var(--t-tx2) !important; }
+        .bg-light    { background: var(--t-surface2) !important; }
+        .bg-white    { background: var(--t-surface) !important; }
+
+        /* ── Accordion ── */
+        .accordion-item { background: var(--t-surface) !important; border-color: var(--t-border) !important; border-radius: var(--t-r) !important; }
+        .accordion-button {
+            background: var(--t-surface2) !important;
+            color: var(--t-tx1) !important;
+            border-radius: var(--t-r) !important;
+            box-shadow: none !important;
+        }
+        .accordion-button:not(.collapsed) { background: var(--t-accent-bg) !important; color: var(--t-tx1) !important; }
+        .accordion-button::after { filter: invert(1) !important; }
+        .accordion-body { background: var(--t-surface) !important; color: var(--t-tx2) !important; }
+
+        /* ── Pagination ── */
+        .page-link {
+            background: var(--t-surface) !important;
+            border-color: var(--t-border) !important;
+            color: var(--t-tx2) !important;
+            border-radius: var(--t-r) !important;
+        }
+        .page-item.active .page-link { background: var(--t-tx1) !important; border-color: var(--t-tx1) !important; color: #000 !important; }
+        .page-item.disabled .page-link { color: var(--t-tx3) !important; }
+
+        /* ── Alerts ── */
+        .alert { border-radius: var(--t-r) !important; }
+        .alert-success { background: #0d1a0d !important; border-color: #2d5a2d !important; color: #6fcf6f !important; }
+        .alert-danger  { background: #1a0d0d !important; border-color: #5a2d2d !important; color: #cf6f6f !important; }
+        .alert-warning { background: #1a150d !important; border-color: #5a481a !important; color: #cfb46f !important; }
+        .alert-info    { background: var(--t-surface2) !important; border-color: var(--t-border) !important; color: var(--t-tx2) !important; }
+
+        /* ── Import banner ── */
+        #import-bg-banner {
+            border-radius: var(--t-r) !important;
+        }
+
+        /* ── Page header gradients → flat noir ── */
+        .import-header {
+            background: var(--t-surface2) !important;
+            color: var(--t-tx1) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--t-bg); }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+        /* ── Bouton accueil flottant ── */
+        .btn-accueil-fixed {
+            background: var(--t-surface2) !important;
+            border: 1px solid var(--t-border) !important;
+            border-radius: var(--t-r) !important;
+            box-shadow: none !important;
+            color: var(--t-tx1) !important;
+        }
+        .btn-accueil-fixed:hover { background: #2a2a2a !important; }
+
+        /* ── Filters card ── */
+        .filters-card {
+            background: var(--t-surface) !important;
+            border-radius: var(--t-r) !important;
+            box-shadow: none !important;
+        }
+        /* ════════════════════════════════════════ */
     </style>
     {% block extra_css %}{% endblock %}
 </head>
