@@ -1,0 +1,15 @@
+[Unit]
+Description=Auto-import périodique des fichiers (fallback watcher SMB)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=ifofana
+WorkingDirectory=/opt/Projet_N8N
+ExecStart=/opt/Projet_N8N/env/bin/python /opt/Projet_N8N/manage.py auto_import
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

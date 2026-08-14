@@ -180,6 +180,54 @@ Trois services tournent en permanence, chacun avec un rôle distinct (`Restart=a
 
 > ℹ️ `watcher.service` ne fait **que** déclencher l'import Django (`auto_import`) sur détection de fichier — il ne relance plus `run_auto.py` lui-même, pour éviter le double travail avec `run_auto.service` qui tourne déjà en boucle indépendamment.
 
+> ⚠️ Le watcher ne déclenche l'import que sur événement SMB. Pour que les fichiers déposés (BR, factures…) soient importés **même si le montage SMB est inactif** ou qu'un événement est manqué, un timer `auto_import.timer` lance `manage.py auto_import` **toutes les 10 minutes** (quasi gratuit : le scanner saute si rien n'a changé).
+
+```bash
+sudo cp auto_import.service auto_import.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now auto_import.timer
+```
+
+### Purge automatique des données anciennes
+
+Le serveur s'allège en supprimant les détails de plus de 2 mois (fenêtre glissante) et en conservant un **résumé mensuel** (compteurs, montants, répartition par magasin/statut) dans la table `archives_archivemensuelle` — consultable dans l'admin Django.
+
+Tables purgées (détails > 2 mois) :
+- `imports_facturecyrusligne` (la plus grosse, plusieurs millions de lignes) et `imports_factureastenligne`
+- `imports_factureecartstatut` (statuts manuels des factures purgées)
+- `br_brasten` et `br_branomalie`
+- `entree_journal_entreejournal` (journal POS)
+
+Non purgées (volontairement) :
+- **Commandes Asten/GPV/Legend/Cyrus** : liées aux écarts (FK en cascade + recalcul) — les purger fausserait le rapprochement
+- **BR IC** : l'import reconstruit intégralement cette table depuis le fichier à chaque cycle — une purge n'aurait aucun effet durable
+- **Tickets** : jamais touchés
+
+Protection anti-ré-import : les fichiers CSV entièrement purgés sont marqués dans `archives_fichierpurge` — même si le SMB les recopie, `auto_import` ne les ré-importe plus (sinon la purge serait annulée).
+
+```bash
+# Lancement manuel
+python manage.py purge_donnees                # rétention 2 mois (nuit)
+python manage.py purge_donnees --dry-run      # simulation sans rien supprimer
+python manage.py purge_donnees --mois 3       # rétention 3 mois
+python manage.py purge_donnees --vider-asten  # vide ENTIÈREMENT les factures Asten (tous les 2 jours)
+python manage.py purge_donnees --no-vacuum-full   # VACUUM simple (moins de récupération disque)
+python manage.py purge_donnees --no-purge-cache   # ne vide pas django_cache (cache DB mort ~40 Mo)
+```
+
+Installation des purges automatiques :
+
+```bash
+sudo cp purge_donnees.service purge_donnees.timer /etc/systemd/system/
+sudo cp purge_factures.service purge_factures.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now purge_donnees.timer      # chaque nuit à 03h30 : purge > 2 mois
+sudo systemctl enable --now purge_factures.timer     # tous les 2 jours à 04h00 : vide les factures Asten
+sudo systemctl list-timers purge_donnees.timer purge_factures.timer
+```
+
+> ℹ️ **Factures Asten vidées tous les 2 jours** : elles sont rechargées chaque jour depuis le SMB et ne servent qu'à la vérification immédiate. Les factures **Cyrus** et le reste suivent la purge par période (2 mois).
+
 ### Première installation des services sur le serveur
 
 ```bash

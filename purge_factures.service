@@ -1,0 +1,15 @@
+[Unit]
+Description=Vidange des factures Asten (tous les 2 jours)
+After=postgresql.service network.target
+
+[Service]
+Type=oneshot
+User=ifofana
+WorkingDirectory=/opt/Projet_N8N
+ExecStart=/opt/Projet_N8N/env/bin/python /opt/Projet_N8N/manage.py purge_donnees --vider-asten
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target

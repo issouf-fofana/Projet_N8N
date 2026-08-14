@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'dashboard',
     'tickets',
     'entree_journal',
+    'archives',
 ]
 
 MIDDLEWARE = [

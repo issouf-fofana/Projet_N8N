@@ -1,0 +1,9 @@
+[Unit]
+Description=Lance auto_import toutes les 10 minutes (import BR/factures même sans événement SMB)
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+
+[Install]
+WantedBy=timers.target

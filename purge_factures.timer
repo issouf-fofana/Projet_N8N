@@ -1,0 +1,9 @@
+[Unit]
+Description=Vide les factures Asten tous les 2 jours à 04h00
+
+[Timer]
+OnCalendar=*-*-1/2 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Purge des données anciennes (> 2 mois) avec archivage mensuel
+After=postgresql.service network.target
+
+[Service]
+Type=oneshot
+User=ifofana
+WorkingDirectory=/opt/Projet_N8N
+ExecStart=/opt/Projet_N8N/env/bin/python /opt/Projet_N8N/manage.py purge_donnees --mois 2
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=3600
+
+[Install]
+WantedBy=multi-user.target

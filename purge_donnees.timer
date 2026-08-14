@@ -1,0 +1,9 @@
+[Unit]
+Description=Lance la purge des données chaque nuit à 03h30
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
