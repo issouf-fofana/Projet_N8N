@@ -3318,9 +3318,10 @@ def configuration_systeme(request):
     TypeFichierConfig.get_types_actifs()
     types_fichiers_ctx = list(TypeFichierConfig.objects.order_by('type_key'))
 
-    # Charger config erreurs ignorées + découvrir nouveaux patterns automatiquement
+    # Charger config erreurs ignorées — découverte en arrière-plan pour ne pas bloquer la page
     ErreurIgnoreeConfig.get_patterns_ignores()
-    ErreurIgnoreeConfig.decouvrir_nouveaux_patterns()
+    import threading as _th
+    _th.Thread(target=ErreurIgnoreeConfig.decouvrir_nouveaux_patterns, daemon=True).start()
     erreurs_ignorees_ctx = list(ErreurIgnoreeConfig.objects.order_by('ignorer', 'pattern'))
 
     ai_provider = vals.get('AI_PROVIDER') or get_default('AI_PROVIDER') or 'gemini'
