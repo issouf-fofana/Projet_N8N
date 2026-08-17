@@ -5,9 +5,9 @@
 <style>
 /* ── Header ── */
 .vad-header { display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap; }
-.vad-icon { width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#1e3a8a,#1e40af);
+.vad-icon { width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#6b4c35,#8b5e3c);
     color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;
-    box-shadow:0 4px 14px rgba(30,58,138,.25);flex-shrink:0; }
+    box-shadow:0 4px 14px rgba(107,76,53,.25);flex-shrink:0; }
 .vad-header h1 { font-size:1.45rem;font-weight:900;color:#0f172a;margin:0; }
 .vad-header p  { margin:3px 0 0;font-size:.82rem;color:#64748b; }
 .vad-header-right { margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap; }
@@ -26,14 +26,14 @@
 .vad-pills { display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap; }
 .vad-pill { display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e8edf5;
     border-radius:14px;padding:11px 18px;box-shadow:0 2px 8px rgba(15,23,42,.05); }
-.vad-pill i   { font-size:1.1rem;color:#1e3a8a; }
+.vad-pill i   { font-size:1.1rem;color:#6b4c35; }
 .vad-pill-val { font-size:1.1rem;font-weight:800;color:#0f172a; }
 .vad-pill-lbl { font-size:.7rem;color:#94a3b8;font-weight:600; }
 
 /* ── Section title ── */
 .vad-stitle { font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
     color:#94a3b8;margin:22px 0 12px;display:flex;align-items:center;gap:8px; }
-.vad-stitle .cnt { background:#1e3a8a;color:#fff;border-radius:10px;
+.vad-stitle .cnt { background:#6b4c35;color:#fff;border-radius:10px;
     padding:1px 8px;font-size:.65rem;font-weight:700; }
 
 /* ── Grille assortiments ── */
@@ -82,8 +82,8 @@
 .vad-file-label { color:#334155;font-weight:600; }
 .vad-file-label.missing { color:#94a3b8;font-style:italic; }
 .vad-file-right { display:flex;align-items:center;gap:8px;flex-shrink:0; }
-.vad-articles { font-size:.68rem;font-weight:700;background:#eff6ff;
-    color:#1e40af;padding:2px 8px;border-radius:8px; }
+.vad-articles { font-size:.68rem;font-weight:700;background:#faf5f1;
+    color:#8b5e3c;padding:2px 8px;border-radius:8px; }
 .vad-taille { font-size:.67rem;color:#cbd5e1; }
 
 /* Alerte extra */
@@ -228,7 +228,7 @@
                 {% endif %}
                 <span class="vad-taille">{{ f.taille }}</span>
                 {% if f.present %}
-                <i class="bi bi-chevron-right" style="font-size:.7rem;color:#1e3a8a;"></i>
+                <i class="bi bi-chevron-right" style="font-size:.7rem;color:#6b4c35;"></i>
                 {% endif %}
             </div>
         {% if f.present %}</a>{% else %}</div>{% endif %}
@@ -270,7 +270,7 @@
         <div class="vad-file-right">
             {% if f.nb_lignes > 0 %}<span class="vad-articles">{{ f.nb_lignes }} lignes</span>{% endif %}
             <span class="vad-taille">{{ f.taille }}</span>
-            <i class="bi bi-chevron-right" style="font-size:.68rem;color:#93c5fd;"></i>
+            <i class="bi bi-chevron-right" style="font-size:.68rem;color:#d4b896;"></i>
         </div>
     </a>
     {% else %}

@@ -6,9 +6,9 @@
 /* ── Header ── */
 .va-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:28px; }
 .va-header-left { display:flex; align-items:center; gap:14px; }
-.va-icon { width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,#1e3a8a,#1e40af);
+.va-icon { width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,#6b4c35,#8b5e3c);
     display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.35rem;
-    box-shadow:0 4px 14px rgba(30,58,138,.28); }
+    box-shadow:0 4px 14px rgba(107,76,53,.28); }
 .va-header h1 { font-size:1.55rem;font-weight:900;color:#0f172a;margin:0; }
 .va-header p  { margin:2px 0 0;font-size:.82rem;color:#64748b; }
 
@@ -32,8 +32,8 @@
 .va-filters { display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap; }
 .va-filter-btn { padding:6px 16px;border-radius:20px;font-size:.78rem;font-weight:600;
     border:1.5px solid #e2e8f0;background:#fff;color:#475569;text-decoration:none;transition:all .14s; }
-.va-filter-btn:hover { border-color:#1e3a8a;color:#1e3a8a; }
-.va-filter-btn.active { background:#1e3a8a;border-color:#1e3a8a;color:#fff; }
+.va-filter-btn:hover { border-color:#6b4c35;color:#6b4c35; }
+.va-filter-btn.active { background:#6b4c35;border-color:#6b4c35;color:#fff; }
 
 /* ── Table ── */
 .va-table-wrap { background:#fff;border-radius:18px;border:1px solid #e8edf5;
@@ -53,7 +53,7 @@
 .st-badge.ok      { background:#dcfce7;color:#15803d; }
 .st-badge.warning { background:#fef3c7;color:#b45309; }
 .st-badge.error   { background:#fee2e2;color:#b91c1c; }
-.st-badge.today   { background:#dbeafe;color:#1e40af; }
+.st-badge.today   { background:#f5ede6;color:#8b5e3c; }
 
 /* Barre conformité */
 .va-conf { display:flex;align-items:center;gap:8px; }
@@ -65,9 +65,9 @@
 
 /* Lien détail */
 .va-detail-link { display:inline-flex;align-items:center;gap:4px;font-size:.75rem;font-weight:600;
-    color:#1e3a8a;text-decoration:none;padding:4px 11px;border-radius:9px;
-    border:1.5px solid rgba(30,58,138,.2);transition:all .14s; }
-.va-detail-link:hover { background:#1e3a8a;color:#fff; }
+    color:#6b4c35;text-decoration:none;padding:4px 11px;border-radius:9px;
+    border:1.5px solid rgba(107,76,53,.2);transition:all .14s; }
+.va-detail-link:hover { background:#6b4c35;color:#fff; }
 
 /* Indisponible */
 .va-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -239,7 +239,7 @@
             <span style="color:#94a3b8;font-size:.75rem;">/ {{ v.nb_attendu_max }}</span>
         </td>
         <td>
-            <span style="font-weight:600;color:#1e3a8a;">{{ v.nb_assortiments }}</span>
+            <span style="font-weight:600;color:#6b4c35;">{{ v.nb_assortiments }}</span>
             <span style="color:#94a3b8;font-size:.75rem;">assortiments</span>
             {% if v.assortiments_manquants %}
             <span class="st-badge error ms-1" title="{% for c in v.assortiments_manquants %}{{ c }} {% endfor %}">

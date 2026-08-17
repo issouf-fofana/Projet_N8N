@@ -6,13 +6,13 @@
 /* ── Header ── */
 .vaf-header { display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
 .vaf-icon { width:48px; height:48px; border-radius:13px;
-    background:linear-gradient(135deg,#1e3a8a,#1e40af); color:#fff;
+    background:linear-gradient(135deg,#6b4c35,#8b5e3c); color:#fff;
     display:flex; align-items:center; justify-content:center; font-size:1.25rem;
-    box-shadow:0 4px 14px rgba(30,58,138,.25); flex-shrink:0; }
+    box-shadow:0 4px 14px rgba(107,76,53,.25); flex-shrink:0; }
 .vaf-header h1 { font-size:1.35rem; font-weight:900; color:#0f172a; margin:0; }
 .vaf-header p  { font-size:.8rem; color:#64748b; margin:3px 0 0; }
 .vaf-breadcrumb { display:flex; align-items:center; gap:6px; font-size:.75rem; color:#94a3b8; margin-bottom:18px; flex-wrap:wrap; }
-.vaf-breadcrumb a { color:#1e3a8a; text-decoration:none; font-weight:600; }
+.vaf-breadcrumb a { color:#6b4c35; text-decoration:none; font-weight:600; }
 .vaf-breadcrumb a:hover { text-decoration:underline; }
 .vaf-breadcrumb .sep { color:#cbd5e1; }
 
@@ -29,16 +29,16 @@
 .vaf-search-input { width:100%; border:1.5px solid #e2e8f0; border-radius:12px;
     padding:9px 14px 9px 38px; font-size:.88rem; color:#0f172a;
     background:#f8fafc; transition:all .15s; outline:none; }
-.vaf-search-input:focus { border-color:#1e3a8a; background:#fff; box-shadow:0 0 0 3px rgba(30,58,138,.1); }
-.vaf-search-btn { background:linear-gradient(135deg,#1e3a8a,#1e40af); color:#fff;
+.vaf-search-input:focus { border-color:#6b4c35; background:#fff; box-shadow:0 0 0 3px rgba(107,76,53,.1); }
+.vaf-search-btn { background:linear-gradient(135deg,#6b4c35,#8b5e3c); color:#fff;
     border:none; border-radius:12px; padding:9px 22px; font-size:.85rem; font-weight:700;
     cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:7px; }
-.vaf-search-btn:hover { box-shadow:0 4px 14px rgba(30,58,138,.3); transform:translateY(-1px); }
+.vaf-search-btn:hover { box-shadow:0 4px 14px rgba(107,76,53,.3); transform:translateY(-1px); }
 .vaf-clear-btn { background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0;
     border-radius:12px; padding:9px 16px; font-size:.82rem; font-weight:600;
     cursor:pointer; text-decoration:none; display:flex; align-items:center; gap:6px;
     transition:all .14s; }
-.vaf-clear-btn:hover { background:#e2e8f0; color:#1e3a8a; }
+.vaf-clear-btn:hover { background:#e2e8f0; color:#6b4c35; }
 
 /* ── Stats & pagination top ── */
 .vaf-meta { display:flex; align-items:center; justify-content:space-between;
@@ -46,12 +46,12 @@
 .vaf-meta-left { display:flex; align-items:center; gap:10px; }
 .vaf-count { font-size:.82rem; color:#64748b; }
 .vaf-count strong { color:#0f172a; font-weight:700; }
-.vaf-search-badge { background:rgba(30,58,138,.1); color:#1e3a8a; padding:3px 10px;
+.vaf-search-badge { background:rgba(107,76,53,.1); color:#6b4c35; padding:3px 10px;
     border-radius:10px; font-size:.72rem; font-weight:700; }
 .vaf-per-page { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#94a3b8; }
 .vaf-per-page a { padding:3px 9px; border-radius:8px; text-decoration:none;
     color:#475569; border:1px solid #e2e8f0; font-weight:600; transition:all .12s; }
-.vaf-per-page a.active, .vaf-per-page a:hover { background:#1e3a8a; color:#fff; border-color:#1e3a8a; }
+.vaf-per-page a.active, .vaf-per-page a:hover { background:#6b4c35; color:#fff; border-color:#6b4c35; }
 
 /* ── Table ── */
 .vaf-table-wrap { background:#fff; border-radius:18px; border:1px solid #e8edf5;
@@ -61,13 +61,13 @@
     border-bottom:1.5px solid #e8edf5; font-size:.68rem; font-weight:700;
     text-transform:uppercase; letter-spacing:.07em; color:#94a3b8;
     white-space:nowrap; position:sticky; top:0; z-index:1; }
-.vaf-table thead th.hl { color:#1e3a8a; }
+.vaf-table thead th.hl { color:#6b4c35; }
 .vaf-table tbody tr { border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background .1s; }
 .vaf-table tbody tr:last-child { border-bottom:none; }
 .vaf-table tbody tr:hover { background:#f0f5ff; }
-.vaf-table tbody tr.selected { background:#dbeafe !important; }
+.vaf-table tbody tr.selected { background:#f5ede6 !important; }
 .vaf-table tbody td { padding:10px 14px; color:#334155; vertical-align:middle; }
-.vaf-table tbody td.hl { font-weight:700; color:#1e3a8a; font-family:monospace; font-size:.85rem; }
+.vaf-table tbody td.hl { font-weight:700; color:#6b4c35; font-family:monospace; font-size:.85rem; }
 .vaf-table tbody td.price { font-weight:600; color:#15803d; font-family:monospace; }
 
 /* Highlight de recherche dans le texte */
@@ -76,10 +76,10 @@ mark { background:#fde68a; color:#92400e; border-radius:3px; padding:0 2px; font
 /* ── Panneau de sélection ── */
 .vaf-selection-panel {
     position:fixed; bottom:0; left:var(--sidebar-width,250px); right:0;
-    background:linear-gradient(135deg,#1e3a8a,#1e40af);
+    background:linear-gradient(135deg,#6b4c35,#8b5e3c);
     color:#fff; padding:14px 28px;
     display:none; align-items:center; gap:16px;
-    box-shadow:0 -4px 24px rgba(30,58,138,.35);
+    box-shadow:0 -4px 24px rgba(107,76,53,.35);
     z-index:500; flex-wrap:wrap;
     border-radius:0;
     animation:slideUpPanel .2s ease;
@@ -108,8 +108,8 @@ mark { background:#fde68a; color:#92400e; border-radius:3px; padding:0 2px; font
 .vaf-pag-btn { padding:7px 13px; border-radius:10px; font-size:.78rem; font-weight:600;
     border:1.5px solid #e2e8f0; background:#fff; color:#475569;
     text-decoration:none; transition:all .12s; display:inline-flex; align-items:center; }
-.vaf-pag-btn:hover { border-color:#1e3a8a; color:#1e3a8a; background:#f0f5ff; }
-.vaf-pag-btn.active { background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
+.vaf-pag-btn:hover { border-color:#6b4c35; color:#6b4c35; background:#f0f5ff; }
+.vaf-pag-btn.active { background:#6b4c35; border-color:#6b4c35; color:#fff; }
 .vaf-pag-btn.disabled { opacity:.35; pointer-events:none; }
 .vaf-pag-info { font-size:.78rem; color:#94a3b8; white-space:nowrap; }
 .vaf-pag-summary { font-size:.8rem; color:#64748b; }
@@ -134,7 +134,7 @@ mark { background:#fde68a; color:#92400e; border-radius:3px; padding:0 2px; font
     <span class="sep">›</span>
     <a href="{% url 'dashboard:version_asten_detail' version_name %}">{{ version_name }}</a>
     <span class="sep">›</span>
-    <span style="color:#1e3a8a;font-weight:700;">{{ assortiment }} / {{ file_type }}</span>
+    <span style="color:#6b4c35;font-weight:700;">{{ assortiment }} / {{ file_type }}</span>
 </div>
 
 <!-- Header -->

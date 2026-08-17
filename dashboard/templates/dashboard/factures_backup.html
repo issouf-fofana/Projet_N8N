@@ -19,7 +19,7 @@
 .stat-ok     { border-top:3px solid #10b981; }
 .stat-vide   { border-top:3px solid #f59e0b; }
 .stat-ecart  { border-top:3px solid #ef4444; }
-.stat-total  { border-top:3px solid #1e3a8a; }
+.stat-total  { border-top:3px solid #6b4c35; }
 .stat-taux   { border-top:3px solid #6366f1; }
 .stat-ignore { border-top:3px solid #9ca3af; }
 .filter-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
@@ -34,7 +34,7 @@
 /* Statut badges */
 .badge-ecart    { background:#fee2e2; color:#dc2626; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
 .badge-integre  { background:#d1fae5; color:#059669; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
-.badge-integre-csv  { background:#dbeafe; color:#1d4ed8; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
+.badge-integre-csv  { background:#f5ede6; color:#6b4c35; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
 .badge-ignore   { background:#f3f4f6; color:#6b7280; font-weight:600; border-radius:6px; padding:3px 10px; font-size:0.78rem; white-space:nowrap; }
 
 /* Bouton modifier statut */
@@ -42,13 +42,13 @@
     background:none; border:none; padding:2px 5px; cursor:pointer; color:#9ca3af; font-size:0.72rem;
     border-radius:4px; transition:color 0.15s, background 0.15s;
 }
-.btn-edit-statut:hover { color:#1e3a8a; background:#eff6ff; }
+.btn-edit-statut:hover { color:#6b4c35; background:#faf5f1; }
 
 /* Row coloring */
 tr.row-ecart td          { background:#fff5f5; }
 tr.row-ecart:hover td    { background:#fee2e2; }
-tr.row-integre-csv td    { background:#eff6ff; }
-tr.row-integre-csv:hover td { background:#dbeafe; }
+tr.row-integre-csv td    { background:#faf5f1; }
+tr.row-integre-csv:hover td { background:#f5ede6; }
 tr.row-integre-man td    { background:#f0fdf4; }
 tr.row-integre-man:hover td { background:#dcfce7; }
 tr.row-selected td       { background:#ede9fe !important; outline:2px solid #7c3aed; }
@@ -59,7 +59,7 @@ tr.clickable-row { cursor:pointer; }
 /* Bulk action bar */
 #bulkBar {
     position:sticky; top:0; z-index:100;
-    background:#1e3a8a; color:#fff;
+    background:#6b4c35; color:#fff;
     border-radius:10px; padding:10px 18px;
     margin-bottom:12px;
     display:none;
@@ -100,8 +100,8 @@ tr.clickable-row { cursor:pointer; }
     border:2px solid #e5e7eb; border-radius:10px; padding:12px 16px; margin-bottom:10px;
     cursor:pointer; transition:all 0.15s;
 }
-.statut-option:hover { border-color:#1e3a8a; background:#f0f7ff; }
-.statut-option.selected { border-color:#1e3a8a; background:#eff6ff; }
+.statut-option:hover { border-color:#6b4c35; background:#f0f7ff; }
+.statut-option.selected { border-color:#6b4c35; background:#faf5f1; }
 .so-title { font-weight:700; font-size:0.9rem; }
 .so-desc  { font-size:0.78rem; color:#6b7280; margin-top:2px; }
 
@@ -122,8 +122,8 @@ tr.clickable-row { cursor:pointer; }
     border:2px solid #e5e7eb; border-radius:10px; padding:11px 14px; margin-bottom:9px;
     cursor:pointer; transition:all 0.15s;
 }
-.statut-option:hover  { border-color:#1e3a8a; background:#f0f7ff; }
-.statut-option.selected { border-color:#1e3a8a; background:#eff6ff; }
+.statut-option:hover  { border-color:#6b4c35; background:#f0f7ff; }
+.statut-option.selected { border-color:#6b4c35; background:#faf5f1; }
 .so-title { font-weight:700; font-size:0.88rem; }
 .so-desc  { font-size:0.75rem; color:#6b7280; margin-top:2px; }
 </style>
@@ -140,7 +140,7 @@ tr.clickable-row { cursor:pointer; }
             </h1>
             <small class="text-muted">Jointure Cyrus ↔ Asten · 1 ligne par facture · Les factures Ignorées sont exclues</small>
         </div>
-        <span class="badge fs-6" style="background:#1e3a8a">{{ total }} facture{{ total|pluralize }}</span>
+        <span class="badge fs-6" style="background:#6b4c35">{{ total }} facture{{ total|pluralize }}</span>
     </div>
 
     {% if error %}
@@ -151,7 +151,7 @@ tr.clickable-row { cursor:pointer; }
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg">
             <div class="stat-card stat-total" style="cursor:pointer" onclick="window.location='?statut=tous'">
-                <div class="stat-num" style="color:#1e3a8a" id="stat-total">{{ stats.total }}</div>
+                <div class="stat-num" style="color:#6b4c35" id="stat-total">{{ stats.total }}</div>
                 <div class="stat-label">Total factures</div>
             </div>
         </div>
@@ -251,7 +251,7 @@ tr.clickable-row { cursor:pointer; }
                         {% endif %}
                     </div>
                 </div>
-                <button type="submit" class="btn btn-sm btn-primary" style="background:#1e3a8a;border-color:#1e3a8a">
+                <button type="submit" class="btn btn-sm btn-primary" style="background:#6b4c35;border-color:#6b4c35">
                     <i class="bi bi-funnel me-1"></i>Filtrer
                 </button>
                 <a href="{% url 'dashboard:vue_factures_backup' %}" class="btn btn-sm btn-outline-secondary">
@@ -362,7 +362,7 @@ tr.clickable-row { cursor:pointer; }
                         <td>
                             <small class="text-muted">
                                 {% if r.nb_articles == 1 %}{{ r.articles.0.lart|default:"—" }}
-                                {% else %}<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:700;border-radius:10px;padding:1px 7px">{{ r.nb_articles }}</span> art.{% endif %}
+                                {% else %}<span style="background:#f5ede6;color:#6b4c35;font-size:0.7rem;font-weight:700;border-radius:10px;padding:1px 7px">{{ r.nb_articles }}</span> art.{% endif %}
                             </small>
                         </td>
                         {% if r.asten %}
@@ -448,7 +448,7 @@ tr.clickable-row { cursor:pointer; }
             <button class="app-modal-btn cancel" onclick="closeStatutModal()">
                 <i class="bi bi-x-lg"></i> Annuler
             </button>
-            <button class="app-modal-btn" style="background:#1e3a8a;color:#fff" onclick="saveStatut()">
+            <button class="app-modal-btn" style="background:#6b4c35;color:#fff" onclick="saveStatut()">
                 <i class="bi bi-check-lg"></i> Enregistrer
             </button>
         </div>

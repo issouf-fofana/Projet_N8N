@@ -625,14 +625,14 @@ function makePieChart(id, labels, values, colors) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    makeBarChart('chartCmd',      chartCmd,      '#1e3a8a');
+    makeBarChart('chartCmd',      chartCmd,      '#6b4c35');
     makeBarChart('chartBr',       chartBr,       '#22c55e');
     makeBarChart('chartTickets',  chartTickets,  '#f59e0b');
     makeBarChart('chartVersions', chartVersions, '#8b5cf6');
 
     makePieChart('pieCmd',
         cmdTotaux.labels, cmdTotaux.values,
-        ['#1e3a8a', '#22c55e', '#f59e0b', '#4d7cc7']
+        ['#6b4c35', '#22c55e', '#f59e0b', '#4d7cc7']
     );
     makePieChart('pieBr',
         brPie.labels, brPie.values,
@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
     );
     makePieChart('pieTickets',
         ticketsPie.labels, ticketsPie.values,
-        ['#64748b','#1e3a8a','#f59e0b','#22c55e','#374151']
+        ['#64748b','#6b4c35','#f59e0b','#22c55e','#374151']
     );
     makePieChart('pieVersions',
         versionsPie.labels, versionsPie.values,

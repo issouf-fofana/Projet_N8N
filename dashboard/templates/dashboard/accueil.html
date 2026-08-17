@@ -98,7 +98,7 @@ body { background: #f0f2f8 !important; }
 }
 .head-badge.ko { background: #fee2e2; color: #b91c1c; }
 
-.asten-theme  .head-icon { background: #eff6ff; color: #1e3a8a; box-shadow: 0 2px 8px rgba(30,58,138,.15); }
+.asten-theme  .head-icon { background: #faf5f1; color: #6b4c35; box-shadow: 0 2px 8px rgba(107,76,53,.15); }
 .gpv-theme    .head-icon { background: #f0fdf4; color: #16a34a; box-shadow: 0 2px 8px rgba(22,163,74,.15); }
 .legend-theme .head-icon { background: #fffbeb; color: #d97706; box-shadow: 0 2px 8px rgba(245,158,11,.15); }
 .br-theme     .head-icon { background: #fff1f2; color: #dc2626; box-shadow: 0 2px 8px rgba(239,68,68,.15); }
@@ -117,7 +117,7 @@ body { background: #f0f2f8 !important; }
 .acc-stats-row .sr-val { font-size: 1.05rem; font-weight: 800; color: #1f2937; }
 .acc-stats-row .sr-val.green { color: #16a34a; }
 .acc-stats-row .sr-val.red   { color: #dc2626; }
-.acc-stats-row .sr-val.blue  { color: #1e40af; }
+.acc-stats-row .sr-val.blue  { color: #8b5e3c; }
 .acc-stats-row .sr-val.amber { color: #d97706; }
 
 .acc-card-inner { display: flex; gap: 12px; align-items: center; }
@@ -635,12 +635,12 @@ body { background: #f0f2f8 !important; }
 <!-- ══════════════ ÉVOLUTION JOURNALIÈRE ══════════════ -->
 {% if evolution_journaliere.labels %}
 <div style="margin-bottom:14px;">
-<div style="background:linear-gradient(160deg,#f8f9ff 0%,#fff 60%);border-radius:20px;border:1px solid #e4e8f5;box-shadow:0 4px 28px rgba(30,58,138,.09);overflow:hidden;">
+<div style="background:linear-gradient(160deg,#f8f9ff 0%,#fff 60%);border-radius:20px;border:1px solid #e4e8f5;box-shadow:0 4px 28px rgba(107,76,53,.09);overflow:hidden;">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;">
         <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:38px;height:38px;background:linear-gradient(135deg,#1e3a8a,#4d7cc7);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(30,58,138,.32);">
+            <div style="width:38px;height:38px;background:linear-gradient(135deg,#6b4c35,#4d7cc7);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(107,76,53,.32);">
                 <i class="bi bi-graph-up-arrow" style="color:#fff;font-size:1rem;"></i>
             </div>
             <div>
@@ -653,8 +653,8 @@ body { background: #f0f2f8 !important; }
         </div>
         <!-- Légende pills -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#1e40af;background:#eff6ff;padding:5px 12px;border-radius:20px;border:1px solid #bfdbfe;">
-                <span style="width:8px;height:8px;background:#1e3a8a;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(30,58,138,.6);"></span>Asten
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#8b5e3c;background:#faf5f1;padding:5px 12px;border-radius:20px;border:1px solid #e8d5c4;">
+                <span style="width:8px;height:8px;background:#6b4c35;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(107,76,53,.6);"></span>Asten
             </span>
             <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#15803d;background:#f0fdf4;padding:5px 12px;border-radius:20px;border:1px solid #bbf7d0;">
                 <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(34,197,94,.6);"></span>GPV
@@ -803,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: evoLabels,
                 datasets: [
-                    ds('Asten',          evoAsten,  59,  130, 246, '#1e3a8a'),
+                    ds('Asten',          evoAsten,  59,  130, 246, '#6b4c35'),
                     ds('GPV',            evoGPV,    34,  197, 94,  '#22c55e'),
                     ds('Legend',         evoLegend, 245, 158, 11,  '#f59e0b'),
                     ds('BR',             evoBR,     168, 85,  247, '#a855f7'),
@@ -824,7 +824,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         bodyColor: '#94a3b8',
                         padding: { top:10, bottom:10, left:14, right:14 },
                         cornerRadius: 12,
-                        borderColor: 'rgba(30,58,138,.25)',
+                        borderColor: 'rgba(107,76,53,.25)',
                         borderWidth: 1,
                         titleFont: { weight:'700', size:12 },
                         callbacks: {
@@ -837,12 +837,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 scales: {
                     x: {
-                        grid: { color:'rgba(30,58,138,.06)', drawBorder:false },
+                        grid: { color:'rgba(107,76,53,.06)', drawBorder:false },
                         border: { display:false },
                         ticks: { color:'#94a3b8', font:{ size:11, weight:'600' }, maxRotation:0 }
                     },
                     y: {
-                        grid: { color:'rgba(30,58,138,.06)', drawBorder:false },
+                        grid: { color:'rgba(107,76,53,.06)', drawBorder:false },
                         border: { display:false },
                         ticks: { color:'#94a3b8', font:{ size:11 }, callback: v => v.toLocaleString('fr-FR'), maxTicksLimit:6 },
                         beginAtZero: true
