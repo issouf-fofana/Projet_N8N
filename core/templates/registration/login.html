@@ -45,36 +45,27 @@
             box-shadow: 0 24px 80px rgba(28,25,23,.18);
         }
 
-        /* ── Panneau gauche sombre ── */
+        /* ── Panneau gauche image ── */
         .card-left {
             flex: 1;
-            background: linear-gradient(160deg, #1c1917 0%, #292524 60%, #3b2f28 100%);
+            background-image: url("{% static 'core/image_login.jpg' %}");
+            background-size: cover;
+            background-position: center;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
             padding: 48px 44px;
             color: #fff;
             position: relative;
             overflow: hidden;
         }
 
-        /* motif décoratif subtil */
+        /* overlay sombre léger pour lisibilité du logo */
         .card-left::before {
             content: '';
             position: absolute;
-            top: -80px; right: -80px;
-            width: 320px; height: 320px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(107,76,53,.35) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .card-left::after {
-            content: '';
-            position: absolute;
-            bottom: -60px; left: -60px;
-            width: 280px; height: 280px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(107,76,53,.2) 0%, transparent 70%);
+            inset: 0;
+            background: linear-gradient(160deg, rgba(28,25,23,.55) 0%, rgba(28,25,23,.2) 100%);
             pointer-events: none;
         }
 
@@ -98,50 +89,6 @@
             color: #fafaf9;
         }
 
-        .card-left-body {
-            position: relative; z-index: 1;
-        }
-        .left-tagline {
-            font-size: 1.75rem;
-            font-weight: 800;
-            line-height: 1.25;
-            letter-spacing: -.03em;
-            color: #fafaf9;
-            margin-bottom: 14px;
-        }
-        .left-sub {
-            font-size: .88rem;
-            color: #a8a29e;
-            line-height: 1.6;
-            max-width: 320px;
-        }
-
-        .left-footer {
-            position: relative; z-index: 1;
-        }
-        .avatars {
-            display: flex;
-            align-items: center;
-            gap: -6px;
-            margin-bottom: 10px;
-        }
-        .avatar {
-            width: 34px; height: 34px;
-            border-radius: 50%;
-            border: 2px solid #292524;
-            background: var(--primary);
-            color: #fff;
-            font-size: .7rem;
-            font-weight: 700;
-            display: flex; align-items: center; justify-content: center;
-            margin-left: -8px;
-        }
-        .avatar:first-child { margin-left: 0; }
-        .avatar-caption {
-            font-size: .78rem;
-            color: #a8a29e;
-            margin-top: 4px;
-        }
 
         /* ── Panneau droit : formulaire ── */
         .card-right {
@@ -286,20 +233,6 @@
                 <span class="brand-name">Vérification Commandes</span>
             </div>
 
-            <div class="card-left-body">
-                <div class="left-tagline">Là où les équipes<br>traitent ensemble.</div>
-                <div class="left-sub">Suivi des commandes, imports et vérifications — centralisés dans un seul espace de travail.</div>
-            </div>
-
-            <div class="left-footer">
-                <div class="avatars">
-                    <div class="avatar">IS</div>
-                    <div class="avatar" style="background:#8b5e3c;">AB</div>
-                    <div class="avatar" style="background:#44403c;">KD</div>
-                    <div class="avatar" style="background:#57534e;">ML</div>
-                </div>
-                <div class="avatar-caption">Rejoignez votre équipe</div>
-            </div>
         </div>
 
         <!-- Droite : formulaire -->
