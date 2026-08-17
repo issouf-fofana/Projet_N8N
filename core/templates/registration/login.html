@@ -11,154 +11,265 @@
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+        :root {
+            --primary:        #6b4c35;
+            --primary-hover:  #54392a;
+            --primary-light:  rgba(107,76,53,.12);
+            --text-main:      #1c1917;
+            --text-muted:     #78716c;
+            --border:         #e7e5e4;
+            --bg-field:       #fafaf9;
+            --bg-page:        #f5f5f4;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             height: 100vh;
             width: 100vw;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f1f5f9;
+            background: var(--bg-page);
             overflow: hidden;
         }
 
-        /* ── Carte principale : pleine page avec marges ── */
+        /* ── Carte principale ── */
         .card {
             display: flex;
-            width: calc(100vw - 80px);
-            height: calc(100vh - 80px);
-            max-width: 1400px;
-            border-radius: 24px;
+            width: calc(100vw - 64px);
+            height: calc(100vh - 64px);
+            max-width: 1200px;
+            max-height: 780px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(15,23,42,.15);
+            box-shadow: 0 24px 80px rgba(28,25,23,.18);
         }
 
-        /* ── Panneau gauche : image 50% ── */
+        /* ── Panneau gauche sombre ── */
         .card-left {
             flex: 1;
-            background-image: url("{% static 'core/image_login.jpg' %}");
-            background-size: cover;
-            background-position: center;
+            background: linear-gradient(160deg, #1c1917 0%, #292524 60%, #3b2f28 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 48px 44px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
         }
 
-        /* ── Panneau droit : formulaire 50% ── */
+        /* motif décoratif subtil */
+        .card-left::before {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 320px; height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(107,76,53,.35) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .card-left::after {
+            content: '';
+            position: absolute;
+            bottom: -60px; left: -60px;
+            width: 280px; height: 280px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(107,76,53,.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative; z-index: 1;
+        }
+        .brand-icon {
+            width: 40px; height: 40px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+        .brand-name {
+            font-size: .95rem;
+            font-weight: 700;
+            letter-spacing: -.01em;
+            color: #fafaf9;
+        }
+
+        .card-left-body {
+            position: relative; z-index: 1;
+        }
+        .left-tagline {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.25;
+            letter-spacing: -.03em;
+            color: #fafaf9;
+            margin-bottom: 14px;
+        }
+        .left-sub {
+            font-size: .88rem;
+            color: #a8a29e;
+            line-height: 1.6;
+            max-width: 320px;
+        }
+
+        .left-footer {
+            position: relative; z-index: 1;
+        }
+        .avatars {
+            display: flex;
+            align-items: center;
+            gap: -6px;
+            margin-bottom: 10px;
+        }
+        .avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 2px solid #292524;
+            background: var(--primary);
+            color: #fff;
+            font-size: .7rem;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            margin-left: -8px;
+        }
+        .avatar:first-child { margin-left: 0; }
+        .avatar-caption {
+            font-size: .78rem;
+            color: #a8a29e;
+            margin-top: 4px;
+        }
+
+        /* ── Panneau droit : formulaire ── */
         .card-right {
-            flex: 0 0 50%;
+            flex: 0 0 440px;
             background: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 60px 80px;
+            padding: 56px 52px;
         }
 
-        .card-right form,
-        .card-right > * { width: 100%; max-width: 380px; }
+        .form-inner { width: 100%; max-width: 340px; }
 
         .login-title {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 800;
-            color: #0f172a;
+            color: var(--text-main);
             letter-spacing: -.02em;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+        }
+        .login-sub {
+            font-size: .83rem;
+            color: var(--text-muted);
+            margin-bottom: 32px;
         }
 
-        .login-sub {
-            font-size: .9rem;
-            color: #94a3b8;
-            margin-bottom: 36px;
-        }
+        .field-group { margin-bottom: 18px; }
 
         .login-label {
             display: block;
-            font-size: .68rem;
+            font-size: .72rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .09em;
-            color: #94a3b8;
-            margin-bottom: 6px;
+            letter-spacing: .08em;
+            color: var(--text-muted);
+            margin-bottom: 7px;
         }
 
-        .input-wrap {
-            position: relative;
-            margin-bottom: 14px;
-        }
+        .input-wrap { position: relative; }
 
         .input-icon {
             position: absolute;
-            left: 13px;
-            top: 50%;
+            left: 13px; top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: #a8a29e;
             font-size: .85rem;
             pointer-events: none;
         }
 
         .toggle-pwd {
             position: absolute;
-            right: 11px;
-            top: 50%;
+            right: 11px; top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: #a8a29e;
             cursor: pointer;
             font-size: .85rem;
-            background: none;
-            border: none;
-            padding: 0;
+            background: none; border: none; padding: 0;
             transition: color .15s;
         }
-        .toggle-pwd:hover { color: #334155; }
+        .toggle-pwd:hover { color: var(--primary); }
 
         .login-field {
             width: 100%;
-            padding: 13px 40px;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 50px;
+            padding: 11px 38px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
             font-size: .85rem;
-            color: #0f172a;
-            background: #f8fafc;
+            color: var(--text-main);
+            background: var(--bg-field);
             outline: none;
             transition: border-color .2s, box-shadow .2s, background .15s;
         }
         .login-field:focus {
-            border-color: #94a3b8;
+            border-color: var(--primary);
             background: #fff;
-            box-shadow: 0 0 0 3px rgba(100,116,139,.1);
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
-        .login-field::placeholder { color: #cbd5e1; }
+        .login-field::placeholder { color: #c8c4c0; }
 
         .btn-login {
             width: 100%;
-            padding: 14px;
+            padding: 13px;
             border: none;
-            border-radius: 50px;
-            background: #0f172a;
+            border-radius: 10px;
+            background: var(--primary);
             color: #fff;
             font-size: .85rem;
             font-weight: 700;
-            letter-spacing: .06em;
+            letter-spacing: .05em;
             text-transform: uppercase;
             cursor: pointer;
-            margin-top: 6px;
+            margin-top: 8px;
             transition: background .2s, transform .15s, box-shadow .2s;
         }
         .btn-login:hover {
-            background: #1e293b;
+            background: var(--primary-hover);
             transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(15,23,42,.18);
+            box-shadow: 0 8px 20px rgba(107,76,53,.28);
         }
+        .btn-login:active { transform: translateY(0); }
 
         .alert-error {
             background: #fef2f2;
             border: 1px solid #fecaca;
             color: #b91c1c;
             border-radius: 10px;
-            padding: 8px 12px;
+            padding: 9px 13px;
             font-size: .78rem;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 7px;
+        }
+        .alert-info {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            border-radius: 10px;
+            padding: 9px 13px;
+            font-size: .78rem;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 7px;
+        }
+
+        /* responsive */
+        @media (max-width: 720px) {
+            .card { width: 100vw; height: 100vh; border-radius: 0; max-height: none; }
+            .card-left { display: none; }
+            .card-right { flex: 1; padding: 40px 28px; }
         }
     </style>
 </head>
@@ -166,56 +277,82 @@
 
     <div class="card">
 
-        <!-- Gauche : image -->
-        <div class="card-left"></div>
+        <!-- Gauche : branding sombre -->
+        <div class="card-left">
+            <div class="brand">
+                <div class="brand-icon">
+                    <img src="{% static 'core/favicon.png' %}" alt="Logo" style="height:24px;width:24px;object-fit:contain;filter:brightness(0) invert(1);" onerror="this.style.display='none';this.parentElement.innerHTML='<i class=\'bi bi-box-seam\' style=\'color:#fff;font-size:1rem;\'></i>'">
+                </div>
+                <span class="brand-name">Vérification Commandes</span>
+            </div>
+
+            <div class="card-left-body">
+                <div class="left-tagline">Là où les équipes<br>traitent ensemble.</div>
+                <div class="left-sub">Suivi des commandes, imports et vérifications — centralisés dans un seul espace de travail.</div>
+            </div>
+
+            <div class="left-footer">
+                <div class="avatars">
+                    <div class="avatar">IS</div>
+                    <div class="avatar" style="background:#8b5e3c;">AB</div>
+                    <div class="avatar" style="background:#44403c;">KD</div>
+                    <div class="avatar" style="background:#57534e;">ML</div>
+                </div>
+                <div class="avatar-caption">Rejoignez votre équipe</div>
+            </div>
+        </div>
 
         <!-- Droite : formulaire -->
         <div class="card-right">
+            <div class="form-inner">
 
-            <div style="margin-bottom:16px;">
-                <img src="{% static 'core/favicon.png' %}" alt="Logo" style="height:48px;width:48px;object-fit:contain;border-radius:10px;">
-            </div>
-            <div class="login-title">Bonjour,<br>Bienvenue</div>
-            <div class="login-sub">Connectez-vous pour accéder à votre espace</div>
+                <div class="login-title">Bienvenue</div>
+                <div class="login-sub">Connectez-vous à votre espace</div>
 
-            {% if form.errors %}
-            <div class="alert-error">
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                Identifiants incorrects.
-            </div>
-            {% endif %}
-
-            {% if messages %}
-            {% for message in messages %}
-            <div class="alert-error" style="background:#f0f9ff;border-color:#bae6fd;color:#0369a1;">
-                <i class="bi bi-info-circle"></i> {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
-
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ next }}">
-
-                <label class="login-label">Nom d'utilisateur</label>
-                <div class="input-wrap">
-                    <i class="bi bi-person input-icon"></i>
-                    <input type="text" name="username" class="login-field" placeholder="Identifiant" autofocus required>
+                {% if form.errors %}
+                <div class="alert-error">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Identifiants incorrects. Veuillez réessayer.
                 </div>
+                {% endif %}
 
-                <label class="login-label">Mot de passe</label>
-                <div class="input-wrap">
-                    <i class="bi bi-lock input-icon"></i>
-                    <input type="password" name="password" id="loginPwd" class="login-field" placeholder="••••••••" required>
-                    <button type="button" class="toggle-pwd" onclick="togglePwd()">
-                        <i class="bi bi-eye" id="pwdIcon"></i>
-                    </button>
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert-info">
+                    <i class="bi bi-info-circle-fill"></i> {{ message }}
                 </div>
+                {% endfor %}
+                {% endif %}
 
-                <button type="submit" class="btn-login">Se connecter</button>
-            </form>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}">
 
+                    <div class="field-group">
+                        <label class="login-label">Nom d'utilisateur</label>
+                        <div class="input-wrap">
+                            <i class="bi bi-person input-icon"></i>
+                            <input type="text" name="username" class="login-field" placeholder="Identifiant" autofocus required>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="login-label">Mot de passe</label>
+                        <div class="input-wrap">
+                            <i class="bi bi-lock input-icon"></i>
+                            <input type="password" name="password" id="loginPwd" class="login-field" placeholder="••••••••" required>
+                            <button type="button" class="toggle-pwd" onclick="togglePwd()">
+                                <i class="bi bi-eye" id="pwdIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-login">Se connecter</button>
+                </form>
+
+            </div>
         </div>
+
     </div>
 
     <script>
