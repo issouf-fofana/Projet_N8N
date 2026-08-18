@@ -312,7 +312,7 @@
         .table thead th {
             border-bottom: 2px solid #e5e7eb;
             font-weight: 600;
-            color: #1e293b;
+            color: #1c1917;
             padding: 15px;
         }
         
@@ -676,154 +676,16 @@
             color: #ffffff;
         }
 
-        /* ══ Thème global ══ */
-        :root {
-            --sidebar-bg: #0f172a;
-            --sidebar-color: #cbd5e1;
-            --main-bg: #f1f5f9;
-            --color-primary: #334155;
-            --color-success: #22c55e;
-            --color-warning: #f59e0b;
-            --color-alert: #ef4444;
-            --color-neutral: #64748b;
-            --accent: #6366f1;
-            --primary-gradient: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        }
-
-        body {
-            background-color: var(--main-bg);
-            color: #0f172a;
-            letter-spacing: 0.2px;
-        }
-
+        /* ── Unification globale couleurs brun chaud ── */
         @keyframes pageEnter {
             from { opacity: 0; transform: translateY(14px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
         .main-content {
-            background: var(--main-bg);
-            padding: 32px 34px;
             animation: pageEnter .38s cubic-bezier(.4,0,.2,1) both;
         }
 
-        .page-header {
-            background: #ffffff;
-            color: #0f172a;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 16px rgba(15,23,42,.06);
-            border-radius: 16px;
-        }
-
-        .page-header h1 {
-            color: #0f172a;
-            font-weight: 700;
-        }
-
-        /* ── Sidebar ── */
-        .sidebar {
-            background: linear-gradient(180deg, #0f172a 0%, #1a2540 100%);
-            box-shadow: 4px 0 24px rgba(15,23,42,.18);
-        }
-
-        .sidebar-header {
-            border-bottom: 1px solid rgba(255,255,255,.07);
-        }
-
-        .sidebar-menu a,
-        .sidebar-accordion .accordion-button {
-            color: rgba(203,213,225,.85);
-            border-left-color: transparent;
-        }
-
-        .sidebar-menu a:hover,
-        .sidebar-menu a.active {
-            background-color: rgba(255,255,255,.07);
-            border-left-color: #6366f1;
-            color: #fff;
-        }
-
-        .sidebar-accordion .accordion-button:not(.collapsed) {
-            background-color: rgba(255,255,255,.07);
-            border-left-color: #6366f1;
-            color: #fff;
-        }
-
-        .sidebar-accordion .accordion-body a:hover,
-        .sidebar-accordion .accordion-body a.active {
-            background-color: rgba(255,255,255,.07);
-            border-left-color: #6366f1;
-            color: #fff;
-            padding-left: 55px;
-        }
-
-        .card {
-            border: 1px solid #e5e9f2;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-        }
-
-        .card:hover {
-            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
-        }
-
-        .card-header {
-            background: #ffffff !important;
-            border-bottom: 1px solid #e5e9f2;
-            font-size: 1rem;
-        }
-
-        .card-body {
-            padding: 22px 24px;
-        }
-
-        .stat-value {
-            font-size: 2.05rem;
-        }
-
-        .table {
-            border-radius: 14px;
-            border: 1px solid #e5e9f2;
-        }
-
-        .table thead th {
-            background: #f8fafc;
-            border-bottom: 1px solid #e5e9f2;
-            font-weight: 600;
-        }
-
-        .table tbody tr:hover {
-            background: #f1f5fb;
-        }
-
-        .form-control, .form-select {
-            border: 1px solid #e5e9f2;
-            border-radius: 12px;
-            padding: 10px 14px;
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: #6b4c35;
-            box-shadow: 0 0 0 3px rgba(107, 76, 53, 0.16);
-        }
-
-        .btn {
-            border-radius: 12px;
-            font-weight: 600;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
-        }
-
-        .btn-primary {
-            background: var(--primary-gradient);
-            border: none;
-        }
-
-        /* ── Unification globale couleurs ── */
         .text-primary, a.text-primary, strong.text-primary { color: #6b4c35 !important; }
         .bg-primary  { background-color: #6b4c35 !important; }
         .border-primary { border-color: #6b4c35 !important; }
@@ -831,11 +693,6 @@
 
         a { color: #6b4c35; }
         a:hover { color: #54392a; }
-
-        .form-control:focus, .form-select:focus {
-            border-color: #a07850;
-            box-shadow: 0 0 0 3px rgba(107,76,53,.12);
-        }
 
         .btn-primary {
             background: linear-gradient(135deg, #6b4c35 0%, #8b5e3c 100%);
@@ -854,35 +711,16 @@
         }
         .btn-outline-primary:hover, .btn-outline-primary:focus,
         .btn-check:checked + .btn-outline-primary {
-            background: #1e293b;
-            border-color: #1e293b;
+            background: #6b4c35;
+            border-color: #6b4c35;
             color: #fff;
         }
 
-        .btn-outline-secondary {
-            color: #475569;
-            background: #ffffff;
-            border-color: #cbd5e1;
-        }
-        .btn-outline-secondary:hover {
-            color: #0f172a;
-            background: #f1f5f9;
-            border-color: #94a3b8;
-        }
-
-        .badge {
-            border-radius: 999px;
-            font-weight: 600;
-            padding: 5px 11px;
-        }
-
-        .badge.bg-primary { background-color: #334155 !important; }
-        .badge.bg-info    { background-color: #475569 !important; }
-
-        .card-header h5 i { color: #475569; }
+        .badge.bg-primary { background-color: #6b4c35 !important; }
+        .badge.bg-info    { background-color: #8b5e3c !important; }
 
         .dropdown-menu {
-            border-radius: 14px;
+            border-radius: 8px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 14px 34px rgba(15,23,42,.12);
         }
