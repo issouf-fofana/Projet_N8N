@@ -250,3 +250,10 @@ GEMINI_MODEL = config('GEMINI_MODEL_DEFAULT', default='gemini-3.5-flash')
 # mais génère du JSON mal formé de façon inconsistante.
 NVIDIA_API_KEY = config('NVIDIA_API_KEY', default='')
 NVIDIA_MODEL = config('NVIDIA_MODEL_DEFAULT', default='mistralai/mixtral-8x7b-instruct-v0.1')
+
+# ── Pipeline Email → Remontées automatiques ──
+IMAP_HOST     = config('IMAP_HOST', default='')
+IMAP_PORT     = config('IMAP_PORT', default=993, cast=int)
+IMAP_USER     = config('IMAP_USER', default='')
+IMAP_PASSWORD = config('IMAP_PASSWORD', default='')
+IMAP_FOLDER   = config('IMAP_FOLDER', default='INBOX')
