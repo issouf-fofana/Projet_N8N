@@ -4,6 +4,30 @@ from django.utils import timezone
 from core.models import Magasin
 
 
+class CompteEmail(models.Model):
+    """Compte Outlook 365 connecté via OAuth2 Microsoft Graph."""
+    label = models.CharField(max_length=150, default="Boîte support")
+    client_id = models.CharField(max_length=200, blank=True)
+    client_secret = models.CharField(max_length=500, blank=True)
+    tenant_id = models.CharField(max_length=200, blank=True)
+    refresh_token = models.TextField(blank=True)
+    delta_link = models.TextField(blank=True)  # curseur polling Graph delta
+    is_active = models.BooleanField(default=False)
+    last_sync = models.DateTimeField(null=True, blank=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Compte email"
+        verbose_name_plural = "Comptes email"
+
+    def __str__(self):
+        return self.label
+
+    @property
+    def est_connecte(self):
+        return bool(self.refresh_token)
+
+
 class Technicien(models.Model):
     nom = models.CharField(max_length=150, unique=True)
     actif = models.BooleanField(default=True)
@@ -80,6 +104,13 @@ class Ticket(models.Model):
     date_creation = models.DateTimeField(auto_now_add=True)
     date_mise_a_jour = models.DateTimeField(auto_now=True)
     date_fermeture = models.DateTimeField(null=True, blank=True)
+
+    # ── Traçabilité email Outlook ──
+    source_email = models.EmailField(blank=True, default="")          # expéditeur du mail d'origine
+    outlook_conversation_id = models.CharField(max_length=500, blank=True, db_index=True)
+    outlook_message_id = models.CharField(max_length=500, blank=True)  # id du dernier mail reçu (pour répondre dans le fil)
+    cree_par_email = models.BooleanField(default=False)                # True = créé automatiquement via mail
+    magasin_non_identifie = models.BooleanField(default=False)        # True = IA n'a pas trouvé le magasin
 
     class Meta:
         verbose_name = "Ticket"

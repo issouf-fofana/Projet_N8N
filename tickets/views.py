@@ -1,11 +1,14 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator
 from django.db.models import Case, When, IntegerField, Count
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 from .forms import TicketForm, SuiviTicketForm, StatutTicketForm, AssignationTicketForm, ModifierTicketForm
-from .models import Ticket, SuiviTicket, PieceJointe, HistoriqueStatut
+from .models import Ticket, SuiviTicket, PieceJointe, HistoriqueStatut, CompteEmail
 from .utils import charger_techniciens_si_vide
 
 
@@ -343,3 +346,95 @@ def supprimer_tickets_multiple(request):
     
     messages.error(request, "Méthode non autorisée.")
     return redirect("tickets:liste")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Configuration Outlook 365
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def config_email(request):
+    """Page de configuration du compte Outlook."""
+    compte, _ = CompteEmail.objects.get_or_create(pk=1, defaults={"label": "Boîte support"})
+
+    if request.method == "POST":
+        compte.label = request.POST.get("label", compte.label)
+        compte.client_id = request.POST.get("client_id", "").strip()
+        compte.client_secret = request.POST.get("client_secret", "").strip()
+        compte.tenant_id = request.POST.get("tenant_id", "").strip()
+        compte.is_active = "is_active" in request.POST
+        compte.save()
+        messages.success(request, "Configuration sauvegardée.")
+        return redirect("tickets:config_email")
+
+    redirect_uri = request.build_absolute_uri("/tickets/email/callback/")
+    return render(request, "tickets/config_email.html", {"compte": compte, "redirect_uri": redirect_uri})
+
+
+@login_required
+def outlook_connect(request):
+    """Redirige vers la page de connexion Microsoft OAuth2."""
+    from tickets.outlook_service import get_authorize_url
+    compte = get_object_or_404(CompteEmail, pk=1)
+    if not compte.client_id or not compte.tenant_id or not compte.client_secret:
+        messages.error(request, "Remplis d'abord le Client ID, Tenant ID et Client Secret.")
+        return redirect("tickets:config_email")
+
+    redirect_uri = request.build_absolute_uri("/tickets/email/callback/")
+    url = get_authorize_url(compte, redirect_uri)
+    return redirect(url)
+
+
+def outlook_callback(request):
+    """Callback OAuth2 Microsoft : échange le code et sauvegarde le token."""
+    from tickets.outlook_service import exchange_code_for_token
+    code = request.GET.get("code")
+    state = request.GET.get("state")
+    error = request.GET.get("error")
+
+    if error:
+        messages.error(request, f"Erreur Microsoft : {request.GET.get('error_description', error)}")
+        return redirect("tickets:config_email")
+
+    try:
+        compte = CompteEmail.objects.get(pk=int(state))
+        redirect_uri = request.build_absolute_uri("/tickets/email/callback/")
+        exchange_code_for_token(compte, code, redirect_uri)
+        messages.success(request, f"✅ Compte '{compte.label}' connecté à Outlook avec succès !")
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la connexion : {e}")
+
+    return redirect("tickets:config_email")
+
+
+@login_required
+@require_POST
+def outlook_disconnect(request):
+    """Déconnecte le compte Outlook (efface le refresh token)."""
+    compte = get_object_or_404(CompteEmail, pk=1)
+    compte.refresh_token = ""
+    compte.delta_link = ""
+    compte.is_active = False
+    compte.save()
+    messages.success(request, "Compte Outlook déconnecté.")
+    return redirect("tickets:config_email")
+
+
+@login_required
+@require_POST
+def outlook_poll_now(request):
+    """Déclenche manuellement un polling immédiat."""
+    from tickets.outlook_service import poll_all_accounts
+    try:
+        stats = poll_all_accounts()
+        return JsonResponse({
+            "ok": True,
+            "message": (
+                f"{stats['messages']} message(s) traité(s) — "
+                f"{stats['crees']} remontée(s) créée(s) — "
+                f"{stats['followups']} suivi(s)"
+            ),
+            "stats": stats,
+        })
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)

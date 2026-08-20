@@ -1,0 +1,209 @@
+{% extends "core/base.html" %}
+{% block title %}Configuration Email — Remontées{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h1><i class="bi bi-envelope-gear"></i> Configuration Email Outlook 365</h1>
+    <p class="mb-0" style="opacity:.85;font-size:.9rem;">Connexion Microsoft Graph pour la création automatique de remontées</p>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="row g-4">
+
+    <!-- ── Statut de connexion ── -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-plug"></i> <strong>Statut de la connexion</strong>
+            </div>
+            <div class="card-body">
+                {% if compte.est_connecte %}
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span class="badge" style="background:#10b981;font-size:.85rem;padding:8px 16px;">
+                        <i class="bi bi-check-circle-fill"></i> Connecté à Outlook
+                    </span>
+                    {% if compte.last_sync %}
+                    <span style="color:var(--tx-3);font-size:.85rem;">
+                        Dernier polling : {{ compte.last_sync|date:"d/m/Y H:i" }}
+                    </span>
+                    {% endif %}
+                    <div class="ms-auto d-flex gap-2">
+                        <button onclick="pollNow()" class="btn btn-primary btn-sm" id="btn-poll">
+                            <i class="bi bi-arrow-clockwise"></i> Lancer un polling maintenant
+                        </button>
+                        <form method="post" action="{% url 'tickets:outlook_disconnect' %}" style="margin:0;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('Déconnecter Outlook ?')">
+                                <i class="bi bi-x-circle"></i> Déconnecter
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div id="poll-result" class="mt-3" style="display:none;"></div>
+                {% else %}
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge" style="background:#78716c;font-size:.85rem;padding:8px 16px;">
+                        <i class="bi bi-x-circle"></i> Non connecté
+                    </span>
+                    <span style="color:var(--tx-3);font-size:.85rem;">
+                        Remplis les identifiants ci-dessous puis clique sur "Connecter Outlook"
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Formulaire de configuration ── -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-gear"></i> <strong>Identifiants Azure App</strong>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nom du compte</label>
+                        <input type="text" name="label" class="form-control" value="{{ compte.label }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Client ID <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="client_id" class="form-control font-monospace"
+                               value="{{ compte.client_id }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        <div class="form-text">Application (client) ID depuis Azure Portal</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tenant ID <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="tenant_id" class="form-control font-monospace"
+                               value="{{ compte.tenant_id }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        <div class="form-text">Directory (tenant) ID depuis Azure Portal</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Client Secret <span style="color:#ef4444;">*</span></label>
+                        <input type="password" name="client_secret" class="form-control"
+                               value="{{ compte.client_secret }}" placeholder="Valeur du secret (pas l'ID)">
+                        <div class="form-text">Secrets client > Valeur (pas le Secret ID)</div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_active" id="is_active" class="form-check-input"
+                               {% if compte.is_active %}checked{% endif %}>
+                        <label for="is_active" class="form-check-label">Compte actif (polling automatique)</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy"></i> Sauvegarder
+                        </button>
+                        {% if compte.client_id and compte.tenant_id and compte.client_secret %}
+                        <a href="{% url 'tickets:outlook_connect' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-microsoft"></i> Connecter Outlook
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Guide de configuration ── -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-book"></i> <strong>Comment configurer Azure ?</strong>
+            </div>
+            <div class="card-body" style="font-size:.85rem;">
+                <ol class="ps-3" style="line-height:2;">
+                    <li>Aller sur <strong>portal.azure.com</strong></li>
+                    <li><strong>Azure Active Directory</strong> → Inscriptions d'applications</li>
+                    <li>Nouvelle inscription → nom : <em>"Remontées Support"</em></li>
+                    <li>Type de compte : <em>"Comptes dans cet annuaire uniquement"</em></li>
+                    <li>URI de redirection : <code style="font-size:.8rem;word-break:break-all;">{{ redirect_uri }}</code></li>
+                    <li>Copier le <strong>Client ID</strong> et <strong>Tenant ID</strong></li>
+                    <li>Certificats et secrets → Nouveau secret client → copier la <strong>Valeur</strong></li>
+                    <li>API autorisées → Ajouter : <code>Mail.Read</code> <code>Mail.ReadWrite</code> <code>Mail.Send</code></li>
+                </ol>
+
+                <div class="alert alert-warning mt-3 mb-0" style="font-size:.82rem;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <strong>Permissions requises :</strong><br>
+                    Mail.Read · Mail.ReadWrite · Mail.Send · User.Read · offline_access
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-robot"></i> <strong>Fonctionnement automatique</strong>
+            </div>
+            <div class="card-body" style="font-size:.85rem;line-height:1.8;">
+                <div class="d-flex gap-2 mb-2">
+                    <span class="badge" style="background:#6b4c35;">Nouveau mail</span>
+                    → IA détecte magasin + type → remontée créée
+                </div>
+                <div class="d-flex gap-2 mb-2">
+                    <span class="badge" style="background:#f59e0b;">Magasin inconnu</span>
+                    → statut <em>"En attente"</em> → vérification manuelle
+                </div>
+                <div class="d-flex gap-2 mb-2">
+                    <span class="badge" style="background:#10b981;">Réponse "c'est résolu"</span>
+                    → ticket fermé automatiquement
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge" style="background:#78716c;">Réponse autre</span>
+                    → suivi ajouté dans le ticket
+                </div>
+                <hr>
+                <div style="color:var(--tx-3);">
+                    <i class="bi bi-clock"></i> Polling automatique toutes les <strong>5 minutes</strong><br>
+                    via <code>python manage.py poll_outlook</code> dans le crontab
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+async function pollNow() {
+    const btn = document.getElementById('btn-poll');
+    const result = document.getElementById('poll-result');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Polling en cours…';
+
+    try {
+        const resp = await fetch("{% url 'tickets:outlook_poll' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        });
+        const data = await resp.json();
+        result.style.display = 'block';
+        if (data.ok) {
+            result.innerHTML = `<div class="alert alert-success mb-0"><i class="bi bi-check-circle-fill"></i> ${data.message}</div>`;
+        } else {
+            result.innerHTML = `<div class="alert alert-danger mb-0"><i class="bi bi-x-circle-fill"></i> ${data.error}</div>`;
+        }
+    } catch(e) {
+        result.style.display = 'block';
+        result.innerHTML = `<div class="alert alert-danger mb-0">Erreur réseau : ${e.message}</div>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Lancer un polling maintenant';
+}
+</script>
+{% endblock %}

@@ -946,6 +946,9 @@
                         <a href="{% url 'tickets:nouveau' %}" class="{% if request.resolver_match.url_name == 'nouveau' and request.resolver_match.app_name == 'tickets' %}active{% endif %}">
                             <i class="bi bi-plus-circle"></i> Nouvelle remontée
                         </a>
+                        <a href="{% url 'tickets:config_email' %}" class="{% if request.resolver_match.url_name == 'config_email' %}active{% endif %}">
+                            <i class="bi bi-envelope-gear"></i> Config Email
+                        </a>
                     </div>
                 </div>
             </div>
