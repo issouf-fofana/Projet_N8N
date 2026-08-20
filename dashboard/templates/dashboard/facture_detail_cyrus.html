@@ -8,7 +8,7 @@
     background: rgba(249,250,251,0.9);
     backdrop-filter: blur(10px);
     padding: 20px 30px;
-    border-radius: 12px;
+    border-radius: 0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     margin-bottom: 25px;
     border: 1px solid #e5e7eb;
@@ -16,7 +16,7 @@
 .info-card {
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 20px 24px;
     margin-bottom: 20px;
 }
@@ -25,7 +25,7 @@
 .info-item span { font-size: 0.95rem; font-weight: 600; color: #1f2937; }
 .table-container {
     background: #fff;
-    border-radius: 12px;
+    border-radius: 0;
     border: 1px solid #e5e7eb;
     overflow: hidden;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
@@ -43,16 +43,16 @@
 }
 .table tbody td { padding: 9px 12px; vertical-align: middle; font-size: 0.875rem; }
 .table tbody tr:hover { background: #f0f7ff; }
-.badge-mag  { background:#e0e7ff; color:#3730a3; font-weight:600; border-radius:6px; padding:2px 8px; font-size:0.8rem; }
-.badge-nsee { background:#fef3c7; color:#92400e; font-weight:600; border-radius:6px; padding:2px 8px; font-size:0.8rem; }
-.cle-badge  { font-family:monospace; background:#f3f4f6; border-radius:5px; padding:2px 6px; font-size:0.9rem; }
+.badge-mag  { background:#e0e7ff; color:#3730a3; font-weight:600; border-radius:0; padding:2px 8px; font-size:0.8rem; }
+.badge-nsee { background:#fef3c7; color:#92400e; font-weight:600; border-radius:0; padding:2px 8px; font-size:0.8rem; }
+.cle-badge  { font-family:monospace; background:#f3f4f6; border-radius:0; padding:2px 6px; font-size:0.9rem; }
 .amount { font-variant-numeric: tabular-nums; }
 .status-ok  { color:#059669; font-weight:600; }
 .status-ko  { color:#dc2626; font-weight:600; }
 .asten-card {
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
-    border-radius: 10px;
+    border-radius: 0;
     padding: 16px 20px;
     margin-bottom: 20px;
 }
@@ -183,7 +183,7 @@
 
     <!-- Articles -->
     {% if facture.statut_effectif == 'integre_vide' %}
-    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:18px 22px;color:#92400e;">
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:0;padding:18px 22px;color:#92400e;">
         <i class="bi bi-info-circle-fill me-2" style="color:#d97706"></i>
         <strong>Aucun article réceptionné dans Asten.</strong>
         La réception existe mais la quantité totale est 0 — les {{ facture.nb_articles }} article{{ facture.nb_articles|pluralize }} du fichier Cyrus n'ont pas été réceptionnés.

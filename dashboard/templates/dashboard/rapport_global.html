@@ -4,15 +4,15 @@
 
 {% block extra_css %}
 <style>
-    .period-btn { border-radius: 8px; font-size: 0.85rem; padding: 6px 14px; }
+    .period-btn { border-radius: 0; font-size: 0.85rem; padding: 6px 14px; }
     .period-btn.active { background: var(--primary-gradient); color: #fff; border-color: transparent; }
-    .section-tab { border-radius: 10px; font-size: 0.9rem; padding: 8px 20px; font-weight: 600; cursor: pointer; border: 2px solid #e5e9f2; background: #fff; color: #374151; transition: all .2s; }
+    .section-tab { border-radius: 0; font-size: 0.9rem; padding: 8px 20px; font-weight: 600; cursor: pointer; border: 2px solid #e5e9f2; background: #fff; color: #374151; transition: all .2s; }
     .section-tab.active { background: var(--primary-gradient); color: #fff; border-color: transparent; }
     .export-btn { font-size: 0.85rem; }
     .table-magasin th { font-size: 0.82rem; }
     .table-magasin td { font-size: 0.88rem; }
     .bar-wrap { height: 180px; }
-    .source-badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+    .source-badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 0; font-weight: 600; }
 </style>
 {% endblock %}
 
@@ -218,7 +218,7 @@
                             <td class="text-end text-danger fw-bold">{{ row.non_integrees }}</td>
                             <td>
                                 {% if row.total %}
-                                <div class="progress" style="height:8px;border-radius:4px;">
+                                <div class="progress" style="height:8px;border-radius:0;">
                                     <div class="progress-bar bg-success" style="width:{% widthratio row.integrees row.total 100 %}%"></div>
                                 </div>
                                 <small class="text-muted" style="font-size:.75rem;">{% widthratio row.integrees row.total 100 %}%</small>
@@ -353,7 +353,7 @@
                             <td class="text-end fw-bold">{{ row.total }}</td>
                             <td>
                                 {% if tickets_par_magasin.0.total %}
-                                <div class="progress" style="height:8px;border-radius:4px;">
+                                <div class="progress" style="height:8px;border-radius:0;">
                                     <div class="progress-bar bg-primary" style="width:{% widthratio row.total tickets_par_magasin.0.total 100 %}%"></div>
                                 </div>
                                 {% endif %}
@@ -413,7 +413,7 @@
                         <td class="text-end fw-bold">{{ row.total }}</td>
                         <td>
                             {% if backup_par_magasin.0.total %}
-                            <div class="progress" style="height:8px;border-radius:4px;">
+                            <div class="progress" style="height:8px;border-radius:0;">
                                 <div class="progress-bar bg-primary" style="width:{% widthratio row.total backup_par_magasin.0.total 100 %}%"></div>
                             </div>
                             {% endif %}
@@ -524,7 +524,7 @@
                         <td>{{ v.heure }}</td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <div class="progress flex-grow-1" style="height:6px;border-radius:3px;">
+                                <div class="progress flex-grow-1" style="height:6px;border-radius:0;">
                                     <div class="progress-bar {% if v.conformite_pct >= 80 %}bg-success{% elif v.conformite_pct >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
                                          style="width:{{ v.conformite_pct }}%"></div>
                                 </div>

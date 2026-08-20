@@ -5,7 +5,7 @@
 <style>
 /* ── Header ── */
 .vaf-header { display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
-.vaf-icon { width:48px; height:48px; border-radius:13px;
+.vaf-icon { width:48px; height:48px; border-radius:0;
     background:linear-gradient(135deg,#6b4c35,#8b5e3c); color:#fff;
     display:flex; align-items:center; justify-content:center; font-size:1.25rem;
     box-shadow:0 4px 14px rgba(107,76,53,.25); flex-shrink:0; }
@@ -18,7 +18,7 @@
 
 /* ── Barre de recherche ── */
 .vaf-search-bar {
-    background:#fff; border-radius:16px; border:1px solid #e8edf5;
+    background:#fff; border-radius:0; border:1px solid #e8edf5;
     box-shadow:0 2px 12px rgba(15,23,42,.06);
     padding:16px 20px; margin-bottom:18px;
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -26,16 +26,16 @@
 .vaf-search-input-wrap { position:relative; flex:1; min-width:220px; }
 .vaf-search-input-wrap i { position:absolute; left:13px; top:50%; transform:translateY(-50%);
     color:#94a3b8; font-size:1rem; pointer-events:none; }
-.vaf-search-input { width:100%; border:1.5px solid #e2e8f0; border-radius:12px;
+.vaf-search-input { width:100%; border:1.5px solid #e2e8f0; border-radius:0;
     padding:9px 14px 9px 38px; font-size:.88rem; color:#0f172a;
     background:#f8fafc; transition:all .15s; outline:none; }
 .vaf-search-input:focus { border-color:#6b4c35; background:#fff; box-shadow:0 0 0 3px rgba(107,76,53,.1); }
 .vaf-search-btn { background:linear-gradient(135deg,#6b4c35,#8b5e3c); color:#fff;
-    border:none; border-radius:12px; padding:9px 22px; font-size:.85rem; font-weight:700;
+    border:none; border-radius:0; padding:9px 22px; font-size:.85rem; font-weight:700;
     cursor:pointer; transition:all .15s; display:flex; align-items:center; gap:7px; }
 .vaf-search-btn:hover { box-shadow:0 4px 14px rgba(107,76,53,.3); transform:translateY(-1px); }
 .vaf-clear-btn { background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0;
-    border-radius:12px; padding:9px 16px; font-size:.82rem; font-weight:600;
+    border-radius:0; padding:9px 16px; font-size:.82rem; font-weight:600;
     cursor:pointer; text-decoration:none; display:flex; align-items:center; gap:6px;
     transition:all .14s; }
 .vaf-clear-btn:hover { background:#e2e8f0; color:#6b4c35; }
@@ -47,14 +47,14 @@
 .vaf-count { font-size:.82rem; color:#64748b; }
 .vaf-count strong { color:#0f172a; font-weight:700; }
 .vaf-search-badge { background:rgba(107,76,53,.1); color:#6b4c35; padding:3px 10px;
-    border-radius:10px; font-size:.72rem; font-weight:700; }
+    border-radius:0; font-size:.72rem; font-weight:700; }
 .vaf-per-page { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#94a3b8; }
-.vaf-per-page a { padding:3px 9px; border-radius:8px; text-decoration:none;
+.vaf-per-page a { padding:3px 9px; border-radius:0; text-decoration:none;
     color:#475569; border:1px solid #e2e8f0; font-weight:600; transition:all .12s; }
 .vaf-per-page a.active, .vaf-per-page a:hover { background:#6b4c35; color:#fff; border-color:#6b4c35; }
 
 /* ── Table ── */
-.vaf-table-wrap { background:#fff; border-radius:18px; border:1px solid #e8edf5;
+.vaf-table-wrap { background:#fff; border-radius:0; border:1px solid #e8edf5;
     box-shadow:0 2px 16px rgba(15,23,42,.07); overflow:hidden; margin-bottom:18px; }
 .vaf-table { width:100%; border-collapse:collapse; font-size:.82rem; }
 .vaf-table thead th { padding:11px 14px; background:#f8fafc;
@@ -71,7 +71,7 @@
 .vaf-table tbody td.price { font-weight:600; color:#15803d; font-family:monospace; }
 
 /* Highlight de recherche dans le texte */
-mark { background:#fde68a; color:#92400e; border-radius:3px; padding:0 2px; font-weight:700; }
+mark { background:#fde68a; color:#92400e; border-radius:0; padding:0 2px; font-weight:700; }
 
 /* ── Panneau de sélection ── */
 .vaf-selection-panel {
@@ -88,10 +88,10 @@ mark { background:#fde68a; color:#92400e; border-radius:3px; padding:0 2px; font
 .vaf-selection-panel.visible { display:flex; }
 .vaf-sel-info { font-size:.9rem; font-weight:700; }
 .vaf-sel-code { font-family:monospace; font-size:1rem; font-weight:900;
-    background:rgba(255,255,255,.18); padding:4px 14px; border-radius:10px; }
+    background:rgba(255,255,255,.18); padding:4px 14px; border-radius:0; }
 .vaf-sel-actions { margin-left:auto; display:flex; gap:10px; }
 .vaf-sel-btn { background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.3);
-    color:#fff; padding:7px 16px; border-radius:10px; font-size:.8rem; font-weight:700;
+    color:#fff; padding:7px 16px; border-radius:0; font-size:.8rem; font-weight:700;
     cursor:pointer; transition:all .14s; text-decoration:none; }
 .vaf-sel-btn:hover { background:rgba(255,255,255,.3); color:#fff; }
 .vaf-sel-close { background:transparent; border:none; color:rgba(255,255,255,.7);
@@ -99,13 +99,13 @@ mark { background:#fde68a; color:#92400e; border-radius:3px; padding:0 2px; font
 
 /* ── Pagination ── */
 .vaf-pagination-wrap {
-    background:#fff; border-radius:14px; border:1px solid #e8edf5;
+    background:#fff; border-radius:0; border:1px solid #e8edf5;
     padding:14px 20px; margin-bottom:20px;
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
     box-shadow:0 2px 10px rgba(15,23,42,.05);
 }
 .vaf-pagination { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
-.vaf-pag-btn { padding:7px 13px; border-radius:10px; font-size:.78rem; font-weight:600;
+.vaf-pag-btn { padding:7px 13px; border-radius:0; font-size:.78rem; font-weight:600;
     border:1.5px solid #e2e8f0; background:#fff; color:#475569;
     text-decoration:none; transition:all .12s; display:inline-flex; align-items:center; }
 .vaf-pag-btn:hover { border-color:#6b4c35; color:#6b4c35; background:#f0f5ff; }

@@ -5,7 +5,7 @@
 <style>
 /* ── Header ── */
 .vad-header { display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap; }
-.vad-icon { width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#6b4c35,#8b5e3c);
+.vad-icon { width:52px;height:52px;border-radius:0;background:linear-gradient(135deg,#6b4c35,#8b5e3c);
     color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;
     box-shadow:0 4px 14px rgba(107,76,53,.25);flex-shrink:0; }
 .vad-header h1 { font-size:1.45rem;font-weight:900;color:#0f172a;margin:0; }
@@ -13,7 +13,7 @@
 .vad-header-right { margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap; }
 
 /* ── Statut global ── */
-.vad-status-bar { display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:14px;
+.vad-status-bar { display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:0;
     margin-bottom:22px;border:1.5px solid; }
 .vad-status-bar.ok      { background:#f0fdf4;border-color:#bbf7d0;color:#15803d; }
 .vad-status-bar.warning { background:#fffbeb;border-color:#fcd34d;color:#b45309; }
@@ -25,7 +25,7 @@
 /* ── Stat pills ── */
 .vad-pills { display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap; }
 .vad-pill { display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e8edf5;
-    border-radius:14px;padding:11px 18px;box-shadow:0 2px 8px rgba(15,23,42,.05); }
+    border-radius:0;padding:11px 18px;box-shadow:0 2px 8px rgba(15,23,42,.05); }
 .vad-pill i   { font-size:1.1rem;color:#6b4c35; }
 .vad-pill-val { font-size:1.1rem;font-weight:800;color:#0f172a; }
 .vad-pill-lbl { font-size:.7rem;color:#94a3b8;font-weight:600; }
@@ -33,13 +33,13 @@
 /* ── Section title ── */
 .vad-stitle { font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
     color:#94a3b8;margin:22px 0 12px;display:flex;align-items:center;gap:8px; }
-.vad-stitle .cnt { background:#6b4c35;color:#fff;border-radius:10px;
+.vad-stitle .cnt { background:#6b4c35;color:#fff;border-radius:0;
     padding:1px 8px;font-size:.65rem;font-weight:700; }
 
 /* ── Grille assortiments ── */
 .vad-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px; }
 
-.vad-card { background:#fff;border-radius:16px;border:1px solid #e8edf5;
+.vad-card { background:#fff;border-radius:0;border:1px solid #e8edf5;
     box-shadow:0 2px 12px rgba(15,23,42,.06);overflow:hidden;
     transition:box-shadow .18s,transform .15s; }
 .vad-card:hover { box-shadow:0 6px 24px rgba(15,23,42,.1);transform:translateY(-1px); }
@@ -49,7 +49,7 @@
 .vad-card.absent  { border-color:#fecaca; }
 
 .vad-card-head { display:flex;align-items:center;gap:13px;padding:14px 18px;border-bottom:1px solid #f1f5f9; }
-.vad-card-code { width:42px;height:42px;border-radius:11px;flex-shrink:0;
+.vad-card-code { width:42px;height:42px;border-radius:0;flex-shrink:0;
     background:#f1f5f9;
     display:flex;align-items:center;justify-content:center;
     font-size:.8rem;font-weight:900;color:#475569; }
@@ -60,7 +60,7 @@
 
 /* Badge statut carte */
 .vad-card-status { margin-left:auto;display:inline-flex;align-items:center;gap:5px;
-    font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap; }
+    font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:0;white-space:nowrap; }
 .vad-card-status.ok      { background:#dcfce7;color:#15803d; }
 .vad-card-status.warning { background:#fef3c7;color:#b45309; }
 .vad-card-status.absent  { background:#fee2e2;color:#b91c1c; }
@@ -83,16 +83,16 @@
 .vad-file-label.missing { color:#94a3b8;font-style:italic; }
 .vad-file-right { display:flex;align-items:center;gap:8px;flex-shrink:0; }
 .vad-articles { font-size:.68rem;font-weight:700;background:#faf5f1;
-    color:#8b5e3c;padding:2px 8px;border-radius:8px; }
+    color:#8b5e3c;padding:2px 8px;border-radius:0; }
 .vad-taille { font-size:.67rem;color:#cbd5e1; }
 
 /* Alerte extra */
-.vad-extra-card { background:#fffbeb;border:1.5px solid #fcd34d;border-radius:16px;overflow:hidden; }
+.vad-extra-card { background:#fffbeb;border:1.5px solid #fcd34d;border-radius:0;overflow:hidden; }
 .vad-extra-card .vad-card-code { background:rgba(217,119,6,.1);color:#b45309; }
 
 /* Fichiers 999 */
 .vad-999-grid { display:flex;gap:10px;flex-wrap:wrap; }
-.vad-999-pill { display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:12px;
+.vad-999-pill { display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:0;
     font-size:.78rem;font-weight:600;border:1.5px solid; }
 .vad-999-pill.ok      { background:#f0fdf4;border-color:#bbf7d0;color:#15803d; }
 .vad-999-pill.missing { background:#fff1f2;border-color:#fecaca;color:#b91c1c; }
@@ -338,7 +338,7 @@
 </div>
 
 <style>
-.st-badge { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700; }
+.st-badge { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:0;font-size:.68rem;font-weight:700; }
 .st-badge.ok      { background:#dcfce7;color:#15803d; }
 .st-badge.warning { background:#fef3c7;color:#b45309; }
 .st-badge.error   { background:#fee2e2;color:#b91c1c; }

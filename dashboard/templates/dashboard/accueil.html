@@ -14,7 +14,7 @@ body { background: #f0f2f8 !important; }
 }
 .acc-alert {
     display: inline-flex; align-items: center; gap: 5px;
-    padding: 4px 10px 4px 8px; border-radius: 20px;
+    padding: 4px 10px 4px 8px; border-radius: 0;
     font-size: .72rem; font-weight: 600; white-space: nowrap;
     text-decoration: none; color: inherit;
     transition: opacity .15s, transform .15s;
@@ -26,7 +26,7 @@ body { background: #f0f2f8 !important; }
 .acc-alert i { font-size: .7rem; }
 .acc-alert .acc-alert-count {
     background: rgba(0,0,0,.08); padding: 1px 7px;
-    border-radius: 20px; font-size: .68rem; font-weight: 700; margin-left: 3px;
+    border-radius: 0; font-size: .68rem; font-weight: 700; margin-left: 3px;
 }
 @keyframes slideIn {
     from { opacity: 0; transform: translateY(-4px); }
@@ -35,7 +35,7 @@ body { background: #f0f2f8 !important; }
 
 /* ── FILTRES ── */
 .acc-filters {
-    background: #fff; border-radius: 14px; padding: 10px 16px;
+    background: #fff; border-radius: 0; padding: 10px 16px;
     margin-bottom: 14px; box-shadow: 0 2px 12px rgba(15,23,42,.07);
     border: 1px solid #e8ecf5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
@@ -45,7 +45,7 @@ body { background: #f0f2f8 !important; }
 }
 .acc-filters .period-pills { display: flex; gap: 4px; flex-wrap: wrap; }
 .acc-filters .period-pills .pp {
-    padding: 5px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+    padding: 5px 14px; border-radius: 0; font-size: .78rem; font-weight: 600;
     border: 1.5px solid #e2e8f0; color: #5a6a85; background: #f8fafc;
     cursor: pointer; transition: all .15s; text-decoration: none; white-space: nowrap;
 }
@@ -56,7 +56,7 @@ body { background: #f0f2f8 !important; }
 }
 .acc-filters .date-inputs { display: flex; gap: 8px; align-items: center; }
 .acc-filters .date-inputs input {
-    padding: 5px 10px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+    padding: 5px 10px; border: 1.5px solid #e2e8f0; border-radius: 0;
     font-size: .82rem; color: #374151; background: #f9fafb; transition: border-color .15s;
 }
 .acc-filters .date-inputs input:focus { outline: none; border-color: #94a3b8; background: #fff; }
@@ -68,7 +68,7 @@ body { background: #f0f2f8 !important; }
 @media (max-width: 576px)  { .acc-cards { grid-template-columns: 1fr; } }
 
 .acc-card {
-    border-radius: 18px; overflow: hidden;
+    border-radius: 0; overflow: hidden;
     box-shadow: 0 2px 16px rgba(15,23,42,.07);
     transition: box-shadow .22s, transform .22s;
     position: relative; background: #fff;
@@ -88,12 +88,12 @@ body { background: #f0f2f8 !important; }
     border-bottom: 1px solid #f1f5f9;
 }
 .acc-card-head .head-icon {
-    width: 38px; height: 38px; border-radius: 11px; display: flex;
+    width: 38px; height: 38px; border-radius: 0; display: flex;
     align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
 }
 .acc-card-head .head-title { color: #1e2a45; flex: 1; font-size: .87rem; font-weight: 700; }
 .acc-card-head .head-badge {
-    font-size: .69rem; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+    font-size: .69rem; font-weight: 700; padding: 3px 9px; border-radius: 0;
     white-space: nowrap;
 }
 .head-badge.ko { background: #fee2e2; color: #b91c1c; }
@@ -126,11 +126,11 @@ body { background: #f0f2f8 !important; }
 
 .acc-progress-wrap { margin-top: 10px; }
 .acc-progress {
-    height: 5px; border-radius: 4px; background: #f1f5f9;
+    height: 5px; border-radius: 0; background: #f1f5f9;
     position: relative; overflow: hidden;
 }
 .acc-progress-bar {
-    position: absolute; left: 0; top: 0; height: 100%; border-radius: 4px;
+    position: absolute; left: 0; top: 0; height: 100%; border-radius: 0;
     transition: width 1s cubic-bezier(.4,0,.2,1);
 }
 .acc-progress-bar.green { background: linear-gradient(90deg,#16a34a,#4ade80); }
@@ -139,7 +139,7 @@ body { background: #f0f2f8 !important; }
 
 .acc-card-btn {
     display: flex; align-items: center; justify-content: center; gap: 6px;
-    margin-top: 12px; padding: 8px 14px; border-radius: 9px;
+    margin-top: 12px; padding: 8px 14px; border-radius: 0;
     font-size: .79rem; font-weight: 600; text-decoration: none;
     background: #f8fafc; color: #64748b;
     border: 1px solid #e8ecf5;
@@ -154,12 +154,12 @@ body { background: #f0f2f8 !important; }
 
     <!-- Page title -->
     <div class="d-flex align-items-center mb-3 gap-2">
-        <div style="width:34px;height:34px;background:linear-gradient(135deg,#1e293b,#334155);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(30,41,59,.25);">
+        <div style="width:34px;height:34px;background:linear-gradient(135deg,#1e293b,#334155);border-radius:0;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(30,41,59,.25);">
             <i class="bi bi-speedometer2" style="color:#fff;font-size:1rem;"></i>
         </div>
         <h1 class="h5 mb-0 fw-bold" style="color:#1e2a45;">Tableau de bord</h1>
         {% if date_debut and date_fin %}
-        <span style="font-size:.75rem;color:#8492a6;background:#f0f3ff;padding:3px 10px;border-radius:20px;font-weight:500;">
+        <span style="font-size:.75rem;color:#8492a6;background:#f0f3ff;padding:3px 10px;border-radius:0;font-weight:500;">
             {{ date_debut }} → {{ date_fin }}
         </span>
         {% endif %}
@@ -563,12 +563,12 @@ body { background: #f0f2f8 !important; }
 
 <!-- ══════════════ CARTE INTÉGRATION RPOS ══════════════ -->
 {% if ia_rpos %}
-<div style="background:#fff;border-radius:16px;border:1px solid #e8edf5;
+<div style="background:#fff;border-radius:0;border:1px solid #e8edf5;
             box-shadow:0 2px 12px rgba(15,23,42,.06);overflow:hidden;margin-bottom:14px;">
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;
                 border-bottom:1px solid #f1f5f9;background:linear-gradient(135deg,#f0fdf4,#fff);">
-        <div style="width:38px;height:38px;border-radius:10px;flex-shrink:0;
+        <div style="width:38px;height:38px;border-radius:0;flex-shrink:0;
                     background:linear-gradient(135deg,#0f766e,#0d9488);
                     display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;
                     box-shadow:0 3px 10px rgba(13,148,136,.25);">
@@ -580,16 +580,16 @@ body { background: #f0f2f8 !important; }
         </div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
             {% if ia_rpos.art_err > 0 %}
-            <span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;">
+            <span style="background:#fee2e2;color:#dc2626;border-radius:0;padding:3px 10px;font-size:.7rem;font-weight:700;">
                 <i class="bi bi-exclamation-circle-fill"></i> {{ ia_rpos.art_err }} art. en erreur
             </span>
             {% else %}
-            <span style="background:#dcfce7;color:#15803d;border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;">
+            <span style="background:#dcfce7;color:#15803d;border-radius:0;padding:3px 10px;font-size:.7rem;font-weight:700;">
                 <i class="bi bi-check-circle-fill"></i> Aucune erreur article
             </span>
             {% endif %}
             <a href="{% url 'dashboard:integration_asten' %}?date={{ ia_rpos.run_date }}"
-               style="background:#0f766e;color:#fff;border-radius:10px;padding:5px 12px;font-size:.72rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+               style="background:#0f766e;color:#fff;border-radius:0;padding:5px 12px;font-size:.72rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
                 <i class="bi bi-arrow-up-right-square"></i> Voir
             </a>
         </div>
@@ -618,7 +618,7 @@ body { background: #f0f2f8 !important; }
                 <div style="font-size:.58rem;color:#94a3b8;margin-top:2px;">absents</div>
             </div>{% endif %}
         </div>
-        <div style="display:flex;gap:2px;height:3px;border-radius:2px;overflow:hidden;background:#f1f5f9;">
+        <div style="display:flex;gap:2px;height:3px;border-radius:0;overflow:hidden;background:#f1f5f9;">
             {% if t.nb_ok > 0 %}<div style="flex:{{ t.nb_ok }};background:#22c55e;"></div>{% endif %}
             {% if t.nb_ok_erreurs > 0 %}<div style="flex:{{ t.nb_ok_erreurs }};background:#f59e0b;"></div>{% endif %}
             {% if t.nb_absent > 0 %}<div style="flex:{{ t.nb_absent }};background:#ef4444;"></div>{% endif %}
@@ -635,12 +635,12 @@ body { background: #f0f2f8 !important; }
 <!-- ══════════════ ÉVOLUTION JOURNALIÈRE ══════════════ -->
 {% if evolution_journaliere.labels %}
 <div style="margin-bottom:14px;">
-<div style="background:linear-gradient(160deg,#f8f9ff 0%,#fff 60%);border-radius:20px;border:1px solid #e4e8f5;box-shadow:0 4px 28px rgba(107,76,53,.09);overflow:hidden;">
+<div style="background:linear-gradient(160deg,#f8f9ff 0%,#fff 60%);border-radius:0;border:1px solid #e4e8f5;box-shadow:0 4px 28px rgba(107,76,53,.09);overflow:hidden;">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;">
         <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:38px;height:38px;background:linear-gradient(135deg,#6b4c35,#4d7cc7);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(107,76,53,.32);">
+            <div style="width:38px;height:38px;background:linear-gradient(135deg,#6b4c35,#4d7cc7);border-radius:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(107,76,53,.32);">
                 <i class="bi bi-graph-up-arrow" style="color:#fff;font-size:1rem;"></i>
             </div>
             <div>
@@ -653,29 +653,29 @@ body { background: #f0f2f8 !important; }
         </div>
         <!-- Légende pills -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#8b5e3c;background:#faf5f1;padding:5px 12px;border-radius:20px;border:1px solid #e8d5c4;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#8b5e3c;background:#faf5f1;padding:5px 12px;border-radius:0;border:1px solid #e8d5c4;">
                 <span style="width:8px;height:8px;background:#6b4c35;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(107,76,53,.6);"></span>Asten
             </span>
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#15803d;background:#f0fdf4;padding:5px 12px;border-radius:20px;border:1px solid #bbf7d0;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#15803d;background:#f0fdf4;padding:5px 12px;border-radius:0;border:1px solid #bbf7d0;">
                 <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(34,197,94,.6);"></span>GPV
             </span>
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#b45309;background:#fffbeb;padding:5px 12px;border-radius:20px;border:1px solid #fde68a;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#b45309;background:#fffbeb;padding:5px 12px;border-radius:0;border:1px solid #fde68a;">
                 <span style="width:8px;height:8px;background:#f59e0b;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(245,158,11,.6);"></span>Legend
             </span>
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#7e22ce;background:#faf5ff;padding:5px 12px;border-radius:20px;border:1px solid #e9d5ff;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#7e22ce;background:#faf5ff;padding:5px 12px;border-radius:0;border:1px solid #e9d5ff;">
                 <span style="width:8px;height:8px;background:#a855f7;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(168,85,247,.6);"></span>BR
             </span>
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#0e7490;background:#ecfeff;padding:5px 12px;border-radius:20px;border:1px solid #a5f3fc;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#0e7490;background:#ecfeff;padding:5px 12px;border-radius:0;border:1px solid #a5f3fc;">
                 <span style="width:8px;height:8px;background:#06b6d4;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(6,182,212,.6);"></span>Facture Sage
             </span>
-            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#b91c1c;background:#fef2f2;padding:5px 12px;border-radius:20px;border:1px solid #fecaca;">
+            <span style="display:flex;align-items:center;gap:6px;font-size:.73rem;font-weight:700;color:#b91c1c;background:#fef2f2;padding:5px 12px;border-radius:0;border:1px solid #fecaca;">
                 <span style="width:8px;height:8px;background:#ef4444;border-radius:50%;display:inline-block;box-shadow:0 0 6px rgba(239,68,68,.6);"></span>Facture Backup
             </span>
         </div>
     </div>
 
     <!-- Chart area with subtle inner background -->
-    <div style="margin:0 16px 18px;background:#f9faff;border-radius:14px;padding:16px 12px 10px;border:1px solid #eef0f8;">
+    <div style="margin:0 16px 18px;background:#f9faff;border-radius:0;padding:16px 12px 10px;border:1px solid #eef0f8;">
         <canvas id="evoChart" style="width:100%;height:260px;"></canvas>
     </div>
 

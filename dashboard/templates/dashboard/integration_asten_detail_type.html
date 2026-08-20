@@ -13,7 +13,7 @@
 /* ═══ HEADER ══════════════════════════════════════════════════════════ */
 .iad-header { display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap; }
 .iad-header-left { display:flex;align-items:center;gap:14px; }
-.iad-icon { width:52px;height:52px;border-radius:14px;
+.iad-icon { width:52px;height:52px;border-radius:0;
     display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;
     box-shadow:0 4px 14px rgba(107,76,53,.22);flex-shrink:0; }
 .iad-icon.ok         { background:linear-gradient(135deg,#15803d,#16a34a); }
@@ -22,14 +22,14 @@
 .iad-icon.absent     { background:linear-gradient(135deg,#b91c1c,#dc2626); }
 .iad-title { font-size:1.4rem;font-weight:900;color:#0f172a;margin:0 0 4px; }
 .iad-sub   { font-size:.82rem;color:#64748b;margin:0; }
-.iad-back  { background:#f8fafc;color:#475569;border:1.5px solid #e2e8f0;border-radius:10px;
+.iad-back  { background:#f8fafc;color:#475569;border:1.5px solid #e2e8f0;border-radius:0;
     padding:8px 16px;font-size:.82rem;font-weight:700;text-decoration:none;
     display:inline-flex;align-items:center;gap:6px;white-space:nowrap; }
 .iad-back:hover { background:#f1f5f9;color:#0f172a; }
 
 /* ═══ STAT CARDS ══════════════════════════════════════════════════════ */
 .iad-stats { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px; }
-.iad-stat  { background:#fff;border-radius:14px;border:1px solid #e8edf5;padding:14px 16px;
+.iad-stat  { background:#fff;border-radius:0;border:1px solid #e8edf5;padding:14px 16px;
     box-shadow:0 2px 8px rgba(15,23,42,.04); }
 .iad-stat-lbl { font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:4px; }
 .iad-stat-val { font-size:1.5rem;font-weight:900;color:#0f172a;line-height:1; }
@@ -40,7 +40,7 @@
 .iad-stat.blue .iad-stat-val { color:#6b4c35; }
 
 /* ═══ ENTRY CARD ══════════════════════════════════════════════════════ */
-.iad-entry-card { background:#fff;border-radius:16px;border:1.5px solid #e8edf5;
+.iad-entry-card { background:#fff;border-radius:0;border:1.5px solid #e8edf5;
     box-shadow:0 2px 10px rgba(15,23,42,.05);margin-bottom:14px;overflow:hidden; }
 .iad-entry-card.entry-err  { border-color:#fca5a5;
     box-shadow:0 2px 12px rgba(220,38,38,.1); }
@@ -50,29 +50,29 @@
     border-bottom:1px solid #f1f5f9;flex-wrap:wrap; }
 .iad-entry-card.entry-err  .iad-entry-head { background:#fff7f7; }
 .iad-entry-card.entry-warn .iad-entry-head { background:#fffdf0; }
-.iad-entry-num  { width:28px;height:28px;border-radius:8px;background:#faf5f1;color:#6b4c35;
+.iad-entry-num  { width:28px;height:28px;border-radius:0;background:#faf5f1;color:#6b4c35;
     font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
 .iad-entry-card.entry-err  .iad-entry-num { background:#fee2e2;color:#b91c1c; }
 .iad-entry-card.entry-warn .iad-entry-num { background:#fef3c7;color:#b45309; }
 
-.tb { display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700; }
+.tb { display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:0;font-size:.68rem;font-weight:700; }
 .tb.ok, .tb.succès { background:#dcfce7;color:#15803d; }
 .tb.erreur         { background:#fee2e2;color:#b91c1c; }
 .tb.en_cours       { background:#fef3c7;color:#b45309; }
 .tb.indéfini       { background:#f1f5f9;color:#64748b; }
 
 .iad-emeta { font-size:.73rem;color:#64748b;display:inline-flex;align-items:center;gap:3px; }
-.iad-chip  { background:#f1f5f9;color:#475569;font-size:.68rem;font-weight:600;padding:2px 9px;border-radius:20px; }
+.iad-chip  { background:#f1f5f9;color:#475569;font-size:.68rem;font-weight:600;padding:2px 9px;border-radius:0; }
 
 .iad-entry-body { padding:14px 18px; }
 
 /* ═══ RÉCAP FICHIER ═══════════════════════════════════════════════════ */
-.iad-rcard { background:#f8fafc;border:1px solid #e8edf5;border-radius:10px;padding:12px 16px;margin-bottom:12px; }
+.iad-rcard { background:#f8fafc;border:1px solid #e8edf5;border-radius:0;padding:12px 16px;margin-bottom:12px; }
 .iad-rfile { font-size:.7rem;color:#475569;font-family:monospace;word-break:break-all;
     display:flex;align-items:flex-start;gap:6px;margin-bottom:10px;padding-bottom:10px;
     border-bottom:1px dashed #e8edf5; }
 .iad-rpills { display:flex;gap:6px;flex-wrap:wrap; }
-.rp { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:700; }
+.rp { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:0;font-size:.68rem;font-weight:700; }
 .rp.fmt  { background:#faf5f1;color:#6b4c35; }
 .rp.err  { background:#fee2e2;color:#b91c1c; }
 .rp.cre  { background:#f0fdf4;color:#15803d; }
@@ -81,22 +81,22 @@
 
 /* ═══ BANDEAU ERREUR ══════════════════════════════════════════════════ */
 .iad-err-banner { display:flex;align-items:center;gap:10px;padding:10px 14px;
-    background:#fff7f7;border:1px solid #fecaca;border-radius:10px;margin-bottom:10px; }
+    background:#fff7f7;border:1px solid #fecaca;border-radius:0;margin-bottom:10px; }
 .iad-err-banner i { color:#b91c1c;font-size:1rem;flex-shrink:0; }
 .iad-err-msg  { color:#b91c1c;font-weight:700;font-size:.8rem;flex:1; }
 .iad-err-cnt  { background:#fee2e2;color:#b91c1c;font-size:.68rem;font-weight:700;
-    padding:2px 9px;border-radius:20px;white-space:nowrap; }
+    padding:2px 9px;border-radius:0;white-space:nowrap; }
 
 /* ═══ BANDEAU AVERTISSEMENT ═══════════════════════════════════════════ */
 .iad-warn-banner { display:flex;align-items:center;gap:10px;padding:10px 14px;
-    background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;margin-bottom:10px; }
+    background:#fffbeb;border:1px solid #fcd34d;border-radius:0;margin-bottom:10px; }
 .iad-warn-banner i { color:#b45309;font-size:1rem;flex-shrink:0; }
 .iad-warn-msg { color:#b45309;font-weight:700;font-size:.8rem;flex:1; }
 .iad-warn-cnt { background:#fef3c7;color:#b45309;font-size:.68rem;font-weight:700;
-    padding:2px 9px;border-radius:20px;white-space:nowrap; }
+    padding:2px 9px;border-radius:0;white-space:nowrap; }
 
 /* ═══ TABLE ERREURS ═══════════════════════════════════════════════════ */
-.iad-etbl-wrap { overflow-x:auto;border-radius:10px;border:1px solid #fecaca; }
+.iad-etbl-wrap { overflow-x:auto;border-radius:0;border:1px solid #fecaca; }
 .iad-etbl { width:100%;border-collapse:collapse;font-size:.76rem; }
 .iad-etbl thead th { padding:8px 12px;background:#fff7f7;border-bottom:1.5px solid #fecaca;
     color:#b91c1c;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
@@ -110,7 +110,7 @@
 .iad-etbl .erow { font-size:.7rem;color:#475569;font-family:monospace; }
 
 /* ═══ VIDE ════════════════════════════════════════════════════════════ */
-.iad-empty { background:#fff;border:1px dashed #e2e8f0;border-radius:16px;
+.iad-empty { background:#fff;border:1px dashed #e2e8f0;border-radius:0;
     padding:50px;text-align:center;color:#94a3b8; }
 .iad-empty i { font-size:2.5rem;display:block;margin-bottom:10px; }
 
@@ -288,17 +288,17 @@
             {% endif %}
             <details style="margin-top:10px;" {% if e.status_value == 0 %}open{% endif %}>
                 <summary style="font-size:.72rem;font-weight:700;cursor:pointer;
-                    padding:6px 10px;border-radius:8px;border:1px solid;
+                    padding:6px 10px;border-radius:0;border:1px solid;
                     list-style:none;display:flex;align-items:center;gap:6px;
                     {% if e.status_value == 0 %}background:#fff7f7;border-color:#fecaca;color:#b91c1c;
                     {% else %}background:#f8fafc;border-color:#e8edf5;color:#64748b;{% endif %}">
                     <i class="bi bi-journal-text"></i>
                     Journal de processus
-                    <span style="font-size:.63rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px;
+                    <span style="font-size:.63rem;font-weight:700;padding:1px 7px;border-radius:0;margin-left:4px;
                         {% if e.status_value == 0 %}background:#fee2e2;color:#b91c1c;
                         {% else %}background:#e8edf5;color:#64748b;{% endif %}">{{ e.report_logs|length }} lignes</span>
                 </summary>
-                <div style="margin-top:6px;border:1px solid #e8edf5;border-radius:8px;overflow:hidden;">
+                <div style="margin-top:6px;border:1px solid #e8edf5;border-radius:0;overflow:hidden;">
                 {% for lg in e.report_logs %}
                 {% with is_err=lg.message|lower %}
                 <div style="display:flex;gap:10px;padding:5px 10px;border-bottom:1px solid #f1f5f9;
@@ -315,7 +315,7 @@
 
             {% if not e.report_errors and not e.report_logs and e.report and not e.report_summary %}
             <div style="font-size:.7rem;color:#64748b;font-family:monospace;background:#f1f5f9;
-                border-radius:8px;padding:10px 14px;word-break:break-all;white-space:pre-wrap;">{{ e.report }}</div>
+                border-radius:0;padding:10px 14px;word-break:break-all;white-space:pre-wrap;">{{ e.report }}</div>
             {% endif %}
         </div>
     </div>

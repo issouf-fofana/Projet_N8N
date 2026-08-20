@@ -6,7 +6,7 @@
 /* ── Header ── */
 .va-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:28px; }
 .va-header-left { display:flex; align-items:center; gap:14px; }
-.va-icon { width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,#6b4c35,#8b5e3c);
+.va-icon { width:50px;height:50px;border-radius:0;background:linear-gradient(135deg,#6b4c35,#8b5e3c);
     display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.35rem;
     box-shadow:0 4px 14px rgba(107,76,53,.28); }
 .va-header h1 { font-size:1.55rem;font-weight:900;color:#0f172a;margin:0; }
@@ -14,7 +14,7 @@
 
 /* ── Stat cards ── */
 .va-stats { display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px; }
-.va-stat  { background:#fff;border-radius:16px;border:1px solid #e8edf5;padding:16px 18px;
+.va-stat  { background:#fff;border-radius:0;border:1px solid #e8edf5;padding:16px 18px;
     box-shadow:0 2px 10px rgba(15,23,42,.05); }
 .va-stat-label { font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:5px; }
 .va-stat-val   { font-size:1.6rem;font-weight:900;color:#0f172a;line-height:1; }
@@ -25,18 +25,18 @@
 
 /* ── Alerte assortiment.txt ── */
 .va-alert { display:flex;align-items:flex-start;gap:12px;background:#fffbeb;border:1px solid #fcd34d;
-    border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:.83rem;color:#92400e; }
+    border-radius:0;padding:14px 18px;margin-bottom:20px;font-size:.83rem;color:#92400e; }
 .va-alert i { font-size:1.1rem;color:#d97706;flex-shrink:0;margin-top:1px; }
 
 /* ── Filtres ── */
 .va-filters { display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap; }
-.va-filter-btn { padding:6px 16px;border-radius:20px;font-size:.78rem;font-weight:600;
+.va-filter-btn { padding:6px 16px;border-radius:0;font-size:.78rem;font-weight:600;
     border:1.5px solid #e2e8f0;background:#fff;color:#475569;text-decoration:none;transition:all .14s; }
 .va-filter-btn:hover { border-color:#6b4c35;color:#6b4c35; }
 .va-filter-btn.active { background:#6b4c35;border-color:#6b4c35;color:#fff; }
 
 /* ── Table ── */
-.va-table-wrap { background:#fff;border-radius:18px;border:1px solid #e8edf5;
+.va-table-wrap { background:#fff;border-radius:0;border:1px solid #e8edf5;
     box-shadow:0 2px 14px rgba(15,23,42,.07);overflow:hidden; }
 .va-table { width:100%;border-collapse:collapse; }
 .va-table thead th { padding:12px 16px;font-size:.68rem;font-weight:700;text-transform:uppercase;
@@ -47,7 +47,7 @@
 .va-table tbody td { padding:12px 16px;font-size:.84rem;color:#334155;vertical-align:middle; }
 
 /* Statut badge */
-.st-badge { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
+.st-badge { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:0;
     font-size:.68rem;font-weight:700;white-space:nowrap; }
 .st-badge .dot { width:6px;height:6px;border-radius:50%;background:currentColor; }
 .st-badge.ok      { background:#dcfce7;color:#15803d; }
@@ -57,15 +57,15 @@
 
 /* Barre conformité */
 .va-conf { display:flex;align-items:center;gap:8px; }
-.va-conf-bar { flex:1;height:5px;border-radius:3px;background:#f1f5f9;overflow:hidden;min-width:60px; }
-.va-conf-fill { height:100%;border-radius:3px;background:#15803d;transition:width .3s; }
+.va-conf-bar { flex:1;height:5px;border-radius:0;background:#f1f5f9;overflow:hidden;min-width:60px; }
+.va-conf-fill { height:100%;border-radius:0;background:#15803d;transition:width .3s; }
 .va-conf-fill.warn { background:#d97706; }
 .va-conf-fill.err  { background:#dc2626; }
 .va-conf-pct { font-size:.72rem;font-weight:700;min-width:32px;text-align:right; }
 
 /* Lien détail */
 .va-detail-link { display:inline-flex;align-items:center;gap:4px;font-size:.75rem;font-weight:600;
-    color:#6b4c35;text-decoration:none;padding:4px 11px;border-radius:9px;
+    color:#6b4c35;text-decoration:none;padding:4px 11px;border-radius:0;
     border:1.5px solid rgba(107,76,53,.2);transition:all .14s; }
 .va-detail-link:hover { background:#6b4c35;color:#fff; }
 
@@ -113,7 +113,7 @@
 </div>
 {% else %}
 {% if not disponible %}
-<div class="alert mb-3" style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:10px 16px;color:#92400e;font-size:.83rem;display:flex;align-items:center;gap:10px;">
+<div class="alert mb-3" style="background:#fef3c7;border:1px solid #fcd34d;border-radius:0;padding:10px 16px;color:#92400e;font-size:.83rem;display:flex;align-items:center;gap:10px;">
     <i class="bi bi-hdd-network"></i>
     SMB indisponible — données affichées depuis la base de données (dernière synchronisation)
 </div>

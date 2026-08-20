@@ -13,36 +13,36 @@
 
 /* Hero */
 .err-hero { background:linear-gradient(135deg,#991b1b,#dc2626,#ef4444);
-    border-radius:20px;padding:24px 28px;margin-bottom:20px;color:#fff;
+    border-radius:0;padding:24px 28px;margin-bottom:20px;color:#fff;
     display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
     box-shadow:0 8px 28px rgba(220,38,38,.28);position:relative;overflow:hidden; }
 .err-hero::before { content:'';position:absolute;right:-30px;top:-30px;width:160px;height:160px;
     border-radius:50%;background:rgba(255,255,255,.07); }
 .err-hero-left { display:flex;align-items:center;gap:14px;position:relative;z-index:1; }
-.err-hero-icon { width:48px;height:48px;border-radius:13px;background:rgba(255,255,255,.15);
+.err-hero-icon { width:48px;height:48px;border-radius:0;background:rgba(255,255,255,.15);
     display:flex;align-items:center;justify-content:center;font-size:1.3rem; }
 .err-hero h1 { font-size:1.4rem;font-weight:900;margin:0; }
 .err-hero p  { margin:3px 0 0;font-size:.8rem;opacity:.82; }
 .err-hero-badges { display:flex;gap:8px;position:relative;z-index:1;flex-wrap:wrap; }
 .err-badge { background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
-    border-radius:10px;padding:7px 14px;text-align:center;min-width:75px; }
+    border-radius:0;padding:7px 14px;text-align:center;min-width:75px; }
 .err-badge-val { font-size:1.4rem;font-weight:900;line-height:1; }
 .err-badge-lbl { font-size:.6rem;opacity:.8;text-transform:uppercase;letter-spacing:.07em;margin-top:1px; }
 
 /* Actions */
 .err-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px; }
-.btn-back { border-radius:10px;padding:7px 16px;font-size:.8rem;font-weight:700;
+.btn-back { border-radius:0;padding:7px 16px;font-size:.8rem;font-weight:700;
     display:inline-flex;align-items:center;gap:5px;text-decoration:none;
     background:#fff;color:var(--red);border:1.5px solid var(--red-bd); }
 .btn-back:hover { background:var(--red-bg);color:var(--red); }
 .btn-sec { background:#fff;color:var(--slate);border:1.5px solid var(--border);
-    border-radius:10px;padding:7px 16px;font-size:.8rem;font-weight:700;
+    border-radius:0;padding:7px 16px;font-size:.8rem;font-weight:700;
     display:inline-flex;align-items:center;gap:5px;text-decoration:none; }
 .btn-sec:hover { background:var(--light);color:#0f172a; }
 
 /* Strip */
 .err-strip { display:grid;grid-template-columns:repeat(4,1fr);background:#fff;
-    border-radius:14px;border:1px solid var(--border);overflow:hidden;
+    border-radius:0;border:1px solid var(--border);overflow:hidden;
     box-shadow:0 2px 8px rgba(15,23,42,.05);margin-bottom:22px; }
 .err-strip-col { padding:14px 16px;text-align:center;border-right:1px solid var(--border); }
 .err-strip-col:last-child { border-right:none; }
@@ -52,18 +52,18 @@
 
 /* Section heading */
 .sec-head { display:flex;align-items:center;gap:8px;margin:20px 0 12px; }
-.sec-icon { width:28px;height:28px;border-radius:8px;display:flex;align-items:center;
+.sec-icon { width:28px;height:28px;border-radius:0;display:flex;align-items:center;
     justify-content:center;font-size:.85rem;flex-shrink:0; }
 .sec-icon.err { background:var(--red-bg);color:var(--red); }
 .sec-icon.ok  { background:var(--green-bg);color:var(--green); }
 .sec-title { font-size:.85rem;font-weight:800;color:#0f172a; }
 .sec-sub { font-size:.7rem;color:var(--slate);margin-top:1px; }
-.sec-cnt { border-radius:8px;padding:2px 8px;font-size:.65rem;font-weight:700; }
+.sec-cnt { border-radius:0;padding:2px 8px;font-size:.65rem;font-weight:700; }
 .sec-cnt.err { background:var(--red);color:#fff; }
 .sec-cnt.ok  { background:var(--green);color:#fff; }
 
 /* Shop card */
-.shop-card { border-radius:14px;border:1.5px solid var(--border);
+.shop-card { border-radius:0;border:1.5px solid var(--border);
     background:#fff;margin-bottom:8px;overflow:hidden;
     box-shadow:0 1px 6px rgba(15,23,42,.04); }
 .shop-card.serr { border-color:var(--red-bd); }
@@ -75,14 +75,14 @@
 .shop-card.sok  .shop-head:hover { background:var(--green-bg); }
 .shop-card.serr .shop-head:hover { background:#fecaca; }
 
-.shop-num { width:30px;height:30px;border-radius:8px;font-size:.8rem;font-weight:900;
+.shop-num { width:30px;height:30px;border-radius:0;font-size:.8rem;font-weight:900;
     display:flex;align-items:center;justify-content:center;flex-shrink:0; }
 .shop-card.serr .shop-num { background:#fee2e2;color:var(--red); }
 .shop-card.sok  .shop-num { background:var(--green-bg);color:var(--green); }
 .shop-ref  { font-size:.95rem;font-weight:800;color:#0f172a; }
 .shop-name { font-size:.72rem;color:var(--slate);margin-top:1px; }
 .shop-right { margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap; }
-.pill { border-radius:7px;padding:2px 8px;font-size:.68rem;font-weight:700;
+.pill { border-radius:0;padding:2px 8px;font-size:.68rem;font-weight:700;
     display:inline-flex;align-items:center;gap:3px; }
 .pill-g { background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd); }
 .pill-r { background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd); }
@@ -94,14 +94,14 @@
 .shop-card.open .shop-detail { display:block; }
 
 /* Run card */
-.run-card { border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden; }
+.run-card { border:1px solid var(--border);border-radius:0;margin-bottom:8px;overflow:hidden; }
 .run-card:last-child { margin-bottom:0; }
 .run-card.has-err { border-color:var(--red-bd); }
 .run-head { display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--light);
     font-size:.77rem;border-bottom:1px solid var(--border);flex-wrap:wrap; }
 .run-card.has-err .run-head { background:var(--red-bg);border-color:var(--red-bd); }
 .run-time { font-weight:700;color:#0f172a;display:flex;align-items:center;gap:4px; }
-.run-status { border-radius:6px;padding:1px 7px;font-size:.65rem;font-weight:700; }
+.run-status { border-radius:0;padding:1px 7px;font-size:.65rem;font-weight:700; }
 .run-status.ok  { background:var(--green-bg);color:var(--green); }
 .run-status.err { background:var(--red-bg);color:var(--red); }
 .run-label { font-size:.68rem;color:#94a3b8;margin-left:auto; }
@@ -116,9 +116,9 @@
 /* Messages erreur */
 .run-errors { padding:8px 14px 10px; }
 .err-msg { display:flex;align-items:flex-start;gap:8px;padding:7px 10px;
-    border-radius:7px;margin-bottom:4px;border-left:3px solid var(--red-bd);background:#fff; }
+    border-radius:0;margin-bottom:4px;border-left:3px solid var(--red-bd);background:#fff; }
 .err-msg:nth-child(even) { background:var(--red-bg); }
-.err-msg-num { background:var(--red-bg);color:var(--red);border-radius:5px;padding:1px 6px;
+.err-msg-num { background:var(--red-bg);color:var(--red);border-radius:0;padding:1px 6px;
     font-size:.62rem;font-weight:800;flex-shrink:0;margin-top:1px;white-space:nowrap; }
 .err-msg-text { font-size:.78rem;color:#374151;font-weight:600;word-break:break-word;line-height:1.4; }
 .err-msg-ts { font-size:.63rem;color:#94a3b8;margin-top:2px; }
@@ -133,7 +133,7 @@
 
 /* Empty state */
 .empty-state { text-align:center;padding:40px 20px;color:#94a3b8;background:#fff;
-    border-radius:14px;border:1px solid var(--border); }
+    border-radius:0;border:1px solid var(--border); }
 
 @media(max-width:600px) {
     .err-strip { grid-template-columns:repeat(2,1fr); }
@@ -237,7 +237,7 @@
                 <span class="run-time"><i class="bi bi-clock"></i> {{ run.created_at }}</span>
                 {% if run.status_value == 0 %}<span class="run-status err"><i class="bi bi-x-circle-fill"></i> Erreur run</span>
                 {% else %}<span class="run-status ok"><i class="bi bi-check-circle-fill"></i> Succès</span>{% endif %}
-                {% if run.nb_art_err > 0 %}<span style="background:var(--red-bg);color:var(--red);border-radius:6px;padding:1px 7px;font-size:.65rem;font-weight:800;"><i class="bi bi-exclamation-circle-fill"></i> {{ run.nb_art_err }} articles en erreur</span>{% endif %}
+                {% if run.nb_art_err > 0 %}<span style="background:var(--red-bg);color:var(--red);border-radius:0;padding:1px 7px;font-size:.65rem;font-weight:800;"><i class="bi bi-exclamation-circle-fill"></i> {{ run.nb_art_err }} articles en erreur</span>{% endif %}
                 {% if run.type_detail %}<span class="run-label">{{ run.type_detail }}</span>{% endif %}
             </div>
             <!-- Résumé rapport -->
@@ -268,7 +268,7 @@
             {% elif run.report_raw %}
             <div class="run-errors">
                 <div style="font-size:.7rem;color:var(--amber);margin-bottom:6px;"><i class="bi bi-file-text"></i> Rapport brut — {{ run.nb_art_err }} article(s) en erreur</div>
-                <pre style="margin:0;font-size:.72rem;color:#334155;background:#f8fafc;border-radius:6px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;">{{ run.report_raw }}</pre>
+                <pre style="margin:0;font-size:.72rem;color:#334155;background:#f8fafc;border-radius:0;padding:10px 12px;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;">{{ run.report_raw }}</pre>
             </div>
             {% else %}
             <div style="padding:8px 14px;font-size:.76rem;color:var(--amber);background:var(--amber-bg);border-top:1px solid var(--amber-bd);">

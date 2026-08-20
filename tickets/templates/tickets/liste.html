@@ -15,7 +15,7 @@
 }
 .rem-header-title { font-size: 1.35rem; font-weight: 800; color: #1e2a45; display: flex; align-items: center; gap: 10px; }
 .rem-header-title .rem-icon-wrap {
-    width: 42px; height: 42px; border-radius: 12px;
+    width: 42px; height: 42px; border-radius: 0;
     background: linear-gradient(135deg,#6b4c35,#a07850);
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 4px 12px rgba(107,76,53,.35);
@@ -26,7 +26,7 @@
 .btn-rem-new {
     background: linear-gradient(135deg,#6b4c35,#a07850);
     color: #fff !important; border: none;
-    padding: 8px 18px; border-radius: 10px;
+    padding: 8px 18px; border-radius: 0;
     font-weight: 600; font-size: .85rem;
     box-shadow: 0 4px 12px rgba(107,76,53,.3);
     transition: all .2s;
@@ -36,7 +36,7 @@
 .btn-rem-new:hover { box-shadow: 0 6px 18px rgba(107,76,53,.45); transform: translateY(-1px); }
 .btn-rem-del {
     background: #fff; color: #ef4444 !important; border: 1.5px solid #fca5a5;
-    padding: 8px 18px; border-radius: 10px;
+    padding: 8px 18px; border-radius: 0;
     font-weight: 600; font-size: .85rem; transition: all .2s;
     display: flex; align-items: center; gap: 6px;
 }
@@ -45,7 +45,7 @@
 
 /* ── FILTER CARD ── */
 .rem-filter-card {
-    background: #fff; border-radius: 16px;
+    background: #fff; border-radius: 0;
     box-shadow: 0 2px 16px rgba(0,0,0,.06);
     border: 1px solid #eef0f6; overflow: hidden; margin-bottom: 24px;
 }
@@ -57,7 +57,7 @@
 }
 .rem-filter-card .rem-filter-body { padding: 16px 20px; }
 .rem-quick-btn {
-    padding: 5px 14px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+    padding: 5px 14px; border-radius: 0; font-size: .78rem; font-weight: 600;
     border: 1.5px solid #d1d9f0; color: #5a6a85; background: #fff;
     cursor: pointer; transition: all .18s;
 }
@@ -67,7 +67,7 @@
 }
 .rem-filter-card label { font-size: .75rem; font-weight: 600; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
 .rem-filter-card .form-select, .rem-filter-card .form-control {
-    border-radius: 8px; border: 1.5px solid #e2e8f0;
+    border-radius: 0; border: 1.5px solid #e2e8f0;
     font-size: .82rem; transition: border .2s;
 }
 .rem-filter-card .form-select:focus, .rem-filter-card .form-control:focus {
@@ -76,7 +76,7 @@
 .btn-filter-apply {
     background: linear-gradient(135deg,#6b4c35,#a07850);
     color: #fff; border: none; padding: 7px 20px;
-    border-radius: 10px; font-weight: 600; font-size: .82rem;
+    border-radius: 0; font-weight: 600; font-size: .82rem;
     display: flex; align-items: center; gap: 6px; transition: all .2s;
 }
 .btn-filter-apply:hover { box-shadow: 0 4px 12px rgba(107,76,53,.3); transform: translateY(-1px); }
@@ -85,7 +85,7 @@
 .rem-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
 @media(max-width:768px){ .rem-stat-grid { grid-template-columns: repeat(2,1fr); } }
 .rem-stat {
-    background: #fff; border-radius: 16px;
+    background: #fff; border-radius: 0;
     box-shadow: 0 2px 16px rgba(0,0,0,.06);
     border: 1px solid #eef0f6; padding: 18px 20px;
     display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden;
@@ -96,7 +96,7 @@
 .rem-stat.cours::before  { background:#6b4c35; }
 .rem-stat.attente::before{ background:#f59e0b; }
 .rem-stat-icon {
-    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    width: 44px; height: 44px; border-radius: 0; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
 }
 .rem-stat.total  .rem-stat-icon { background:#f0f0ff; color:#6b4c35; }
@@ -113,7 +113,7 @@
 
 /* ── MAGASINS TOUCHÉS ── */
 .rem-mag-card {
-    background: #fff; border-radius: 16px;
+    background: #fff; border-radius: 0;
     box-shadow: 0 2px 16px rgba(0,0,0,.06);
     border: 1px solid #eef0f6; overflow: hidden; margin-bottom: 24px;
 }
@@ -124,22 +124,22 @@
 }
 .rem-mag-body { padding: 14px 16px; }
 .rem-mag-item {
-    background: #f8faff; border-radius: 12px;
+    background: #f8faff; border-radius: 0;
     padding: 10px 14px; border: 1px solid #e8ecf8;
     display: flex; align-items: center; justify-content: space-between;
     transition: all .18s; cursor: pointer;
 }
 .rem-mag-item:hover { background: #faf5f1; border-color: #e8d5c4; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(107,76,53,.1); }
-.rem-mag-ico { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg,#6b4c35,#a07850); display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; }
+.rem-mag-ico { width: 34px; height: 34px; border-radius: 0; background: linear-gradient(135deg,#6b4c35,#a07850); display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0; }
 .rem-mag-ico i { color: #fff; font-size: .85rem; }
 .rem-mag-code { font-weight: 700; font-size: .82rem; color: #1e2a45; }
 .rem-mag-nom { font-size: .72rem; color: #8492a6; margin-top: 1px; }
-.rem-mag-badge { background: linear-gradient(135deg,#6b4c35,#a07850); color: #fff; font-weight: 800; font-size: .82rem; padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(107,76,53,.3); }
+.rem-mag-badge { background: linear-gradient(135deg,#6b4c35,#a07850); color: #fff; font-weight: 800; font-size: .82rem; padding: 4px 12px; border-radius: 0; box-shadow: 0 2px 8px rgba(107,76,53,.3); }
 .rem-mag-sub { font-size: .65rem; color: #8492a6; text-align: center; margin-top: 2px; }
 
 /* ── TABLE ── */
 .rem-table-card {
-    background: #fff; border-radius: 16px;
+    background: #fff; border-radius: 0;
     box-shadow: 0 2px 16px rgba(0,0,0,.06);
     border: 1px solid #eef0f6; overflow: hidden; margin-bottom: 24px;
 }
@@ -151,7 +151,7 @@
 .rem-table tbody tr:hover { background: #f5f7ff; }
 .rem-table tbody td { padding: 10px 14px; vertical-align: middle; color: #374151; }
 .rem-ticket-num { font-weight: 700; font-size: .9rem; color: #6b4c35; }
-.rem-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .73rem; font-weight: 600; white-space: nowrap; }
+.rem-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 0; font-size: .73rem; font-weight: 600; white-space: nowrap; }
 .rem-badge.incident  { background:#fff1f2; color:#dc2626; }
 .rem-badge.demande   { background:#faf5f1; color:#8b5e3c; }
 .rem-badge.resolu    { background:#f0fdf4; color:#16a34a; }
@@ -163,10 +163,10 @@
 .rem-badge.moyenne   { background:#fffbeb; color:#d97706; }
 .rem-badge.basse     { background:#faf5f1; color:#8b5e3c; }
 .rem-badge.tres-basse{ background:#f0fdf4; color:#16a34a; }
-.rem-assignee { background: #f0f3ff; color: #8b5e3c; font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; display: inline-block; }
+.rem-assignee { background: #f0f3ff; color: #8b5e3c; font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 0; display: inline-block; }
 .rem-date { font-size: .75rem; color: #8492a6; }
 .btn-voir {
-    padding: 5px 14px; border-radius: 8px; font-size: .75rem; font-weight: 600;
+    padding: 5px 14px; border-radius: 0; font-size: .75rem; font-weight: 600;
     background: #f0f3ff; color: #6b4c35; border: 1px solid #e8d5c4;
     text-decoration: none; transition: all .18s;
     display: inline-flex; align-items: center; gap: 4px;
@@ -177,7 +177,7 @@
 /* ── PAGINATION ── */
 .rem-pagination { display: flex; justify-content: center; gap: 6px; margin-top: 20px; }
 .rem-page-btn {
-    padding: 6px 14px; border-radius: 8px; font-size: .8rem; font-weight: 600;
+    padding: 6px 14px; border-radius: 0; font-size: .8rem; font-weight: 600;
     border: 1.5px solid #e2e8f0; color: #374151; background: #fff;
     text-decoration: none; transition: all .18s;
 }
@@ -443,7 +443,7 @@
 <!-- MODAL SUPPRESSION -->
 <div class="modal fade" id="modalSuppression" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden;">
+        <div class="modal-content" style="border-radius:0;border:none;overflow:hidden;">
             <div class="modal-header" style="background:linear-gradient(135deg,#ef4444,#dc2626);border:none;">
                 <h5 class="modal-title text-white fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Confirmation de suppression</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
