@@ -1,0 +1,230 @@
+{% extends "core/base.html" %}
+{% block title %}Boîte de réception — Emails{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+        <h1><i class="bi bi-inbox"></i> Boîte de réception email</h1>
+        <p class="mb-0" style="opacity:.85;font-size:.9rem;">Emails reçus et traités automatiquement par le pipeline Outlook 365</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'tickets:pipeline_email' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-gear"></i> Config Pipeline
+        </a>
+        <button onclick="pollNow()" class="btn btn-primary btn-sm" id="btn-poll">
+            <i class="bi bi-arrow-clockwise"></i> Polling maintenant
+        </button>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible mb-3" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<div id="poll-result" class="mb-3" style="display:none;"></div>
+
+<!-- Compteurs -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card text-center py-3">
+            <div style="font-size:1.6rem;font-weight:700;color:var(--accent);">{{ stats.total }}</div>
+            <div style="font-size:.78rem;color:var(--tx-3);">Emails reçus</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="?filtre=ouverts" class="card text-center py-3 d-block text-decoration-none" style="{% if filtre == 'ouverts' %}border:2px solid #f59e0b;{% endif %}">
+            <div style="font-size:1.6rem;font-weight:700;color:#f59e0b;">{{ stats.ouverts }}</div>
+            <div style="font-size:.78rem;color:var(--tx-3);">Tickets ouverts</div>
+        </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="?filtre=clotures" class="card text-center py-3 d-block text-decoration-none" style="{% if filtre == 'clotures' %}border:2px solid #10b981;{% endif %}">
+            <div style="font-size:1.6rem;font-weight:700;color:#10b981;">{{ stats.clotures }}</div>
+            <div style="font-size:.78rem;color:var(--tx-3);">Tickets clôturés</div>
+        </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="?filtre=cree" class="card text-center py-3 d-block text-decoration-none" style="{% if filtre == 'cree' %}border:2px solid var(--accent);{% endif %}">
+            <div style="font-size:1.6rem;font-weight:700;color:var(--accent);">{{ stats.crees }}</div>
+            <div style="font-size:.78rem;color:var(--tx-3);">Créées auto</div>
+        </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="?filtre=resolu" class="card text-center py-3 d-block text-decoration-none" style="{% if filtre == 'resolu' %}border:2px solid #10b981;{% endif %}">
+            <div style="font-size:1.6rem;font-weight:700;color:#10b981;">{{ stats.resolus }}</div>
+            <div style="font-size:.78rem;color:var(--tx-3);">Résolus auto</div>
+        </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <a href="?filtre=erreur" class="card text-center py-3 d-block text-decoration-none" style="{% if filtre == 'erreur' %}border:2px solid #ef4444;{% endif %}">
+            <div style="font-size:1.6rem;font-weight:700;color:#ef4444;">{{ stats.erreurs }}</div>
+            <div style="font-size:.78rem;color:var(--tx-3);">Erreurs</div>
+        </a>
+    </div>
+    {% if filtre %}
+    <div class="col-auto d-flex align-items-center">
+        <a href="?" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x"></i> Tout voir</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tableau -->
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span>
+            <i class="bi bi-list-ul"></i> <strong>Emails traités</strong>
+            {% if filtre %}<span class="badge ms-2" style="background:var(--accent);font-size:.72rem;">Filtre actif</span>{% endif %}
+        </span>
+        <span style="font-size:.82rem;color:var(--tx-3);">{{ page_obj.paginator.count }} résultat(s)</span>
+    </div>
+
+    {% if page_obj.object_list %}
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:.84rem;">
+            <thead style="background:var(--surface2);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em;">
+                <tr>
+                    <th style="padding:10px 14px;width:120px;">Date</th>
+                    <th style="padding:10px 14px;">Expéditeur</th>
+                    <th style="padding:10px 14px;">Sujet</th>
+                    <th style="padding:10px 14px;width:110px;">Action</th>
+                    <th style="padding:10px 14px;width:160px;">Remontée</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for email in page_obj %}
+            <tr style="border-bottom:1px solid var(--border);cursor:{% if email.ticket %}pointer{% else %}default{% endif %};"
+                {% if email.ticket %}onclick="window.location='{% url 'tickets:detail' email.ticket.pk %}'"{% endif %}>
+                <td style="padding:11px 14px;white-space:nowrap;color:var(--tx-3);font-size:.8rem;">
+                    {{ email.date_reception|date:"d/m/Y" }}<br>
+                    <span style="font-size:.73rem;">{{ email.date_reception|date:"H:i" }}</span>
+                </td>
+                <td style="padding:11px 14px;">
+                    <div style="font-weight:600;">{{ email.expediteur_nom|default:email.expediteur_email }}</div>
+                    {% if email.expediteur_nom %}<div style="font-size:.76rem;color:var(--tx-3);">{{ email.expediteur_email }}</div>{% endif %}
+                </td>
+                <td style="padding:11px 14px;max-width:300px;">
+                    <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ email.sujet|default:"(sans objet)" }}</div>
+                    {% if email.extrait %}<div style="font-size:.76rem;color:var(--tx-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ email.extrait }}</div>{% endif %}
+                    {% if email.erreur %}<div style="font-size:.74rem;color:#ef4444;"><i class="bi bi-exclamation-circle"></i> {{ email.erreur|truncatechars:80 }}</div>{% endif %}
+                </td>
+                <td style="padding:11px 14px;">
+                    {% if email.action == 'cree' %}<span class="badge" style="background:#6b4c35;font-size:.73rem;"><i class="bi bi-plus-circle"></i> Créée</span>
+                    {% elif email.action == 'followup' %}<span class="badge" style="background:#f59e0b;font-size:.73rem;"><i class="bi bi-chat"></i> Suivi</span>
+                    {% elif email.action == 'resolu' %}<span class="badge" style="background:#10b981;font-size:.73rem;"><i class="bi bi-check-circle"></i> Résolu</span>
+                    {% elif email.action == 'erreur' %}<span class="badge" style="background:#ef4444;font-size:.73rem;"><i class="bi bi-x-circle"></i> Erreur</span>
+                    {% else %}<span class="badge" style="background:#78716c;font-size:.73rem;">Ignoré</span>{% endif %}
+                </td>
+                <td style="padding:11px 14px;" onclick="event.stopPropagation()">
+                    {% if email.ticket %}
+                    <a href="{% url 'tickets:detail' email.ticket.pk %}" style="font-weight:700;color:var(--accent);text-decoration:none;">
+                        #{{ email.ticket.numero_ticket }}
+                    </a>
+                    {% if email.ticket.magasin %}
+                    <div style="font-size:.74rem;color:var(--tx-3);">{{ email.ticket.magasin.code }} — {{ email.ticket.magasin.nom|truncatechars:18 }}</div>
+                    {% endif %}
+                    {% if email.ticket.statut == 'resolu' or email.ticket.statut == 'ferme' %}
+                    <span class="badge" style="background:#10b981;font-size:.68rem;">Clôturé</span>
+                    {% elif email.ticket.statut == 'en_attente' %}
+                    <span class="badge" style="background:#f59e0b;font-size:.68rem;">Attente</span>
+                    {% elif email.ticket.statut == 'en_cours' %}
+                    <span class="badge" style="background:#3b82f6;font-size:.68rem;">En cours</span>
+                    {% else %}
+                    <span class="badge" style="background:#78716c;font-size:.68rem;">Nouveau</span>
+                    {% endif %}
+                    {% else %}<span style="color:var(--tx-3);font-size:.78rem;">—</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer d-flex justify-content-center gap-1 py-2">
+        {% if page_obj.has_previous %}
+        <a href="?filtre={{ filtre }}&page={{ page_obj.previous_page_number }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
+        {% endif %}
+        <span class="btn btn-sm btn-primary disabled" style="pointer-events:none;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?filtre={{ filtre }}&page={{ page_obj.next_page_number }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="card-body text-center py-5" style="color:var(--tx-3);">
+        <i class="bi bi-inbox" style="font-size:3rem;opacity:.3;"></i>
+        <p class="mt-3 mb-1">Aucun email traité{% if filtre %} avec ce filtre{% endif %}</p>
+        <p style="font-size:.85rem;">
+            {% if filtre %}<a href="?">Voir tous les emails</a>
+            {% else %}Connectez Outlook dans <a href="{% url 'tickets:pipeline_email' %}">Config Pipeline</a> puis lancez un polling.{% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+tbody tr[onclick]:hover { background: var(--surface2) !important; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display:inline-block; animation: spin 1s linear infinite; }
+#poll-progress { font-size:.82rem; color:var(--tx-3); margin-top:4px; }
+</style>
+<script>
+let pollTimer = null;
+
+async function pollNow() {
+    const btn = document.getElementById('btn-poll');
+    const result = document.getElementById('poll-result');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Traitement…';
+    result.style.display = 'block';
+    result.innerHTML = `<div class="alert alert-info mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-arrow-clockwise spin"></i>
+        <span id="poll-status">Connexion à Outlook…</span>
+    </div>`;
+
+    // Compteur de secondes pendant le polling
+    let secs = 0;
+    pollTimer = setInterval(() => {
+        secs++;
+        const el = document.getElementById('poll-status');
+        if (el) el.textContent = `Traitement des emails en cours… (${secs}s)`;
+    }, 1000);
+
+    try {
+        const resp = await fetch("{% url 'tickets:outlook_poll' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        });
+        clearInterval(pollTimer);
+        const data = await resp.json();
+        if (data.ok) {
+            result.innerHTML = `<div class="alert alert-success mb-0">
+                <i class="bi bi-check-circle-fill"></i> ${data.message}
+                <span class="ms-2 text-muted" style="font-size:.8rem;">Actualisation dans <span id="countdown">3</span>s…</span>
+            </div>`;
+            // Compte à rebours puis reload
+            let n = 3;
+            const cd = setInterval(() => {
+                n--;
+                const el = document.getElementById('countdown');
+                if (el) el.textContent = n;
+                if (n <= 0) { clearInterval(cd); location.reload(); }
+            }, 1000);
+        } else {
+            result.innerHTML = `<div class="alert alert-danger mb-0"><i class="bi bi-x-circle-fill"></i> ${data.error || 'Erreur inconnue'}</div>`;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Polling maintenant';
+        }
+    } catch(e) {
+        clearInterval(pollTimer);
+        result.innerHTML = `<div class="alert alert-danger mb-0"><i class="bi bi-x-circle-fill"></i> Erreur réseau : ${e.message}</div>`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Polling maintenant';
+    }
+}
+</script>
+{% endblock %}

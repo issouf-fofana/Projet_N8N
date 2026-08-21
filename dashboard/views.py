@@ -2120,7 +2120,8 @@ def liste_ecarts(request):
                    COALESCE(m.nom, '') AS nom_magasin,
                    ca.montant::text AS montant,
                    NULL::text       AS depot_origine,
-                   NULL::text       AS depot_destination
+                   NULL::text       AS depot_destination,
+                   ca.date_validation
             FROM ecarts_ecartcommande ea
             JOIN asten_commandeasten ca ON ca.id = ea.commande_asten_id
             LEFT JOIN core_magasin m ON m.code = ca.code_magasin::text
@@ -2149,7 +2150,8 @@ def liste_ecarts(request):
                    COALESCE(m.nom, '') AS nom_magasin,
                    NULL::text       AS montant,
                    NULL::text       AS depot_origine,
-                   NULL::text       AS depot_destination
+                   NULL::text       AS depot_destination,
+                   cg.date_validation
             FROM ecarts_ecartgpv eg
             JOIN gpv_commandegpv cg ON cg.id = eg.commande_gpv_id
             LEFT JOIN core_magasin m ON m.code = cg.code_magasin::text
@@ -2175,7 +2177,8 @@ def liste_ecarts(request):
                    NULL::text AS nom_magasin,
                    NULL::text AS montant,
                    cl.depot_origine,
-                   cl.depot_destination
+                   cl.depot_destination,
+                   NULL::timestamp AS date_validation
             FROM ecarts_ecartlegend el
             JOIN legend_commandelegend cl ON cl.id = el.commande_legend_id
             WHERE {' AND '.join(w_leg)}

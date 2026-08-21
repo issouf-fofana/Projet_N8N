@@ -6,6 +6,7 @@ EXEMPT_URLS = [
     '/accounts/logout',
     '/accounts/password_reset',
     '/accounts/reset',
+    '/media/',
 ]
 
 CHANGE_PWD_URL = '/changer-mot-de-passe/'

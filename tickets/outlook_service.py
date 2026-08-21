@@ -6,16 +6,19 @@ Porté de IAHUB1/erp-backend/src/utils/graphClient.js
 """
 
 import json
+import os
 import re
+import time
 import logging
 from datetime import datetime
 
 import requests
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.utils import timezone
 
-from tickets.models import CompteEmail, Ticket, SuiviTicket
-from tickets.email_pipeline import analyze_email_with_ai, find_magasin, create_remontee_from_email
+from tickets.models import CompteEmail, Ticket, SuiviTicket, EmailRecu, PieceJointe
+from tickets.email_pipeline import analyze_email_with_ai, find_magasin, create_remontee_from_email, strip_signature_and_thread, clean_email_body_with_ai
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +133,39 @@ def graph_post(compte, path, payload):
 
 
 # ─────────────────────────────────────────────
+# Pièces jointes
+# ─────────────────────────────────────────────
+
+def download_attachments(compte, message_id, suivi):
+    """
+    Télécharge les pièces jointes d'un message Graph et les attache au suivi.
+    Ignore les pièces jointes inline (images intégrées dans le HTML).
+    """
+    try:
+        token = get_access_token(compte)
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{message_id}/attachments"
+        resp = requests.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+        if not resp.ok:
+            return
+        attachments = resp.json().get("value", [])
+        for att in attachments:
+            # Ignorer les pièces jointes inline (images dans le corps HTML)
+            if att.get("isInline"):
+                continue
+            name = att.get("name", "fichier")
+            content_bytes = att.get("contentBytes")
+            if not content_bytes:
+                continue
+            import base64
+            data = base64.b64decode(content_bytes)
+            pj = PieceJointe(suivi=suivi)
+            pj.fichier.save(name, ContentFile(data), save=True)
+            logger.info(f"[Outlook] Pièce jointe sauvegardée : {name}")
+    except Exception as e:
+        logger.warning(f"[Outlook] Impossible de récupérer les pièces jointes : {e}")
+
+
+# ─────────────────────────────────────────────
 # Polling des nouveaux mails (Graph delta)
 # ─────────────────────────────────────────────
 
@@ -139,17 +175,27 @@ MSG_SELECT = "id,subject,from,toRecipients,receivedDateTime,bodyPreview,body,con
 def fetch_new_messages(compte):
     """
     Récupère les nouveaux messages via l'API delta Graph.
-    Utilise compte.delta_link comme curseur (comme IAHUB1 emailPoller.js).
+    Utilise compte.delta_link comme curseur. Si sync_depuis est défini et qu'il
+    n'y a pas encore de delta_link, filtre les messages par date.
     """
     token = get_access_token(compte)
-    start_url = (
-        compte.delta_link
-        or f"https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$select={MSG_SELECT}"
-    )
 
-    messages = []
+    if compte.delta_link:
+        start_url = compte.delta_link
+    elif compte.sync_depuis:
+        date_iso = compte.sync_depuis.strftime("%Y-%m-%dT00:00:00Z")
+        start_url = (
+            f"https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages"
+            f"?$select={MSG_SELECT}&$filter=receivedDateTime ge {date_iso}"
+            f"&$orderby=receivedDateTime asc&$top=50"
+        )
+    else:
+        start_url = f"https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/delta?$select={MSG_SELECT}"
+
+    msgs = []
     url = start_url
     next_delta = compte.delta_link
+    use_delta = bool(compte.delta_link) or not compte.sync_depuis
 
     while url:
         resp = requests.get(
@@ -162,20 +208,23 @@ def fetch_new_messages(compte):
 
         for item in page.get("value", []):
             if not item.get("@removed"):
-                messages.append(item)
+                msgs.append(item)
 
         if "@odata.nextLink" in page:
             url = page["@odata.nextLink"]
-        else:
+        elif use_delta:
             next_delta = page.get("@odata.deltaLink", next_delta)
             url = None
+        else:
+            url = None
 
-    # Sauvegarder le curseur delta
-    compte.delta_link = next_delta or ""
+    # Sauvegarder le curseur delta (seulement si on utilise le mode delta)
+    if use_delta:
+        compte.delta_link = next_delta or ""
     compte.last_sync = timezone.now()
     compte.save(update_fields=["delta_link", "last_sync"])
 
-    return messages
+    return msgs
 
 
 # ─────────────────────────────────────────────
@@ -188,12 +237,15 @@ def find_existing_ticket(conversation_id, in_reply_to=None):
     Logique portée de IAHUB1 conversationMatcher.js.
     """
     if conversation_id:
-        ticket = Ticket.objects.filter(
-            outlook_conversation_id=conversation_id,
-            statut__in=[Ticket.STATUT_NOUVEAU, Ticket.STATUT_EN_COURS, Ticket.STATUT_EN_ATTENTE],
-        ).order_by("-date_mise_a_jour").first()
-        if ticket:
-            return ticket
+        try:
+            ticket = Ticket.objects.filter(
+                outlook_conversation_id=conversation_id,
+                statut__in=[Ticket.STATUT_NOUVEAU, Ticket.STATUT_EN_COURS, Ticket.STATUT_EN_ATTENTE],
+            ).order_by("-date_mise_a_jour").first()
+            if ticket:
+                return ticket
+        except Exception:
+            pass
 
     return None
 
@@ -218,33 +270,67 @@ def is_resolution_reply(body_text):
 # Extraction texte brut du corps Graph
 # ─────────────────────────────────────────────
 
+def html_to_text(content):
+    """Convertit HTML Outlook en texte brut avec sauts de ligne corrects."""
+    # Balises block → saut de ligne AVANT suppression des tags
+    text = re.sub(r"</?(p|div|tr|li|h[1-6]|blockquote)[^>]*>", "\n", content, flags=re.IGNORECASE)
+    # <br> → saut de ligne
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+    # Supprimer tous les autres tags
+    text = re.sub(r"<[^>]+>", "", text)
+    # Décoder entités HTML courantes
+    text = text.replace("&nbsp;", " ").replace("&amp;", "&")
+    text = text.replace("&lt;", "<").replace("&gt;", ">")
+    text = text.replace("&quot;", '"').replace("&#39;", "'")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    # Nettoyer espaces multiples sur une même ligne (mais garder les \n)
+    lines = [l.rstrip() for l in text.split("\n")]
+    # Supprimer les lignes vides consécutives (max 1 vide entre paragraphes)
+    result = []
+    prev_blank = False
+    for line in lines:
+        is_blank = line.strip() == ""
+        if is_blank and prev_blank:
+            continue
+        result.append(line)
+        prev_blank = is_blank
+    return "\n".join(result).strip()
+
+
 def extract_body_text(message):
-    """Extrait le texte brut depuis un message Graph."""
+    """
+    Extrait le texte brut COMPLET depuis un message Graph (pour stockage et affichage).
+    Pas de coupure — on veut tout le mail visible dans le ticket.
+    """
     content = message.get("body", {}).get("content", "")
     content_type = message.get("body", {}).get("contentType", "text")
-
     if content_type.lower() == "html":
-        # Retirer les balises HTML basiquement
-        text = re.sub(r"<br\s*/?>", "\n", content, flags=re.IGNORECASE)
-        text = re.sub(r"<[^>]+>", "", text)
-        text = re.sub(r"&nbsp;", " ", text)
-        text = re.sub(r"&amp;", "&", text)
-        text = re.sub(r"&lt;", "<", text)
-        text = re.sub(r"&gt;", ">", text)
-        return text.strip()[:3000]
-
-    return (content or "")[:3000]
+        return html_to_text(content)
+    return (content or "").strip()
 
 
 # ─────────────────────────────────────────────
 # Traitement d'un message entrant
 # ─────────────────────────────────────────────
 
+def parse_received_at(received_at_str):
+    """Parse la date reçue depuis Graph API."""
+    from django.utils.dateparse import parse_datetime
+    if not received_at_str:
+        return timezone.now()
+    try:
+        dt = parse_datetime(received_at_str.replace("Z", "+00:00"))
+        return dt or timezone.now()
+    except Exception:
+        return timezone.now()
+
+
 def process_message(message, compte):
     """
     Traite un mail Graph :
     - S'il appartient à un fil existant → suivi + détection résolution
     - Sinon → analyse IA + création remontée
+    Sauvegarde chaque mail dans EmailRecu pour traçabilité.
     """
     msg_id = message.get("id", "")
     conversation_id = message.get("conversationId", "")
@@ -252,48 +338,100 @@ def process_message(message, compte):
     from_addr = message.get("from", {}).get("emailAddress", {})
     from_email = from_addr.get("address", "")
     from_name = from_addr.get("name", "")
-    body_text = extract_body_text(message)
-    received_at = message.get("receivedDateTime", "")
+    body_text_raw = extract_body_text(message)
+    # body_text_raw = corps complet pour affichage
+    # body_clean = version courte pour l'IA uniquement (ne PAS stocker)
+    received_at = parse_received_at(message.get("receivedDateTime", ""))
+    body_preview = message.get("bodyPreview", body_text_raw[:200])
 
     # ── Cas 1 : réponse dans un fil existant ──
     existing = find_existing_ticket(conversation_id)
     if existing:
-        # Détecter si c'est une résolution
-        if is_resolution_reply(body_text):
+        # Analyser l'intention avec l'IA
+        try:
+            ai = analyze_email_with_ai(from_name, from_email, subject, body_text_raw)
+            urgence_ia = ai.get("urgence", "")
+            resume_ia = ai.get("resume", "")
+            info_ia = f"\n\n[IA] Résumé : {resume_ia}" if resume_ia else ""
+        except Exception:
+            info_ia = ""
+
+        # Séparation message / signature par IA avant stockage
+        corps_propre, signature, ia_nettoye = clean_email_body_with_ai(body_text_raw)
+        tag_nettoyage = "[IA-nettoyé]" if ia_nettoye else "[brut]"
+        bloc_sig = f"\n[signature]\n{signature}" if signature else ""
+
+        if is_resolution_reply(body_text_raw):
             existing.set_statut(Ticket.STATUT_RESOLU, utilisateur=from_email)
-            SuiviTicket.objects.create(
+            suivi = SuiviTicket.objects.create(
                 ticket=existing,
                 auteur=from_name or from_email,
-                message=f"[Email] Résolution détectée automatiquement.\n\n{body_text[:1000]}",
+                message=f"[Email] Résolution détectée automatiquement.\nDe : {from_name} <{from_email}>\nObjet : {subject}\n{tag_nettoyage}\n\n{corps_propre}{bloc_sig}",
             )
+            if message.get("hasAttachments"):
+                download_attachments(compte, msg_id, suivi)
+            action = EmailRecu.ACTION_RESOLU
             logger.info(f"[Outlook] Ticket #{existing.numero_ticket} marqué RÉSOLU par réponse mail")
         else:
-            # Nouveau message dans le fil → suivi
-            SuiviTicket.objects.create(
+            note_ia_followup = f"\n\n---\n{info_ia.strip()}" if info_ia.strip() else ""
+            suivi = SuiviTicket.objects.create(
                 ticket=existing,
                 auteur=from_name or from_email,
-                message=f"[Email entrant]\n\n{body_text[:2000]}",
+                message=f"[Email entrant]\nDe : {from_name} <{from_email}>\nObjet : {subject}\n{tag_nettoyage}\n\n{corps_propre}{bloc_sig}{note_ia_followup}",
             )
-            # Mettre le ticket en cours si nouveau
+            if message.get("hasAttachments"):
+                download_attachments(compte, msg_id, suivi)
             if existing.statut == Ticket.STATUT_NOUVEAU:
                 existing.set_statut(Ticket.STATUT_EN_COURS, utilisateur="Système")
+            action = EmailRecu.ACTION_FOLLOWUP
 
-        # Mettre à jour le dernier message_id pour pouvoir répondre dans le fil
         Ticket.objects.filter(pk=existing.pk).update(outlook_message_id=msg_id)
+        EmailRecu.objects.get_or_create(
+            message_id=msg_id,
+            defaults=dict(
+                compte=compte,
+                ticket=existing,
+                conversation_id=conversation_id,
+                expediteur_email=from_email,
+                expediteur_nom=from_name,
+                sujet=subject,
+                extrait=body_preview,
+                action=action,
+                date_reception=received_at,
+            ),
+        )
         return {"action": "followup", "ticket": existing.numero_ticket}
 
     # ── Cas 2 : nouveau mail → création remontée ──
-    ai_result = analyze_email_with_ai(from_name, from_email, subject, body_text)
-    magasin = find_magasin(ai_result)
-    ticket = create_remontee_from_email(from_name, from_email, subject, body_text, ai_result, magasin)
+    ai_result = analyze_email_with_ai(from_name, from_email, subject, body_text_raw)
+    magasin = find_magasin(ai_result, from_email=from_email)
+    ticket, suivi_initial = create_remontee_from_email(from_name, from_email, subject, body_text_raw, ai_result, magasin)
 
-    # Stocker les IDs Outlook pour le suivi du fil
+    if message.get("hasAttachments"):
+        download_attachments(compte, msg_id, suivi_initial)
+
     Ticket.objects.filter(pk=ticket.pk).update(
         outlook_conversation_id=conversation_id,
         outlook_message_id=msg_id,
         source_email=from_email,
+        sujet_email=subject or "",
         cree_par_email=True,
         magasin_non_identifie=(magasin is None or not ai_result.get("magasin_code")),
+    )
+
+    EmailRecu.objects.get_or_create(
+        message_id=msg_id,
+        defaults=dict(
+            compte=compte,
+            ticket=ticket,
+            conversation_id=conversation_id,
+            expediteur_email=from_email,
+            expediteur_nom=from_name,
+            sujet=subject,
+            extrait=body_preview,
+            action=EmailRecu.ACTION_CREE,
+            date_reception=received_at,
+        ),
     )
 
     logger.info(
@@ -325,6 +463,7 @@ def poll_all_accounts():
                 try:
                     result = process_message(msg, compte)
                     stats["messages"] += 1
+                    time.sleep(1.5)  # éviter le throttling Gemini API
                     if result["action"] == "created":
                         stats["crees"] += 1
                     else:

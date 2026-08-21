@@ -11,7 +11,8 @@ class CompteEmail(models.Model):
     client_secret = models.CharField(max_length=500, blank=True)
     tenant_id = models.CharField(max_length=200, blank=True)
     refresh_token = models.TextField(blank=True)
-    delta_link = models.TextField(blank=True)  # curseur polling Graph delta
+    delta_link = models.TextField(blank=True)
+    sync_depuis = models.DateField(null=True, blank=True, help_text="Ne traiter que les emails reçus après cette date")
     is_active = models.BooleanField(default=False)
     last_sync = models.DateTimeField(null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -26,6 +27,37 @@ class CompteEmail(models.Model):
     @property
     def est_connecte(self):
         return bool(self.refresh_token)
+
+
+class ConfigPipeline(models.Model):
+    """Configuration globale du pipeline IA + polling (singleton pk=1)."""
+    # ── IA ──
+    gemini_api_key = models.CharField(max_length=300, blank=True, verbose_name="Gemini API Key")
+    gemini_model = models.CharField(max_length=100, blank=True, default="gemini-2.5-flash", verbose_name="Modèle Gemini")
+    # ── Polling ──
+    polling_actif = models.BooleanField(default=False, verbose_name="Polling automatique activé")
+    intervalle_minutes = models.PositiveIntegerField(default=5, verbose_name="Intervalle (minutes)")
+    # ── Mots-clés résolution ──
+    mots_cles_resolution = models.TextField(
+        blank=True,
+        default="résolu,resolu,réglé,regle,c'est bon,ca marche,ça marche,ok merci,merci c'est,problème résolu,tout fonctionne,nickel,fixed,resolved,done,working now",
+        verbose_name="Mots-clés résolution (séparés par virgule)",
+    )
+    # ── Prompts IA ──
+    prompt_analyse_email = models.TextField(blank=True, verbose_name="Prompt analyse email")
+    prompt_analyse_intention = models.TextField(blank=True, verbose_name="Prompt analyse intention (suivi)")
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuration pipeline"
+
+    def __str__(self):
+        return "Configuration pipeline"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
 
 
 class Technicien(models.Model):
@@ -107,6 +139,7 @@ class Ticket(models.Model):
 
     # ── Traçabilité email Outlook ──
     source_email = models.EmailField(blank=True, default="")          # expéditeur du mail d'origine
+    sujet_email = models.CharField(max_length=500, blank=True, default="")  # objet du mail d'origine
     outlook_conversation_id = models.CharField(max_length=500, blank=True, db_index=True)
     outlook_message_id = models.CharField(max_length=500, blank=True)  # id du dernier mail reçu (pour répondre dans le fil)
     cree_par_email = models.BooleanField(default=False)                # True = créé automatiquement via mail
@@ -189,6 +222,196 @@ class SuiviTicket(models.Model):
     def __str__(self):
         return f"Suivi #{self.pk} - {self.ticket}"
 
+    @staticmethod
+    def _parse_email_thread(full_body):
+        """
+        Découpe un corps de mail en liste de messages (du plus récent au plus ancien).
+        Chaque message = {from_, to, cc, sent, subject, body}
+        """
+        import re as _re
+
+        # Normaliser les séparateurs : "  De :" après du texte → "\nDe :"
+        text = _re.sub(r'(?<=\S)\s{2,}(De\s*:|From\s*:)', r'\n\1', full_body)
+
+        # Trouver les positions des en-têtes de messages cités
+        # Un bloc cité commence par "De :" suivi de "Envoyé :" ou "À :" dans les lignes suivantes
+        BLOCK_START = _re.compile(
+            r'\n\s*(De\s*:|From\s*:)\s*\S',
+            _re.IGNORECASE
+        )
+        splits = [m.start() for m in BLOCK_START.finditer(text)]
+
+        # Découper en parties
+        parts = []
+        if splits:
+            parts.append(text[:splits[0]])
+            for i, start in enumerate(splits):
+                end = splits[i+1] if i+1 < len(splits) else len(text)
+                parts.append(text[start:end])
+        else:
+            parts = [text]
+
+        # Patterns pour extraire les champs header
+        # Objet : peut avoir le corps collé sur la même ligne → on le sépare
+        HEADERS = [
+            ('from_',   _re.compile(r'^\s*(?:Email\s+re[çc]u\s+de|De|From)\s*:\s*(.+)', _re.IGNORECASE)),
+            ('sent',    _re.compile(r'^\s*(?:Envoyé|Sent|Date)\s*:\s*(.+)', _re.IGNORECASE)),
+            ('to',      _re.compile(r'^\s*(?:À|A|To)\s*:\s*(.+)', _re.IGNORECASE)),
+            ('cc',      _re.compile(r'^\s*(?:Cc|CC)\s*:\s*(.+)', _re.IGNORECASE)),
+            ('subject', _re.compile(r'^\s*(?:Sujet|Objet|Object|Subject)\s*:\s*(.+)', _re.IGNORECASE)),
+            ('ia_tag',  _re.compile(r'^\s*(\[IA-nettoyé\]|\[brut\])\s*$', _re.IGNORECASE)),
+            ('sig_sep', _re.compile(r'^\s*\[signature\]\s*$', _re.IGNORECASE)),
+        ]
+        # Noms des champs header pour détecter la fin des headers
+        HEADER_KEYS = {'de', 'from', 'envoyé', 'sent', 'à', 'a', 'to', 'cc', 'objet', 'object', 'subject'}
+
+        messages = []
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            lines = part.splitlines()
+            msg = {'from_': '', 'sent': '', 'to': '', 'cc': '', 'subject': '', 'body': '', 'ia_tag': '', 'signature': ''}
+            body_lines = []
+            in_header = True
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                if in_header:
+                    matched = False
+                    for key, pat in HEADERS:
+                        m = pat.match(line)
+                        if m:
+                            val = m.group(1).strip()
+                            # Pour "Objet :", le corps peut être collé après le sujet
+                            # → on vérifie si la ligne contient plus que le sujet
+                            if key == 'subject':
+                                # Chercher si après les headers il y a du texte collé
+                                # On garde tout dans subject et on extrait le corps après
+                                msg[key] = val
+                            else:
+                                msg[key] = val
+                            matched = True
+                            break
+                    if not matched:
+                        # Plus de header → reste = corps
+                        in_header = False
+                        body_lines = lines[i:]
+                        break
+                i += 1
+
+            # Si on a un sujet avec du texte collé (ex: "Objet : RE: RESEAU LENT Bonjour...")
+            # → séparer le vrai sujet du corps
+            if msg['subject']:
+                subj = msg['subject']
+                # Mot de début de corps collé après le vrai sujet
+                corps_match = _re.search(
+                    r"\s+(Bonjour|Bonsoir|Hello|Cher|Dear|Monsieur|Madame|SVP|Merci|Il\s+s['’]agit|Veuillez|Suite\s+\xe0|Pour\s+info)",
+                    subj, _re.IGNORECASE
+                )
+                if corps_match:
+                    extra = subj[corps_match.start():]
+                    msg['subject'] = subj[:corps_match.start()].strip()
+                    body_lines = [extra.strip()] + body_lines
+
+            # Séparer corps et signature si marqueur [signature] présent
+            full_body_text = "\n".join(body_lines)
+            sig_split = _re.split(r'\n\[signature\]\n', full_body_text, maxsplit=1, flags=_re.IGNORECASE)
+            raw_body = sig_split[0].strip()
+            raw_sig = sig_split[1].strip() if len(sig_split) > 1 else ''
+
+            # Si pas de [signature] marqueur → tenter de séparer body/signature
+            # en cherchant le début des coordonnées dans le body
+            if not raw_sig and raw_body:
+                SIG_START = _re.compile(
+                    r'(?:Cordialement[^a-z]*)?(?:[\w\s/]+)?\n?'
+                    r'((?:Tél|Tel|Portable|Mob|Fax|E-mail|www\.)\s*[:\.]\s*\(?\+?\d|www\.)',
+                    _re.IGNORECASE
+                )
+                m_sig = SIG_START.search(raw_body)
+                if not m_sig:
+                    # Fallback : cherche un numéro de téléphone précédé de texte non-message
+                    m_sig = _re.search(r'(\+?\(?\d{2,3}\)?\s*\d[\d\s\-\.]{7,})', raw_body)
+                if m_sig and m_sig.start() > 15:
+                    # Remonter jusqu'au début de la ligne de signature
+                    cut = raw_body.rfind('\n', 0, m_sig.start())
+                    cut = cut if cut > 15 else m_sig.start()
+                    raw_sig = raw_body[cut:].strip()
+                    raw_body = raw_body[:cut].strip()
+
+            # Reformater signature collée sur une ligne
+            SIG_FIELDS = r'((?:Tél|Tel|Portable|Mob|Fax|E-mail|Mail|www\.|http|Poste|Flotte)\s*[:\.]?\s*)'
+            if raw_sig and '\n' not in raw_sig:
+                raw_sig = _re.sub(SIG_FIELDS, r'\n\1', raw_sig, flags=_re.IGNORECASE).strip()
+
+            # Reformater body collé sur une ligne (HTML mal converti)
+            if raw_body and raw_body.count('\n') < 2 and len(raw_body) > 100:
+                raw_body = _re.sub(SIG_FIELDS, r'\n\1', raw_body, flags=_re.IGNORECASE).strip()
+
+            msg['body'] = raw_body
+            msg['signature'] = raw_sig
+
+            if msg['from_'] or (msg['body'] and len(msg['body']) > 5):
+                messages.append(msg)
+
+        return messages
+
+    @property
+    def parsed_email(self):
+        """Parse le message email en liste de messages ordonnés + note IA."""
+        import re as _re
+        msg = self.message
+        # Retirer le préfixe [Email entrant] etc.
+        body = _re.sub(r'^\[Email[^\]]*\]\n?', '', msg)
+
+        # Extraire la note [IA] à la fin (anciens suivis: \n\n[IA], nouveaux: \n---\n[IA])
+        ia_match = _re.search(r'\n(?:---\n)?(\[IA\].+)$', body, _re.DOTALL)
+        if ia_match:
+            ia_note = ia_match.group(1).strip()
+            body = body[:ia_match.start()].strip()
+        else:
+            ia_note = ""
+
+        messages = self._parse_email_thread(body)
+        return {"messages": messages, "ia_note": ia_note}
+
+
+class EmailRecu(models.Model):
+    """Trace chaque mail traité par le pipeline Outlook."""
+    ACTION_CREE = "cree"
+    ACTION_FOLLOWUP = "followup"
+    ACTION_RESOLU = "resolu"
+    ACTION_IGNORE = "ignore"
+    ACTION_ERREUR = "erreur"
+    ACTION_CHOICES = [
+        (ACTION_CREE, "Remontée créée"),
+        (ACTION_FOLLOWUP, "Suivi ajouté"),
+        (ACTION_RESOLU, "Résolution détectée"),
+        (ACTION_IGNORE, "Ignoré"),
+        (ACTION_ERREUR, "Erreur"),
+    ]
+
+    compte = models.ForeignKey(CompteEmail, on_delete=models.SET_NULL, null=True, related_name="emails_recus")
+    ticket = models.ForeignKey(Ticket, on_delete=models.SET_NULL, null=True, blank=True, related_name="emails_source")
+    message_id = models.CharField(max_length=500, blank=True, db_index=True)
+    conversation_id = models.CharField(max_length=500, blank=True)
+    expediteur_email = models.EmailField(blank=True)
+    expediteur_nom = models.CharField(max_length=200, blank=True)
+    sujet = models.CharField(max_length=500, blank=True)
+    extrait = models.TextField(blank=True)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, default=ACTION_IGNORE)
+    erreur = models.TextField(blank=True)
+    date_reception = models.DateTimeField()
+    date_traitement = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Email reçu"
+        verbose_name_plural = "Emails reçus"
+        ordering = ["-date_reception"]
+
+    def __str__(self):
+        return f"{self.expediteur_email} — {self.sujet[:60]}"
+
 
 def chemin_piece_jointe(instance, filename):
     return os.path.join("tickets", "suivis", timezone.now().strftime("%Y/%m/%d"), filename)
@@ -247,3 +470,18 @@ class PieceJointe(models.Model):
         extension = os.path.splitext(self.fichier.name)[1].lower()
         return extension in {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
+
+
+class EmailMagasinMapping(models.Model):
+    """Base de connaissance : email expéditeur → magasin connu."""
+    email = models.EmailField(unique=True, db_index=True)
+    magasin = models.ForeignKey('core.Magasin', on_delete=models.CASCADE, related_name='email_mappings')
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Mapping email → magasin"
+        ordering = ['email']
+
+    def __str__(self):
+        return f"{self.email} → {self.magasin}"

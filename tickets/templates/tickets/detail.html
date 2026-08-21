@@ -45,17 +45,91 @@
     }
     .glpi-card-body { padding: 20px; }
     .ticket-meta { font-size: 0.92rem; }
-    .suivi-card { 
-        border-left: 4px solid #6b4c35; 
+    .suivi-card {
+        border-left: 4px solid #6b4c35;
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 0;
         transition: all 0.3s;
+    }
+    .suivi-card.suivi-email {
+        border-left-color: #3b82f6;
+        background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
     }
     .suivi-card:hover {
         border-left-width: 6px;
         box-shadow: 0 2px 10px rgba(107, 76, 53, 0.15);
     }
     .suivi-card + .suivi-card { margin-top: 15px; }
+    .email-header {
+        background: #f1f5f9;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        font-size: .82rem;
+        color: #475569;
+        border-left: 3px solid #3b82f6;
+    }
+    .email-body {
+        font-size: .88rem;
+        line-height: 1.7;
+        color: #1e293b;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 500px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        padding: 14px 16px;
+    }
+    .email-body::-webkit-scrollbar { width: 5px; }
+    .email-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .suivi-texte { font-size:.9rem; line-height:1.65; color:#374151; white-space:pre-wrap; word-break:break-word; }
+    /* ── Blocs email style IAHUB ── */
+    .email-thread-block { margin-bottom: 10px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+    .email-thread-new  { border-color: #e2e8f0; }
+    .email-thread-quoted { border-color: #e9ecef; opacity: .85; }
+
+    .email-msg-meta {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+        cursor: pointer; user-select: none;
+    }
+    .email-thread-quoted .email-msg-meta { background: #f1f5f9; }
+    .email-avatar {
+        width: 34px; height: 34px; border-radius: 50%;
+        background: #6b4c35; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .85rem; font-weight: 700; flex-shrink: 0;
+    }
+    .email-thread-quoted .email-avatar { background: #94a3b8; }
+    .email-meta-info { flex: 1; min-width: 0; }
+    .email-meta-from { font-weight: 600; font-size: .88rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email-meta-sub  { font-size: .75rem; color: #64748b; display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1px; }
+    .email-meta-tag  { margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+
+    .email-msg-body  { padding: 14px 16px; background: #fff; font-size: .9rem; line-height: 1.65; color: #1e293b; white-space: pre-wrap; word-break: break-word; }
+    .email-thread-quoted .email-msg-body { color: #475569; font-size: .87rem; }
+
+    .email-sig-block {
+        padding: 0 16px 14px;
+        font-size: .85rem; color: #94a3b8; white-space: pre-wrap; word-break: break-word;
+        line-height: 1.55;
+    }
+    .email-sig-label { display: none; }
+
+    .email-body.collapsed { max-height: 60px; overflow: hidden; }
+    .email-body.collapsed::after { content:''; display:block; background:linear-gradient(transparent,#f8fafc); height:30px; margin-top:-30px; position:relative; }
+    .pj-file-link:hover { background:#eff6ff !important; border-color:#3b82f6 !important; }
+    .suivi-collapse-btn {
+        font-size: .78rem;
+        color: #6b4c35;
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+        background: none;
+        padding: 2px 6px;
+    }
     .pj-thumb { width: 180px; height: 130px; object-fit: cover; border-radius: 0; }
     .pj-card { border: 1px solid #e5e7eb; border-radius: 0; padding: 6px; background: #fff; cursor: pointer; transition: transform 0.2s; }
     .pj-card:hover { transform: scale(1.05); }
@@ -181,43 +255,131 @@
             <div class="glpi-card-header">Suivis</div>
             <div class="glpi-card-body suivis-scroll">
                 {% for suivi in ticket.suivis.all %}
-                    <div class="suivi-card rounded p-3">
-                        <div class="d-flex justify-content-between">
-                            <strong>{{ suivi.auteur|default:"-" }}</strong>
-                            <small class="text-muted">{{ suivi.date_creation|date:"d/m/Y H:i" }}</small>
+                    <div class="suivi-card {% if '[Email' in suivi.message %}suivi-email{% endif %} rounded p-3 mb-3">
+
+                        {# ── En-tête suivi ── #}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                {% if '[Email entrant]' in suivi.message %}
+                                    <span class="badge" style="background:#3b82f6;font-size:.72rem;"><i class="bi bi-envelope-fill"></i> Email entrant</span>
+                                {% elif '[Email]' in suivi.message %}
+                                    <span class="badge" style="background:#10b981;font-size:.72rem;"><i class="bi bi-check-circle-fill"></i> Résolution email</span>
+                                {% else %}
+                                    <span class="badge" style="background:#6b4c35;font-size:.72rem;"><i class="bi bi-chat-dots-fill"></i> Note interne</span>
+                                {% endif %}
+                                <strong style="font-size:.9rem;">{{ suivi.auteur|default:"-" }}</strong>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted" data-ts="{{ suivi.date_creation|date:'Y-m-d H:i:s' }}" title="{{ suivi.date_creation|date:'d/m/Y H:i' }}">{{ suivi.date_creation|date:"d/m/Y H:i" }}</small>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem;"
+                                        onclick="toggleEditSuivi({{ suivi.id }})" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
                         </div>
-                        <p class="mb-2">{{ suivi.message }}</p>
+
+                        {# ── Contenu email structuré ── #}
+                        {% if '[Email entrant]' in suivi.message or '[Email]' in suivi.message %}
+                            {% with parsed=suivi.parsed_email %}
+                            {% for msg in parsed.messages %}
+                            <div class="email-thread-block {% if forloop.first %}email-thread-new{% else %}email-thread-quoted{% endif %} mb-2"
+                                 id="email-block-{{ suivi.pk }}-{{ forloop.counter }}">
+
+                                {# ── Méta header (avatar + expéditeur + sujet + date) ── #}
+                                <div class="email-msg-meta"
+                                     {% if not forloop.first %}onclick="toggleEmailBlock('email-block-{{ suivi.pk }}-{{ forloop.counter }}')"{% endif %}>
+                                    {# Avatar initiale #}
+                                    <div class="email-avatar">
+                                        {{ msg.from_|slice:":1"|upper }}
+                                    </div>
+                                    <div class="email-meta-info">
+                                        <div class="email-meta-from">{{ msg.from_|default:"Expéditeur inconnu" }}</div>
+                                        <div class="email-meta-sub">
+                                            {% if msg.sent %}<span><i class="bi bi-clock me-1"></i>{{ msg.sent }}</span>{% endif %}
+                                            {% if msg.to %}<span><i class="bi bi-arrow-right me-1"></i>{{ msg.to|truncatechars:50 }}</span>{% endif %}
+                                            {% if msg.cc %}<span><i class="bi bi-people me-1"></i>Cc : {{ msg.cc|truncatechars:40 }}</span>{% endif %}
+                                            {% if msg.subject %}<span><i class="bi bi-chat-left-text me-1"></i>{{ msg.subject }}</span>{% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="email-meta-tag">
+                                        {% if msg.ia_tag == '[IA-nettoyé]' %}
+                                        <span style="font-size:.68rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;">
+                                            <i class="bi bi-robot me-1"></i>IA nettoyé
+                                        </span>
+                                        {% endif %}
+                                        {% if not forloop.first %}
+                                        <i class="bi bi-chevron-down email-chevron" style="color:#94a3b8;font-size:.8rem;transition:transform .2s;"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                {# ── Corps + signature (masqué pour les messages cités) ── #}
+                                <div class="email-block-body {% if not forloop.first %}d-none{% endif %}">
+                                    <div class="email-msg-body">{{ msg.body|linebreaksbr }}</div>
+                                    {% if msg.signature %}
+                                    <div class="email-sig-block">{{ msg.signature|linebreaksbr }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="email-msg-body" style="border:1px solid #e2e8f0;border-radius:8px;">{{ suivi.message|linebreaksbr }}</div>
+                            {% endfor %}
+
+                            {# ── Note IA ── #}
+                            {% if parsed.ia_note %}
+                            <div class="mt-2 p-2 rounded d-flex align-items-start gap-2" style="background:#f0fdf4;border-left:3px solid #10b981;font-size:.82rem;color:#065f46;">
+                                <i class="bi bi-robot mt-1"></i><span>{{ parsed.ia_note|linebreaksbr }}</span>
+                            </div>
+                            {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            <div class="suivi-texte mb-2">{{ suivi.message|linebreaksbr }}</div>
+                        {% endif %}
+
+                        {# ── Pièces jointes ── #}
                         {% if suivi.pieces_jointes.all %}
+                        <div class="mt-2">
+                            <div style="font-size:.78rem;color:#64748b;margin-bottom:6px;"><i class="bi bi-paperclip me-1"></i>Pièces jointes :</div>
                             <div class="preview-grid">
                                 {% for piece in suivi.pieces_jointes.all %}
                                     {% if piece.est_image %}
                                         <div class="pj-card">
-                                            <img src="{{ piece.fichier.url }}" alt="image" class="pj-thumb" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="{{ piece.fichier.url }}">
+                                            <img src="{{ piece.fichier.url }}" alt="image" class="pj-thumb"
+                                                 data-bs-toggle="modal" data-bs-target="#imageModal"
+                                                 data-image="{{ piece.fichier.url }}" style="cursor:pointer;">
                                         </div>
                                     {% else %}
-                                        <a href="{{ piece.fichier.url }}" target="_blank" class="badge bg-light text-dark">
-                                            {{ piece.fichier.name|slice:"-30:" }}
+                                        <a href="{{ piece.fichier.url }}" target="_blank"
+                                           class="pj-file-link d-flex align-items-center gap-1 p-2"
+                                           style="border:1px solid #e2e8f0;border-radius:4px;font-size:.8rem;color:#374151;text-decoration:none;background:#f8fafc;">
+                                            <i class="bi bi-file-earmark-text text-primary"></i>
+                                            <span>{{ piece.fichier.name|slice:"-35:" }}</span>
                                         </a>
                                     {% endif %}
                                 {% endfor %}
                             </div>
-                        {% else %}
-                            <p class="text-muted mb-0">Aucune pièce jointe.</p>
+                        </div>
                         {% endif %}
-                        <form method="post" enctype="multipart/form-data" class="mt-3" data-suivi-id="{{ suivi.id }}">
-                            {% csrf_token %}
-                            <label class="glpi-form-label">Modifier le suivi</label>
-                            <textarea name="message_{{ suivi.id }}" class="form-control" rows="3">{{ suivi.message }}</textarea>
-                            <label class="glpi-form-label mt-2">Ajouter des fichiers</label>
-                            <input type="file" name="fichiers_{{ suivi.id }}" class="form-control suivi-file-input" data-suivi-id="{{ suivi.id }}" multiple>
-                            <div class="paste-zone paste-zone-suivi" data-suivi-id="{{ suivi.id }}" tabindex="0">
-                                <p><i class="bi bi-clipboard"></i> Cliquez ici ou collez (Ctrl+V) une image</p>
-                            </div>
-                            <div class="preview-grid preview-suivi-{{ suivi.id }} mt-2"></div>
-                            <button type="submit" name="modifier_suivi" value="{{ suivi.id }}" class="btn btn-outline-primary btn-sm mt-2">
-                                Enregistrer
-                            </button>
-                        </form>
+
+                        {# ── Formulaire modification (caché par défaut) ── #}
+                        <div id="edit-suivi-{{ suivi.id }}" style="display:none;" class="mt-3 pt-3" style="border-top:1px solid #e2e8f0;">
+                            <form method="post" enctype="multipart/form-data" data-suivi-id="{{ suivi.id }}">
+                                {% csrf_token %}
+                                <textarea name="message_{{ suivi.id }}" class="form-control form-control-sm mb-2" rows="4">{{ suivi.message }}</textarea>
+                                <input type="file" name="fichiers_{{ suivi.id }}" class="form-control form-control-sm suivi-file-input mb-2" data-suivi-id="{{ suivi.id }}" multiple>
+                                <div class="paste-zone paste-zone-suivi" data-suivi-id="{{ suivi.id }}" tabindex="0">
+                                    <p><i class="bi bi-clipboard"></i> Coller une image (Ctrl+V)</p>
+                                </div>
+                                <div class="preview-grid preview-suivi-{{ suivi.id }} mt-2"></div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button type="submit" name="modifier_suivi" value="{{ suivi.id }}" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-floppy me-1"></i>Enregistrer
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleEditSuivi({{ suivi.id }})">Annuler</button>
+                                </div>
+                            </form>
+                        </div>
+
                     </div>
                 {% empty %}
                     <p class="text-muted">Aucun suivi.</p>
@@ -316,10 +478,10 @@
                         -
                     {% endif %}
                 </p>
-                <p><strong>Créé le:</strong> {{ ticket.date_creation|date:"d/m/Y H:i" }}</p>
-                <p><strong>Mise à jour:</strong> {{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</p>
+                <p><strong>Créé le:</strong> <span data-ts="{{ ticket.date_creation|date:'Y-m-d H:i:s' }}" title="{{ ticket.date_creation|date:'d/m/Y H:i' }}">{{ ticket.date_creation|date:"d/m/Y H:i" }}</span></p>
+                <p><strong>Mise à jour:</strong> <span data-ts="{{ ticket.date_mise_a_jour|date:'Y-m-d H:i:s' }}" title="{{ ticket.date_mise_a_jour|date:'d/m/Y H:i' }}">{{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</span></p>
                 {% if ticket.date_fermeture %}
-                    <p><strong>Fermé le:</strong> {{ ticket.date_fermeture|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Fermé le:</strong> <span data-ts="{{ ticket.date_fermeture|date:'Y-m-d H:i:s' }}" title="{{ ticket.date_fermeture|date:'d/m/Y H:i' }}">{{ ticket.date_fermeture|date:"d/m/Y H:i" }}</span></p>
                 {% endif %}
             </div>
         </div>
@@ -401,6 +563,11 @@
 
 {% block extra_js %}
 <script>
+    function toggleEditSuivi(id) {
+        const el = document.getElementById('edit-suivi-' + id);
+        if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
     const imageModal = document.getElementById('imageModal');
     if (imageModal) {
         imageModal.addEventListener('show.bs.modal', function (event) {
@@ -693,6 +860,16 @@
             }
         });
     });
+
+function toggleEmailBlock(blockId) {
+    const block = document.getElementById(blockId);
+    if (!block) return;
+    const body = block.querySelector('.email-block-body');
+    const chevron = block.querySelector('.email-chevron');
+    if (!body) return;
+    const hidden = body.classList.toggle('d-none');
+    if (chevron) chevron.style.transform = hidden ? '' : 'rotate(180deg)';
+}
 </script>
 {% endblock %}
 

@@ -160,6 +160,7 @@
                 <thead class="table-light">
                     <tr>
                         <th class="border-0"><i class="bi bi-calendar"></i> Date Commande</th>
+                        <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
                         <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
@@ -171,6 +172,11 @@
                     {% for commande in commandes %}
                         <tr class="align-middle">
                             <td class="fw-semibold">{{ commande.date_commande|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if commande.date_validation %}
+                                <span class="fw-semibold text-success">{{ commande.date_validation|date:"d/m/Y" }}</span>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
                             <td><strong class="text-primary">{{ commande.numero_commande }}</strong></td>
                             <td>
                                 <span class="badge bg-secondary">{{ commande.code_magasin.code }}</span><br>

@@ -182,6 +182,7 @@
                     <tr>
                         <th class="border-0" style="width: 40px;"></th>
                         <th class="border-0"><i class="bi bi-calendar"></i> Date Commande</th>
+                        <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
                         <th class="border-0"><i class="bi bi-clock"></i> Date Création Écart</th>
@@ -197,6 +198,13 @@
                                        value="{{ item.type_ecart }}:{{ item.id }}">
                             </td>
                             <td class="fw-semibold">{{ item.date_commande|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if item.date_validation %}
+                                <span class="fw-semibold text-success">{{ item.date_validation|date:"d/m/Y" }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 <strong class="text-primary">{{ item.numero_commande }}</strong>
                                 {% if item.type_ecart == 'gpv' %}
@@ -218,7 +226,7 @@
                                     {% if item.nom_magasin %}<br><small class="text-muted">{{ item.nom_magasin }}</small>{% endif %}
                                 {% endif %}
                             </td>
-                            <td><small class="text-muted">{{ item.date_creation|date:"d/m/Y H:i" }}</small></td>
+                            <td><small class="text-muted" data-ts="{{ item.date_creation|date:'Y-m-d H:i:s' }}" title="{{ item.date_creation|date:'d/m/Y H:i' }}">{{ item.date_creation|date:"d/m/Y H:i" }}</small></td>
                             <td>
                                 {% if item.statut == 'ouvert' %}
                                     <span class="badge bg-danger rounded-pill">

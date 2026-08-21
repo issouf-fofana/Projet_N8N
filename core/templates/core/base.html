@@ -536,6 +536,14 @@
             left: 0 !important;
             margin-top: 0.125rem !important;
         }
+
+        /* ── Modals Bootstrap au-dessus de tout ── */
+        .modal { z-index: 9000 !important; }
+        .modal-backdrop { z-index: 8999 !important; }
+        /* Baisser les éléments fixes quand un modal est ouvert */
+        body.modal-open #sidebar-toggle,
+        body.modal-open .btn-accueil-fixed,
+        body.modal-open .sidebar { z-index: 1 !important; }
         
         .dropdown.show .dropdown-menu {
             display: block !important;
@@ -946,8 +954,8 @@
                         <a href="{% url 'tickets:nouveau' %}" class="{% if request.resolver_match.url_name == 'nouveau' and request.resolver_match.app_name == 'tickets' %}active{% endif %}">
                             <i class="bi bi-plus-circle"></i> Nouvelle remontée
                         </a>
-                        <a href="{% url 'tickets:config_email' %}" class="{% if request.resolver_match.url_name == 'config_email' %}active{% endif %}">
-                            <i class="bi bi-envelope-gear"></i> Config Email
+                        <a href="{% url 'tickets:boite_reception' %}" class="{% if request.resolver_match.url_name == 'boite_reception' %}active{% endif %}">
+                            <i class="bi bi-inbox"></i> Boîte de réception
                         </a>
                     </div>
                 </div>
@@ -1032,11 +1040,11 @@
         <div class="accordion sidebar-accordion" id="sidebarAccordionAdmin">
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button {% if request.resolver_match.url_name == 'historique_imports' or request.resolver_match.url_name == 'configuration_systeme' or request.resolver_match.url_name == 'gestion_magasins' or request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' or request.resolver_match.url_name == 'preferences_utilisateur' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
+                    <button class="accordion-button {% if request.resolver_match.url_name == 'historique_imports' or request.resolver_match.url_name == 'configuration_systeme' or request.resolver_match.url_name == 'gestion_magasins' or request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' or request.resolver_match.url_name == 'preferences_utilisateur' or request.resolver_match.url_name == 'pipeline_email' or request.resolver_match.url_name == 'config_email' %}{% else %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapseParametres">
                         <i class="bi bi-gear"></i> Paramètres
                     </button>
                 </h2>
-                <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'historique_imports' or request.resolver_match.url_name == 'configuration_systeme' or request.resolver_match.url_name == 'gestion_magasins' or request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' or request.resolver_match.url_name == 'preferences_utilisateur' %}show{% endif %}" data-bs-parent="#sidebarAccordionAdmin">
+                <div id="collapseParametres" class="accordion-collapse collapse {% if request.resolver_match.url_name == 'historique_imports' or request.resolver_match.url_name == 'configuration_systeme' or request.resolver_match.url_name == 'gestion_magasins' or request.resolver_match.url_name == 'gestion_utilisateurs' or request.resolver_match.url_name == 'creer_utilisateur' or request.resolver_match.url_name == 'permissions_utilisateur' or request.resolver_match.url_name == 'preferences_utilisateur' or request.resolver_match.url_name == 'pipeline_email' or request.resolver_match.url_name == 'config_email' %}show{% endif %}" data-bs-parent="#sidebarAccordionAdmin">
                     <div class="accordion-body">
                         <a href="{% url 'dashboard:activite_live' %}" class="{% if request.resolver_match.url_name == 'activite_live' %}active{% endif %}">
                             <i class="bi bi-activity"></i> Activité en direct
@@ -1060,6 +1068,9 @@
                             <i class="bi bi-people"></i> Utilisateurs
                         </a>
                         {% endif %}
+                        <a href="{% url 'tickets:pipeline_email' %}" class="{% if request.resolver_match.url_name == 'pipeline_email' or request.resolver_match.url_name == 'config_email' %}active{% endif %}">
+                            <i class="bi bi-envelope-gear"></i> Pipeline Email
+                        </a>
                         <a href="{% url 'dashboard:preferences_utilisateur' %}" class="{% if request.resolver_match.url_name == 'preferences_utilisateur' %}active{% endif %}">
                             <i class="bi bi-sliders2-vertical"></i> Préférences
                         </a>
@@ -1137,6 +1148,37 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     {% block extra_js %}{% endblock %}
+
+    <!-- ─ Temps relatif global : tout élément [data-ts] est converti en "il y a Xmin" ─ -->
+    <script>
+    (function(){
+        function timeAgo(dateStr) {
+            const d = new Date(dateStr.replace(' ','T'));
+            const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+            if (isNaN(diff) || diff < 0) return dateStr;
+            if (diff < 60) return "à l'instant";
+            if (diff < 3600) { const m=Math.floor(diff/60); return `il y a ${m} min`; }
+            if (diff < 86400) { const h=Math.floor(diff/3600); return `il y a ${h}h`; }
+            if (diff < 172800) return "hier";
+            const days=Math.floor(diff/86400);
+            if (days < 30) return `il y a ${days}j`;
+            const mo=Math.floor(days/30);
+            if (mo < 12) return `il y a ${mo} mois`;
+            const y=Math.floor(mo/12); return `il y a ${y} an${y>1?'s':''}`;
+        }
+        function applyTimeAgo() {
+            document.querySelectorAll('[data-ts]').forEach(function(el){
+                if (!el.dataset.tsApplied) {
+                    el.dataset.tsApplied = '1';
+                    el.title = el.title || el.textContent.trim();
+                }
+                el.textContent = timeAgo(el.dataset.ts);
+            });
+        }
+        document.addEventListener('DOMContentLoaded', applyTimeAgo);
+        setInterval(applyTimeAgo, 60000);
+    })();
+    </script>
 
     <!-- ═══ Loader global (toutes les pages) ═══ -->
     <style>
@@ -1478,7 +1520,7 @@
         const SESSION_KEY = 'autorefresh_last_ts';
         const RELOAD_COOLDOWN_KEY = 'autorefresh_last_reload';
         const RELOAD_COOLDOWN_MS = 60000; // min 60s entre deux reloads
-        const NO_RELOAD_PATHS = ['/actualiser/', '/changer-mot-de-passe/'];
+        const NO_RELOAD_PATHS = ['/actualiser/', '/changer-mot-de-passe/', '/tickets/'];
 
         // Récupérer le timestamp mémorisé depuis la session (persiste entre reloads)
         let lastKnownTs = sessionStorage.getItem(SESSION_KEY) || null;
@@ -1590,7 +1632,8 @@
         var nextMsg = document.getElementById('next-import-msg');
         var spinner = document.getElementById('import-spinner');
         var clock   = document.getElementById('import-clock-icon');
-        if (!banner) return;
+        // Ne pas afficher le bandeau import sur les pages tickets/email
+        if (!banner || window.location.pathname.startsWith('/tickets/')) return;
 
         function prochainImport() {
             var now = new Date();

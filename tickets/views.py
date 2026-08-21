@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from .forms import TicketForm, SuiviTicketForm, StatutTicketForm, AssignationTicketForm, ModifierTicketForm
-from .models import Ticket, SuiviTicket, PieceJointe, HistoriqueStatut, CompteEmail
+from .models import Ticket, SuiviTicket, PieceJointe, HistoriqueStatut, CompteEmail, EmailRecu, ConfigPipeline
 from .utils import charger_techniciens_si_vide
 
 
@@ -282,7 +282,18 @@ def detail_ticket(request, ticket_id):
                 return redirect("tickets:detail", ticket_id=ticket.id)
             modifier_form = ModifierTicketForm(request.POST, instance=ticket)
             if modifier_form.is_valid():
+                ancien_magasin = ticket.magasin_id
                 modifier_form.save()
+                # Base de connaissance : si magasin corrigé manuellement sur un ticket email
+                nouveau_magasin = modifier_form.instance.magasin
+                if ticket.cree_par_email and ticket.source_email and nouveau_magasin and nouveau_magasin.pk != ancien_magasin:
+                    from .models import EmailMagasinMapping
+                    EmailMagasinMapping.objects.update_or_create(
+                        email=ticket.source_email,
+                        defaults={"magasin": nouveau_magasin},
+                    )
+                    # Marquer le ticket comme identifié
+                    Ticket.objects.filter(pk=ticket.pk).update(magasin_non_identifie=False)
                 messages.success(request, "Informations du ticket mises à jour.")
                 return redirect("tickets:detail", ticket_id=ticket.id)
             else:
@@ -352,78 +363,231 @@ def supprimer_tickets_multiple(request):
 # Configuration Outlook 365
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Pipeline Email — page unique (config + IA + auto + boîte de réception)
+# ─────────────────────────────────────────────────────────────────────────────
+
 @login_required
-def config_email(request):
-    """Page de configuration du compte Outlook."""
+def pipeline_email(request):
+    """Page unifiée : Config Outlook + Config IA + Automatisation + Boîte de réception."""
     compte, _ = CompteEmail.objects.get_or_create(pk=1, defaults={"label": "Boîte support"})
+    config = ConfigPipeline.get()
 
     if request.method == "POST":
-        compte.label = request.POST.get("label", compte.label)
-        compte.client_id = request.POST.get("client_id", "").strip()
-        compte.client_secret = request.POST.get("client_secret", "").strip()
-        compte.tenant_id = request.POST.get("tenant_id", "").strip()
-        compte.is_active = "is_active" in request.POST
-        compte.save()
-        messages.success(request, "Configuration sauvegardée.")
-        return redirect("tickets:config_email")
+        action = request.POST.get("_action", "")
 
+        if action == "save_outlook":
+            compte.label = request.POST.get("label", compte.label)
+            compte.client_id = request.POST.get("client_id", "").strip()
+            compte.client_secret = request.POST.get("client_secret", "").strip()
+            compte.tenant_id = request.POST.get("tenant_id", "").strip()
+            compte.is_active = "is_active" in request.POST
+            sync_depuis_str = request.POST.get("sync_depuis", "").strip()
+            if sync_depuis_str:
+                compte.sync_depuis = parse_date(sync_depuis_str)
+            else:
+                compte.sync_depuis = None
+            # Réinitialiser le delta_link quand la date change
+            if "sync_depuis" in request.POST:
+                compte.delta_link = ""
+            compte.save()
+            messages.success(request, "Configuration Outlook sauvegardée.")
+
+        elif action == "save_ai":
+            config.gemini_api_key = request.POST.get("gemini_api_key", "").strip()
+            config.gemini_model = request.POST.get("gemini_model", "gemini-flash-latest").strip()
+            config.mots_cles_resolution = request.POST.get("mots_cles_resolution", "").strip()
+            config.prompt_analyse_email = request.POST.get("prompt_analyse_email", "").strip()
+            config.prompt_analyse_intention = request.POST.get("prompt_analyse_intention", "").strip()
+            config.save()
+            messages.success(request, "Configuration IA sauvegardée.")
+
+        elif action == "save_auto":
+            config.polling_actif = "polling_actif" in request.POST
+            config.intervalle_minutes = max(1, int(request.POST.get("intervalle_minutes", 5) or 5))
+            config.save()
+            messages.success(request, "Configuration automatisation sauvegardée.")
+
+        elif action == "purge_emails":
+            from django.utils.timezone import make_aware
+            from datetime import datetime, time as dtime
+            date_debut_str = request.POST.get("purge_date_debut", "").strip()
+            date_fin_str = request.POST.get("purge_date_fin", "").strip()
+            purge_tickets = "purge_tickets" in request.POST
+
+            qs = EmailRecu.objects.all()
+            if date_debut_str:
+                d = parse_date(date_debut_str)
+                if d:
+                    qs = qs.filter(date_reception__gte=make_aware(datetime.combine(d, dtime.min)))
+            if date_fin_str:
+                d = parse_date(date_fin_str)
+                if d:
+                    qs = qs.filter(date_reception__lte=make_aware(datetime.combine(d, dtime.max)))
+
+            nb_emails = qs.count()
+            nb_tickets = 0
+            if purge_tickets:
+                ticket_ids = qs.exclude(ticket__isnull=True).values_list("ticket_id", flat=True).distinct()
+                nb_tickets = Ticket.objects.filter(pk__in=ticket_ids, cree_par_email=True).delete()[0]
+            qs.delete()
+            messages.success(request, f"Purge effectuée : {nb_emails} email(s) supprimé(s){', ' + str(nb_tickets) + ' ticket(s) supprimé(s)' if purge_tickets else ''}.")
+
+        return redirect("tickets:pipeline_email")
+
+    from tickets.email_pipeline import DEFAULT_PROMPT_ANALYSE_EMAIL, DEFAULT_PROMPT_ANALYSE_INTENTION
     redirect_uri = request.build_absolute_uri("/tickets/email/callback/")
-    return render(request, "tickets/config_email.html", {"compte": compte, "redirect_uri": redirect_uri})
+    return render(request, "tickets/pipeline_email.html", {
+        "compte": compte,
+        "config": config,
+        "redirect_uri": redirect_uri,
+        "tab": request.GET.get("tab", "outlook"),
+        "default_prompt_email": DEFAULT_PROMPT_ANALYSE_EMAIL,
+        "default_prompt_intention": DEFAULT_PROMPT_ANALYSE_INTENTION,
+    })
+
+
+@login_required
+def config_email(request):
+    return redirect("tickets:pipeline_email")
+
+
+@login_required
+def boite_reception(request):
+    """Boîte de réception emails — page indépendante."""
+    filtre = request.GET.get("filtre") or ""
+    emails_qs = EmailRecu.objects.select_related("ticket", "ticket__magasin", "compte").order_by("-date_reception")
+
+    if filtre == "ouverts":
+        emails_qs = emails_qs.filter(ticket__statut__in=[Ticket.STATUT_NOUVEAU, Ticket.STATUT_EN_COURS, Ticket.STATUT_EN_ATTENTE])
+    elif filtre == "clotures":
+        emails_qs = emails_qs.filter(ticket__statut__in=[Ticket.STATUT_RESOLU, Ticket.STATUT_FERME])
+    elif filtre in [c[0] for c in EmailRecu.ACTION_CHOICES]:
+        emails_qs = emails_qs.filter(action=filtre)
+
+    paginator = Paginator(emails_qs, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    stats = {
+        "total": EmailRecu.objects.count(),
+        "ouverts": Ticket.objects.filter(cree_par_email=True, statut__in=[Ticket.STATUT_NOUVEAU, Ticket.STATUT_EN_COURS, Ticket.STATUT_EN_ATTENTE]).count(),
+        "clotures": Ticket.objects.filter(cree_par_email=True, statut__in=[Ticket.STATUT_RESOLU, Ticket.STATUT_FERME]).count(),
+        "crees": EmailRecu.objects.filter(action=EmailRecu.ACTION_CREE).count(),
+        "resolus": EmailRecu.objects.filter(action=EmailRecu.ACTION_RESOLU).count(),
+        "erreurs": EmailRecu.objects.filter(action=EmailRecu.ACTION_ERREUR).count(),
+    }
+    return render(request, "tickets/boite_reception.html", {
+        "page_obj": page_obj,
+        "stats": stats,
+        "filtre": filtre,
+    })
 
 
 @login_required
 def outlook_connect(request):
-    """Redirige vers la page de connexion Microsoft OAuth2."""
     from tickets.outlook_service import get_authorize_url
     compte = get_object_or_404(CompteEmail, pk=1)
     if not compte.client_id or not compte.tenant_id or not compte.client_secret:
         messages.error(request, "Remplis d'abord le Client ID, Tenant ID et Client Secret.")
-        return redirect("tickets:config_email")
-
+        return redirect("tickets:pipeline_email")
     redirect_uri = request.build_absolute_uri("/tickets/email/callback/")
     url = get_authorize_url(compte, redirect_uri)
     return redirect(url)
 
 
 def outlook_callback(request):
-    """Callback OAuth2 Microsoft : échange le code et sauvegarde le token."""
     from tickets.outlook_service import exchange_code_for_token
     code = request.GET.get("code")
     state = request.GET.get("state")
     error = request.GET.get("error")
-
     if error:
         messages.error(request, f"Erreur Microsoft : {request.GET.get('error_description', error)}")
-        return redirect("tickets:config_email")
-
+        return redirect("tickets:pipeline_email")
     try:
         compte = CompteEmail.objects.get(pk=int(state))
         redirect_uri = request.build_absolute_uri("/tickets/email/callback/")
         exchange_code_for_token(compte, code, redirect_uri)
-        messages.success(request, f"✅ Compte '{compte.label}' connecté à Outlook avec succès !")
+        messages.success(request, f"Compte '{compte.label}' connecté à Outlook avec succès !")
     except Exception as e:
         messages.error(request, f"Erreur lors de la connexion : {e}")
-
-    return redirect("tickets:config_email")
+    return redirect("tickets:pipeline_email")
 
 
 @login_required
 @require_POST
 def outlook_disconnect(request):
-    """Déconnecte le compte Outlook (efface le refresh token)."""
     compte = get_object_or_404(CompteEmail, pk=1)
     compte.refresh_token = ""
     compte.delta_link = ""
     compte.is_active = False
     compte.save()
     messages.success(request, "Compte Outlook déconnecté.")
-    return redirect("tickets:config_email")
+    return redirect("tickets:pipeline_email")
+
+
+@login_required
+@require_POST
+def test_gemini_key(request):
+    """Teste la clé Gemini et retourne les modèles disponibles."""
+    import requests as req
+    api_key = request.POST.get("api_key", "").strip()
+    if not api_key:
+        from tickets.models import ConfigPipeline
+        api_key = ConfigPipeline.get().gemini_api_key
+    if not api_key:
+        return JsonResponse({"ok": False, "error": "Aucune clé API fournie."})
+    try:
+        # Lister les modèles disponibles
+        resp = req.get(
+            "https://generativelanguage.googleapis.com/v1beta/models",
+            params={"key": api_key},
+            timeout=10,
+        )
+        if resp.status_code == 400:
+            return JsonResponse({"ok": False, "error": "Clé API invalide (400)."})
+        if resp.status_code == 403:
+            return JsonResponse({"ok": False, "error": "Clé API refusée (403) — vérifiez qu'elle est activée sur aistudio.google.com."})
+        resp.raise_for_status()
+        data = resp.json()
+        modeles = []
+        for m in data.get("models", []):
+            name = m.get("name", "").replace("models/", "")
+            if "gemini" in name and "generateContent" in m.get("supportedGenerationMethods", []):
+                modeles.append({
+                    "id": name,
+                    "label": m.get("displayName", name),
+                    "description": m.get("description", ""),
+                })
+        # Test rapide : appel generateContent avec un mini prompt
+        test_model = "gemini-2.5-flash" if any(m["id"] == "gemini-2.5-flash" for m in modeles) else (modeles[0]["id"] if modeles else "gemini-1.5-flash")
+        test_resp = req.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{test_model}:generateContent",
+            headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+            json={"contents": [{"parts": [{"text": "Réponds juste: OK"}]}], "generationConfig": {"maxOutputTokens": 10}},
+            timeout=15,
+        )
+        test_ok = test_resp.status_code == 200
+        test_reply = ""
+        if test_ok:
+            try:
+                test_reply = test_resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+            except Exception:
+                test_reply = "Réponse reçue"
+        return JsonResponse({
+            "ok": True,
+            "modeles": modeles,
+            "test_model": test_model,
+            "test_ok": test_ok,
+            "test_reply": test_reply,
+            "total": len(modeles),
+        })
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)})
 
 
 @login_required
 @require_POST
 def outlook_poll_now(request):
-    """Déclenche manuellement un polling immédiat."""
     from tickets.outlook_service import poll_all_accounts
     try:
         stats = poll_all_accounts()

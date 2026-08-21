@@ -316,7 +316,8 @@
         <div class="row g-2">
             {% for magasin in magasins_touches %}
             <div class="col-6 col-md-4 col-lg-3">
-                <div class="rem-mag-item">
+                <a href="?magasin={{ magasin.magasin__code }}" style="text-decoration:none;display:block;">
+                <div class="rem-mag-item" style="cursor:pointer;transition:box-shadow .15s,transform .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(107,76,53,.18)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='';this.style.transform=''">
                     <div class="d-flex align-items-center flex-1 min-width-0">
                         <div class="rem-mag-ico"><i class="bi bi-shop"></i></div>
                         <div class="min-width-0">
@@ -329,6 +330,7 @@
                         <div class="rem-mag-sub">remontée{{ magasin.count|pluralize }}</div>
                     </div>
                 </div>
+                </a>
             </div>
             {% endfor %}
         </div>
@@ -359,7 +361,14 @@
                     <td style="text-align:center;">
                         <input type="checkbox" class="rem-checkbox ticket-checkbox" value="{{ ticket.id }}" data-numero="{{ ticket.numero_ticket }}" onchange="updateSupprimerButton()">
                     </td>
-                    <td><span class="rem-ticket-num">#{{ ticket.numero_ticket }}</span></td>
+                    <td>
+                        <span class="rem-ticket-num">#{{ ticket.numero_ticket }}</span>
+                        {% if ticket.sujet_email %}
+                        <div style="font-size:.75rem;color:#78716c;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;" title="{{ ticket.sujet_email }}">
+                            <i class="bi bi-envelope me-1" style="color:#6b4c35;"></i>{{ ticket.sujet_email }}
+                        </div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if ticket.type_demande == 'incident' %}
                             <span class="rem-badge incident"><i class="bi bi-exclamation-triangle-fill"></i> Incident</span>
@@ -401,7 +410,7 @@
                             <span style="color:#cbd5e1;">—</span>
                         {% endif %}
                     </td>
-                    <td><span class="rem-date">{{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</span></td>
+                    <td><span class="rem-date rem-timeago" data-ts="{{ ticket.date_mise_a_jour|date:'Y-m-d H:i:s' }}" title="{{ ticket.date_mise_a_jour|date:'d/m/Y H:i' }}">{{ ticket.date_mise_a_jour|date:"d/m/Y H:i" }}</span></td>
                     <td>
                         <a href="{% url 'tickets:detail' ticket.id %}" class="btn-voir">
                             <i class="bi bi-eye"></i> Voir
@@ -440,26 +449,6 @@
     {% endif %}
 </div>
 
-<!-- MODAL SUPPRESSION -->
-<div class="modal fade" id="modalSuppression" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:0;border:none;overflow:hidden;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#ef4444,#dc2626);border:none;">
-                <h5 class="modal-title text-white fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Confirmation de suppression</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-3 fw-semibold">Êtes-vous sûr de vouloir supprimer le(s) ticket(s) sélectionné(s) ?</p>
-                <div id="listeTicketsSuppression" class="alert alert-warning mb-0"></div>
-                <p class="text-danger mt-3 mb-0"><i class="bi bi-exclamation-circle me-1"></i><strong>Cette action est irréversible.</strong></p>
-            </div>
-            <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle me-1"></i>Annuler</button>
-                <button type="button" class="btn btn-danger" onclick="confirmerSuppression()"><i class="bi bi-trash me-1"></i>Supprimer</button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -505,18 +494,23 @@ function updateSupprimerButton() {
     const selectAll = document.getElementById('selectAll');
     if (all.length > 0) selectAll.checked = checked.length === all.length;
 }
-function supprimerSelection() {
+async function supprimerSelection() {
     const checkboxes = document.querySelectorAll('.ticket-checkbox:checked');
     if (!checkboxes.length) return;
     const tickets = Array.from(checkboxes).map(cb => ({ id: cb.value, numero: cb.getAttribute('data-numero') }));
-    const listeDiv = document.getElementById('listeTicketsSuppression');
-    if (tickets.length === 1) {
-        listeDiv.innerHTML = `<strong>Ticket #${tickets[0].numero}</strong>`;
-    } else {
-        listeDiv.innerHTML = '<strong>Tickets à supprimer :</strong><ul class="mb-0 mt-2">' + tickets.map(t => `<li>Ticket #${t.numero}</li>`).join('') + '</ul>';
-    }
     window.ticketsASupprimer = tickets.map(t => t.id);
-    new bootstrap.Modal(document.getElementById('modalSuppression')).show();
+
+    const liste = tickets.length === 1
+        ? `Ticket #${tickets[0].numero}`
+        : 'Tickets à supprimer :<ul class="mb-0 mt-2">' + tickets.map(t => `<li>Ticket #${t.numero}</li>`).join('') + '</ul>';
+
+    const ok = await AppModal.confirm({
+        title: 'Confirmation de suppression',
+        body: liste + '<p class="text-danger mt-3 mb-0"><i class="bi bi-exclamation-circle me-1"></i><strong>Cette action est irréversible.</strong></p>',
+        type: 'danger',
+        okLabel: '<i class="bi bi-trash me-1"></i> Supprimer',
+    });
+    if (ok) confirmerSuppression();
 }
 function getCookie(name) {
     let val = null;
@@ -576,5 +570,6 @@ setTimeout(() => {
     document.querySelectorAll('.rem-stat-val[data-value]').forEach(el => animateValue(el, 0, parseFloat(el.dataset.value)||0, 500));
     document.querySelectorAll('.stat-percentage[data-value]').forEach(el => animatePercentage(el, 0, parseFloat(el.dataset.value)||0, 500));
 }, 300);
+
 </script>
 {% endblock %}

@@ -1,0 +1,496 @@
+{% extends "core/base.html" %}
+{% block title %}Config Pipeline Email{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+        <h1><i class="bi bi-gear"></i> Configuration Pipeline Email</h1>
+        <p class="mb-0" style="opacity:.85;font-size:.9rem;">Outlook 365 · IA Gemini · Automatisation</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        {% if compte.est_connecte and config.gemini_api_key and compte.is_active %}
+        <span class="badge" style="background:#10b981;font-size:.8rem;padding:6px 12px;">
+            <i class="bi bi-check-circle-fill"></i> Pipeline opérationnel
+        </span>
+        {% else %}
+        <span class="badge" style="background:#f59e0b;font-size:.8rem;padding:6px 12px;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Config incomplète
+        </span>
+        {% endif %}
+        <a href="{% url 'tickets:boite_reception' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-inbox"></i> Boîte de réception
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible mb-3" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Onglets -->
+<ul class="nav nav-tabs mb-4" style="border-color:var(--border);">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'outlook' or not tab %}active{% endif %}"
+           href="?tab=outlook" style="border-radius:0;">
+            <i class="bi bi-microsoft"></i> Config Outlook
+            {% if compte.est_connecte %}<i class="bi bi-circle-fill ms-1" style="color:#10b981;font-size:.5rem;vertical-align:middle;"></i>{% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'ai' %}active{% endif %}"
+           href="?tab=ai" style="border-radius:0;">
+            <i class="bi bi-robot"></i> Config IA
+            {% if config.gemini_api_key %}<i class="bi bi-circle-fill ms-1" style="color:#10b981;font-size:.5rem;vertical-align:middle;"></i>{% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'auto' %}active{% endif %}"
+           href="?tab=auto" style="border-radius:0;">
+            <i class="bi bi-clock"></i> Automatisation
+            {% if config.polling_actif %}<i class="bi bi-circle-fill ms-1" style="color:#10b981;font-size:.5rem;vertical-align:middle;"></i>{% endif %}
+        </a>
+    </li>
+</ul>
+
+<!-- ── ONGLET OUTLOOK ── -->
+<div {% if tab != 'outlook' and tab %}style="display:none;"{% endif %}>
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-plug"></i> <strong>Statut de connexion</strong></div>
+                <div class="card-body">
+                    {% if compte.est_connecte %}
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <span class="badge" style="background:#10b981;font-size:.85rem;padding:8px 16px;">
+                            <i class="bi bi-check-circle-fill"></i> Connecté à Outlook
+                        </span>
+                        {% if compte.last_sync %}<span style="font-size:.84rem;color:var(--tx-3);">Dernier sync : {{ compte.last_sync|date:"d/m/Y H:i" }}</span>{% endif %}
+                        <form id="form-disconnect" method="post" action="{% url 'tickets:outlook_disconnect' %}" class="ms-auto">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Déconnecter Outlook ?')">
+                                <i class="bi bi-x-circle"></i> Déconnecter
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge" style="background:#78716c;font-size:.85rem;padding:8px 16px;">
+                            <i class="bi bi-x-circle"></i> Non connecté
+                        </span>
+                        <span style="font-size:.84rem;color:var(--tx-3);">Remplis les identifiants ci-dessous puis clique "Connecter Outlook"</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-gear"></i> <strong>Identifiants Azure App</strong></div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="_action" value="save_outlook">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nom du compte</label>
+                            <input type="text" name="label" class="form-control" value="{{ compte.label }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Client ID <span style="color:#ef4444;">*</span></label>
+                            <input type="text" name="client_id" class="form-control font-monospace" value="{{ compte.client_id }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Tenant ID <span style="color:#ef4444;">*</span></label>
+                            <input type="text" name="tenant_id" class="form-control font-monospace" value="{{ compte.tenant_id }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Client Secret <span style="color:#ef4444;">*</span></label>
+                            <input type="password" name="client_secret" class="form-control" value="{{ compte.client_secret }}" placeholder="Valeur du secret (pas l'ID)">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:.85rem;font-weight:600;">
+                                <i class="bi bi-calendar-range"></i> Importer les emails depuis le
+                                <span style="font-size:.78rem;color:var(--tx-3);font-weight:400;">(laisser vide = tout importer)</span>
+                            </label>
+                            <input type="date" name="sync_depuis" class="form-control"
+                                   value="{{ compte.sync_depuis|date:'Y-m-d' }}"
+                                   style="max-width:200px;">
+                            <div style="font-size:.76rem;color:var(--tx-3);margin-top:4px;">
+                                <i class="bi bi-info-circle"></i> Changer cette date réinitialisera la synchronisation.
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" name="is_active" id="is_active" class="form-check-input" {% if compte.is_active %}checked{% endif %}>
+                            <label for="is_active" class="form-check-label">Compte actif (polling automatique)</label>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Sauvegarder</button>
+                            {% if compte.client_id and compte.tenant_id and compte.client_secret %}
+                            <a href="{% url 'tickets:outlook_connect' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-microsoft"></i> Connecter Outlook
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-book"></i> <strong>Guide Azure Portal</strong></div>
+                <div class="card-body" style="font-size:.84rem;">
+                    <ol class="ps-3" style="line-height:2.1;">
+                        <li>Aller sur <strong>portal.azure.com</strong></li>
+                        <li><strong>Azure Active Directory</strong> → Inscriptions d'applications</li>
+                        <li>Nouvelle inscription → nom : <em>"Remontées Support"</em></li>
+                        <li>URI de redirection : <code style="font-size:.79rem;word-break:break-all;">{{ redirect_uri }}</code></li>
+                        <li>Copier <strong>Client ID</strong> et <strong>Tenant ID</strong></li>
+                        <li>Certificats et secrets → Nouveau secret → copier la <strong>Valeur</strong></li>
+                        <li>API autorisées → Ajouter : <code>Mail.Read</code> <code>Mail.ReadWrite</code></li>
+                    </ol>
+                    <div class="alert alert-warning mt-2 mb-0" style="font-size:.8rem;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <strong>Permissions requises :</strong> Mail.Read · Mail.ReadWrite · User.Read · offline_access
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ONGLET IA ── -->
+<div {% if tab != 'ai' %}style="display:none;"{% endif %}>
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-robot"></i> <strong>Configuration IA (Gemini)</strong></div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="_action" value="save_ai">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Gemini API Key <span style="color:#ef4444;">*</span></label>
+                            <input type="password" name="gemini_api_key" class="form-control font-monospace"
+                                   value="{{ config.gemini_api_key }}" placeholder="AIza...">
+                            <div class="form-text">Obtenir sur <strong>aistudio.google.com</strong> → Get API Key</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Modèle Gemini</label>
+                            <select name="gemini_model" class="form-select">
+                                <option value="gemini-3.6-flash" {% if config.gemini_model == 'gemini-3.6-flash' %}selected{% endif %}>gemini-3.6-flash — Rapide, dernière génération ✦ Recommandé</option>
+                                <option value="gemini-3.1-pro-preview" {% if config.gemini_model == 'gemini-3.1-pro-preview' %}selected{% endif %}>gemini-3.1-pro-preview — Plus précis</option>
+                                <option value="gemini-3-flash-preview" {% if config.gemini_model == 'gemini-3-flash-preview' %}selected{% endif %}>gemini-3-flash-preview — Rapide</option>
+                                <option value="gemini-2.5-flash-lite" {% if config.gemini_model == 'gemini-2.5-flash-lite' %}selected{% endif %}>gemini-2.5-flash-lite — Léger, économique</option>
+                                <option value="gemini-flash-latest" {% if config.gemini_model == 'gemini-flash-latest' %}selected{% endif %}>gemini-flash-latest — Toujours à jour</option>
+                            </select>
+                            <div class="form-text">Tous ces modèles sont accessibles avec la même clé API Google AI Studio.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Mots-clés résolution automatique</label>
+                            <textarea name="mots_cles_resolution" class="form-control font-monospace" rows="4"
+                                      style="font-size:.82rem;">{{ config.mots_cles_resolution }}</textarea>
+                            <div class="form-text">Séparés par virgule. Si une réponse contient l'un de ces mots → ticket fermé automatiquement.</div>
+                        </div>
+
+                        <!-- ── Prompts IA ── -->
+                        <hr style="border-color:var(--border);margin:1.2rem 0;">
+                        <div class="mb-2 d-flex align-items-center justify-content-between">
+                            <span class="fw-semibold" style="font-size:.95rem;"><i class="bi bi-chat-square-text"></i> Prompts IA</span>
+                            <small style="color:var(--tx-3);">Variables disponibles : <code>{from_name}</code> <code>{subject}</code> <code>{body}</code> <code>{magasins_list}</code> <code>{categories_list}</code></small>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label mb-0 fw-semibold" style="font-size:.85rem;">
+                                    <i class="bi bi-envelope-open"></i> Prompt analyse email (nouveau mail)
+                                </label>
+                                <button type="button" class="btn btn-sm btn-link p-0" style="font-size:.76rem;color:var(--accent);"
+                                        onclick="resetPrompt('prompt_analyse_email')">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+                                </button>
+                            </div>
+                            <textarea name="prompt_analyse_email" id="prompt_analyse_email" class="form-control font-monospace"
+                                      rows="12" style="font-size:.78rem;line-height:1.5;">{% if config.prompt_analyse_email %}{{ config.prompt_analyse_email }}{% else %}{{ default_prompt_email }}{% endif %}</textarea>
+                            <div class="form-text">Utilisé pour analyser chaque nouveau mail et extraire : magasin, type, urgence, catégorie, résumé.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label mb-0 fw-semibold" style="font-size:.85rem;">
+                                    <i class="bi bi-reply"></i> Prompt analyse intention (réponse sur ticket existant)
+                                </label>
+                                <button type="button" class="btn btn-sm btn-link p-0" style="font-size:.76rem;color:var(--accent);"
+                                        onclick="resetPrompt('prompt_analyse_intention')">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+                                </button>
+                            </div>
+                            <textarea name="prompt_analyse_intention" id="prompt_analyse_intention" class="form-control font-monospace"
+                                      rows="10" style="font-size:.78rem;line-height:1.5;">{% if config.prompt_analyse_intention %}{{ config.prompt_analyse_intention }}{% else %}{{ default_prompt_intention }}{% endif %}</textarea>
+                            <div class="form-text">Utilisé pour détecter l'intention d'une réponse : résolu, toujours présent, nouvelle info, etc.</div>
+                        </div>
+
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Sauvegarder</button>
+                            <button type="button" onclick="testerCle()" class="btn btn-outline-primary" id="btn-test-ai">
+                                <i class="bi bi-plug"></i> Tester la clé
+                            </button>
+                        </div>
+                    </form>
+                    <div id="test-ai-result" class="mt-3" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-info-circle"></i> <strong>Fonctionnement de l'IA</strong></div>
+                <div class="card-body" style="font-size:.84rem;line-height:1.85;">
+                    <p class="mb-2"><strong>À chaque nouveau mail reçu, l'IA :</strong></p>
+                    <ul class="ps-3">
+                        <li>Identifie le <strong>magasin</strong> (code 3 chiffres ou nom)</li>
+                        <li>Détermine le <strong>type</strong> (incident / demande)</li>
+                        <li>Évalue l'<strong>urgence</strong> (haute / moyenne / basse)</li>
+                        <li>Génère un <strong>résumé</strong> du problème</li>
+                        <li>Extrait le <strong>nom du demandeur</strong></li>
+                    </ul>
+                    <div class="alert alert-info mt-3 mb-0" style="font-size:.8rem;">
+                        <i class="bi bi-lightbulb-fill"></i>
+                        Si le magasin n'est pas identifié → ticket créé en statut <strong>"En attente"</strong> pour vérification manuelle.
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-header"><i class="bi bi-diagram-3"></i> <strong>Flux complet</strong></div>
+                <div class="card-body" style="font-size:.82rem;">
+                    {% for num, label, color in flux_steps %}
+                    <div class="d-flex gap-2 align-items-start {% if not forloop.last %}mb-2{% endif %}">
+                        <span class="badge flex-shrink-0" style="background:{{ color }};margin-top:2px;">{{ num }}</span>
+                        {{ label }}
+                    </div>
+                    {% empty %}
+                    <div class="d-flex gap-2 align-items-start mb-2"><span class="badge flex-shrink-0" style="background:#6b4c35;margin-top:2px;">1</span>Mail reçu → polling Graph API</div>
+                    <div class="d-flex gap-2 align-items-start mb-2"><span class="badge flex-shrink-0" style="background:#6b4c35;margin-top:2px;">2</span>Si fil connu → suivi dans ticket existant</div>
+                    <div class="d-flex gap-2 align-items-start mb-2"><span class="badge flex-shrink-0" style="background:#6b4c35;margin-top:2px;">3</span>Si nouveau → Gemini analyse → remontée créée</div>
+                    <div class="d-flex gap-2 align-items-start mb-2"><span class="badge flex-shrink-0" style="background:#10b981;margin-top:2px;">4</span>Si réponse = résolution → ticket fermé auto</div>
+                    <div class="d-flex gap-2 align-items-start"><span class="badge flex-shrink-0" style="background:#78716c;margin-top:2px;">5</span>Tout est tracé dans la boîte de réception</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ONGLET AUTOMATISATION ── -->
+<div {% if tab != 'auto' %}style="display:none;"{% endif %}>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-clock"></i> <strong>Polling automatique</strong></div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="_action" value="save_auto">
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label fw-semibold mb-0">Polling automatique</label>
+                                <div class="form-check form-switch mb-0">
+                                    <input type="checkbox" name="polling_actif" id="polling_actif"
+                                           class="form-check-input" role="switch"
+                                           {% if config.polling_actif %}checked{% endif %}>
+                                    <label for="polling_actif" class="form-check-label">
+                                        {% if config.polling_actif %}<span style="color:#10b981;font-weight:600;">Activé</span>{% else %}<span style="color:var(--tx-3);">Désactivé</span>{% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-text">Le polling tourne en arrière-plan automatiquement toutes les 2 minutes tant que le serveur est actif.</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Intervalle (minutes)</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="range" name="intervalle_minutes" id="intervalle_range"
+                                       class="form-range" min="1" max="60" value="{{ config.intervalle_minutes }}"
+                                       oninput="document.getElementById('intervalle_val').textContent=this.value" style="flex:1;">
+                                <span id="intervalle_val" style="font-weight:700;font-size:1.1rem;color:var(--accent);min-width:40px;">{{ config.intervalle_minutes }}</span>
+                                <span style="font-size:.84rem;color:var(--tx-3);">min</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Sauvegarder</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-activity"></i> <strong>Fonctionnement automatique</strong></div>
+                <div class="card-body" style="font-size:.84rem;">
+                    <div class="alert alert-success mb-3" style="font-size:.82rem;">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <strong>Polling intégré au serveur</strong> — Dès que le polling est activé ci-contre, le serveur vérifie automatiquement les nouveaux mails Outlook <strong>toutes les 2 minutes</strong>, sans besoin de cron ni de configuration externe.
+                    </div>
+                    <p class="mb-2 text-muted">Pour tester manuellement :</p>
+                    <pre style="background:var(--surface2);padding:12px;font-size:.79rem;overflow-x:auto;border:1px solid var(--border);">python manage.py poll_outlook</pre>
+                    <div class="alert alert-info mb-0 mt-3" style="font-size:.8rem;">
+                        <i class="bi bi-info-circle-fill"></i>
+                        La page <strong>Boîte de réception</strong> a aussi un bouton "Polling maintenant" pour déclencher à la demande.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header"><i class="bi bi-activity"></i> <strong>Statut actuel</strong></div>
+                <div class="card-body" style="font-size:.84rem;">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Connexion Outlook</span>
+                        {% if compte.est_connecte %}<span style="color:#10b981;font-weight:600;"><i class="bi bi-check-circle-fill"></i> Connecté</span>
+                        {% else %}<span style="color:#ef4444;font-weight:600;"><i class="bi bi-x-circle-fill"></i> Non connecté</span>{% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Gemini API Key</span>
+                        {% if config.gemini_api_key %}<span style="color:#10b981;font-weight:600;"><i class="bi bi-check-circle-fill"></i> Configurée</span>
+                        {% else %}<span style="color:#ef4444;font-weight:600;"><i class="bi bi-x-circle-fill"></i> Manquante</span>{% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Compte actif</span>
+                        {% if compte.is_active %}<span style="color:#10b981;font-weight:600;"><i class="bi bi-check-circle-fill"></i> Oui</span>
+                        {% else %}<span style="color:#f59e0b;font-weight:600;"><i class="bi bi-exclamation-circle-fill"></i> Non</span>{% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Dernier polling</span>
+                        <span style="color:var(--tx-3);">{% if compte.last_sync %}{{ compte.last_sync|date:"d/m/Y H:i" }}{% else %}Jamais{% endif %}</span>
+                    </div>
+                    {% if compte.est_connecte and config.gemini_api_key and compte.is_active %}
+                    <div class="alert alert-success mt-3 mb-0" style="font-size:.8rem;">
+                        <i class="bi bi-check-circle-fill"></i> <strong>Pipeline opérationnel !</strong>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mt-3 mb-0" style="font-size:.8rem;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> <strong>Pipeline incomplet.</strong>
+                        {% if not compte.est_connecte %} Connectez Outlook.{% endif %}
+                        {% if not config.gemini_api_key %} Ajoutez la Gemini API Key.{% endif %}
+                        {% if not compte.is_active %} Activez le compte.{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purge des emails -->
+    <div class="col-12 mt-2">
+        <div class="card border-danger">
+            <div class="card-header text-danger"><i class="bi bi-trash3-fill"></i> <strong>Purge des emails et tickets</strong></div>
+            <div class="card-body">
+                <p class="text-muted mb-3" style="font-size:.88rem;">Supprime les emails (EmailRecu) sur une période, avec option de supprimer aussi les tickets associés créés automatiquement.</p>
+                <form method="post" onsubmit="return confirmPurge(this);">
+                    {% csrf_token %}
+                    <input type="hidden" name="_action" value="purge_emails">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-sm-3">
+                            <label class="form-label fw-semibold">Date début</label>
+                            <input type="date" name="purge_date_debut" class="form-control">
+                        </div>
+                        <div class="col-sm-3">
+                            <label class="form-label fw-semibold">Date fin</label>
+                            <input type="date" name="purge_date_fin" class="form-control">
+                        </div>
+                        <div class="col-sm-3 d-flex align-items-end pb-1">
+                            <div class="form-check">
+                                <input type="checkbox" name="purge_tickets" id="purge_tickets" class="form-check-input">
+                                <label for="purge_tickets" class="form-check-label fw-semibold text-danger">Supprimer aussi les tickets associés</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <button type="submit" class="btn btn-danger w-100"><i class="bi bi-trash3"></i> Purger</button>
+                        </div>
+                    </div>
+                    <div class="form-text mt-2"><i class="bi bi-exclamation-triangle text-danger"></i> Laisser les dates vides pour purger <strong>TOUT</strong>. Action irréversible.</div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+#test-ai-result .card-body::-webkit-scrollbar { width: 5px; }
+#test-ai-result .card-body::-webkit-scrollbar-track { background: var(--surface2); }
+#test-ai-result .card-body::-webkit-scrollbar-thumb { background: var(--accent); }
+</style>
+<script>
+const DEFAULT_PROMPTS = {
+    prompt_analyse_email: `{{ default_prompt_email|escapejs }}`,
+    prompt_analyse_intention: `{{ default_prompt_intention|escapejs }}`,
+};
+
+function resetPrompt(name) {
+    if (!confirm('Réinitialiser ce prompt avec la valeur par défaut ?')) return;
+    const el = document.getElementById(name);
+    if (el) el.value = DEFAULT_PROMPTS[name] || '';
+}
+
+async function testerCle() {
+    const btn = document.getElementById('btn-test-ai');
+    const result = document.getElementById('test-ai-result');
+    const apiKey = document.querySelector('input[name="gemini_api_key"]')?.value || '';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Test…';
+    result.style.display = 'block';
+    result.innerHTML = '<div class="alert alert-secondary mb-0"><i class="bi bi-hourglass-split"></i> Connexion à Google AI Studio…</div>';
+    try {
+        const fd = new FormData();
+        fd.append('api_key', apiKey);
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        const resp = await fetch("{% url 'tickets:test_gemini_key' %}", { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (data.ok) {
+            const lines = data.modeles.map(m =>
+                `<div class="d-flex align-items-center gap-2 py-1" style="border-bottom:1px solid var(--border);">
+                    <i class="bi bi-check-circle-fill" style="color:#10b981;font-size:.8rem;flex-shrink:0;"></i>
+                    <span style="font-weight:600;font-size:.84rem;">${m.id}</span>
+                    <span style="font-size:.78rem;color:var(--tx-3);">${m.label !== m.id ? '— ' + m.label : ''}</span>
+                </div>`).join('');
+            result.innerHTML = `
+                <div class="alert alert-success mb-2">
+                    <i class="bi bi-check-circle-fill"></i> <strong>Clé valide !</strong>
+                    Test sur <code>${data.test_model}</code> → <em>"${data.test_reply}"</em>
+                </div>
+                <div class="card mb-0">
+                    <div class="card-header py-2" style="font-size:.84rem;">
+                        <i class="bi bi-list-ul"></i> <strong>${data.total} modèles disponibles</strong>
+                    </div>
+                    <div class="card-body py-2" style="max-height:220px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--accent) var(--surface2);">
+                        ${lines}
+                    </div>
+                </div>`;
+            const select = document.querySelector('select[name="gemini_model"]');
+            if (select && data.modeles.length) {
+                const cur = select.value;
+                select.innerHTML = data.modeles.map(m =>
+                    `<option value="${m.id}" ${m.id === cur ? 'selected' : ''}>${m.id}${m.id === 'gemini-3.6-flash' ? ' ✦ Recommandé' : ''}</option>`
+                ).join('');
+            }
+        } else {
+            result.innerHTML = `<div class="alert alert-danger mb-0"><i class="bi bi-x-circle-fill"></i> <strong>Erreur :</strong> ${data.error}</div>`;
+        }
+    } catch(e) {
+        result.innerHTML = `<div class="alert alert-danger mb-0">Erreur réseau : ${e.message}</div>`;
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-plug"></i> Tester la clé';
+}
+
+function confirmPurge(form) {
+    const debut = form.purge_date_debut.value;
+    const fin = form.purge_date_fin.value;
+    const avecTickets = form.purge_tickets.checked;
+    const periode = (debut || fin) ? `du ${debut || '…'} au ${fin || '…'}` : 'TOUTE la période';
+    const msg = `Purger les emails ${periode}${avecTickets ? ' et supprimer les tickets associés' : ''} ?\n\nCette action est irréversible.`;
+    return confirm(msg);
+}
+</script>
+{% endblock %}
