@@ -125,7 +125,8 @@ def recalculer_ecarts():
 
         # ── 3. ÉCARTS LEGEND ─────────────────────────────────────────────────
         # Flux : Legend (exportée) → GPV → Cyrus
-        # Un écart Legend = commande exportée absente dans GPV (pas dans Cyrus directement)
+        # Un écart Legend = commande exportée absente dans Cyrus ET dans GPV
+        # Si elle est dans Cyrus → intégrée (GPV n'est pas obligatoire)
         ecarts_legend_crees = 0
         ecarts_legend_resolus = 0
 
@@ -133,6 +134,12 @@ def recalculer_ecarts():
         gpv_numeros_norm = set(
             normalize_numero(n)
             for n in CommandeGPV.objects.values_list('numero_commande', flat=True).iterator(chunk_size=2000)
+        )
+
+        # Set des numéros normalisés présents dans Cyrus (toutes types)
+        cyrus_numeros_norm = set(
+            normalize_numero(n)
+            for n in CommandeCyrus.objects.values_list('numero_commande', flat=True).iterator(chunk_size=2000)
         )
 
         ecarts_legend_existants = {
@@ -157,16 +164,17 @@ def recalculer_ecarts():
                 continue
 
             num_norm = normalize_numero(num_cmd)
-            gpv_existe = num_norm in gpv_numeros_norm
-            type_ecart = None if gpv_existe else 'gpv_absent'
+            # Intégrée si présente dans Cyrus OU dans GPV
+            integree = num_norm in cyrus_numeros_norm or num_norm in gpv_numeros_norm
+            type_ecart = None if integree else 'gpv_absent'
 
             if type_ecart is None:
-                # Trouvée dans GPV → écart résolu
+                # Trouvée dans Cyrus ou GPV → écart résolu
                 if ecart_info and ecart_info[1] == 'ouvert':
                     a_supprimer_legend_resolus.append(ecart_info[0])
                     ecarts_legend_resolus += 1
             else:
-                # Absente dans GPV → écart
+                # Absente dans Cyrus ET dans GPV → écart
                 if ecart_info:
                     # resolu/ignore = modifié manuellement, on ne touche pas
                     if ecart_info[1] == 'ouvert':
