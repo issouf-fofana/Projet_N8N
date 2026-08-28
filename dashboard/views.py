@@ -5440,6 +5440,7 @@ def _csv_writer(response):
 
 def export_ecarts_csv(request):
     """Export CSV de la liste des écarts (mêmes filtres que liste_ecarts)"""
+    from datetime import date as _date
     date_debut  = request.GET.get('date_debut')
     date_fin    = request.GET.get('date_fin')
     code_magasin = request.GET.get('magasin')
@@ -5449,6 +5450,10 @@ def export_ecarts_csv(request):
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed   = parse_date(date_fin)   if date_fin   else None
+
+    # Même défaut que liste_ecarts : aujourd'hui si aucun filtre
+    if not date_debut_parsed and not date_fin_parsed and not statut and not type_ecart and not code_magasin:
+        date_debut_parsed = date_fin_parsed = _date.today()
 
     from django.db import connection as _conn
     statuts_actifs = ['ouvert', 'ignore']
@@ -5572,6 +5577,11 @@ def export_commandes_asten_csv(request):
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
 
+    # Même défaut que liste_commandes_asten : 30 derniers jours
+    if not date_debut_parsed and not date_fin_parsed and not numero_commande and not codes_magasins:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
+
     filtres = {}
     if date_debut_parsed:
         filtres['date_commande__gte'] = date_debut_parsed
@@ -5623,6 +5633,10 @@ def export_commandes_cyrus_csv(request):
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
 
+    if not date_debut_parsed and not date_fin_parsed and not numero_commande and not codes_magasins:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
+
     filtres = {}
     if date_debut_parsed:
         filtres['date_commande__gte'] = date_debut_parsed
@@ -5663,6 +5677,10 @@ def export_commandes_gpv_csv(request):
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    if not date_debut_parsed and not date_fin_parsed and not numero_commande and not codes_magasins:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
 
     filtres = {}
     if date_debut_parsed:
@@ -5707,6 +5725,10 @@ def export_commandes_legend_csv(request):
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    if not date_debut_parsed and not date_fin_parsed and not numero_commande and not depot_recherche:
+        date_fin_parsed = date.today()
+        date_debut_parsed = date_fin_parsed - timedelta(days=30)
 
     filtres = {}
     if date_debut_parsed:
