@@ -61,4 +61,10 @@ urlpatterns = [
     path('api/purge-periode/', views.api_purge_periode, name='api_purge_periode'),
     path('assistant-ia/', views.assistant_ia, name='assistant_ia'),
     path('magasins-commandes/', views.magasins_par_commande, name='magasins_par_commande'),
+    # Exports CSV
+    path('ecarts/export/', views.export_ecarts_csv, name='export_ecarts_csv'),
+    path('commandes/asten/export/', views.export_commandes_asten_csv, name='export_commandes_asten_csv'),
+    path('commandes/cyrus/export/', views.export_commandes_cyrus_csv, name='export_commandes_cyrus_csv'),
+    path('commandes/gpv/export/', views.export_commandes_gpv_csv, name='export_commandes_gpv_csv'),
+    path('commandes/legend/export/', views.export_commandes_legend_csv, name='export_commandes_legend_csv'),
 ]

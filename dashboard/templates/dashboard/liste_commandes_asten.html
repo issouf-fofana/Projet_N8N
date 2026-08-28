@@ -62,7 +62,13 @@
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1><i class="bi bi-box-seam"></i> Liste des Commandes Asten</h1>
-    <span class="badge bg-primary fs-6">{{ total }} commande(s)</span>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary fs-6">{{ total }} commande(s)</span>
+        <a href="{% url 'dashboard:export_commandes_asten_csv' %}?{{ request.GET.urlencode }}"
+           class="btn btn-success btn-sm">
+            <i class="bi bi-download"></i> Exporter CSV
+        </a>
+    </div>
 </div>
 
 <!-- Filtres -->

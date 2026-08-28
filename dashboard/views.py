@@ -5418,3 +5418,323 @@ def magasins_par_commande(request):
         'is_legend': source == 'commandes_legend',
     }
     return render(request, 'dashboard/magasins_par_commande.html', context)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXPORTS CSV
+# ─────────────────────────────────────────────────────────────────────────────
+
+import csv as _csv
+from io import StringIO as _StringIO
+
+
+def _csv_response(filename):
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def export_ecarts_csv(request):
+    """Export CSV de la liste des écarts (mêmes filtres que liste_ecarts)"""
+    date_debut  = request.GET.get('date_debut')
+    date_fin    = request.GET.get('date_fin')
+    code_magasin = request.GET.get('magasin')
+    statut      = request.GET.get('statut', '')
+    type_ecart  = request.GET.get('type_ecart', '')
+    theme_promo_filtre = request.GET.get('theme_promo', '')
+
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed   = parse_date(date_fin)   if date_fin   else None
+
+    from django.db import connection as _conn
+    statuts_actifs = ['ouvert', 'ignore']
+    unions = []
+    params = []
+
+    if not type_ecart or type_ecart == 'asten':
+        w = ["1=1"]
+        if statut:
+            w.append("ea.statut = %s"); params.append(statut)
+        else:
+            w.append("ea.statut = ANY(%s)"); params.append(statuts_actifs)
+        if date_debut_parsed:
+            w.append("ca.date_commande >= %s"); params.append(date_debut_parsed)
+        if date_fin_parsed:
+            w.append("ca.date_commande <= %s"); params.append(date_fin_parsed)
+        if code_magasin:
+            w.append("ca.code_magasin = %s"); params.append(code_magasin)
+        if theme_promo_filtre == 'oui':
+            w.append("ca.theme_promo = TRUE")
+        elif theme_promo_filtre == 'non':
+            w.append("ca.theme_promo = FALSE")
+        unions.append(f"""
+            SELECT ea.id, 'asten' AS type_ecart, ea.statut, ea.date_creation,
+                   ca.date_commande, ca.numero_commande,
+                   ca.code_magasin::text, COALESCE(m.nom,'') AS nom_magasin,
+                   ca.montant::text,
+                   NULL::text AS depot_origine, NULL::text AS depot_destination,
+                   CASE WHEN ca.heure_validation IS NOT NULL
+                        THEN (ca.date_validation::timestamp + ca.heure_validation::interval)
+                        ELSE ca.date_validation::timestamp END AS date_validation,
+                   ca.theme_promo
+            FROM ecarts_ecartcommande ea
+            JOIN asten_commandeasten ca ON ca.id = ea.commande_asten_id
+            LEFT JOIN core_magasin m ON m.code = ca.code_magasin::text
+            WHERE {' AND '.join(w)}
+        """)
+
+    if not type_ecart or type_ecart == 'gpv':
+        w = ["1=1"]
+        if statut:
+            w.append("eg.statut = %s"); params.append(statut)
+        else:
+            w.append("eg.statut = ANY(%s)"); params.append(statuts_actifs)
+        if date_debut_parsed:
+            w.append("cg.date_creation::date >= %s"); params.append(date_debut_parsed)
+        if date_fin_parsed:
+            w.append("cg.date_creation::date <= %s"); params.append(date_fin_parsed)
+        if code_magasin:
+            w.append("cg.code_magasin = %s"); params.append(code_magasin)
+        unions.append(f"""
+            SELECT eg.id, 'gpv' AS type_ecart, eg.statut, eg.date_creation,
+                   cg.date_creation::date, cg.numero_commande,
+                   cg.code_magasin::text, COALESCE(m.nom,''),
+                   NULL::text, NULL::text, NULL::text,
+                   cg.date_validation, NULL::boolean
+            FROM ecarts_ecartgpv eg
+            JOIN gpv_commandegpv cg ON cg.id = eg.commande_gpv_id
+            LEFT JOIN core_magasin m ON m.code = cg.code_magasin::text
+            WHERE {' AND '.join(w)}
+        """)
+
+    if (not type_ecart or type_ecart == 'legend') and not code_magasin:
+        w = ["1=1"]
+        if statut:
+            w.append("el.statut = %s"); params.append(statut)
+        else:
+            w.append("el.statut = ANY(%s)"); params.append(statuts_actifs)
+        if date_debut_parsed:
+            w.append("cl.date_commande >= %s"); params.append(date_debut_parsed)
+        if date_fin_parsed:
+            w.append("cl.date_commande <= %s"); params.append(date_fin_parsed)
+        unions.append(f"""
+            SELECT el.id, 'legend' AS type_ecart, el.statut, el.date_creation,
+                   cl.date_commande, cl.numero_commande,
+                   NULL::text, NULL::text, NULL::text,
+                   cl.depot_origine, cl.depot_destination,
+                   NULL::timestamp, NULL::boolean
+            FROM ecarts_ecartlegend el
+            JOIN legend_commandelegend cl ON cl.id = el.commande_legend_id
+            WHERE {' AND '.join(w)}
+        """)
+
+    response = _csv_response('ecarts_export.csv')
+    writer = _csv.writer(response)
+    writer.writerow(['Type', 'Statut', 'Date Commande', 'N° Commande',
+                     'Code Magasin', 'Nom Magasin', 'Date Validation',
+                     'Thème/Promo', 'Montant', 'Dépôt Origine', 'Dépôt Destination',
+                     'Date Création Écart'])
+
+    if unions:
+        sql = " UNION ALL ".join(unions)
+        sql = f"SELECT * FROM ({sql}) sub ORDER BY date_creation DESC"
+        with _conn.cursor() as cur:
+            cur.execute(sql, params)
+            for row in cur.fetchall():
+                ecart_id, type_e, stat, date_crea, date_cmd, num_cmd, code_mag, nom_mag, montant, depot_o, depot_d, date_val, theme = row
+                writer.writerow([
+                    type_e.upper(), stat,
+                    date_cmd.strftime('%d/%m/%Y') if date_cmd else '',
+                    num_cmd,
+                    code_mag or '', nom_mag or '',
+                    date_val.strftime('%d/%m/%Y %H:%M') if date_val else '',
+                    'Oui' if theme is True else ('Non' if theme is False else ''),
+                    montant or '',
+                    depot_o or '', depot_d or '',
+                    date_crea.strftime('%d/%m/%Y %H:%M') if date_crea else '',
+                ])
+    return response
+
+
+def export_commandes_asten_csv(request):
+    """Export CSV de la liste des commandes Asten"""
+    from datetime import date, timedelta
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    codes_magasins = request.GET.getlist('magasin')
+    numero_commande = request.GET.get('numero_commande', '').strip()
+    theme_promo = request.GET.get('theme_promo', '')
+
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    filtres = {}
+    if date_debut_parsed:
+        filtres['date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['date_commande__lte'] = date_fin_parsed
+    if codes_magasins:
+        filtres['code_magasin__code__in'] = codes_magasins
+    if numero_commande:
+        filtres['numero_commande__icontains'] = numero_commande
+    if theme_promo == 'oui':
+        filtres['theme_promo'] = True
+    elif theme_promo == 'non':
+        filtres['theme_promo'] = False
+
+    commandes = CommandeAsten.objects.filter(**filtres).select_related('code_magasin').order_by('-date_commande', 'numero_commande')
+
+    response = _csv_response('commandes_asten_export.csv')
+    writer = _csv.writer(response)
+    writer.writerow(['N° Commande', 'Date Commande', 'Date Validation', 'Heure Validation',
+                     'Code Magasin', 'Nom Magasin', 'Thème/Promo', 'Statut',
+                     'Fournisseur', 'Montant', 'Créée par', 'Validée par', 'Date Import'])
+    for c in commandes.iterator(chunk_size=500):
+        writer.writerow([
+            c.numero_commande,
+            c.date_commande.strftime('%d/%m/%Y') if c.date_commande else '',
+            c.date_validation.strftime('%d/%m/%Y') if c.date_validation else '',
+            c.heure_validation.strftime('%H:%M') if c.heure_validation else '',
+            c.code_magasin.code if c.code_magasin else '',
+            c.code_magasin.nom if c.code_magasin else '',
+            'Oui' if c.theme_promo is True else ('Non' if c.theme_promo is False else ''),
+            c.statut or '',
+            c.fournisseur or '',
+            str(c.montant) if c.montant else '',
+            c.cree_par or '',
+            c.validee_par or '',
+            c.date_import.strftime('%d/%m/%Y %H:%M') if c.date_import else '',
+        ])
+    return response
+
+
+def export_commandes_cyrus_csv(request):
+    """Export CSV de la liste des commandes Cyrus"""
+    from datetime import date, timedelta
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    codes_magasins = request.GET.getlist('magasin')
+    numero_commande = request.GET.get('numero_commande', '').strip()
+
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    filtres = {}
+    if date_debut_parsed:
+        filtres['date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['date_commande__lte'] = date_fin_parsed
+    if codes_magasins:
+        filtres['code_magasin__code__in'] = codes_magasins
+    if numero_commande:
+        filtres['numero_commande__icontains'] = numero_commande
+
+    commandes = CommandeCyrus.objects.filter(**filtres).select_related('code_magasin').order_by('-date_commande', 'numero_commande')
+
+    response = _csv_response('commandes_cyrus_export.csv')
+    writer = _csv.writer(response)
+    writer.writerow(['N° Commande', 'Date Commande', 'Code Magasin', 'Nom Magasin',
+                     'Fournisseur', 'Montant', 'Statut', 'Date Import'])
+    for c in commandes.iterator(chunk_size=500):
+        writer.writerow([
+            c.numero_commande,
+            c.date_commande.strftime('%d/%m/%Y') if c.date_commande else '',
+            c.code_magasin.code if c.code_magasin else '',
+            c.code_magasin.nom if c.code_magasin else '',
+            getattr(c, 'fournisseur', '') or '',
+            str(c.montant) if getattr(c, 'montant', None) else '',
+            getattr(c, 'statut', '') or '',
+            c.date_import.strftime('%d/%m/%Y %H:%M') if getattr(c, 'date_import', None) else '',
+        ])
+    return response
+
+
+def export_commandes_gpv_csv(request):
+    """Export CSV de la liste des commandes GPV"""
+    from datetime import date, timedelta
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    codes_magasins = request.GET.getlist('magasin')
+    numero_commande = request.GET.get('numero_commande', '').strip()
+
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    filtres = {}
+    if date_debut_parsed:
+        filtres['date_creation__date__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['date_creation__date__lte'] = date_fin_parsed
+    if codes_magasins:
+        filtres['code_magasin__code__in'] = codes_magasins
+    if numero_commande:
+        filtres['numero_commande__icontains'] = numero_commande
+
+    commandes = CommandeGPV.objects.filter(**filtres).select_related('code_magasin').order_by('-date_creation', 'numero_commande')
+
+    response = _csv_response('commandes_gpv_export.csv')
+    writer = _csv.writer(response)
+    writer.writerow(['N° Commande', 'Date Création', 'Date Validation', 'Code Magasin', 'Nom Magasin',
+                     'Fournisseur', 'Montant', 'Statut', 'Date Import'])
+    for c in commandes.iterator(chunk_size=500):
+        writer.writerow([
+            c.numero_commande,
+            c.date_creation.strftime('%d/%m/%Y %H:%M') if c.date_creation else '',
+            c.date_validation.strftime('%d/%m/%Y %H:%M') if getattr(c, 'date_validation', None) else '',
+            c.code_magasin.code if c.code_magasin else '',
+            c.code_magasin.nom if c.code_magasin else '',
+            getattr(c, 'fournisseur', '') or '',
+            str(c.montant) if getattr(c, 'montant', None) else '',
+            getattr(c, 'statut', '') or '',
+            c.date_import.strftime('%d/%m/%Y %H:%M') if getattr(c, 'date_import', None) else '',
+        ])
+    return response
+
+
+def export_commandes_legend_csv(request):
+    """Export CSV de la liste des commandes Legend"""
+    from datetime import date, timedelta
+    date_debut = request.GET.get('date_debut')
+    date_fin = request.GET.get('date_fin')
+    numero_commande = request.GET.get('numero_commande', '').strip()
+    depot_recherche = request.GET.get('depot', '').strip()
+    depot_dest_recherche = request.GET.get('depot_dest', '').strip()
+    exportee = request.GET.get('exportee', '')
+
+    date_debut_parsed = parse_date(date_debut) if date_debut else None
+    date_fin_parsed = parse_date(date_fin) if date_fin else None
+
+    filtres = {}
+    if date_debut_parsed:
+        filtres['date_commande__gte'] = date_debut_parsed
+    if date_fin_parsed:
+        filtres['date_commande__lte'] = date_fin_parsed
+    if numero_commande:
+        filtres['numero_commande__icontains'] = numero_commande
+    if exportee == 'oui':
+        filtres['exportee'] = True
+    elif exportee == 'non':
+        filtres['exportee'] = False
+    if depot_recherche:
+        filtres['depot_origine__icontains'] = depot_recherche
+    if depot_dest_recherche:
+        filtres['depot_destination__icontains'] = depot_dest_recherche
+
+    commandes = CommandeLegend.objects.filter(**filtres).order_by('-date_commande', 'numero_commande')
+
+    response = _csv_response('commandes_legend_export.csv')
+    writer = _csv.writer(response)
+    writer.writerow(['N° Commande', 'Date Commande', 'Dépôt Origine', 'Dépôt Destination',
+                     'Fournisseur', 'Montant', 'Exportée', 'Date Import'])
+    for c in commandes.iterator(chunk_size=500):
+        writer.writerow([
+            c.numero_commande,
+            c.date_commande.strftime('%d/%m/%Y') if c.date_commande else '',
+            getattr(c, 'depot_origine', '') or '',
+            getattr(c, 'depot_destination', '') or '',
+            getattr(c, 'fournisseur', '') or '',
+            str(c.montant) if getattr(c, 'montant', None) else '',
+            'Oui' if getattr(c, 'exportee', None) else 'Non',
+            c.date_import.strftime('%d/%m/%Y %H:%M') if getattr(c, 'date_import', None) else '',
+        ])
+    return response
