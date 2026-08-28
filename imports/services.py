@@ -1112,6 +1112,8 @@ def importer_fichier_asten(chemin_fichier):
                     cree_par = row.get('Créée par', '').strip() or None
                     validee_par = row.get('Validée par', '').strip() or None
                     fournisseur = row.get('Fournisseur', '').strip() or None
+                    theme_promo_str = row.get('Commande par thème/promo', '').strip().upper()
+                    theme_promo = True if theme_promo_str == 'OUI' else (False if theme_promo_str == 'NON' else None)
                     
                     # Montant optionnel (chercher différentes colonnes possibles)
                     montant = None
@@ -1142,6 +1144,7 @@ def importer_fichier_asten(chemin_fichier):
                             'fournisseur':       fournisseur,
                             'cree_par':          cree_par,
                             'validee_par':       validee_par,
+                            'theme_promo':       theme_promo,
                             'fichier_source':    nom_fichier,
                         }
                     )
@@ -1154,6 +1157,7 @@ def importer_fichier_asten(chemin_fichier):
                             ('date_livraison', date_livraison), ('fournisseur', fournisseur),
                             ('validee_par', validee_par), ('cree_par', cree_par),
                             ('reference_externe', reference_externe),
+                            ('theme_promo', theme_promo),
                         ]:
                             if val and getattr(commande, field) != val:
                                 setattr(commande, field, val)

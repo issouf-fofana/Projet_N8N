@@ -23,6 +23,7 @@ class CommandeAsten(models.Model):
     fournisseur          = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fournisseur")
     cree_par             = models.CharField(max_length=100, null=True, blank=True, verbose_name="Créée par")
     validee_par          = models.CharField(max_length=100, null=True, blank=True, verbose_name="Validée par")
+    theme_promo          = models.BooleanField(null=True, blank=True, verbose_name="Commande par thème/promo")
 
     date_import          = models.DateTimeField(auto_now_add=True, verbose_name="Date d'import")
     fichier_source       = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fichier source")
