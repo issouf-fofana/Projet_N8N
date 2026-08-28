@@ -137,6 +137,16 @@
                 <input type="text" class="form-control form-control-lg" id="numero_commande" name="numero_commande" 
                        value="{{ filtres.numero_commande }}" placeholder="Rechercher...">
             </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-tag"></i> Thème/Promo
+                </label>
+                <select class="form-select form-select-lg" name="theme_promo">
+                    <option value="" {% if not filtres.theme_promo %}selected{% endif %}>Tous</option>
+                    <option value="oui" {% if filtres.theme_promo == 'oui' %}selected{% endif %}>Oui</option>
+                    <option value="non" {% if filtres.theme_promo == 'non' %}selected{% endif %}>Non</option>
+                </select>
+            </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100 btn-lg">
                     <i class="bi bi-funnel-fill"></i> Filtrer
@@ -163,6 +173,7 @@
                         <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                        <th class="border-0"><i class="bi bi-tag"></i> Thème/Promo</th>
                         <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
                         <th class="border-0"><i class="bi bi-clock"></i> Date Import</th>
                         <th class="border-0"><i class="bi bi-gear"></i> Action</th>
@@ -183,6 +194,15 @@
                                 <small class="text-muted">{{ commande.code_magasin.nom }}</small>
                             </td>
                             <td>
+                                {% if commande.theme_promo == True %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-tag-fill"></i> Oui</span>
+                                {% elif commande.theme_promo == False %}
+                                    <span class="text-muted">Non</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 {% if commande.statut %}
                                     <span class="badge bg-info rounded-pill">{{ commande.statut }}</span>
                                 {% else %}
@@ -201,7 +221,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-5">
+                            <td colspan="8" class="text-center py-5">
                                 <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
                                 <p class="text-muted mt-3 mb-0">Aucune commande Asten trouvée pour les filtres sélectionnés.</p>
                             </td>

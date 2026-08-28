@@ -122,6 +122,16 @@
                     <option value="quantite_0" {% if filtres.statut == 'quantite_0' %}selected{% endif %}>Quantité 0</option>
                 </select>
             </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-tag"></i> Thème/Promo
+                </label>
+                <select class="form-select form-select-sm" name="theme_promo">
+                    <option value="" {% if not filtres.theme_promo %}selected{% endif %}>Tous</option>
+                    <option value="oui" {% if filtres.theme_promo == 'oui' %}selected{% endif %}>Oui</option>
+                    <option value="non" {% if filtres.theme_promo == 'non' %}selected{% endif %}>Non</option>
+                </select>
+            </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100 btn-sm">
                     <i class="bi bi-funnel-fill"></i> Filtrer
@@ -185,6 +195,7 @@
                         <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-hash"></i> N° Commande</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                        <th class="border-0"><i class="bi bi-tag"></i> Thème/Promo</th>
                         <th class="border-0"><i class="bi bi-clock"></i> Date Création Écart</th>
                         <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
                         <th class="border-0"><i class="bi bi-gear"></i> Action</th>
@@ -224,6 +235,15 @@
                                 {% else %}
                                     <span class="badge bg-secondary">{{ item.code_magasin }}</span>
                                     {% if item.nom_magasin %}<br><small class="text-muted">{{ item.nom_magasin }}</small>{% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.theme_promo == True %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-tag-fill"></i> Oui</span>
+                                {% elif item.type_ecart == 'asten' %}
+                                    <span class="text-muted">Non</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                             <td><small class="text-muted" data-ts="{{ item.date_creation|date:'Y-m-d H:i:s' }}" title="{{ item.date_creation|date:'d/m/Y H:i' }}">{{ item.date_creation|date:"d/m/Y H:i" }}</small></td>
@@ -272,7 +292,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="9" class="text-center py-5">
                                 <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
                                 <p class="text-muted mt-3 mb-0">Aucun écart trouvé pour les filtres sélectionnés.</p>
                             </td>

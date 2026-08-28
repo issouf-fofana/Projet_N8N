@@ -2081,6 +2081,7 @@ def liste_ecarts(request):
     code_magasin = request.GET.get('magasin')
     statut      = request.GET.get('statut', '')
     type_ecart  = request.GET.get('type_ecart', '')
+    theme_promo_filtre = request.GET.get('theme_promo', '')
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed   = parse_date(date_fin)   if date_fin   else None
@@ -2112,6 +2113,10 @@ def liste_ecarts(request):
             w_asten.append("ca.date_commande <= %s"); params.append(date_fin_parsed)
         if code_magasin:
             w_asten.append("ca.code_magasin = %s"); params.append(code_magasin)
+        if theme_promo_filtre == 'oui':
+            w_asten.append("ca.theme_promo = TRUE")
+        elif theme_promo_filtre == 'non':
+            w_asten.append("ca.theme_promo = FALSE")
         unions.append(f"""
             SELECT ea.id, 'asten' AS type_ecart,
                    ea.statut, ea.date_creation,
@@ -2121,7 +2126,8 @@ def liste_ecarts(request):
                    ca.montant::text AS montant,
                    NULL::text       AS depot_origine,
                    NULL::text       AS depot_destination,
-                   ca.date_validation
+                   ca.date_validation,
+                   ca.theme_promo
             FROM ecarts_ecartcommande ea
             JOIN asten_commandeasten ca ON ca.id = ea.commande_asten_id
             LEFT JOIN core_magasin m ON m.code = ca.code_magasin::text
@@ -2151,7 +2157,8 @@ def liste_ecarts(request):
                    NULL::text       AS montant,
                    NULL::text       AS depot_origine,
                    NULL::text       AS depot_destination,
-                   cg.date_validation
+                   cg.date_validation,
+                   NULL::boolean    AS theme_promo
             FROM ecarts_ecartgpv eg
             JOIN gpv_commandegpv cg ON cg.id = eg.commande_gpv_id
             LEFT JOIN core_magasin m ON m.code = cg.code_magasin::text
@@ -2178,7 +2185,8 @@ def liste_ecarts(request):
                    NULL::text AS montant,
                    cl.depot_origine,
                    cl.depot_destination,
-                   NULL::timestamp AS date_validation
+                   NULL::timestamp AS date_validation,
+                   NULL::boolean   AS theme_promo
             FROM ecarts_ecartlegend el
             JOIN legend_commandelegend cl ON cl.id = el.commande_legend_id
             WHERE {' AND '.join(w_leg)}
@@ -2243,6 +2251,7 @@ def liste_ecarts(request):
             'magasin':     code_magasin or '',
             'statut':      statut      or '',
             'type_ecart':  type_ecart  or '',
+            'theme_promo': theme_promo_filtre or '',
         },
         'per_page': per_page,
         'per_page_options': [30, 50, 100, 200],
@@ -2262,6 +2271,7 @@ def liste_commandes_asten(request):
     codes_magasins = request.GET.getlist('magasin')
     numero_commande = request.GET.get('numero_commande', '').strip()
     recherche_magasin = request.GET.get('recherche_magasin', '').strip()
+    theme_promo = request.GET.get('theme_promo', '')
 
     date_debut_parsed = parse_date(date_debut) if date_debut else None
     date_fin_parsed = parse_date(date_fin) if date_fin else None
@@ -2279,7 +2289,11 @@ def liste_commandes_asten(request):
         filtres['code_magasin__code__in'] = codes_magasins
     if numero_commande:
         filtres['numero_commande__icontains'] = numero_commande
-    
+    if theme_promo == 'oui':
+        filtres['theme_promo'] = True
+    elif theme_promo == 'non':
+        filtres['theme_promo'] = False
+
     commandes = CommandeAsten.objects.filter(**filtres).select_related(
         'code_magasin'
     ).order_by('-date_commande', 'numero_commande')
@@ -2304,6 +2318,7 @@ def liste_commandes_asten(request):
             'magasin': codes_magasins,
             'numero_commande': numero_commande,
             'recherche_magasin': recherche_magasin,
+            'theme_promo': theme_promo,
         },
         'total': paginator.count,
         'per_page': per_page,
