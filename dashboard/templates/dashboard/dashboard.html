@@ -2089,6 +2089,7 @@
                         <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-hash"></i> {% if type_donnees == 'br' %}N° BR{% else %}N° Commande{% endif %}</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
+                        {% if type_donnees == 'commandes_asten' or not type_donnees %}<th class="border-0"><i class="bi bi-tag"></i> Thème/Promo</th>{% endif %}
                         <th class="border-0">
                             <i class="bi bi-box-seam"></i> 
                             {% if filtres.type_donnees == 'commandes_asten' or not filtres.type_donnees %}Asten
@@ -2126,6 +2127,15 @@
                                 <td>
                                     <span class="badge bg-secondary">{{ item.asten.code_magasin.code }}</span><br>
                                     <small class="text-muted">{{ item.asten.code_magasin.nom }}</small>
+                                </td>
+                                <td>
+                                    {% if item.asten.theme_promo == True %}
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-tag-fill"></i> Oui</span>
+                                    {% elif item.asten.theme_promo == False %}
+                                        <span class="text-muted small">Non</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="badge bg-primary"><i class="bi bi-check"></i> Asten</span>
