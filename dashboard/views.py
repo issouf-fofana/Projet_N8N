@@ -5434,6 +5434,10 @@ def _csv_response(filename):
     return response
 
 
+def _csv_writer(response):
+    return _csv.writer(response, delimiter=';')
+
+
 def export_ecarts_csv(request):
     """Export CSV de la liste des écarts (mêmes filtres que liste_ecarts)"""
     date_debut  = request.GET.get('date_debut')
@@ -5529,7 +5533,7 @@ def export_ecarts_csv(request):
         """)
 
     response = _csv_response('ecarts_export.csv')
-    writer = _csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(['Type', 'Statut', 'Date Commande', 'N° Commande',
                      'Code Magasin', 'Nom Magasin', 'Date Validation',
                      'Thème/Promo', 'Montant', 'Dépôt Origine', 'Dépôt Destination',
@@ -5585,7 +5589,7 @@ def export_commandes_asten_csv(request):
     commandes = CommandeAsten.objects.filter(**filtres).select_related('code_magasin').order_by('-date_commande', 'numero_commande')
 
     response = _csv_response('commandes_asten_export.csv')
-    writer = _csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(['N° Commande', 'Date Commande', 'Date Validation', 'Heure Validation',
                      'Code Magasin', 'Nom Magasin', 'Thème/Promo', 'Statut',
                      'Fournisseur', 'Montant', 'Créée par', 'Validée par', 'Date Import'])
@@ -5632,7 +5636,7 @@ def export_commandes_cyrus_csv(request):
     commandes = CommandeCyrus.objects.filter(**filtres).select_related('code_magasin').order_by('-date_commande', 'numero_commande')
 
     response = _csv_response('commandes_cyrus_export.csv')
-    writer = _csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(['N° Commande', 'Date Commande', 'Code Magasin', 'Nom Magasin',
                      'Fournisseur', 'Montant', 'Statut', 'Date Import'])
     for c in commandes.iterator(chunk_size=500):
@@ -5673,7 +5677,7 @@ def export_commandes_gpv_csv(request):
     commandes = CommandeGPV.objects.filter(**filtres).select_related('code_magasin').order_by('-date_creation', 'numero_commande')
 
     response = _csv_response('commandes_gpv_export.csv')
-    writer = _csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(['N° Commande', 'Date Création', 'Date Validation', 'Code Magasin', 'Nom Magasin',
                      'Fournisseur', 'Montant', 'Statut', 'Date Import'])
     for c in commandes.iterator(chunk_size=500):
@@ -5723,7 +5727,7 @@ def export_commandes_legend_csv(request):
     commandes = CommandeLegend.objects.filter(**filtres).order_by('-date_commande', 'numero_commande')
 
     response = _csv_response('commandes_legend_export.csv')
-    writer = _csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(['N° Commande', 'Date Commande', 'Dépôt Origine', 'Dépôt Destination',
                      'Fournisseur', 'Montant', 'Exportée', 'Date Import'])
     for c in commandes.iterator(chunk_size=500):
