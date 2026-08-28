@@ -2086,6 +2086,7 @@
                 <thead class="table-light">
                     <tr>
                         <th class="border-0"><i class="bi bi-calendar"></i> Date</th>
+                        <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-hash"></i> {% if type_donnees == 'br' %}N° BR{% else %}N° Commande{% endif %}</th>
                         <th class="border-0"><i class="bi bi-shop"></i> Magasin</th>
                         <th class="border-0">
@@ -2108,6 +2109,14 @@
                             {% for item in commandes %}
                             <tr class="align-middle {% if item.integre %}table-row-success{% else %}table-row-danger{% endif %}">
                                 <td class="fw-semibold">{{ item.asten.date_commande|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if item.asten.date_validation %}
+                                        <span class="fw-semibold text-success">{{ item.asten.date_validation|date:"d/m/Y" }}</span>
+                                        {% if item.asten.heure_validation %}<br><small class="text-muted">{{ item.asten.heure_validation|time:"H:i" }}</small>{% endif %}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <a href="{% url 'dashboard:detail_commande_asten' item.asten.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
                                        class="text-decoration-none">

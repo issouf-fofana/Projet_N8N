@@ -2126,7 +2126,10 @@ def liste_ecarts(request):
                    ca.montant::text AS montant,
                    NULL::text       AS depot_origine,
                    NULL::text       AS depot_destination,
-                   ca.date_validation,
+                   CASE WHEN ca.heure_validation IS NOT NULL
+                        THEN (ca.date_validation::timestamp + ca.heure_validation::interval)
+                        ELSE ca.date_validation::timestamp
+                   END AS date_validation,
                    ca.theme_promo
             FROM ecarts_ecartcommande ea
             JOIN asten_commandeasten ca ON ca.id = ea.commande_asten_id
