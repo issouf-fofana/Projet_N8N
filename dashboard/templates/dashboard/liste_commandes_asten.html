@@ -186,6 +186,7 @@
                             <td>
                                 {% if commande.date_validation %}
                                 <span class="fw-semibold text-success">{{ commande.date_validation|date:"d/m/Y" }}</span>
+                                {% if commande.heure_validation %}<br><small class="text-muted">{{ commande.heure_validation|time:"H:i" }}</small>{% endif %}
                                 {% else %}<span class="text-muted">—</span>{% endif %}
                             </td>
                             <td><strong class="text-primary">{{ commande.numero_commande }}</strong></td>

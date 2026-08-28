@@ -212,6 +212,7 @@
                             <td>
                                 {% if item.date_validation %}
                                 <span class="fw-semibold text-success">{{ item.date_validation|date:"d/m/Y" }}</span>
+                                <br><small class="text-muted">{{ item.date_validation|time:"H:i" }}</small>
                                 {% else %}
                                 <span class="text-muted">—</span>
                                 {% endif %}
