@@ -39,6 +39,18 @@
                         <td>{{ ecart.commande_asten.reference_externe|default:"—" }}</td>
                     </tr>
                     <tr>
+                        <th>Thème / Promo</th>
+                        <td>
+                            {% if ecart.commande_asten.theme_promo == True %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-tag-fill"></i> Oui — commande thème/promo</span>
+                            {% elif ecart.commande_asten.theme_promo == False %}
+                                <span class="text-muted">Non</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Code Magasin</th>
                         <td>
                             <strong>{{ ecart.commande_asten.code_magasin.code }}</strong>
