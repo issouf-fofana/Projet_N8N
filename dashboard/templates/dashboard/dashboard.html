@@ -1127,6 +1127,18 @@
                     </div>
                 </div>
             </div>
+            {% if type_donnees == 'commandes_asten' or not type_donnees %}
+            <div class="col-md-3">
+                <label for="theme_promo" class="form-label fw-semibold">
+                    <i class="bi bi-tag"></i> Thème/Promo
+                </label>
+                <select class="form-select form-select-lg" id="theme_promo" name="theme_promo">
+                    <option value="">Tous</option>
+                    <option value="oui" {% if filtres.theme_promo == 'oui' %}selected{% endif %}>Commandes Promo</option>
+                    <option value="non" {% if filtres.theme_promo == 'non' %}selected{% endif %}>Commandes Normales</option>
+                </select>
+            </div>
+            {% endif %}
             {% if type_donnees == 'br' %}
             <div class="col-md-3">
                 <label for="statut_ic" class="form-label fw-semibold">

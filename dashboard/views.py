@@ -394,6 +394,7 @@ def dashboard(request):
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
     periode = request.GET.get('periode', 'aujourdhui')
+    theme_promo_dash = request.GET.get('theme_promo', '')
     # Pour GPV sans filtre de date : défaut = non_integres (évite de charger les 61k résolus)
     # Avec un filtre de date actif : afficher tout (sinon les nouvelles commandes sans écart calculé sont invisibles)
     _has_date_filter = bool(date_debut or date_fin or periode)
@@ -486,6 +487,10 @@ def dashboard(request):
         if code_magasin:
             filtres_asten['code_magasin__code__in'] = code_magasin
             filtres_cyrus['code_magasin__code__in'] = code_magasin
+        if theme_promo_dash == 'oui':
+            filtres_asten['theme_promo'] = True
+        elif theme_promo_dash == 'non':
+            filtres_asten['theme_promo'] = False
 
         _ck_asten_stats = f'dash_asten_stats_{date_debut_parsed}_{date_fin_parsed}_{"_".join(code_magasin or [])}'
         _asten_stats_cached = _dash_cache.get(_ck_asten_stats)
@@ -1273,6 +1278,7 @@ def dashboard(request):
             'magasin': code_magasin if code_magasin else [],
             'type_donnees': type_donnees,
             'statut_ic': statut_ic if type_donnees == 'br' else '',
+            'theme_promo': theme_promo_dash if type_donnees == 'commandes_asten' else '',
             'full_asten': request.GET.get('full_asten') == '1' and type_donnees == 'factures_backup',
             'statut_fv': request.GET.get('statut_fv', ''),
         },
