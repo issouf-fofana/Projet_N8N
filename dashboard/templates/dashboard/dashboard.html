@@ -1128,15 +1128,25 @@
                 </div>
             </div>
             {% if type_donnees == 'commandes_asten' or not type_donnees %}
-            <div class="col-md-3">
-                <label for="theme_promo" class="form-label fw-semibold">
-                    <i class="bi bi-tag"></i> Thème/Promo
-                </label>
-                <select class="form-select form-select-lg" id="theme_promo" name="theme_promo">
-                    <option value="">Tous</option>
-                    <option value="oui" {% if filtres.theme_promo == 'oui' %}selected{% endif %}>Commandes Promo</option>
-                    <option value="non" {% if filtres.theme_promo == 'non' %}selected{% endif %}>Commandes Normales</option>
-                </select>
+            <input type="hidden" name="theme_promo" id="theme_promo_input" value="{{ filtres.theme_promo }}">
+            <div class="col-auto d-flex align-items-end pb-1">
+                <div class="d-flex gap-2">
+                    <button type="button"
+                        onclick="setThemePromo('')"
+                        class="btn btn-sm {% if not filtres.theme_promo %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                        Tous
+                    </button>
+                    <button type="button"
+                        onclick="setThemePromo('oui')"
+                        class="btn btn-sm {% if filtres.theme_promo == 'oui' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                        <i class="bi bi-tag-fill"></i> Promo
+                    </button>
+                    <button type="button"
+                        onclick="setThemePromo('non')"
+                        class="btn btn-sm {% if filtres.theme_promo == 'non' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="bi bi-box"></i> Normal
+                    </button>
+                </div>
             </div>
             {% endif %}
             {% if type_donnees == 'br' %}
@@ -2543,6 +2553,11 @@ function toggleFullAsten() {
         updateMagasinText();
     }
 })();
+
+function setThemePromo(val) {
+    document.getElementById('theme_promo_input').value = val;
+    document.getElementById('filterForm').submit();
+}
 
 function setDateFilter(periode, event) {
     const aujourdhui = new Date();
