@@ -119,6 +119,7 @@ def _job_import_fichiers():
             recalculer_ecarts()
             from django.core.cache import cache
             cache.clear()
+            log.info("Cache vidé après import automatique")
         else:
             log.debug("Import automatique : aucun nouveau fichier, skip écarts")
     except Exception as e:

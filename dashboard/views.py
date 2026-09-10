@@ -1155,7 +1155,7 @@ def dashboard(request):
                 )
             )
             _br_stats = _agg
-            _cache.set(_cache_key, _br_stats, 600)  # 10 min
+            _cache.set(_cache_key, _br_stats, 60)  # 1 min
 
         total_asten_pour_stats_global = _br_stats['total'] - _br_stats['quantite_0']
         br_trouvees_count_global = _br_stats['trouvees']
@@ -1552,7 +1552,7 @@ def accueil(request):
                 trouvees=Count('id', filter=_Q(ic_integre=True) & ~_q0),
                 non_trouvees=Count('id', filter=_Q(ic_integre=False) & ~_q0),
             )
-            _cache.set(_ck_br, br_agg, 600)
+            _cache.set(_ck_br, br_agg, 60)  # 1 min
         total_br = br_agg['total']
         br_quantite_0 = br_agg['quantite_0']
         total_br_pour_stats = total_br - br_quantite_0
