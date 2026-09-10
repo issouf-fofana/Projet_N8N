@@ -5549,19 +5549,23 @@ def export_ecarts_csv(request):
         sql = f"SELECT * FROM ({sql}) sub ORDER BY date_creation DESC"
         with _conn.cursor() as cur:
             cur.execute(sql, params)
-            for row in cur.fetchall():
-                ecart_id, type_e, stat, date_crea, date_cmd, num_cmd, code_mag, nom_mag, montant, depot_o, depot_d, date_val, theme = row
-                writer.writerow([
-                    type_e.upper(), stat,
-                    date_cmd.strftime('%d/%m/%Y') if date_cmd else '',
-                    num_cmd,
-                    code_mag or '', nom_mag or '',
-                    date_val.strftime('%d/%m/%Y %H:%M') if date_val else '',
-                    'Oui' if theme is True else ('Non' if theme is False else ''),
-                    montant or '',
-                    depot_o or '', depot_d or '',
-                    date_crea.strftime('%d/%m/%Y %H:%M') if date_crea else '',
-                ])
+            while True:
+                rows = cur.fetchmany(200)
+                if not rows:
+                    break
+                for row in rows:
+                    ecart_id, type_e, stat, date_crea, date_cmd, num_cmd, code_mag, nom_mag, montant, depot_o, depot_d, date_val, theme = row
+                    writer.writerow([
+                        type_e.upper(), stat,
+                        date_cmd.strftime('%d/%m/%Y') if date_cmd else '',
+                        num_cmd,
+                        code_mag or '', nom_mag or '',
+                        date_val.strftime('%d/%m/%Y %H:%M') if date_val else '',
+                        'Oui' if theme is True else ('Non' if theme is False else ''),
+                        montant or '',
+                        depot_o or '', depot_d or '',
+                        date_crea.strftime('%d/%m/%Y %H:%M') if date_crea else '',
+                    ])
     return response
 
 
