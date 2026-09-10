@@ -492,14 +492,14 @@ def dashboard(request):
         elif theme_promo_dash == 'non':
             filtres_asten['theme_promo'] = False
 
-        _ck_asten_stats = f'dash_asten_stats_{date_debut_parsed}_{date_fin_parsed}_{"_".join(code_magasin or [])}'
+        _ck_asten_stats = f'dash_asten_stats_{date_debut_parsed}_{date_fin_parsed}_{"_".join(code_magasin or [])}_{theme_promo_dash}'
         _asten_stats_cached = _dash_cache.get(_ck_asten_stats)
         if _asten_stats_cached is not None:
             total_asten, total_cyrus = _asten_stats_cached
         else:
             total_asten = CommandeAsten.objects.filter(**filtres_asten).count()
             total_cyrus = CommandeCyrus.objects.filter(**filtres_cyrus).count()
-            _dash_cache.set(_ck_asten_stats, (total_asten, total_cyrus), 300)
+            _dash_cache.set(_ck_asten_stats, (total_asten, total_cyrus), 60)
         
         # Compter les commandes réellement intégrées dans Cyrus (optimisé avec une sous-requête)
         commandes_reellement_integres = CommandeAsten.objects.filter(**filtres_asten).filter(
@@ -520,6 +520,10 @@ def dashboard(request):
             filtres_ecarts['commande_asten__date_commande__lte'] = date_fin_parsed
         if code_magasin:
             filtres_ecarts['commande_asten__code_magasin__code__in'] = code_magasin
+        if theme_promo_dash == 'oui':
+            filtres_ecarts['commande_asten__theme_promo'] = True
+        elif theme_promo_dash == 'non':
+            filtres_ecarts['commande_asten__theme_promo'] = False
         
         # Compter les écarts par statut
         total_ecarts_ouverts = EcartCommande.objects.filter(**filtres_ecarts).filter(statut='ouvert').count()
