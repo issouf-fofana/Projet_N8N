@@ -171,6 +171,7 @@
                         <th class="border-0"><i class="bi bi-info-circle"></i> Statut</th>
                         <th class="border-0"><i class="bi bi-calendar-check"></i> Date Validation</th>
                         <th class="border-0"><i class="bi bi-clock"></i> Date Import</th>
+                        <th class="border-0"><i class="bi bi-pencil-square"></i> Dernière MAJ</th>
                         <th class="border-0"><i class="bi bi-gear"></i> Action</th>
                     </tr>
                 </thead>
@@ -199,6 +200,9 @@
                             </td>
                             <td>
                                 <small class="text-muted">{{ commande.date_import|date:"d/m/Y H:i" }}</small>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ commande.date_modification|date:"d/m/Y H:i" }}</small>
                             </td>
                             <td>
                                 <a href="{% url 'dashboard:detail_commande_gpv' commande.id %}" 

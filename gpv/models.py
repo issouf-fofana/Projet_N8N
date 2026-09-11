@@ -25,6 +25,7 @@ class CommandeGPV(models.Model):
     statut = models.CharField(max_length=50, null=True, blank=True, verbose_name="Statut")
     
     date_import = models.DateTimeField(auto_now_add=True, verbose_name="Date d'import")
+    date_modification = models.DateTimeField(auto_now=True, verbose_name="Date de modification")
     fichier_source = models.CharField(max_length=255, null=True, blank=True, verbose_name="Fichier source")
 
     class Meta:
