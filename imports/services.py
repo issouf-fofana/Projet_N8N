@@ -1960,16 +1960,31 @@ def importer_fichier_gpv(chemin_fichier):
                             'fichier_source': nom_fichier,
                         }
                     )
-                    
+
                     if created:
                         nombre_nouveaux += 1
                     else:
-                        nombre_dupliques += 1
-                        
+                        # Mettre à jour le statut et les dates si la commande existe déjà
+                        updated = False
+                        if commande.statut != statut:
+                            commande.statut = statut
+                            updated = True
+                        if date_validation and commande.date_validation != date_validation:
+                            commande.date_validation = date_validation
+                            updated = True
+                        if date_transfert and commande.date_transfert != date_transfert:
+                            commande.date_transfert = date_transfert
+                            updated = True
+                        if updated:
+                            commande.save(update_fields=['statut', 'date_validation', 'date_transfert'])
+                            nombre_nouveaux += 1
+                        else:
+                            nombre_dupliques += 1
+
                 except Exception as e:
                     print(f"Erreur ligne {nombre_lignes}: {e}")
                     continue
-        
+
         import_obj.nombre_lignes = nombre_lignes
         import_obj.nombre_nouveaux = nombre_nouveaux
         import_obj.nombre_dupliques = nombre_dupliques
