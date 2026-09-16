@@ -61,7 +61,7 @@
 {% block content %}
 <div class="page-header d-flex justify-content-between align-items-center">
     <h1><i class="bi bi-exclamation-triangle"></i> {{ titre }}</h1>
-    <a href="{% url 'dashboard:export_ecarts_csv' %}?{{ request.GET.urlencode }}"
+    <a href="{% url 'dashboard:export_ecarts_csv' %}?{{ query_string }}"
        class="btn btn-success btn-sm">
         <i class="bi bi-download"></i> Exporter CSV
     </a>
@@ -75,10 +75,10 @@
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-3">
-                {% include 'dashboard/includes/_date_nav_picker.html' with field_id="date_debut" field_name="date_debut" label="Date début" value=filtres.date_debut only %}
+                {% include 'dashboard/includes/_date_nav_picker.html' with field_id="date_debut" field_name="date_debut" label="Date début" value=date_debut_val only %}
             </div>
             <div class="col-md-3">
-                {% include 'dashboard/includes/_date_nav_picker.html' with field_id="date_fin" field_name="date_fin" label="Date fin" value=filtres.date_fin only %}
+                {% include 'dashboard/includes/_date_nav_picker.html' with field_id="date_fin" field_name="date_fin" label="Date fin" value=date_fin_val only %}
             </div>
             <div class="col-md-2">
                 <label for="magasin" class="form-label fw-semibold">
@@ -308,7 +308,7 @@
                     {% if opt == per_page %}
                     <span class="badge bg-primary px-3 py-2" style="font-size:0.85rem;">{{ opt }}</span>
                     {% else %}
-                    <a href="?{% for key, val in request.GET.items %}{% if key != 'per_page' and key != 'page' %}{{ key }}={{ val }}&{% endif %}{% endfor %}per_page={{ opt }}&page=1"
+                    <a href="?{{ query_string }}&per_page={{ opt }}&page=1"
                        class="badge bg-light text-dark border px-3 py-2 text-decoration-none" style="font-size:0.85rem;">{{ opt }}</a>
                     {% endif %}
                 {% endfor %}
@@ -318,19 +318,19 @@
             <nav>
                 <ul class="pagination pagination-sm mb-0">
                     {% if has_prev %}
-                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page=1">&laquo;</a></li>
-                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_num|add:"-1" }}">&#8249;</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ query_string }}&page=1">&laquo;</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ page_num|add:"-1" }}">&#8249;</a></li>
                     {% endif %}
                     {% for num in page_range %}
                         {% if num == page_num %}
                         <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                         {% else %}
-                        <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a></li>
+                        <li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ num }}">{{ num }}</a></li>
                         {% endif %}
                     {% endfor %}
                     {% if has_next %}
-                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_num|add:"1" }}">&#8250;</a></li>
-                    <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ num_pages }}">&raquo;</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ page_num|add:"1" }}">&#8250;</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ query_string }}&page={{ num_pages }}">&raquo;</a></li>
                     {% endif %}
                 </ul>
             </nav>

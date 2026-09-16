@@ -257,3 +257,20 @@ IMAP_PORT     = config('IMAP_PORT', default=993, cast=int)
 IMAP_USER     = config('IMAP_USER', default='')
 IMAP_PASSWORD = config('IMAP_PASSWORD', default='')
 IMAP_FOLDER   = config('IMAP_FOLDER', default='INBOX')
+
+# Désactive le logger django.template (cause RecursionError sur Django 6.0
+# lors de la résolution de variables imbriquées type request.GET.items)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'django.template': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}

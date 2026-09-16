@@ -2296,6 +2296,18 @@ def liste_ecarts(request):
 
     magasins = Magasin.objects.all().order_by('code')
 
+    filtres = {
+        'date_debut':  date_debut  or (date_debut_parsed.isoformat() if date_debut_parsed else ''),
+        'date_fin':    date_fin    or (date_fin_parsed.isoformat() if date_fin_parsed else ''),
+        'magasin':     code_magasin or '',
+        'statut':      statut      or '',
+        'type_ecart':  type_ecart  or '',
+        'theme_promo': theme_promo_filtre or '',
+    }
+    # query_string pré-construit pour éviter request.GET dans les templates (RecursionError Django 6)
+    qs_parts = [f"{k}={v}" for k, v in filtres.items() if v]
+    query_string = '&'.join(qs_parts)
+
     context = {
         'ecarts': rows,
         'ecarts_count': total,
@@ -2306,14 +2318,10 @@ def liste_ecarts(request):
         'page_range': page_range,
         'titre': "Liste des Écarts",
         'magasins': magasins,
-        'filtres': {
-            'date_debut':  date_debut  or (date_debut_parsed.isoformat() if date_debut_parsed else ''),
-            'date_fin':    date_fin    or (date_fin_parsed.isoformat() if date_fin_parsed else ''),
-            'magasin':     code_magasin or '',
-            'statut':      statut      or '',
-            'type_ecart':  type_ecart  or '',
-            'theme_promo': theme_promo_filtre or '',
-        },
+        'filtres': filtres,
+        'query_string': query_string,
+        'date_debut_val': filtres['date_debut'],
+        'date_fin_val': filtres['date_fin'],
         'per_page': per_page,
         'per_page_options': [30, 50, 100, 200],
     }
