@@ -1913,115 +1913,42 @@
 </script>
 
 <script>
-/* ── SPA Sidebar Navigation ── */
+/* ── Sidebar accordion state persistence ── */
 (function() {
-    const MAIN = document.querySelector('.main-content');
-    if (!MAIN) return;
-    MAIN.id = MAIN.id || 'spa-main';
+    const SIDEBAR_KEY = 'sidebar_accordion_state';
 
-    // Sauvegarde l'état ouvert/fermé des accordéons sidebar
     function saveAccordionState() {
         const state = {};
         document.querySelectorAll('.sidebar-accordion .accordion-collapse').forEach(function(el) {
-            state[el.id] = el.classList.contains('show');
+            if (el.id) state[el.id] = el.classList.contains('show');
         });
-        return state;
+        try { sessionStorage.setItem(SIDEBAR_KEY, JSON.stringify(state)); } catch(e) {}
     }
-    // Restaure l'état des accordéons sans déclencher Bootstrap
-    function restoreAccordionState(state) {
+
+    function restoreAccordionState() {
+        let state;
+        try { state = JSON.parse(sessionStorage.getItem(SIDEBAR_KEY)); } catch(e) {}
+        if (!state) return;
         Object.entries(state).forEach(function([id, open]) {
             const el = document.getElementById(id);
             if (!el) return;
             if (open) el.classList.add('show');
             else el.classList.remove('show');
-            // Sync le bouton toggle
-            const btn = document.querySelector(`[data-bs-target="#${id}"]`);
+            const btn = document.querySelector('[data-bs-target="#' + id + '"]');
             if (btn) btn.classList.toggle('collapsed', !open);
         });
     }
 
-    function extractMain(html) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        const m = tmp.querySelector('.main-content');
-        return m ? m.innerHTML : null;
-    }
+    // Restaurer au chargement
+    document.addEventListener('DOMContentLoaded', restoreAccordionState);
 
-    function setActiveLink(url) {
-        document.querySelectorAll('.sidebar-menu a, .sidebar-accordion .accordion-body a').forEach(function(a) {
-            if (!a.getAttribute('href')) return;
-            const aPath = new URL(a.href, location.origin).pathname;
-            const uPath = new URL(url, location.origin).pathname;
-            a.classList.toggle('active', aPath === uPath);
-        });
-    }
-
-    function navigate(url, push) {
-        const accordionState = saveAccordionState();
-        MAIN.style.opacity = '0.5';
-        MAIN.style.pointerEvents = 'none';
-
-        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.text(); })
-            .then(function(html) {
-                const content = extractMain(html);
-                if (!content) { location.href = url; return; }
-
-                // Si la page demande une navigation normale (meta spa-full-reload)
-                const tmpDoc = document.createElement('div');
-                tmpDoc.innerHTML = html;
-                const noSpa = tmpDoc.querySelector('meta[name="spa-full-reload"]');
-                if (noSpa) { location.href = url; return; }
-
-                MAIN.innerHTML = content;
-                MAIN.style.opacity = '';
-                MAIN.style.pointerEvents = '';
-
-                if (push) history.pushState({ url: url }, '', url);
-                setActiveLink(url);
-                restoreAccordionState(accordionState);
-
-                // Titre
-                const tmp = document.createElement('div');
-                tmp.innerHTML = html;
-                const t = tmp.querySelector('title');
-                if (t) document.title = t.textContent;
-
-                // Ré-initialiser date pickers uniquement
-                document.querySelectorAll('.date-nav-picker-wrap:not([data-dnp-init])').forEach(function(w) {
-                    if (typeof initPicker === 'function') initPicker(w);
-                });
-
-                window.scrollTo(0, 0);
-            })
-            .catch(function() {
-                MAIN.style.opacity = '';
-                MAIN.style.pointerEvents = '';
-                location.href = url;
-            });
-    }
-
-    // Intercepter clics sidebar
+    // Sauvegarder avant chaque navigation
     document.querySelector('.sidebar') && document.querySelector('.sidebar').addEventListener('click', function(e) {
         const a = e.target.closest('a[href]');
-        if (!a) return;
-        const href = a.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('http') ||
-            href.includes('/logout') || href.includes('/admin') ||
-            href.includes('/export') || href.includes('download') ||
-            a.hasAttribute('download') || a.getAttribute('target') === '_blank') return;
-
-        e.preventDefault();
-        navigate(href, true);
+        if (a && a.getAttribute('href') && !a.getAttribute('href').startsWith('#')) {
+            saveAccordionState();
+        }
     });
-
-    // Bouton retour/avant du navigateur
-    window.addEventListener('popstate', function(e) {
-        if (e.state && e.state.url) navigate(e.state.url, false);
-    });
-
-    // État initial
-    history.replaceState({ url: location.href }, '', location.href);
 })();
 </script>
 
