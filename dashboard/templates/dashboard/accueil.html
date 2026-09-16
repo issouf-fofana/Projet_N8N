@@ -971,5 +971,33 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 });
+
+{% if alertes.total_br_non_integrees or alertes.alerte_br_ic_absent or alertes.alerte_cyrus_absent %}
+// Alerte sonore BR non intégrées — jouée une seule fois par session
+(function() {
+    const _key = 'alerte_br_son_{{ alertes.total_br_non_integrees }}';
+    if (sessionStorage.getItem(_key)) return;
+    sessionStorage.setItem(_key, '1');
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        function bip(freq, start, dur, vol) {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine';
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0, ctx.currentTime + start);
+            g.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.02);
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
+            o.start(ctx.currentTime + start);
+            o.stop(ctx.currentTime + start + dur + 0.05);
+        }
+        // Trois bips descendants discrets
+        bip(880, 0.0,  0.18, 0.25);
+        bip(660, 0.22, 0.18, 0.25);
+        bip(440, 0.44, 0.28, 0.30);
+    } catch(e) {}
+})();
+{% endif %}
 </script>
 {% endblock %}
