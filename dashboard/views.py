@@ -5828,7 +5828,6 @@ def export_commandes_legend_csv(request):
     return response
 
 
-@login_required
 def config_sons_alertes(request):
     """Page de configuration des sons d'alerte."""
     return render(request, 'dashboard/config_sons_alertes.html')
