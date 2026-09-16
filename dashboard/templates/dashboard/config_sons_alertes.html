@@ -1,0 +1,290 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Sons & Alertes - Configuration{% endblock %}
+
+{% block extra_css %}
+<style>
+.son-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(15,23,42,.04);
+}
+.son-card-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.son-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.son-option {
+    position: relative;
+}
+.son-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.son-option label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 9px 18px;
+    border-radius: 25px;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: .87rem;
+    font-weight: 500;
+    color: #475569;
+    transition: all .15s;
+    user-select: none;
+}
+.son-option input[type="radio"]:checked + label {
+    border-color: #6366f1;
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 700;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+}
+.son-option label:hover {
+    border-color: #a5b4fc;
+    background: #f5f3ff;
+    color: #4338ca;
+}
+.btn-tester {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 25px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: .83rem;
+    color: #6366f1;
+    font-weight: 600;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-tester:hover {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+}
+.save-bar {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid #e8edf5;
+    padding: 16px 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+.toast-saved {
+    position: fixed;
+    bottom: 80px;
+    right: 32px;
+    background: #22c55e;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: .9rem;
+    box-shadow: 0 4px 20px rgba(34,197,94,.3);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;margin:0 auto;padding-bottom:80px;">
+
+    <div style="margin-bottom:28px;">
+        <h1 style="font-size:1.5rem;font-weight:900;color:#0f172a;margin-bottom:6px;">
+            <i class="bi bi-bell-fill" style="color:#6366f1;margin-right:10px;"></i>Sons & Alertes
+        </h1>
+        <p style="color:#64748b;font-size:.88rem;margin:0;">
+            Choisissez le son joué pour chaque type d'alerte. Cliquez sur <strong>Tester</strong> pour écouter avant d'enregistrer.
+            Les préférences sont sauvegardées dans votre navigateur.
+        </p>
+    </div>
+
+    <!-- BR non intégrée -->
+    <div class="son-card">
+        <div class="son-card-title">
+            <span style="width:36px;height:36px;border-radius:8px;background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-exclamation-triangle-fill" style="color:#dc2626;"></i>
+            </span>
+            BR non intégrée
+            <span style="font-size:.72rem;color:#94a3b8;font-weight:400;margin-left:4px;">Quand des BR Asten ne sont pas intégrées dans IC</span>
+        </div>
+        <div class="son-options" id="opts_br_non_integre"></div>
+    </div>
+
+    <!-- Cyrus absent -->
+    <div class="son-card">
+        <div class="son-card-title">
+            <span style="width:36px;height:36px;border-radius:8px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-file-earmark-x-fill" style="color:#ea580c;"></i>
+            </span>
+            Extraction Cyrus absente
+            <span style="font-size:.72rem;color:#94a3b8;font-weight:400;margin-left:4px;">Aucune extraction Cyrus depuis plus de 7 jours</span>
+        </div>
+        <div class="son-options" id="opts_cyrus_absent"></div>
+    </div>
+
+    <!-- BR IC absent -->
+    <div class="son-card">
+        <div class="son-card-title">
+            <span style="width:36px;height:36px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-file-earmark-x-fill" style="color:#2563eb;"></i>
+            </span>
+            Fichier BR IC absent
+            <span style="font-size:.72rem;color:#94a3b8;font-weight:400;margin-left:4px;">Aucun fichier BR IC importé depuis plus de 7 jours</span>
+        </div>
+        <div class="son-options" id="opts_br_ic_absent"></div>
+    </div>
+
+    <!-- Barre de sauvegarde sticky -->
+    <div class="save-bar">
+        <button onclick="resetSons()" style="border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:.87rem;color:#64748b;font-weight:600;">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Réinitialiser
+        </button>
+        <button onclick="saveSons()" style="border:none;background:#6366f1;color:#fff;border-radius:8px;padding:9px 24px;cursor:pointer;font-weight:700;font-size:.87rem;">
+            <i class="bi bi-check2 me-1"></i> Enregistrer
+        </button>
+    </div>
+
+</div>
+
+<!-- Toast confirmation -->
+<div class="toast-saved" id="toast-saved">
+    <i class="bi bi-check-circle-fill"></i> Préférences enregistrées
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const STORAGE_KEY = 'alerte_sons_config';
+    const TYPES = {
+        br_non_integre: { label: 'BR non intégrée',         default: 'bips_desc' },
+        cyrus_absent:   { label: 'Extraction Cyrus absente', default: 'bip_urgent' },
+        br_ic_absent:   { label: 'Fichier BR IC absent',     default: 'bip_doux' },
+    };
+    const SONS = {
+        bips_desc:  { label: '3 bips descendants',  icon: 'bi-soundwave' },
+        bip_urgent: { label: 'Bip urgent (rapide)',  icon: 'bi-lightning-fill' },
+        bip_doux:   { label: 'Bip doux (grave)',     icon: 'bi-volume-down-fill' },
+        bips_mont:  { label: '3 bips montants',      icon: 'bi-graph-up' },
+        silence:    { label: 'Silencieux',            icon: 'bi-volume-mute-fill' },
+    };
+
+    function getConfig() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+    }
+
+    function playSound(sonId) {
+        function bip(ctx, freq, start, dur, vol) {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0, ctx.currentTime + start);
+            g.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.02);
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
+            o.start(ctx.currentTime + start);
+            o.stop(ctx.currentTime + start + dur + 0.05);
+        }
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (sonId === 'bips_desc')  { bip(ctx,880,0.0,0.18,0.25); bip(ctx,660,0.22,0.18,0.25); bip(ctx,440,0.44,0.28,0.30); }
+            else if (sonId === 'bip_urgent') { bip(ctx,1200,0.0,0.08,0.35); bip(ctx,1200,0.12,0.08,0.35); bip(ctx,1200,0.24,0.08,0.35); bip(ctx,800,0.36,0.25,0.30); }
+            else if (sonId === 'bip_doux')  { bip(ctx,440,0.0,0.4,0.20); }
+            else if (sonId === 'bips_mont') { bip(ctx,440,0.0,0.18,0.25); bip(ctx,660,0.22,0.18,0.25); bip(ctx,880,0.44,0.28,0.30); }
+            // silence : rien
+        } catch(e) {}
+    }
+
+    function renderOptions(typeId) {
+        const cfg = getConfig();
+        const current = cfg[typeId] || TYPES[typeId].default;
+        const container = document.getElementById('opts_' + typeId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        Object.entries(SONS).forEach(function([sonId, son]) {
+            const uid = 'radio_' + typeId + '_' + sonId;
+            const wrap = document.createElement('div');
+            wrap.className = 'son-option';
+
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.id = uid;
+            input.name = 'son_' + typeId;
+            input.value = sonId;
+            input.checked = sonId === current;
+
+            const label = document.createElement('label');
+            label.htmlFor = uid;
+            label.innerHTML = `<i class="bi ${son.icon}"></i> ${son.label}`;
+
+            wrap.appendChild(input);
+            wrap.appendChild(label);
+            container.appendChild(wrap);
+        });
+
+        // Bouton Tester
+        const btn = document.createElement('button');
+        btn.className = 'btn-tester';
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Tester';
+        btn.addEventListener('click', function() {
+            const checked = container.querySelector('input[type="radio"]:checked');
+            if (checked) playSound(checked.value);
+        });
+        container.appendChild(btn);
+    }
+
+    function renderAll() {
+        Object.keys(TYPES).forEach(renderOptions);
+    }
+
+    window.saveSons = function() {
+        const cfg = {};
+        Object.keys(TYPES).forEach(function(typeId) {
+            const checked = document.querySelector('input[name="son_' + typeId + '"]:checked');
+            if (checked) cfg[typeId] = checked.value;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+        // Sync avec AlerteSons global si disponible
+        if (typeof AlerteSons !== 'undefined') AlerteSons.saveConfig(cfg);
+        // Toast
+        const t = document.getElementById('toast-saved');
+        t.style.display = 'flex';
+        setTimeout(function() { t.style.display = 'none'; }, 2500);
+    };
+
+    window.resetSons = function() {
+        localStorage.removeItem(STORAGE_KEY);
+        renderAll();
+    };
+
+    document.addEventListener('DOMContentLoaded', renderAll);
+})();
+</script>
+{% endblock %}

@@ -5826,3 +5826,9 @@ def export_commandes_legend_csv(request):
             c.date_import.strftime('%d/%m/%Y %H:%M') if getattr(c, 'date_import', None) else '',
         ])
     return response
+
+
+@login_required
+def config_sons_alertes(request):
+    """Page de configuration des sons d'alerte."""
+    return render(request, 'dashboard/config_sons_alertes.html')

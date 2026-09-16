@@ -31,6 +31,7 @@ urlpatterns = [
     path('parametres/utilisateurs/nouveau/', views.creer_utilisateur, name='creer_utilisateur'),
     path('parametres/utilisateurs/<int:user_id>/permissions/', views.permissions_utilisateur, name='permissions_utilisateur'),
     path('parametres/preferences/', views.preferences_utilisateur, name='preferences_utilisateur'),
+    path('parametres/sons/', views.config_sons_alertes, name='config_sons_alertes'),
     path('rapports/', views.rapport_global, name='rapport_global'),
     path('remontee-asten/', views.remontee_asten, name='remontee_asten'),
     path('version-asten/', views.version_asten, name='version_asten'),
