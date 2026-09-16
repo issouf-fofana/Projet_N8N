@@ -1799,6 +1799,53 @@ def accueil(request):
             'nb_validees': 0,
         }
 
+    # ALERTES : BR non intégrées par magasin + raisons
+    try:
+        from django.utils import timezone
+        from django.db.models import Count as _Count
+        from br.models import BRAsten as _BRAsten
+        _seuil_jours = 7  # alerte si aucun fichier IC depuis 7 jours
+
+        # Dernier import BR IC
+        dernier_br_ic = ImportFichier.objects.filter(type_fichier='br_ic', statut='termine').order_by('-date_import').first()
+        # Dernier import Cyrus
+        dernier_cyrus = ImportFichier.objects.filter(type_fichier='cyrus', statut='termine').order_by('-date_import').first()
+
+        maintenant = timezone.now()
+        alerte_br_ic_absent = dernier_br_ic is None or (maintenant - dernier_br_ic.date_import).days >= _seuil_jours
+        alerte_cyrus_absent = dernier_cyrus is None or (maintenant - dernier_cyrus.date_import).days >= _seuil_jours
+
+        # BR non intégrées par magasin (toutes dates, exclu quantité 0)
+        _q0 = Q(statut_ic__icontains='Quantité 0') | Q(statut_ic__icontains='quantite_0') | Q(statut_ic__icontains='Quantite 0')
+        br_non_integrees_par_magasin = (
+            _BRAsten.objects
+            .filter(ic_integre=False)
+            .exclude(_q0)
+            .values('code_magasin__code', 'code_magasin__nom')
+            .annotate(nb=_Count('id'))
+            .order_by('-nb')[:15]
+        )
+
+        alertes = {
+            'br_non_integrees_par_magasin': list(br_non_integrees_par_magasin),
+            'total_br_non_integrees': sum(x['nb'] for x in br_non_integrees_par_magasin),
+            'alerte_br_ic_absent': alerte_br_ic_absent,
+            'alerte_cyrus_absent': alerte_cyrus_absent,
+            'dernier_br_ic': dernier_br_ic.date_import if dernier_br_ic else None,
+            'dernier_cyrus': dernier_cyrus.date_import if dernier_cyrus else None,
+            'seuil_jours': _seuil_jours,
+        }
+    except Exception:
+        alertes = {
+            'br_non_integrees_par_magasin': [],
+            'total_br_non_integrees': 0,
+            'alerte_br_ic_absent': False,
+            'alerte_cyrus_absent': False,
+            'dernier_br_ic': None,
+            'dernier_cyrus': None,
+            'seuil_jours': 7,
+        }
+
     context = {
         'stats_asten': stats_asten,
         'stats_gpv': stats_gpv,
@@ -1809,6 +1856,7 @@ def accueil(request):
         'stats_version': stats_version,
         'stats_remontees': stats_remontees,
         'stats_magasins_gpv': stats_magasins_gpv,
+        'alertes': alertes,
         'ia_rpos': ia_rpos,
         'evolution_journaliere': evolution_journaliere,
         'periode': periode,
