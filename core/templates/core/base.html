@@ -1967,6 +1967,12 @@
                 const content = extractMain(html);
                 if (!content) { location.href = url; return; }
 
+                // Si la page demande une navigation normale (meta spa-full-reload)
+                const tmpDoc = document.createElement('div');
+                tmpDoc.innerHTML = html;
+                const noSpa = tmpDoc.querySelector('meta[name="spa-full-reload"]');
+                if (noSpa) { location.href = url; return; }
+
                 MAIN.innerHTML = content;
                 MAIN.style.opacity = '';
                 MAIN.style.pointerEvents = '';
@@ -1981,15 +1987,10 @@
                 const t = tmp.querySelector('title');
                 if (t) document.title = t.textContent;
 
-                // Ré-exécuter les scripts inline de la nouvelle page
-                MAIN.querySelectorAll('script').forEach(function(s) {
-                    const ns = document.createElement('script');
-                    ns.textContent = s.textContent;
-                    s.parentNode.replaceChild(ns, s);
+                // Ré-initialiser date pickers uniquement
+                document.querySelectorAll('.date-nav-picker-wrap:not([data-dnp-init])').forEach(function(w) {
+                    if (typeof initPicker === 'function') initPicker(w);
                 });
-
-                // Ré-initialiser date pickers
-                if (typeof initDatePickers === 'function') initDatePickers();
 
                 window.scrollTo(0, 0);
             })
