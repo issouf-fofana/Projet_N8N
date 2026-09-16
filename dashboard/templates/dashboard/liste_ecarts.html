@@ -75,18 +75,10 @@
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-3">
-                <label for="date_debut" class="form-label fw-semibold">
-                    <i class="bi bi-calendar-event"></i> Date début
-                </label>
-                <input type="date" class="form-control form-control-sm" id="date_debut" name="date_debut" 
-                       value="{{ filtres.date_debut }}">
+                {% include 'dashboard/includes/_date_nav_picker.html' with field_id="date_debut" field_name="date_debut" label="Date début" value=filtres.date_debut %}
             </div>
             <div class="col-md-3">
-                <label for="date_fin" class="form-label fw-semibold">
-                    <i class="bi bi-calendar-check"></i> Date fin
-                </label>
-                <input type="date" class="form-control form-control-sm" id="date_fin" name="date_fin" 
-                       value="{{ filtres.date_fin }}">
+                {% include 'dashboard/includes/_date_nav_picker.html' with field_id="date_fin" field_name="date_fin" label="Date fin" value=filtres.date_fin %}
             </div>
             <div class="col-md-2">
                 <label for="magasin" class="form-label fw-semibold">

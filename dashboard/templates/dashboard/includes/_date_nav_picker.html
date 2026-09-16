@@ -1,0 +1,37 @@
+{# Composant sélecteur de date avec navigation jour/mois
+   Usage : {% include 'dashboard/includes/_date_nav_picker.html' with field_id="date_debut" field_name="date_debut" label="Date début" value=filtres.date_debut %}
+#}
+<div class="date-nav-picker-wrap">
+    <label for="{{ field_id }}" class="form-label fw-semibold">
+        <i class="bi bi-calendar-event"></i> {{ label }}
+    </label>
+    <div class="input-group date-nav-picker" data-field="{{ field_id }}">
+        <input type="text"
+               class="form-control date-nav-input"
+               id="{{ field_id }}"
+               name="{{ field_name }}"
+               value="{{ value }}"
+               placeholder="jj/mm/aaaa"
+               autocomplete="off"
+               readonly>
+        <button type="button" class="btn btn-outline-secondary date-nav-cal-btn" title="Ouvrir le calendrier">
+            <i class="bi bi-calendar3"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary date-nav-prev-btn" title="Jour précédent">
+            <i class="bi bi-skip-start-fill"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split date-nav-period-btn px-2" title="Changer de période">
+        </button>
+        <button type="button" class="btn btn-outline-secondary date-nav-next-btn" title="Jour suivant">
+            <i class="bi bi-skip-end-fill"></i>
+        </button>
+    </div>
+    <!-- Calendrier inline -->
+    <div class="date-nav-calendar-popup shadow" id="{{ field_id }}_cal" style="display:none;"></div>
+    <!-- Dropdown période -->
+    <ul class="date-nav-period-menu" id="{{ field_id }}_period_menu" style="display:none;">
+        <li data-unit="day"><i class="bi bi-calendar-day me-2"></i>Jour par jour</li>
+        <li data-unit="week"><i class="bi bi-calendar-week me-2"></i>Semaine par semaine</li>
+        <li data-unit="month"><i class="bi bi-calendar-month me-2"></i>Mois par mois</li>
+    </ul>
+</div>

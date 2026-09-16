@@ -813,6 +813,45 @@
         .page-header h1 { color: #fff; font-weight: 700; margin: 0; font-size: 1.6rem; }
     </style>
     {% block extra_css %}{% endblock %}
+    <style>
+    /* ── Date Nav Picker ── */
+    .date-nav-picker-wrap { position: relative; }
+    .date-nav-picker .form-control { min-width: 130px; background:#fff; cursor:pointer; }
+    .date-nav-picker .btn { padding: 0.375rem 0.55rem; }
+    .date-nav-calendar-popup {
+        position: absolute; top: calc(100% + 4px); left: 0; z-index: 9999;
+        background: #fff; border: 1px solid #dee2e6; border-radius: 8px;
+        padding: 10px; min-width: 260px; user-select: none;
+    }
+    .dnp-cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .dnp-cal-header span { font-weight:700; font-size:.9rem; cursor:pointer; }
+    .dnp-cal-header button { border:none; background:none; cursor:pointer; font-size:1rem; color:#374151; padding:2px 6px; border-radius:4px; }
+    .dnp-cal-header button:hover { background:#f1f5f9; }
+    .dnp-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+    .dnp-cal-grid .dnp-dow { font-size:.7rem; color:#94a3b8; text-align:center; padding:2px 0; font-weight:600; }
+    .dnp-cal-grid .dnp-day {
+        font-size:.8rem; text-align:center; padding:5px 2px; border-radius:4px;
+        cursor:pointer; color:#1f2937;
+    }
+    .dnp-cal-grid .dnp-day:hover { background:#f1f5f9; }
+    .dnp-cal-grid .dnp-day.dnp-today { border:1px solid #6366f1; color:#6366f1; font-weight:700; }
+    .dnp-cal-grid .dnp-day.dnp-selected { background:#6366f1; color:#fff; font-weight:700; }
+    .dnp-cal-grid .dnp-day.dnp-other-month { color:#cbd5e1; }
+    .dnp-cal-grid .dnp-day.dnp-empty { cursor:default; }
+    /* Dropdown période */
+    .date-nav-period-menu {
+        position:absolute; top: calc(100% + 4px); left:0; z-index:10000;
+        background:#fff; border:1px solid #dee2e6; border-radius:8px;
+        list-style:none; margin:0; padding:4px 0; min-width:200px;
+        box-shadow:0 4px 16px rgba(0,0,0,.1);
+    }
+    .date-nav-period-menu li {
+        padding:8px 16px; cursor:pointer; font-size:.85rem; color:#374151;
+        display:flex; align-items:center;
+    }
+    .date-nav-period-menu li:hover { background:#f8fafc; }
+    .date-nav-period-menu li.active { font-weight:700; color:#6366f1; }
+    </style>
 </head>
 <body>
     <!-- Bouton toggle sidebar -->
@@ -1697,6 +1736,178 @@
         .catch(function(){ btn.disabled = false; btn.textContent = '↻ Recalculer les écarts'; });
     }
     </script>
+
+<script>
+/* ── Date Nav Picker — global ── */
+(function() {
+    const DOW = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+    const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+    function parseVal(v) {
+        if (!v) return null;
+        // accepte YYYY-MM-DD ou DD/MM/YYYY
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { const [y,m,d]=v.split('-'); return new Date(+y,+m-1,+d); }
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) { const [d,m,y]=v.split('/'); return new Date(+y,+m-1,+d); }
+        return null;
+    }
+    function fmtVal(d) { // toujours YYYY-MM-DD pour la form
+        if (!d) return '';
+        return d.getFullYear()+'-'+ String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+    function fmtDisplay(d) { // DD/MM/YYYY pour l'affichage
+        if (!d) return '';
+        return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    }
+    function today() { const t=new Date(); t.setHours(0,0,0,0); return t; }
+    function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+    function addMonths(d,n) { const r=new Date(d); r.setMonth(r.getMonth()+n); return r; }
+
+    function buildCal(picker, viewDate) {
+        const popup = picker._popup;
+        const selected = picker._date;
+        const y = viewDate.getFullYear(), m = viewDate.getMonth();
+        const firstDay = new Date(y, m, 1);
+        const lastDay  = new Date(y, m+1, 0);
+        // lundi=0
+        let startDow = (firstDay.getDay()+6)%7;
+        const todayD = today();
+
+        let html = `<div class="dnp-cal-header">
+            <button type="button" class="dnp-prev-month">‹</button>
+            <span>${MONTHS[m]} ${y}</span>
+            <button type="button" class="dnp-next-month">›</button>
+        </div><div class="dnp-cal-grid">`;
+        DOW.forEach(d => { html += `<div class="dnp-dow">${d}</div>`; });
+        for (let i=0; i<startDow; i++) html += `<div class="dnp-day dnp-empty"></div>`;
+        for (let d=1; d<=lastDay.getDate(); d++) {
+            const dt = new Date(y,m,d);
+            let cls = 'dnp-day';
+            if (dt.toDateString()===todayD.toDateString()) cls+=' dnp-today';
+            if (selected && dt.toDateString()===selected.toDateString()) cls+=' dnp-selected';
+            html += `<div class="${cls}" data-date="${fmtVal(dt)}">${d}</div>`;
+        }
+        html += '</div>';
+        popup.innerHTML = html;
+
+        popup.querySelector('.dnp-prev-month').addEventListener('click', function(e){
+            e.stopPropagation();
+            picker._viewDate = addMonths(viewDate, -1);
+            buildCal(picker, picker._viewDate);
+        });
+        popup.querySelector('.dnp-next-month').addEventListener('click', function(e){
+            e.stopPropagation();
+            picker._viewDate = addMonths(viewDate, 1);
+            buildCal(picker, picker._viewDate);
+        });
+        popup.querySelectorAll('.dnp-day[data-date]').forEach(function(el){
+            el.addEventListener('click', function(e){
+                e.stopPropagation();
+                const d = parseVal(el.dataset.date);
+                picker._date = d;
+                picker._input.value = fmtVal(d);  // YYYY-MM-DD pour la form
+                picker._input.setAttribute('data-display', fmtDisplay(d));
+                updateDisplay(picker);
+                closeAll();
+            });
+        });
+    }
+
+    function updateDisplay(picker) {
+        const d = picker._date;
+        picker._input.value = fmtVal(d);
+        // affichage lisible dans le champ
+        const disp = picker._input.closest('.date-nav-picker').querySelector('.date-nav-display');
+        if (disp) disp.textContent = d ? fmtDisplay(d) : '';
+    }
+
+    function closeAll() {
+        document.querySelectorAll('.date-nav-calendar-popup, .date-nav-period-menu').forEach(function(el){
+            el.style.display = 'none';
+        });
+    }
+
+    function initPicker(wrap) {
+        const group   = wrap.querySelector('.date-nav-picker');
+        const input   = wrap.querySelector('.date-nav-input');
+        const popup   = wrap.querySelector('.date-nav-calendar-popup');
+        const periodMenu = wrap.querySelector('.date-nav-period-menu');
+        const btnCal  = wrap.querySelector('.date-nav-cal-btn');
+        const btnPrev = wrap.querySelector('.date-nav-prev-btn');
+        const btnNext = wrap.querySelector('.date-nav-next-btn');
+        const btnPeriod = wrap.querySelector('.date-nav-period-btn');
+        if (!input || !popup) return;
+
+        // Remplace l'input hidden YYYY-MM-DD par un champ lisible
+        const displaySpan = document.createElement('span');
+        displaySpan.className = 'form-control date-nav-display';
+        displaySpan.style.cssText = 'cursor:pointer;background:#fff;min-width:120px;';
+        input.style.display = 'none';
+        group.insertBefore(displaySpan, group.firstChild);
+
+        const picker = {
+            _input: input,
+            _popup: popup,
+            _periodMenu: periodMenu,
+            _date: parseVal(input.value) || null,
+            _viewDate: parseVal(input.value) || today(),
+            _unit: 'day',
+        };
+        if (picker._date) displaySpan.textContent = fmtDisplay(picker._date);
+        displaySpan.addEventListener('click', function(e){
+            e.stopPropagation();
+            closeAll();
+            picker._viewDate = picker._date || today();
+            buildCal(picker, picker._viewDate);
+            popup.style.display = '';
+        });
+        btnCal && btnCal.addEventListener('click', function(e){
+            e.stopPropagation();
+            closeAll();
+            picker._viewDate = picker._date || today();
+            buildCal(picker, picker._viewDate);
+            popup.style.display = '';
+        });
+        btnPrev && btnPrev.addEventListener('click', function(){
+            const base = picker._date || today();
+            picker._date = picker._unit==='month' ? addMonths(base,-1) : picker._unit==='week' ? addDays(base,-7) : addDays(base,-1);
+            picker._input.value = fmtVal(picker._date);
+            displaySpan.textContent = fmtDisplay(picker._date);
+        });
+        btnNext && btnNext.addEventListener('click', function(){
+            const base = picker._date || today();
+            picker._date = picker._unit==='month' ? addMonths(base,1) : picker._unit==='week' ? addDays(base,7) : addDays(base,1);
+            picker._input.value = fmtVal(picker._date);
+            displaySpan.textContent = fmtDisplay(picker._date);
+        });
+        btnPeriod && btnPeriod.addEventListener('click', function(e){
+            e.stopPropagation();
+            closeAll();
+            periodMenu.style.display = '';
+        });
+        periodMenu && periodMenu.querySelectorAll('li').forEach(function(li){
+            if (li.dataset.unit === picker._unit) li.classList.add('active');
+            li.addEventListener('click', function(){
+                picker._unit = li.dataset.unit;
+                periodMenu.querySelectorAll('li').forEach(function(x){ x.classList.remove('active'); });
+                li.classList.add('active');
+                periodMenu.style.display = 'none';
+            });
+        });
+    }
+
+    document.addEventListener('click', closeAll);
+
+    function initAll() {
+        document.querySelectorAll('.date-nav-picker-wrap').forEach(function(wrap){
+            if (!wrap.dataset.dnpInit) {
+                wrap.dataset.dnpInit = '1';
+                initPicker(wrap);
+            }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', initAll);
+})();
+</script>
 </body>
 </html>
 
