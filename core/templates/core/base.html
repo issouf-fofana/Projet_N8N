@@ -1107,6 +1107,9 @@
                             <i class="bi bi-people"></i> Utilisateurs
                         </a>
                         {% endif %}
+                        <a href="#" onclick="document.getElementById('modal-sons-alertes').style.display='flex';return false;">
+                            <i class="bi bi-bell-fill"></i> Sons & Alertes
+                        </a>
                         <a href="{% url 'tickets:pipeline_email' %}" class="{% if request.resolver_match.url_name == 'pipeline_email' or request.resolver_match.url_name == 'config_email' %}active{% endif %}">
                             <i class="bi bi-envelope-gear"></i> Pipeline Email
                         </a>
@@ -1906,6 +1909,252 @@
         });
     }
     document.addEventListener('DOMContentLoaded', initAll);
+})();
+</script>
+
+<!-- ── Modal Config Sons & Alertes ── -->
+<div id="modal-sons-alertes" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;width:min(540px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;">
+            <div style="font-size:1.1rem;font-weight:800;color:#0f172a;"><i class="bi bi-bell-fill" style="color:#6366f1;margin-right:8px;"></i>Sons & Alertes</div>
+            <button onclick="document.getElementById('modal-sons-alertes').style.display='none'" style="border:none;background:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:20px 24px;" id="sons-config-body">
+            <p style="color:#64748b;font-size:.85rem;margin-bottom:20px;">Configurez le son joué pour chaque type d'alerte. Les préférences sont sauvegardées localement dans votre navigateur.</p>
+            <div id="sons-config-rows"></div>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:10px;">
+                <button onclick="resetSonsConfig()" style="border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:.85rem;color:#64748b;">Réinitialiser</button>
+                <button onclick="saveSonsConfig()" style="border:none;background:#6366f1;color:#fff;border-radius:8px;padding:8px 18px;cursor:pointer;font-weight:700;font-size:.85rem;">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ── Sons Config Modal ── */
+function renderSonsConfig() {
+    if (typeof AlerteSons === 'undefined') return;
+    const cfg = AlerteSons.getConfig();
+    const rows = document.getElementById('sons-config-rows');
+    if (!rows) return;
+    let html = '';
+    Object.entries(AlerteSons.TYPES).forEach(function([typeId, type]) {
+        const current = cfg[typeId] || type.default;
+        html += `<div style="margin-bottom:18px;">
+            <div style="font-weight:700;color:#1e2a45;margin-bottom:8px;font-size:.9rem;">
+                <i class="bi bi-bell" style="color:#6366f1;margin-right:6px;"></i>${type.label}
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">`;
+        Object.entries(AlerteSons.SONS).forEach(function([sonId, son]) {
+            const sel = sonId === current;
+            html += `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border-radius:20px;border:2px solid ${sel?'#6366f1':'#e2e8f0'};background:${sel?'#eef2ff':'#fff'};font-size:.82rem;font-weight:${sel?700:400};">
+                <input type="radio" name="son_${typeId}" value="${sonId}" ${sel?'checked':''} style="display:none;" onchange="previewSon('${sonId}')">
+                ${son.label}
+            </label>`;
+        });
+        html += `<button type="button" onclick="previewType('${typeId}')" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:20px;padding:5px 12px;cursor:pointer;font-size:.8rem;color:#6366f1;">
+            <i class="bi bi-play-fill"></i> Tester
+        </button>`;
+        html += '</div></div>';
+    });
+    rows.innerHTML = html;
+}
+function previewSon(sonId) { AlerteSons.preview(sonId); }
+function previewType(typeId) {
+    const radios = document.querySelectorAll(`input[name="son_${typeId}"]`);
+    let selected;
+    radios.forEach(function(r) { if (r.checked) selected = r.value; });
+    if (selected) AlerteSons.preview(selected);
+}
+function saveSonsConfig() {
+    if (typeof AlerteSons === 'undefined') return;
+    const cfg = {};
+    Object.keys(AlerteSons.TYPES).forEach(function(typeId) {
+        const radios = document.querySelectorAll(`input[name="son_${typeId}"]`);
+        radios.forEach(function(r) { if (r.checked) cfg[typeId] = r.value; });
+    });
+    AlerteSons.saveConfig(cfg);
+    document.getElementById('modal-sons-alertes').style.display = 'none';
+    // Feedback visuel
+    const b = document.querySelector('#sons-config-body button:last-child');
+    if (b) { b.textContent = '✓ Enregistré'; setTimeout(function(){ b.textContent = 'Enregistrer'; }, 1500); }
+}
+function resetSonsConfig() {
+    if (typeof AlerteSons === 'undefined') return;
+    localStorage.removeItem('alerte_sons_config');
+    renderSonsConfig();
+}
+document.getElementById('modal-sons-alertes').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('modal-sons-alertes').addEventListener('transitionend', renderSonsConfig);
+    // Ouvre le modal → render immédiatement
+    const origOpen = document.getElementById('modal-sons-alertes');
+    const observer = new MutationObserver(function(muts) {
+        muts.forEach(function(m) {
+            if (m.attributeName === 'style' && origOpen.style.display !== 'none') renderSonsConfig();
+        });
+    });
+    observer.observe(origOpen, { attributes: true });
+});
+</script>
+
+<script>
+/* ── SPA Sidebar Navigation ── */
+(function() {
+    const MAIN = document.querySelector('.main-content');
+    if (!MAIN) return;
+
+    // Marque le contenu principal avec un id stable
+    MAIN.id = MAIN.id || 'spa-main';
+
+    function extractMain(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const m = tmp.querySelector('.main-content');
+        return m ? m.innerHTML : null;
+    }
+
+    function setActiveLink(url) {
+        document.querySelectorAll('.sidebar-menu a, .sidebar-accordion .accordion-body a').forEach(function(a) {
+            const href = a.getAttribute('href');
+            if (!href) return;
+            // actif si le pathname correspond exactement
+            const aPath = new URL(a.href, location.origin).pathname;
+            const uPath = new URL(url, location.origin).pathname;
+            a.classList.toggle('active', aPath === uPath);
+        });
+    }
+
+    function navigate(url, push) {
+        // Spinner de chargement léger
+        MAIN.style.opacity = '0.5';
+        MAIN.style.pointerEvents = 'none';
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                const content = extractMain(html);
+                if (!content) { location.href = url; return; }
+
+                MAIN.innerHTML = content;
+                MAIN.style.opacity = '';
+                MAIN.style.pointerEvents = '';
+
+                if (push) history.pushState({ url: url }, '', url);
+                setActiveLink(url);
+
+                // Mettre à jour le titre
+                const tmp = document.createElement('div');
+                tmp.innerHTML = html;
+                const t = tmp.querySelector('title');
+                if (t) document.title = t.textContent;
+
+                // Ré-initialiser les scripts de la nouvelle page
+                MAIN.querySelectorAll('script').forEach(function(s) {
+                    const ns = document.createElement('script');
+                    ns.textContent = s.textContent;
+                    s.parentNode.replaceChild(ns, s);
+                });
+
+                // Ré-initialiser date pickers
+                if (typeof initDatePickers === 'function') initDatePickers();
+
+                // Remonter en haut
+                window.scrollTo(0, 0);
+            })
+            .catch(function() {
+                MAIN.style.opacity = '';
+                MAIN.style.pointerEvents = '';
+                location.href = url;
+            });
+    }
+
+    // Intercepter clics sidebar
+    document.querySelector('.sidebar') && document.querySelector('.sidebar').addEventListener('click', function(e) {
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const href = a.getAttribute('href');
+        // Ne pas intercepter : liens externes, ancres, logout, admin, export CSV, téléchargements
+        if (!href || href.startsWith('#') || href.startsWith('http') ||
+            href.includes('/logout') || href.includes('/admin') ||
+            href.includes('/export') || href.includes('download') ||
+            a.hasAttribute('download') || a.getAttribute('target') === '_blank') return;
+
+        e.preventDefault();
+        navigate(href, true);
+    });
+
+    // Bouton retour/avant du navigateur
+    window.addEventListener('popstate', function(e) {
+        if (e.state && e.state.url) navigate(e.state.url, false);
+    });
+
+    // État initial
+    history.replaceState({ url: location.href }, '', location.href);
+})();
+</script>
+
+<script>
+/* ── Config Sons Alertes (localStorage) ── */
+window.AlerteSons = (function() {
+    const STORAGE_KEY = 'alerte_sons_config';
+    const TYPES = {
+        br_non_integre:  { label: 'BR non intégrée',        default: 'bips_desc' },
+        cyrus_absent:    { label: 'Extraction Cyrus absente', default: 'bip_urgent' },
+        br_ic_absent:    { label: 'Fichier BR IC absent',     default: 'bip_doux' },
+    };
+    const SONS = {
+        bips_desc:  { label: '3 bips descendants',  fn: function(ctx) { bip(ctx,880,0.0,0.18,0.25); bip(ctx,660,0.22,0.18,0.25); bip(ctx,440,0.44,0.28,0.30); } },
+        bip_urgent: { label: 'Bip urgent (rapide)',  fn: function(ctx) { bip(ctx,1200,0.0,0.08,0.35); bip(ctx,1200,0.12,0.08,0.35); bip(ctx,1200,0.24,0.08,0.35); bip(ctx,800,0.36,0.25,0.30); } },
+        bip_doux:   { label: 'Bip doux (grave)',     fn: function(ctx) { bip(ctx,440,0.0,0.4,0.20); } },
+        bips_mont:  { label: '3 bips montants',      fn: function(ctx) { bip(ctx,440,0.0,0.18,0.25); bip(ctx,660,0.22,0.18,0.25); bip(ctx,880,0.44,0.28,0.30); } },
+        silence:    { label: 'Silencieux',            fn: function() {} },
+    };
+
+    function bip(ctx, freq, start, dur, vol) {
+        try {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine'; o.frequency.value = freq;
+            g.gain.setValueAtTime(0, ctx.currentTime + start);
+            g.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.02);
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
+            o.start(ctx.currentTime + start);
+            o.stop(ctx.currentTime + start + dur + 0.05);
+        } catch(e) {}
+    }
+
+    function getConfig() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+    }
+    function saveConfig(cfg) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+    }
+    function getSon(type) {
+        const cfg = getConfig();
+        return cfg[type] || TYPES[type]?.default || 'bip_doux';
+    }
+    function jouer(type) {
+        const sonId = getSon(type);
+        const son = SONS[sonId];
+        if (!son) return;
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            son.fn(ctx);
+        } catch(e) {}
+    }
+    function preview(sonId) {
+        const son = SONS[sonId];
+        if (!son) return;
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            son.fn(ctx);
+        } catch(e) {}
+    }
+
+    return { TYPES, SONS, getConfig, saveConfig, getSon, jouer, preview };
 })();
 </script>
 </body>
