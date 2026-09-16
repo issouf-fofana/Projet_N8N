@@ -1957,8 +1957,9 @@ function renderSonsConfig() {
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;" data-type="${typeId}">`;
         Object.entries(AlerteSons.SONS).forEach(function([sonId, son]) {
             const sel = sonId === current;
-            html += `<label style="font-size:.82rem;${_sonLabelStyle(sel)}">
-                <input type="radio" name="son_${typeId}" value="${sonId}" ${sel?'checked':''} style="display:none;">
+            const uid = `son_${typeId}_${sonId}`;
+            html += `<label for="${uid}" style="font-size:.82rem;${_sonLabelStyle(sel)}">
+                <input type="radio" id="${uid}" name="son_${typeId}" value="${sonId}" ${sel?'checked':''} style="display:none;">
                 ${son.label}
             </label>`;
         });
@@ -2029,9 +2030,28 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
     const MAIN = document.querySelector('.main-content');
     if (!MAIN) return;
-
-    // Marque le contenu principal avec un id stable
     MAIN.id = MAIN.id || 'spa-main';
+
+    // Sauvegarde l'état ouvert/fermé des accordéons sidebar
+    function saveAccordionState() {
+        const state = {};
+        document.querySelectorAll('.sidebar-accordion .accordion-collapse').forEach(function(el) {
+            state[el.id] = el.classList.contains('show');
+        });
+        return state;
+    }
+    // Restaure l'état des accordéons sans déclencher Bootstrap
+    function restoreAccordionState(state) {
+        Object.entries(state).forEach(function([id, open]) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (open) el.classList.add('show');
+            else el.classList.remove('show');
+            // Sync le bouton toggle
+            const btn = document.querySelector(`[data-bs-target="#${id}"]`);
+            if (btn) btn.classList.toggle('collapsed', !open);
+        });
+    }
 
     function extractMain(html) {
         const tmp = document.createElement('div');
@@ -2042,9 +2062,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function setActiveLink(url) {
         document.querySelectorAll('.sidebar-menu a, .sidebar-accordion .accordion-body a').forEach(function(a) {
-            const href = a.getAttribute('href');
-            if (!href) return;
-            // actif si le pathname correspond exactement
+            if (!a.getAttribute('href')) return;
             const aPath = new URL(a.href, location.origin).pathname;
             const uPath = new URL(url, location.origin).pathname;
             a.classList.toggle('active', aPath === uPath);
@@ -2052,7 +2070,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function navigate(url, push) {
-        // Spinner de chargement léger
+        const accordionState = saveAccordionState();
         MAIN.style.opacity = '0.5';
         MAIN.style.pointerEvents = 'none';
 
@@ -2068,14 +2086,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (push) history.pushState({ url: url }, '', url);
                 setActiveLink(url);
+                restoreAccordionState(accordionState);
 
-                // Mettre à jour le titre
+                // Titre
                 const tmp = document.createElement('div');
                 tmp.innerHTML = html;
                 const t = tmp.querySelector('title');
                 if (t) document.title = t.textContent;
 
-                // Ré-initialiser les scripts de la nouvelle page
+                // Ré-exécuter les scripts inline de la nouvelle page
                 MAIN.querySelectorAll('script').forEach(function(s) {
                     const ns = document.createElement('script');
                     ns.textContent = s.textContent;
@@ -2085,7 +2104,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Ré-initialiser date pickers
                 if (typeof initDatePickers === 'function') initDatePickers();
 
-                // Remonter en haut
                 window.scrollTo(0, 0);
             })
             .catch(function() {
@@ -2100,7 +2118,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const a = e.target.closest('a[href]');
         if (!a) return;
         const href = a.getAttribute('href');
-        // Ne pas intercepter : liens externes, ancres, logout, admin, export CSV, téléchargements
         if (!href || href.startsWith('#') || href.startsWith('http') ||
             href.includes('/logout') || href.includes('/admin') ||
             href.includes('/export') || href.includes('download') ||
