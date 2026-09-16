@@ -814,43 +814,45 @@
     </style>
     {% block extra_css %}{% endblock %}
     <style>
-    /* ── Date Nav Picker ── */
-    .date-nav-picker-wrap { position: relative; }
-    .date-nav-picker .form-control { min-width: 130px; background:#fff; cursor:pointer; }
-    .date-nav-picker .btn { padding: 0.375rem 0.55rem; }
-    .date-nav-calendar-popup {
-        position: absolute; top: calc(100% + 4px); left: 0; z-index: 9999;
-        background: #fff; border: 1px solid #dee2e6; border-radius: 8px;
-        padding: 10px; min-width: 260px; user-select: none;
+    /* ── Date Range Picker ── */
+    .drp-wrap { position:relative; display:inline-flex; flex-direction:column; gap:0; }
+    .drp-row { display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap; }
+    .drp-field { display:flex; flex-direction:column; gap:3px; }
+    .drp-label { font-size:.78rem; font-weight:600; color:#475569; margin:0; }
+    .drp-input {
+        border:1px solid #d1d5db; border-radius:6px; padding:6px 10px;
+        font-size:.85rem; background:#fff; cursor:pointer; min-width:115px;
+        color:#1f2937; outline:none; transition:border-color .15s;
     }
-    .dnp-cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-    .dnp-cal-header span { font-weight:700; font-size:.9rem; cursor:pointer; }
-    .dnp-cal-header button { border:none; background:none; cursor:pointer; font-size:1rem; color:#374151; padding:2px 6px; border-radius:4px; }
-    .dnp-cal-header button:hover { background:#f1f5f9; }
-    .dnp-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
-    .dnp-cal-grid .dnp-dow { font-size:.7rem; color:#94a3b8; text-align:center; padding:2px 0; font-weight:600; }
-    .dnp-cal-grid .dnp-day {
-        font-size:.8rem; text-align:center; padding:5px 2px; border-radius:4px;
-        cursor:pointer; color:#1f2937;
+    .drp-input:focus { border-color:#6366f1; }
+    .drp-actions { display:flex; gap:4px; align-items:flex-end; }
+    .drp-btn {
+        border:1px solid #d1d5db; background:#fff; border-radius:6px;
+        padding:6px 10px; cursor:pointer; font-size:.82rem; color:#374151;
+        display:flex; align-items:center; gap:5px; transition:all .15s;
+        white-space:nowrap;
     }
-    .dnp-cal-grid .dnp-day:hover { background:#f1f5f9; }
-    .dnp-cal-grid .dnp-day.dnp-today { border:1px solid #6366f1; color:#6366f1; font-weight:700; }
-    .dnp-cal-grid .dnp-day.dnp-selected { background:#6366f1; color:#fff; font-weight:700; }
-    .dnp-cal-grid .dnp-day.dnp-other-month { color:#cbd5e1; }
-    .dnp-cal-grid .dnp-day.dnp-empty { cursor:default; }
-    /* Dropdown période */
-    .date-nav-period-menu {
-        position:absolute; top: calc(100% + 4px); left:0; z-index:10000;
-        background:#fff; border:1px solid #dee2e6; border-radius:8px;
-        list-style:none; margin:0; padding:4px 0; min-width:200px;
-        box-shadow:0 4px 16px rgba(0,0,0,.1);
+    .drp-btn:hover { background:#f1f5f9; border-color:#6366f1; color:#4338ca; }
+    .drp-period-toggle { font-weight:600; }
+    .drp-dropdown {
+        position:absolute; top:calc(100% + 6px); left:0; z-index:10000;
+        background:#fff; border:1px solid #e2e8f0; border-radius:10px;
+        padding:6px 0; min-width:220px;
+        box-shadow:0 8px 24px rgba(0,0,0,.12);
     }
-    .date-nav-period-menu li {
-        padding:8px 16px; cursor:pointer; font-size:.85rem; color:#374151;
-        display:flex; align-items:center;
+    .drp-section-title {
+        font-size:.7rem; font-weight:700; color:#94a3b8; letter-spacing:.08em;
+        text-transform:uppercase; padding:8px 14px 4px;
     }
-    .date-nav-period-menu li:hover { background:#f8fafc; }
-    .date-nav-period-menu li.active { font-weight:700; color:#6366f1; }
+    .drp-item {
+        padding:7px 14px; cursor:pointer; font-size:.84rem; color:#374151;
+        display:flex; align-items:center; transition:background .1s;
+    }
+    .drp-item:hover { background:#f8fafc; color:#4338ca; }
+    .drp-item.drp-nav-active { font-weight:700; color:#6366f1; background:#eef2ff; }
+    .drp-divider { border-top:1px solid #f1f5f9; margin:4px 0; }
+    /* Compat ancien picker — masqué */
+    .date-nav-picker-wrap { display:none !important; }
     </style>
 </head>
 <body>
@@ -1741,174 +1743,145 @@
     </script>
 
 <script>
-/* ── Date Nav Picker — global ── */
+/* ── Date Range Picker — global ── */
 (function() {
-    const DOW = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
     const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
     function parseVal(v) {
         if (!v) return null;
-        // accepte YYYY-MM-DD ou DD/MM/YYYY
         if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { const [y,m,d]=v.split('-'); return new Date(+y,+m-1,+d); }
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) { const [d,m,y]=v.split('/'); return new Date(+y,+m-1,+d); }
         return null;
     }
-    function fmtVal(d) { // toujours YYYY-MM-DD pour la form
+    function fmtISO(d) {
         if (!d) return '';
-        return d.getFullYear()+'-'+ String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     }
-    function fmtDisplay(d) { // DD/MM/YYYY pour l'affichage
+    function fmtDMY(d) {
         if (!d) return '';
         return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
     }
     function today() { const t=new Date(); t.setHours(0,0,0,0); return t; }
     function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
     function addMonths(d,n) { const r=new Date(d); r.setMonth(r.getMonth()+n); return r; }
+    function startOfWeek(d) { const r=new Date(d); r.setDate(r.getDate()-((r.getDay()+6)%7)); return r; }
+    function endOfWeek(d) { return addDays(startOfWeek(d),6); }
+    function startOfMonth(d) { return new Date(d.getFullYear(),d.getMonth(),1); }
+    function endOfMonth(d) { return new Date(d.getFullYear(),d.getMonth()+1,0); }
+    function startOfYear(d) { return new Date(d.getFullYear(),0,1); }
+    function endOfYear(d) { return new Date(d.getFullYear(),11,31); }
 
-    function buildCal(picker, viewDate) {
-        const popup = picker._popup;
-        const selected = picker._date;
-        const y = viewDate.getFullYear(), m = viewDate.getMonth();
-        const firstDay = new Date(y, m, 1);
-        const lastDay  = new Date(y, m+1, 0);
-        // lundi=0
-        let startDow = (firstDay.getDay()+6)%7;
-        const todayD = today();
+    function applyPreset(drp, preset) {
+        const t = today();
+        let s, e;
+        if (preset==='today')      { s=t; e=t; }
+        else if (preset==='yesterday') { s=addDays(t,-1); e=addDays(t,-1); }
+        else if (preset==='week')   { s=startOfWeek(t); e=endOfWeek(t); }
+        else if (preset==='lastweek') { const lw=addDays(startOfWeek(t),-7); s=lw; e=addDays(lw,6); }
+        else if (preset==='month')  { s=startOfMonth(t); e=endOfMonth(t); }
+        else if (preset==='lastmonth') { const lm=addMonths(t,-1); s=startOfMonth(lm); e=endOfMonth(lm); }
+        else if (preset==='year')   { s=startOfYear(t); e=endOfYear(t); }
+        else return;
+        setRange(drp, s, e);
+        submitForm(drp);
+    }
 
-        let html = `<div class="dnp-cal-header">
-            <button type="button" class="dnp-prev-month">‹</button>
-            <span>${MONTHS[m]} ${y}</span>
-            <button type="button" class="dnp-next-month">›</button>
-        </div><div class="dnp-cal-grid">`;
-        DOW.forEach(d => { html += `<div class="dnp-dow">${d}</div>`; });
-        for (let i=0; i<startDow; i++) html += `<div class="dnp-day dnp-empty"></div>`;
-        for (let d=1; d<=lastDay.getDate(); d++) {
-            const dt = new Date(y,m,d);
-            let cls = 'dnp-day';
-            if (dt.toDateString()===todayD.toDateString()) cls+=' dnp-today';
-            if (selected && dt.toDateString()===selected.toDateString()) cls+=' dnp-selected';
-            html += `<div class="${cls}" data-date="${fmtVal(dt)}">${d}</div>`;
+    function setRange(drp, s, e) {
+        drp._debut.value = fmtISO(s);
+        drp._fin.value   = fmtISO(e);
+        drp._displayDebut.value = fmtDMY(s);
+        drp._displayFin.value   = fmtDMY(e);
+        drp._s = s; drp._e = e;
+    }
+
+    function navigate(drp, dir) {
+        const unit = drp._unit;
+        let s = drp._s || today(), e = drp._e || today();
+        if (unit==='day') { s=addDays(s,dir); e=addDays(e,dir); }
+        else if (unit==='week') { s=addDays(s,dir*7); e=addDays(e,dir*7); }
+        else if (unit==='month') { s=addMonths(s,dir); e=addMonths(e,dir); }
+        setRange(drp, s, e);
+        submitForm(drp);
+    }
+
+    function submitForm(drp) {
+        const form = drp._wrap.closest('form');
+        if (form) form.submit();
+    }
+
+    function closeAllDropdowns() {
+        document.querySelectorAll('.drp-dropdown').forEach(function(el){ el.style.display='none'; });
+    }
+
+    function initDrp(wrap) {
+        if (wrap._drpInit) return;
+        wrap._drpInit = true;
+
+        const inDebut = wrap.querySelector('#drp_debut, input[name="date_debut"]');
+        const inFin   = wrap.querySelector('#drp_fin,   input[name="date_fin"]');
+        const menu    = wrap.querySelector('.drp-dropdown');
+        const btnPrev = wrap.querySelector('.drp-prev');
+        const btnNext = wrap.querySelector('.drp-next');
+        const btnPeriod = wrap.querySelector('.drp-period-toggle');
+        const periodLabel = wrap.querySelector('.drp-period-label');
+        if (!inDebut || !inFin) return;
+
+        // Créer des inputs affichage DD/MM/YYYY par-dessus les inputs ISO
+        function makeDisplay(inp) {
+            const d = document.createElement('input');
+            d.type='text'; d.readOnly=true; d.className='drp-input'; d.autocomplete='off';
+            const v = parseVal(inp.value);
+            d.value = v ? fmtDMY(v) : '';
+            d.placeholder = 'jj/mm/aaaa';
+            inp.style.display='none';
+            inp.parentNode.insertBefore(d, inp);
+            return d;
         }
-        html += '</div>';
-        popup.innerHTML = html;
+        const dDebut = makeDisplay(inDebut);
+        const dFin   = makeDisplay(inFin);
 
-        popup.querySelector('.dnp-prev-month').addEventListener('click', function(e){
-            e.stopPropagation();
-            picker._viewDate = addMonths(viewDate, -1);
-            buildCal(picker, picker._viewDate);
-        });
-        popup.querySelector('.dnp-next-month').addEventListener('click', function(e){
-            e.stopPropagation();
-            picker._viewDate = addMonths(viewDate, 1);
-            buildCal(picker, picker._viewDate);
-        });
-        popup.querySelectorAll('.dnp-day[data-date]').forEach(function(el){
-            el.addEventListener('click', function(e){
-                e.stopPropagation();
-                const d = parseVal(el.dataset.date);
-                picker._date = d;
-                picker._input.value = fmtVal(d);  // YYYY-MM-DD pour la form
-                picker._input.setAttribute('data-display', fmtDisplay(d));
-                updateDisplay(picker);
-                closeAll();
-            });
-        });
-    }
-
-    function updateDisplay(picker) {
-        const d = picker._date;
-        picker._input.value = fmtVal(d);
-        // affichage lisible dans le champ
-        const disp = picker._input.closest('.date-nav-picker').querySelector('.date-nav-display');
-        if (disp) disp.textContent = d ? fmtDisplay(d) : '';
-    }
-
-    function closeAll() {
-        document.querySelectorAll('.date-nav-calendar-popup, .date-nav-period-menu').forEach(function(el){
-            el.style.display = 'none';
-        });
-    }
-
-    function initPicker(wrap) {
-        const group   = wrap.querySelector('.date-nav-picker');
-        const input   = wrap.querySelector('.date-nav-input');
-        const popup   = wrap.querySelector('.date-nav-calendar-popup');
-        const periodMenu = wrap.querySelector('.date-nav-period-menu');
-        const btnCal  = wrap.querySelector('.date-nav-cal-btn');
-        const btnPrev = wrap.querySelector('.date-nav-prev-btn');
-        const btnNext = wrap.querySelector('.date-nav-next-btn');
-        const btnPeriod = wrap.querySelector('.date-nav-period-btn');
-        if (!input || !popup) return;
-
-        // Remplace l'input hidden YYYY-MM-DD par un champ lisible
-        const displaySpan = document.createElement('span');
-        displaySpan.className = 'form-control date-nav-display';
-        displaySpan.style.cssText = 'cursor:pointer;background:#fff;min-width:120px;';
-        input.style.display = 'none';
-        group.insertBefore(displaySpan, group.firstChild);
-
-        const picker = {
-            _input: input,
-            _popup: popup,
-            _periodMenu: periodMenu,
-            _date: parseVal(input.value) || null,
-            _viewDate: parseVal(input.value) || today(),
+        const drp = {
+            _wrap: wrap, _debut: inDebut, _fin: inFin,
+            _displayDebut: dDebut, _displayFin: dFin,
+            _s: parseVal(inDebut.value), _e: parseVal(inFin.value),
             _unit: 'day',
         };
-        if (picker._date) displaySpan.textContent = fmtDisplay(picker._date);
-        displaySpan.addEventListener('click', function(e){
-            e.stopPropagation();
-            closeAll();
-            picker._viewDate = picker._date || today();
-            buildCal(picker, picker._viewDate);
-            popup.style.display = '';
-        });
-        btnCal && btnCal.addEventListener('click', function(e){
-            e.stopPropagation();
-            closeAll();
-            picker._viewDate = picker._date || today();
-            buildCal(picker, picker._viewDate);
-            popup.style.display = '';
-        });
-        btnPrev && btnPrev.addEventListener('click', function(){
-            const base = picker._date || today();
-            picker._date = picker._unit==='month' ? addMonths(base,-1) : picker._unit==='week' ? addDays(base,-7) : addDays(base,-1);
-            picker._input.value = fmtVal(picker._date);
-            displaySpan.textContent = fmtDisplay(picker._date);
-        });
-        btnNext && btnNext.addEventListener('click', function(){
-            const base = picker._date || today();
-            picker._date = picker._unit==='month' ? addMonths(base,1) : picker._unit==='week' ? addDays(base,7) : addDays(base,1);
-            picker._input.value = fmtVal(picker._date);
-            displaySpan.textContent = fmtDisplay(picker._date);
-        });
+
+        btnPrev && btnPrev.addEventListener('click', function(){ navigate(drp,-1); });
+        btnNext && btnNext.addEventListener('click', function(){ navigate(drp,1); });
+
         btnPeriod && btnPeriod.addEventListener('click', function(e){
             e.stopPropagation();
-            closeAll();
-            periodMenu.style.display = '';
+            const open = menu.style.display !== 'none';
+            closeAllDropdowns();
+            if (!open) menu.style.display = '';
         });
-        periodMenu && periodMenu.querySelectorAll('li').forEach(function(li){
-            if (li.dataset.unit === picker._unit) li.classList.add('active');
-            li.addEventListener('click', function(){
-                picker._unit = li.dataset.unit;
-                periodMenu.querySelectorAll('li').forEach(function(x){ x.classList.remove('active'); });
-                li.classList.add('active');
-                periodMenu.style.display = 'none';
+
+        menu && menu.querySelectorAll('[data-preset]').forEach(function(el){
+            el.addEventListener('click', function(e){
+                e.stopPropagation();
+                applyPreset(drp, el.dataset.preset);
+                closeAllDropdowns();
+            });
+        });
+
+        menu && menu.querySelectorAll('[data-unit]').forEach(function(el){
+            el.addEventListener('click', function(e){
+                e.stopPropagation();
+                drp._unit = el.dataset.unit;
+                menu.querySelectorAll('[data-unit]').forEach(function(x){ x.classList.remove('drp-nav-active'); });
+                el.classList.add('drp-nav-active');
+                if (periodLabel) periodLabel.textContent = el.textContent.trim();
+                closeAllDropdowns();
             });
         });
     }
 
-    document.addEventListener('click', closeAll);
+    document.addEventListener('click', closeAllDropdowns);
 
-    function initAll() {
-        document.querySelectorAll('.date-nav-picker-wrap').forEach(function(wrap){
-            if (!wrap.dataset.dnpInit) {
-                wrap.dataset.dnpInit = '1';
-                initPicker(wrap);
-            }
-        });
-    }
-    document.addEventListener('DOMContentLoaded', initAll);
+    document.addEventListener('DOMContentLoaded', function(){
+        document.querySelectorAll('.drp-wrap').forEach(initDrp);
+    });
 })();
 </script>
 

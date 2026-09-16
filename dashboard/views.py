@@ -2394,6 +2394,8 @@ def liste_commandes_asten(request):
         'per_page_options': [30, 50, 100, 200],
     }
 
+    context.setdefault('date_debut_val', (context.get('filtres') or {}).get('date_debut', ''))
+    context.setdefault('date_fin_val', (context.get('filtres') or {}).get('date_fin', ''))
     return render(request, 'dashboard/liste_commandes_asten.html', context)
 
 
@@ -2452,6 +2454,8 @@ def liste_commandes_cyrus(request):
         'per_page_options': [30, 50, 100, 200],
     }
     
+    context.setdefault('date_debut_val', (context.get('filtres') or {}).get('date_debut', ''))
+    context.setdefault('date_fin_val', (context.get('filtres') or {}).get('date_fin', ''))
     return render(request, 'dashboard/liste_commandes_cyrus.html', context)
 
 
@@ -2513,6 +2517,8 @@ def liste_br_asten(request):
         'titre': "Liste BR",
     }
 
+    context.setdefault('date_debut_val', (context.get('filtres') or {}).get('date_debut', ''))
+    context.setdefault('date_fin_val', (context.get('filtres') or {}).get('date_fin', ''))
     return render(request, 'dashboard/liste_br_asten.html', context)
 
 
@@ -2594,6 +2600,8 @@ def liste_br_ecart(request):
         'titre': "BR en écart",
     }
 
+    context.setdefault('date_debut_val', (context.get('filtres') or {}).get('date_debut', ''))
+    context.setdefault('date_fin_val', (context.get('filtres') or {}).get('date_fin', ''))
     return render(request, 'dashboard/liste_br_asten.html', context)
 
 
@@ -3008,6 +3016,8 @@ def liste_commandes_gpv(request):
         'per_page_options': [30, 50, 100, 200],
     }
     
+    context.setdefault('date_debut_val', (context.get('filtres') or {}).get('date_debut', ''))
+    context.setdefault('date_fin_val', (context.get('filtres') or {}).get('date_fin', ''))
     return render(request, 'dashboard/liste_commandes_gpv.html', context)
 
 
@@ -3110,6 +3120,8 @@ def liste_commandes_legend(request):
         'per_page_options': [30, 50, 100, 200],
     }
 
+    context.setdefault('date_debut_val', (context.get('filtres') or {}).get('date_debut', ''))
+    context.setdefault('date_fin_val', (context.get('filtres') or {}).get('date_fin', ''))
     return render(request, 'dashboard/liste_commandes_legend.html', context)
 
 

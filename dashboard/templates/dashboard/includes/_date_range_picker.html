@@ -1,0 +1,34 @@
+<div class="drp-wrap">
+    <div class="drp-row">
+        <div class="drp-field">
+            <label class="drp-label">Date début</label>
+            <input type="text" class="drp-input" id="drp_debut" name="date_debut" value="{{ date_debut_val }}" placeholder="jj/mm/aaaa" autocomplete="off" readonly>
+        </div>
+        <div class="drp-field">
+            <label class="drp-label">Date fin</label>
+            <input type="text" class="drp-input" id="drp_fin" name="date_fin" value="{{ date_fin_val }}" placeholder="jj/mm/aaaa" autocomplete="off" readonly>
+        </div>
+        <div class="drp-actions">
+            <button type="button" class="drp-btn drp-prev" title="Période précédente"><i class="bi bi-chevron-left"></i></button>
+            <button type="button" class="drp-btn drp-period-toggle" title="Choisir une période">
+                <span class="drp-period-label">Période</span> <i class="bi bi-chevron-down" style="font-size:.7rem;"></i>
+            </button>
+            <button type="button" class="drp-btn drp-next" title="Période suivante"><i class="bi bi-chevron-right"></i></button>
+        </div>
+    </div>
+    <div class="drp-dropdown" id="drp_menu" style="display:none;">
+        <div class="drp-section-title">Rapide</div>
+        <div class="drp-item" data-preset="today">Aujourd'hui</div>
+        <div class="drp-item" data-preset="yesterday">Hier</div>
+        <div class="drp-item" data-preset="week">La semaine en cours</div>
+        <div class="drp-item" data-preset="lastweek">La semaine dernière</div>
+        <div class="drp-item" data-preset="month">Le mois en cours</div>
+        <div class="drp-item" data-preset="lastmonth">Le mois dernier</div>
+        <div class="drp-item" data-preset="year">L'année en cours</div>
+        <div class="drp-divider"></div>
+        <div class="drp-section-title">Navigation par</div>
+        <div class="drp-item drp-nav-unit {% if drp_unit == 'day' or not drp_unit %}drp-nav-active{% endif %}" data-unit="day"><i class="bi bi-calendar-day me-2"></i>Jour</div>
+        <div class="drp-item drp-nav-unit {% if drp_unit == 'week' %}drp-nav-active{% endif %}" data-unit="week"><i class="bi bi-calendar-week me-2"></i>Semaine</div>
+        <div class="drp-item drp-nav-unit {% if drp_unit == 'month' %}drp-nav-active{% endif %}" data-unit="month"><i class="bi bi-calendar-month me-2"></i>Mois</div>
+    </div>
+</div>
