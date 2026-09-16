@@ -973,10 +973,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 {% if alertes.total_br_non_integrees or alertes.alerte_br_ic_absent or alertes.alerte_cyrus_absent %}
-// Alerte sonore BR non intégrées — jouée une seule fois par session
+// Alerte sonore — rejoue si un nouveau fichier Cyrus a été importé
 (function() {
-    const _key = 'alerte_br_son_{{ alertes.total_br_non_integrees }}';
+    const _cyrusTs = '{{ alertes.dernier_cyrus|date:"YmdHis"|default:"0" }}';
+    const _key = 'alerte_br_son_cyrus_' + _cyrusTs;
     if (sessionStorage.getItem(_key)) return;
+    // Efface les anciennes clés cyrus pour ne pas accumuler
+    Object.keys(sessionStorage).filter(k => k.startsWith('alerte_br_son_cyrus_')).forEach(k => sessionStorage.removeItem(k));
     sessionStorage.setItem(_key, '1');
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
