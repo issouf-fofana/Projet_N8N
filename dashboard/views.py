@@ -3498,6 +3498,7 @@ def gestion_magasins(request):
                                 ON CONFLICT (cle_facture, dfac_str, cidc) DO UPDATE SET statut = 'ignore', date_modif = NOW()
                             """, [original_code])
                         with _c.cursor() as cur:
+                            cur.execute("SET lock_timeout = '30s'")
                             cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
                     messages.success(request, f"Magasin {original_code} mis à jour avec succès.")
                     return redirect('dashboard:gestion_magasins')
@@ -3546,6 +3547,7 @@ def gestion_magasins(request):
                                 """, [code])
                                 nb_ignores = cur.rowcount
                             with _c.cursor() as cur:
+                                cur.execute("SET lock_timeout = '30s'")
                                 cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
                         from django.http import JsonResponse
                         return JsonResponse({'ok': True, 'exclure_factures': magasin.exclure_factures, 'nb_ignores': nb_ignores})
@@ -5022,6 +5024,7 @@ def set_statut_facture_ecart_bulk(request):
 
         # REFRESH synchrone pour que les stats retournées soient à jour
         with connection.cursor() as cur:
+            cur.execute("SET lock_timeout = '30s'")
             cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
 
         # Retourner les stats fraîches directement dans la réponse
@@ -5110,6 +5113,7 @@ def _refresh_mv_background():
             django.db.close_old_connections()
             from django.db import connection as _conn
             with _conn.cursor() as _cur:
+                _cur.execute("SET lock_timeout = '30s'")
                 _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
             _refresh_mv_background._last_done = time.time()
         finally:

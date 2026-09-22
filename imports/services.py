@@ -1718,6 +1718,7 @@ def scanner_et_importer_fichiers():
             from django.db import connection as _conn
             from django.core.cache import cache as _cache
             with _conn.cursor() as _cur:
+                _cur.execute("SET lock_timeout = '30s'")
                 _cur.execute('REFRESH MATERIALIZED VIEW mv_factures_joined')
             _cache.delete('factures_verification_v1')
             _cache.delete('factures_stats_sql_v1')
