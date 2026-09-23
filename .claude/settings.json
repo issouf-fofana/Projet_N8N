@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(chmod +x /home/youssef/Documents/traitement_n8n/docker-entrypoint.sh)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(ssh -o StrictHostKeyChecking=no 10.0.70.27 \"journalctl -u projet_n8n.service -n 30 --no-pager 2>/dev/null | grep -i 'purge\\\\|api_purge\\\\|POST\\\\|403\\\\|500\\\\|error' | tail -20\")"
     ]
   }
 }
