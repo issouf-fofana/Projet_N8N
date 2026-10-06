@@ -1631,7 +1631,13 @@ def scanner_et_importer_fichiers():
                 date_modif_fichier = datetime.fromtimestamp(f_ic.stat().st_mtime)
                 date_modif_fichier_tz = timezone.make_aware(date_modif_fichier)
 
-                # BR IC : toujours réimporter (fichier mis à jour en continu, même nom)
+                # BR IC : réimporter seulement si le fichier a changé depuis le dernier import
+                import_existant = ImportFichier.objects.filter(
+                    type_fichier='br_ic', nom_fichier=f_ic.name, statut='termine'
+                ).first()
+                if import_existant and import_existant.date_import and import_existant.date_import >= date_modif_fichier_tz:
+                    continue
+
                 from br.models import BRICLigne
                 ImportFichier.objects.filter(type_fichier='br_ic', nom_fichier=f_ic.name).delete()
                 BRICLigne.objects.all().delete()
