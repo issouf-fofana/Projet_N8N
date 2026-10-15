@@ -1827,18 +1827,31 @@
         if (!inDebut || !inFin) return;
 
         // Créer des inputs affichage DD/MM/YYYY par-dessus les inputs ISO
-        function makeDisplay(inp) {
+        function parseDMY(str) {
+            const m = (str||'').trim().match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+            if (!m) return null;
+            const d = new Date(+m[3], +m[2]-1, +m[1]);
+            return isNaN(d) ? null : d;
+        }
+        function makeDisplay(inp, onValidDate) {
             const d = document.createElement('input');
-            d.type='text'; d.readOnly=true; d.className='drp-input'; d.autocomplete='off';
+            d.type='text'; d.className='drp-input'; d.autocomplete='off';
             const v = parseVal(inp.value);
             d.value = v ? fmtDMY(v) : '';
             d.placeholder = 'jj/mm/aaaa';
             inp.style.display='none';
             inp.parentNode.insertBefore(d, inp);
+            function applyManual() {
+                const parsed = parseDMY(d.value);
+                if (parsed) { inp.value = fmtISO(parsed); onValidDate && onValidDate(parsed); }
+                else { const cur = parseVal(inp.value); d.value = cur ? fmtDMY(cur) : ''; }
+            }
+            d.addEventListener('blur', applyManual);
+            d.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); applyManual(); onValidDate && onValidDate(); } });
             return d;
         }
-        const dDebut = makeDisplay(inDebut);
-        const dFin   = makeDisplay(inFin);
+        const dDebut = makeDisplay(inDebut, function(){ });
+        const dFin   = makeDisplay(inFin, function(){ submitForm(drp); });
 
         const drp = {
             _wrap: wrap, _debut: inDebut, _fin: inFin,
