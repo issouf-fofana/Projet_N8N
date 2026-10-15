@@ -853,6 +853,26 @@
     .drp-divider { border-top:1px solid #f1f5f9; margin:4px 0; }
     /* Compat ancien picker — masqué */
     .date-nav-picker-wrap { display:none !important; }
+    /* Mini calendrier */
+    .drp-cal {
+        position:absolute; z-index:10001; background:#fff; border:1px solid #e2e8f0;
+        border-radius:10px; padding:10px; box-shadow:0 8px 24px rgba(0,0,0,.14);
+        min-width:240px; user-select:none;
+    }
+    .drp-cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .drp-cal-title { font-size:.87rem; font-weight:700; color:#1f2937; }
+    .drp-cal-nav { background:none; border:none; cursor:pointer; color:#6366f1; font-size:1rem; padding:2px 6px; border-radius:4px; }
+    .drp-cal-nav:hover { background:#eef2ff; }
+    .drp-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+    .drp-cal-dow { font-size:.72rem; font-weight:700; color:#94a3b8; text-align:center; padding:2px 0; }
+    .drp-cal-day {
+        font-size:.8rem; text-align:center; padding:5px 2px; border-radius:5px;
+        cursor:pointer; color:#374151; transition:background .1s;
+    }
+    .drp-cal-day:hover { background:#eef2ff; color:#4338ca; }
+    .drp-cal-day.drp-cal-today { font-weight:700; color:#6366f1; }
+    .drp-cal-day.drp-cal-selected { background:#6366f1; color:#fff; }
+    .drp-cal-day.drp-cal-other { color:#d1d5db; }
     </style>
 </head>
 <body>
@@ -1747,6 +1767,60 @@
 (function() {
     const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
+    var _openCal = null;
+    function closeAllCals() { if(_openCal){ _openCal.remove(); _openCal=null; } }
+    function buildCalendar(anchorEl, currentDate, onPick) {
+        closeAllCals();
+        var ref = currentDate ? new Date(currentDate) : today();
+        var viewYear = ref.getFullYear(), viewMonth = ref.getMonth();
+        var cal = document.createElement('div');
+        cal.className = 'drp-cal';
+        _openCal = cal;
+        function render() {
+            cal.innerHTML = '';
+            var hdr = document.createElement('div'); hdr.className='drp-cal-header';
+            var btnP = document.createElement('button'); btnP.className='drp-cal-nav'; btnP.innerHTML='&#8249;';
+            btnP.addEventListener('click',function(e){e.stopPropagation();viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}render();});
+            var title = document.createElement('span'); title.className='drp-cal-title';
+            var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+            title.textContent = MOIS[viewMonth]+' '+viewYear;
+            var btnN = document.createElement('button'); btnN.className='drp-cal-nav'; btnN.innerHTML='&#8250;';
+            btnN.addEventListener('click',function(e){e.stopPropagation();viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}render();});
+            hdr.appendChild(btnP); hdr.appendChild(title); hdr.appendChild(btnN);
+            cal.appendChild(hdr);
+            var grid = document.createElement('div'); grid.className='drp-cal-grid';
+            ['Lu','Ma','Me','Je','Ve','Sa','Di'].forEach(function(d){
+                var dw=document.createElement('div'); dw.className='drp-cal-dow'; dw.textContent=d; grid.appendChild(dw);
+            });
+            var first = new Date(viewYear, viewMonth, 1);
+            var startDow = (first.getDay()+6)%7;
+            var daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+            var prevDays = new Date(viewYear, viewMonth, 0).getDate();
+            var t = today();
+            for(var i=0;i<42;i++){
+                var day=document.createElement('div'); day.className='drp-cal-day';
+                var dayNum, isOther=false, cellDate;
+                if(i<startDow){ dayNum=prevDays-(startDow-1-i); isOther=true; cellDate=new Date(viewYear,viewMonth-1,dayNum); }
+                else if(i-startDow>=daysInMonth){ dayNum=i-startDow-daysInMonth+1; isOther=true; cellDate=new Date(viewYear,viewMonth+1,dayNum); }
+                else{ dayNum=i-startDow+1; cellDate=new Date(viewYear,viewMonth,dayNum); }
+                day.textContent=dayNum;
+                if(isOther) day.classList.add('drp-cal-other');
+                if(cellDate.toDateString()===t.toDateString()) day.classList.add('drp-cal-today');
+                if(currentDate && cellDate.toDateString()===currentDate.toDateString()) day.classList.add('drp-cal-selected');
+                (function(cd){ day.addEventListener('click',function(e){ e.stopPropagation(); onPick(cd); closeAllCals(); }); })(cellDate);
+                grid.appendChild(day);
+            }
+            cal.appendChild(grid);
+        }
+        render();
+        var rect = anchorEl.getBoundingClientRect();
+        var wrap = anchorEl.closest('.drp-wrap');
+        cal.style.top = (anchorEl.offsetTop + anchorEl.offsetHeight + 4)+'px';
+        cal.style.left = anchorEl.offsetLeft+'px';
+        wrap.appendChild(cal);
+        setTimeout(function(){ document.addEventListener('click', closeAllCals, {once:true}); },0);
+    }
+
     function parseVal(v) {
         if (!v) return null;
         if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { const [y,m,d]=v.split('-'); return new Date(+y,+m-1,+d); }
@@ -1811,6 +1885,7 @@
 
     function closeAllDropdowns() {
         document.querySelectorAll('.drp-dropdown').forEach(function(el){ el.style.display='none'; });
+        closeAllCals();
     }
 
     function initDrp(wrap) {
@@ -1852,6 +1927,20 @@
         }
         const dDebut = makeDisplay(inDebut, function(){ });
         const dFin   = makeDisplay(inFin, function(){ submitForm(drp); });
+
+        dDebut.addEventListener('focus', function(){
+            buildCalendar(dDebut, parseVal(inDebut.value), function(d){
+                inDebut.value = fmtISO(d);
+                dDebut.value = fmtDMY(d);
+            });
+        });
+        dFin.addEventListener('focus', function(){
+            buildCalendar(dFin, parseVal(inFin.value), function(d){
+                inFin.value = fmtISO(d);
+                dFin.value = fmtDMY(d);
+                submitForm(drp);
+            });
+        });
 
         const drp = {
             _wrap: wrap, _debut: inDebut, _fin: inFin,
