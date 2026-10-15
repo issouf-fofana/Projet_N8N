@@ -817,7 +817,10 @@
     /* ── Date Range Picker ── */
     .drp-wrap { position:relative; display:inline-flex; flex-direction:column; gap:0; }
     .drp-row { display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap; }
-    .drp-field { display:flex; flex-direction:column; gap:3px; }
+    .drp-field { display:flex; flex-direction:column; gap:3px; position:relative; }
+    .drp-field-inner { display:flex; align-items:center; gap:4px; }
+    .drp-cal-icon-btn { background:none; border:none; cursor:pointer; color:#6366f1; padding:4px 5px; border-radius:5px; line-height:1; font-size:.95rem; }
+    .drp-cal-icon-btn:hover { background:#eef2ff; }
     .drp-label { font-size:.78rem; font-weight:600; color:#475569; margin:0; }
     .drp-input {
         border:1px solid #d1d5db; border-radius:6px; padding:6px 10px;
@@ -855,7 +858,7 @@
     .date-nav-picker-wrap { display:none !important; }
     /* Mini calendrier */
     .drp-cal {
-        position:absolute; z-index:10001; background:#fff; border:1px solid #e2e8f0;
+        position:fixed; z-index:10001; background:#fff; border:1px solid #e2e8f0;
         border-radius:10px; padding:10px; box-shadow:0 8px 24px rgba(0,0,0,.14);
         min-width:240px; user-select:none;
     }
@@ -1814,10 +1817,10 @@
         }
         render();
         var rect = anchorEl.getBoundingClientRect();
-        var wrap = anchorEl.closest('.drp-wrap');
-        cal.style.top = (anchorEl.offsetTop + anchorEl.offsetHeight + 4)+'px';
-        cal.style.left = anchorEl.offsetLeft+'px';
-        wrap.appendChild(cal);
+        cal.style.position = 'fixed';
+        cal.style.top = (rect.bottom + 4) + 'px';
+        cal.style.left = rect.left + 'px';
+        document.body.appendChild(cal);
         setTimeout(function(){ document.addEventListener('click', closeAllCals, {once:true}); },0);
     }
 
@@ -1928,19 +1931,27 @@
         const dDebut = makeDisplay(inDebut, function(){ });
         const dFin   = makeDisplay(inFin, function(){ submitForm(drp); });
 
-        dDebut.addEventListener('focus', function(){
-            buildCalendar(dDebut, parseVal(inDebut.value), function(d){
-                inDebut.value = fmtISO(d);
-                dDebut.value = fmtDMY(d);
+        function addCalIcon(displayInp, hiddenInp, onPick) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'drp-cal-icon-btn';
+            btn.innerHTML = '<i class="bi bi-calendar3"></i>';
+            btn.addEventListener('click', function(e){
+                e.stopPropagation();
+                buildCalendar(displayInp, parseVal(hiddenInp.value), function(d){
+                    hiddenInp.value = fmtISO(d);
+                    displayInp.value = fmtDMY(d);
+                    onPick && onPick(d);
+                });
             });
-        });
-        dFin.addEventListener('focus', function(){
-            buildCalendar(dFin, parseVal(inFin.value), function(d){
-                inFin.value = fmtISO(d);
-                dFin.value = fmtDMY(d);
-                submitForm(drp);
-            });
-        });
+            var inner = document.createElement('div');
+            inner.className = 'drp-field-inner';
+            displayInp.parentNode.insertBefore(inner, displayInp);
+            inner.appendChild(displayInp);
+            inner.appendChild(btn);
+        }
+        addCalIcon(dDebut, inDebut, null);
+        addCalIcon(dFin, inFin, function(){ submitForm(drp); });
 
         const drp = {
             _wrap: wrap, _debut: inDebut, _fin: inFin,
