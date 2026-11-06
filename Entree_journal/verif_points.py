@@ -18,7 +18,6 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
@@ -187,50 +186,34 @@ def is_pos_reachable(session, base_url, pos_id, timeout):
         log.warning("[%s] POS inaccessible : %s", pos_id, base_url)
     return ok
 
-# ─── Récupération earned_points pour un article ──────────────────────────────
+# ─── Récupération earned_points par batch EAN ────────────────────────────────
 
-def fetch_earned_points_for_article(session, base_url, article_code, timeout):
+BATCH_SIZE = int(os.getenv("VERIF_BATCH", "100"))
+
+
+def fetch_batch(session, base_url, ean_codes, timeout):
     """
-    Retourne extras.earned_points pour un article via son EAN.
-    2 requêtes : GET /api/product/?ean=X → UUID → GET /api/product/<uuid>/
-    Retourne None si absent, -1 si erreur réseau.
+    Retourne {ean_normalisé: earned_points} pour un batch d'EAN.
+    Une seule requête ?ean__in=X,Y,Z suffit — extras est dans la liste.
     """
-    list_url = f"{base_url}/api/product/"
-    uuid = None
-
-    # Requête 1 : trouver l'UUID par EAN
-    for ean_val in [article_code, article_code.zfill(13)]:
-        try:
-            r = session.get(list_url, params={"ean": ean_val, "page_size": 1}, timeout=timeout)
-            if r.status_code != 200:
-                continue
-            data    = r.json()
-            results = data.get("results", []) if isinstance(data, dict) else []
-            if results:
-                uuid = results[0].get("id")
-                break
-        except requests.RequestException:
-            return -1
-
-    if not uuid:
-        return None
-
-    # Requête 2 : détail pour extras.earned_points
+    url    = f"{base_url}/api/product/"
+    result = {}
     try:
-        r = session.get(f"{list_url}{uuid}/", timeout=timeout)
+        r = session.get(url, params={"ean__in": ",".join(ean_codes), "page_size": len(ean_codes) + 10}, timeout=timeout)
         if r.status_code != 200:
-            return None
-        item   = r.json()
-        extras = item.get("extras") or {}
-        ep     = extras.get("earned_points") if isinstance(extras, dict) else None
-        return int(ep) if ep not in (None, "") else 0
-    except requests.RequestException:
-        return -1
+            return result
+        data  = r.json()
+        items = data.get("results", []) if isinstance(data, dict) else []
+        for item in items:
+            ean    = str(item.get("ean", "")).strip().lstrip("0") or "0"
+            extras = item.get("extras") or {}
+            ep     = extras.get("earned_points") if isinstance(extras, dict) else None
+            result[ean] = int(ep) if ep not in (None, "") else 0
+    except requests.RequestException as e:
+        log.warning("Erreur batch EAN : %s", e)
+    return result
 
 # ─── Vérification par POS ────────────────────────────────────────────────────
-
-WORKERS_PER_POS = int(os.getenv("VERIF_WORKERS", "20"))  # requêtes parallèles par POS
-
 
 def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
     base_url = pos_info["url"]
@@ -245,12 +228,13 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
             all_articles[code][shop_ref] = pts
 
     total_articles = len(all_articles)
-    log.info("[%s] %d articles à vérifier sur %s (workers=%d)", pos_id, total_articles, base_url, WORKERS_PER_POS)
+    codes_list = list(all_articles.keys())
+    nb_batches = (total_articles + BATCH_SIZE - 1) // BATCH_SIZE
+    log.info("[%s] %d articles en %d batches de %d (1 requête/batch)", pos_id, total_articles, nb_batches, BATCH_SIZE)
 
     # Vérification connectivité
-    log.info("[%s] Test connectivité…", pos_id)
-    test_session = make_session(pos_id, config)
-    if not is_pos_reachable(test_session, base_url, pos_id, timeout):
+    session = make_session(pos_id, config)
+    if not is_pos_reachable(session, base_url, pos_id, timeout):
         rows = []
         for article_code, shops in all_articles.items():
             for shop_ref, points_attendus in shops.items():
@@ -262,45 +246,35 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
                 })
         return rows
 
-    log.info("[%s] POS accessible — lancement %d threads…", pos_id, WORKERS_PER_POS)
+    # Charger tous les earned_points en batches séquentiels
+    pos_data = {}
+    for i in range(0, total_articles, BATCH_SIZE):
+        batch = codes_list[i:i + BATCH_SIZE]
+        batch_result = fetch_batch(session, base_url, batch, timeout)
+        pos_data.update(batch_result)
+        done_batches = (i // BATCH_SIZE) + 1
+        log.info("[%s] Batch %d/%d — %d/%d articles chargés", pos_id, done_batches, nb_batches, min(i + BATCH_SIZE, total_articles), total_articles)
+        if progress_cb:
+            progress_cb(pos_id, min(i + BATCH_SIZE, total_articles), total_articles, [])
+
+    # Construire les lignes de résultat
     rows = []
-    done = 0
-    lock = __import__("threading").Lock()
-
-    def check_article(article_code):
-        sess = make_session(pos_id, config)
-        pts = fetch_earned_points_for_article(sess, base_url, article_code, timeout)
-        log.debug("[%s] %s → %s", pos_id, article_code, pts)
-        return article_code, pts
-
-    # 1905 articles × 2 requêtes, toutes en parallèle
-    with ThreadPoolExecutor(max_workers=WORKERS_PER_POS) as executor:
-        futures = {executor.submit(check_article, code): code for code in all_articles}
-        for future in as_completed(futures):
-            article_code, points_pos = future.result()
-            shops = all_articles[article_code]
-            new_rows = []
-            for shop_ref, points_attendus in shops.items():
-                if points_pos is None:
-                    statut = "ARTICLE_ABSENT"
-                elif points_pos == -1:
-                    statut = "ENDPOINT_INCONNU"
-                elif points_pos == points_attendus:
-                    statut = "OK"
-                else:
-                    statut = "ECART"
-                new_rows.append({
-                    "pos_id": pos_id, "shop_ref": shop_ref,
-                    "article_code": article_code,
-                    "points_attendus": points_attendus,
-                    "points_pos": points_pos if points_pos not in (None, -1) else "",
-                    "statut": statut,
-                })
-            with lock:
-                rows.extend(new_rows)
-                done += 1
-                if progress_cb and done % 10 == 0:
-                    progress_cb(pos_id, done, total_articles, rows)
+    for article_code, shops in all_articles.items():
+        points_pos = pos_data.get(article_code)
+        for shop_ref, points_attendus in shops.items():
+            if points_pos is None:
+                statut = "ARTICLE_ABSENT"
+            elif points_pos == points_attendus:
+                statut = "OK"
+            else:
+                statut = "ECART"
+            rows.append({
+                "pos_id": pos_id, "shop_ref": shop_ref,
+                "article_code": article_code,
+                "points_attendus": points_attendus,
+                "points_pos": points_pos if points_pos is not None else "",
+                "statut": statut,
+            })
 
     ok     = sum(1 for r in rows if r["statut"] == "OK")
     ecart  = sum(1 for r in rows if r["statut"] == "ECART")
