@@ -179,8 +179,11 @@ def fetch_all_pages(session, url, page_size, timeout, pos_id, date_debut=None, d
                     break
                 all_results.extend(results)
 
-                # Pas de page suivante
-                if not data.get("next"):
+                # Détection page suivante — deux formats supportés :
+                #   - DRF standard : "next" (URL ou None)
+                #   - Format POS Prosuma : "next_page" (numéro ou None)
+                has_next = bool(data.get("next")) or bool(data.get("next_page"))
+                if not has_next:
                     break
 
             # Réponse directe (liste)
