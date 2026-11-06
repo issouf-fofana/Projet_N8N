@@ -187,46 +187,73 @@ def is_pos_reachable(session, base_url, pos_id, timeout):
         log.warning("[%s] POS inaccessible : %s", pos_id, base_url)
     return ok
 
-# ─── Récupération des points POS ────────────────────────────────────────────
+# ─── Chargement bulk EAN→UUID ────────────────────────────────────────────────
 
-def fetch_earned_points(session, base_url, article_code, timeout):
+def load_ean_to_uuid(session, base_url, pos_id, article_codes, timeout):
     """
-    Retourne le earned_points d'un article.
-    Stratégie : GET /api/product/?ean=<code> → UUID → GET /api/product/<uuid>/
-    Retourne None si l'article est absent, -1 si erreur réseau.
+    Charge toute la liste produits paginée et construit un dict ean→uuid
+    pour les articles demandés uniquement. Une seule passe sur l'API.
     """
-    list_url   = f"{base_url}/api/product/"
-    uuid = None
-    for ean_val in [article_code, article_code.zfill(13)]:
+    url     = f"{base_url}/api/product/"
+    result  = {}
+    page    = 1
+    target  = set(article_codes)
+    found   = 0
+    total_target = len(target)
+
+    log.info("[%s] Chargement EAN→UUID pour %d articles…", pos_id, total_target)
+    while target:
         try:
-            r = session.get(list_url, params={"ean": ean_val, "page_size": 1}, timeout=timeout)
+            r = session.get(url, params={"page_size": 500, "page": page}, timeout=timeout)
             if r.status_code != 200:
-                continue
-            data = r.json()
-            results = data.get("results", []) if isinstance(data, dict) else []
-            if results:
-                uuid = results[0].get("id")
                 break
-        except requests.RequestException:
-            return -1
+            data = r.json()
+        except requests.RequestException as e:
+            log.warning("[%s] Erreur pagination page %d : %s", pos_id, page, e)
+            break
 
-    if not uuid:
-        return None
+        items = data.get("results", []) if isinstance(data, dict) else []
+        if not items:
+            break
 
+        for item in items:
+            ean = str(item.get("ean", "")).strip().lstrip("0") or "0"
+            if ean in target:
+                result[ean] = item["id"]
+                target.discard(ean)
+                found += 1
+
+        final_page = data.get("final_page") or data.get("num_pages")
+        if final_page and page >= int(final_page):
+            break
+        if not data.get("next_page") and not data.get("next"):
+            break
+        page += 1
+
+    log.info("[%s] EAN→UUID : %d/%d trouvés en %d pages", pos_id, found, total_target, page)
+    return result
+
+# ─── Récupération earned_points par UUID ────────────────────────────────────
+
+def fetch_earned_points_by_uuid(session, base_url, uuid, timeout):
+    """
+    Retourne extras.earned_points depuis /api/product/<uuid>/.
+    Retourne None si absent, -1 si erreur réseau.
+    """
     try:
-        r = session.get(f"{list_url}{uuid}/", timeout=timeout)
+        r = session.get(f"{base_url}/api/product/{uuid}/", timeout=timeout)
         if r.status_code != 200:
             return None
-        item = r.json()
+        item   = r.json()
         extras = item.get("extras") or {}
-        ep = extras.get("earned_points") if isinstance(extras, dict) else None
+        ep     = extras.get("earned_points") if isinstance(extras, dict) else None
         return int(ep) if ep not in (None, "") else 0
     except requests.RequestException:
         return -1
 
 # ─── Vérification par POS ────────────────────────────────────────────────────
 
-WORKERS_PER_POS = int(os.getenv("VERIF_WORKERS", "10"))  # requêtes parallèles par POS
+WORKERS_PER_POS = int(os.getenv("VERIF_WORKERS", "20"))  # requêtes parallèles par POS
 
 
 def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
@@ -244,9 +271,9 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
     total_articles = len(all_articles)
     log.info("[%s] %d articles à vérifier sur %s (workers=%d)", pos_id, total_articles, base_url, WORKERS_PER_POS)
 
-    # Vérification connectivité avec une session dédiée
-    test_session = make_session(pos_id, config)
-    if not is_pos_reachable(test_session, base_url, pos_id, timeout):
+    # Session partagée pour le bulk (lecture seule, pagination)
+    bulk_session = make_session(pos_id, config)
+    if not is_pos_reachable(bulk_session, base_url, pos_id, timeout):
         rows = []
         for article_code, shops in all_articles.items():
             for shop_ref, points_attendus in shops.items():
@@ -258,17 +285,23 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
                 })
         return rows
 
+    # Étape 1 : une seule passe paginée pour obtenir ean→uuid
+    ean_to_uuid = load_ean_to_uuid(bulk_session, base_url, pos_id, list(all_articles.keys()), timeout)
+
     rows = []
     done = 0
     lock = __import__("threading").Lock()
 
-    def check_article(article_code):
-        # Chaque thread a sa propre session (requests.Session n'est pas thread-safe)
+    def fetch_detail(article_code):
+        uuid = ean_to_uuid.get(article_code)
+        if not uuid:
+            return article_code, None   # article absent de la liste
         sess = make_session(pos_id, config)
-        return article_code, fetch_earned_points(sess, base_url, article_code, timeout)
+        return article_code, fetch_earned_points_by_uuid(sess, base_url, uuid, timeout)
 
+    # Étape 2 : détails en parallèle (seulement pour les articles trouvés)
     with ThreadPoolExecutor(max_workers=WORKERS_PER_POS) as executor:
-        futures = {executor.submit(check_article, code): code for code in all_articles}
+        futures = {executor.submit(fetch_detail, code): code for code in all_articles}
         for future in as_completed(futures):
             article_code, points_pos = future.result()
             shops = all_articles[article_code]
