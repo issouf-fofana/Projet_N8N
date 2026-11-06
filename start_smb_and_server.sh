@@ -5,7 +5,7 @@ set -uo pipefail
 if [[ "$(hostname)" == *"prosuma"* ]] || [[ -d /opt/Projet_N8N ]]; then
   PROJECT_DIR="/opt/Projet_N8N"
   VENV_ACTIVATE="$PROJECT_DIR/venv/bin/activate"
-  GUNICORN_CMD="gunicorn verification_commande.wsgi:application --bind 0.0.0.0:1212 --workers 3 --daemon"
+  GUNICORN_CMD="gunicorn verification_commande.wsgi:application --bind 0.0.0.0:1212 --workers 9 --daemon"
   IS_SERVER=1
 else
   PROJECT_DIR="/home/youssef/Documents/traitement_n8n"

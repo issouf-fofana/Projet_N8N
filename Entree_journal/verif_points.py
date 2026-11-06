@@ -18,6 +18,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
@@ -225,9 +226,11 @@ def fetch_earned_points(session, base_url, article_code, timeout):
 
 # ─── Vérification par POS ────────────────────────────────────────────────────
 
+WORKERS_PER_POS = int(os.getenv("VERIF_WORKERS", "10"))  # requêtes parallèles par POS
+
+
 def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
     base_url = pos_info["url"]
-    session  = make_session(pos_id, config)
     timeout  = config["timeout"]
 
     # Regrouper tous les articles de tous les shops de ce POS
@@ -239,9 +242,11 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
             all_articles[code][shop_ref] = pts
 
     total_articles = len(all_articles)
-    log.info("[%s] %d articles à vérifier sur %s", pos_id, total_articles, base_url)
+    log.info("[%s] %d articles à vérifier sur %s (workers=%d)", pos_id, total_articles, base_url, WORKERS_PER_POS)
 
-    if not is_pos_reachable(session, base_url, pos_id, timeout):
+    # Vérification connectivité avec une session dédiée
+    test_session = make_session(pos_id, config)
+    if not is_pos_reachable(test_session, base_url, pos_id, timeout):
         rows = []
         for article_code, shops in all_articles.items():
             for shop_ref, points_attendus in shops.items():
@@ -255,30 +260,40 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
 
     rows = []
     done = 0
+    lock = __import__("threading").Lock()
 
-    for article_code, shops in all_articles.items():
-        points_pos = fetch_earned_points(session, base_url, article_code, timeout)
-        done += 1
+    def check_article(article_code):
+        # Chaque thread a sa propre session (requests.Session n'est pas thread-safe)
+        sess = make_session(pos_id, config)
+        return article_code, fetch_earned_points(sess, base_url, article_code, timeout)
 
-        for shop_ref, points_attendus in shops.items():
-            if points_pos is None:
-                statut = "ARTICLE_ABSENT"
-            elif points_pos == -1:
-                statut = "ENDPOINT_INCONNU"
-            elif points_pos == points_attendus:
-                statut = "OK"
-            else:
-                statut = "ECART"
-            rows.append({
-                "pos_id": pos_id, "shop_ref": shop_ref,
-                "article_code": article_code,
-                "points_attendus": points_attendus,
-                "points_pos": points_pos if points_pos not in (None, -1) else "",
-                "statut": statut,
-            })
-
-        if progress_cb and done % 10 == 0:
-            progress_cb(pos_id, done, total_articles, rows)
+    with ThreadPoolExecutor(max_workers=WORKERS_PER_POS) as executor:
+        futures = {executor.submit(check_article, code): code for code in all_articles}
+        for future in as_completed(futures):
+            article_code, points_pos = future.result()
+            shops = all_articles[article_code]
+            new_rows = []
+            for shop_ref, points_attendus in shops.items():
+                if points_pos is None:
+                    statut = "ARTICLE_ABSENT"
+                elif points_pos == -1:
+                    statut = "ENDPOINT_INCONNU"
+                elif points_pos == points_attendus:
+                    statut = "OK"
+                else:
+                    statut = "ECART"
+                new_rows.append({
+                    "pos_id": pos_id, "shop_ref": shop_ref,
+                    "article_code": article_code,
+                    "points_attendus": points_attendus,
+                    "points_pos": points_pos if points_pos not in (None, -1) else "",
+                    "statut": statut,
+                })
+            with lock:
+                rows.extend(new_rows)
+                done += 1
+                if progress_cb and done % 10 == 0:
+                    progress_cb(pos_id, done, total_articles, rows)
 
     ok     = sum(1 for r in rows if r["statut"] == "OK")
     ecart  = sum(1 for r in rows if r["statut"] == "ECART")
