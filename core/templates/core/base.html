@@ -1093,6 +1093,14 @@
             </div>
         </div>
 
+        <!-- Points fidélité -->
+        <div style="padding: 0 16px; margin: 8px 0 4px;">
+            <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-transform:uppercase;">Référentiel</span>
+        </div>
+        <a href="{% url 'entree_journal:verif_points' %}" class="sidebar-link {% if request.resolver_match.url_name == 'verif_points' %}active{% endif %}" style="display:flex;align-items:center;gap:10px;padding:9px 20px;color:rgba(255,255,255,.75);text-decoration:none;font-size:.87rem;border-radius:0;transition:background .15s;">
+            <i class="bi bi-stars"></i> Points Fidélité
+        </a>
+
         <!-- Paramètres (selon permissions) -->
         {% with u=request.user %}
         {% if u|has_perm:'gerer_utilisateurs' or u|has_perm:'gerer_magasins' or u|has_perm:'configurer_systeme' or u|is_admin_or_above %}

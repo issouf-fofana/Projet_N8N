@@ -25,6 +25,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('dashboard.urls')),
     path('', include('tickets.urls')),
+    path('', include('entree_journal.urls')),
     # Servir les fichiers media (pièces jointes) même en DEBUG=False
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
