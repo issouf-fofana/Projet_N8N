@@ -389,7 +389,7 @@ def save_report(all_rows, source_file, started_at, elapsed_s):
     total  = len(all_rows)
     ok     = sum(1 for r in all_rows if r["statut"] == "OK")
     ecart  = sum(1 for r in all_rows if r["statut"] == "ECART")
-    absent = sum(1 for r in all_rows if r["statut"] == "ARTICLE_ABSENT")
+    absent = sum(1 for r in all_rows if r["statut"] in ("ARTICLE_ABSENT", "ENDPOINT_INCONNU"))
 
     report = {
         "started_at":  started_at,
