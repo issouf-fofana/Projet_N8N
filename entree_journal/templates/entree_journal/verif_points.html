@@ -5,29 +5,6 @@
 
 {% block extra_css %}
 <style>
-/* ── Cartes KPI ── */
-.stat-card {
-    background:#fff; border-radius:0;
-    border:1px solid #e8edf5; border-left:4px solid transparent;
-    box-shadow:0 2px 10px rgba(15,23,42,.05);
-    padding:20px 22px; position:relative; overflow:hidden;
-    transition:box-shadow .2s, transform .15s;
-}
-.stat-card:hover { box-shadow:0 6px 22px rgba(15,23,42,.10); transform:translateY(-2px); }
-.stat-card.success { border-left-color:#22c55e; }
-.stat-card.warning { border-left-color:#f59e0b; }
-.stat-card.danger  { border-left-color:#ef4444; }
-.stat-card.info    { border-left-color:#6366f1; }
-.stat-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; margin-bottom:4px; }
-.stat-value { font-size:2rem; font-weight:900; color:#0f172a; line-height:1.1; }
-.stat-icon  { font-size:2.2rem; color:#e8edf5; }
-.sc-orb  { position:absolute; width:80px; height:80px; border-radius:50%; opacity:.08; top:-20px; right:-10px; }
-.sc-orb2 { position:absolute; width:50px; height:50px; border-radius:50%; opacity:.06; top:30px; right:40px; }
-.stat-card.success .sc-orb,.stat-card.success .sc-orb2{background:#22c55e;}
-.stat-card.warning .sc-orb,.stat-card.warning .sc-orb2{background:#f59e0b;}
-.stat-card.danger  .sc-orb,.stat-card.danger  .sc-orb2{background:#ef4444;}
-.stat-card.info    .sc-orb,.stat-card.info    .sc-orb2{background:#6366f1;}
-
 /* ── Divider ── */
 .vp-divider {
     display:flex; align-items:center; gap:12px;
