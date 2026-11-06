@@ -408,6 +408,86 @@ document.getElementById('form-launch').addEventListener('submit', function(e) {
 });
 
 // ─── Afficher détail rapport ──────────────────────────────────────────────────
+var _rapportData  = null;
+var _rapportPage  = 1;
+var _rapportPSize = 50;
+
+function renderDetailPage(page) {
+    if (!_rapportData) return;
+    var ecarts = _rapportData.ecarts || [];
+    var total  = _rapportData.total  || 0;
+    var ok     = _rapportData.ok     || 0;
+    var ecart  = _rapportData.ecart  || 0;
+    var absent = _rapportData.absent || 0;
+    var body   = document.getElementById('detail-body');
+
+    var totalPages = Math.max(1, Math.ceil(ecarts.length / _rapportPSize));
+    page = Math.max(1, Math.min(page, totalPages));
+    _rapportPage = page;
+
+    var html = '<div class="d-flex gap-2 p-3 border-bottom flex-wrap align-items-center">';
+    html += '<span class="badge-total">Total : ' + total + '</span>';
+    html += '<span class="badge-ok">OK : ' + ok + '</span>';
+    html += '<span class="badge-ecart">Écarts : ' + ecart + '</span>';
+    html += '<span class="badge-absent">Absents : ' + absent + '</span>';
+    if (_rapportData.ecart + _rapportData.absent > 500) {
+        html += '<span class="ms-auto text-muted" style="font-size:.75rem;">Limité à 500 lignes dans le JSON — voir CSV pour la totalité</span>';
+    }
+    html += '</div>';
+
+    if (!ecarts.length) {
+        html += '<div class="p-4 text-success fw-semibold text-center"><i class="bi bi-check-circle-fill me-2 fs-4"></i>Aucun écart — tous les articles sont conformes !</div>';
+        body.innerHTML = html;
+        return;
+    }
+
+    var start  = (page - 1) * _rapportPSize;
+    var slice  = ecarts.slice(start, start + _rapportPSize);
+
+    html += '<div class="table-responsive"><table class="table vp-table mb-0"><thead><tr>';
+    html += '<th class="ps-3">POS</th><th>Magasin</th><th>Article</th>';
+    html += '<th class="text-center">Pts attendus</th><th class="text-center">Pts POS</th><th class="text-center">Statut</th>';
+    html += '</tr></thead><tbody>';
+    slice.forEach(function(r) {
+        var rowCls = r.statut === 'ECART' ? 'detail-row-ecart' : 'detail-row-absent';
+        var badge  = r.statut === 'ECART'
+            ? '<span class="badge-ecart">ÉCART</span>'
+            : '<span class="badge-absent">ABSENT</span>';
+        html += '<tr class="' + rowCls + '"><td class="ps-3">' + r.pos_id + '</td><td>' + r.shop_ref + '</td>';
+        html += '<td><code>' + r.article_code + '</code></td>';
+        html += '<td class="text-center fw-bold">' + r.points_attendus + '</td>';
+        html += '<td class="text-center">' + (r.points_pos !== '' ? r.points_pos : '<em class="text-muted">—</em>') + '</td>';
+        html += '<td class="text-center">' + badge + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    // Pagination
+    if (totalPages > 1) {
+        html += '<div class="d-flex align-items-center justify-content-between px-3 py-2 border-top" style="font-size:.82rem;">';
+        html += '<span class="text-muted">Page <strong>' + page + '</strong> / ' + totalPages
+              + ' &nbsp;—&nbsp; ' + ecarts.length + ' lignes</span>';
+        html += '<nav><ul class="pagination pagination-sm mb-0">';
+        html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '">'
+              + '<a class="page-link" href="javascript:renderDetailPage(' + (page-1) + ')">‹</a></li>';
+
+        // Pages visibles
+        var lo = Math.max(1, page - 2);
+        var hi = Math.min(totalPages, page + 2);
+        if (lo > 1) { html += '<li class="page-item"><a class="page-link" href="javascript:renderDetailPage(1)">1</a></li>'; if (lo > 2) html += '<li class="page-item disabled"><span class="page-link">…</span></li>'; }
+        for (var p = lo; p <= hi; p++) {
+            html += '<li class="page-item' + (p === page ? ' active' : '') + '">'
+                  + '<a class="page-link" href="javascript:renderDetailPage(' + p + ')">' + p + '</a></li>';
+        }
+        if (hi < totalPages) { if (hi < totalPages - 1) html += '<li class="page-item disabled"><span class="page-link">…</span></li>'; html += '<li class="page-item"><a class="page-link" href="javascript:renderDetailPage(' + totalPages + ')">' + totalPages + '</a></li>'; }
+
+        html += '<li class="page-item' + (page >= totalPages ? ' disabled' : '') + '">'
+              + '<a class="page-link" href="javascript:renderDetailPage(' + (page+1) + ')">›</a></li>';
+        html += '</ul></nav></div>';
+    }
+
+    body.innerHTML = html;
+}
+
 function showRapport(filename) {
     var panel = document.getElementById('detail-panel');
     var body  = document.getElementById('detail-body');
@@ -415,6 +495,8 @@ function showRapport(filename) {
     var sub   = document.getElementById('detail-sub');
     if (!panel) return;
 
+    _rapportData = null;
+    _rapportPage = 1;
     panel.style.display = 'block';
     body.innerHTML = '<div class="text-center py-4"><span class="spinner-border"></span></div>';
     panel.scrollIntoView({behavior:'smooth', block:'start'});
@@ -422,43 +504,10 @@ function showRapport(filename) {
     fetch("{% url 'entree_journal:rapport_verif_points' filename='__F__' %}".replace('__F__', filename))
     .then(r => r.json())
     .then(data => {
+        _rapportData = data;
         title.textContent = 'Rapport du ' + (data.started_at || filename);
         sub.textContent   = data.source_file || '';
-
-        var total  = data.total  || 0;
-        var ok     = data.ok     || 0;
-        var ecart  = data.ecart  || 0;
-        var absent = data.absent || 0;
-        var ecarts = data.ecarts || [];
-
-        var html = '<div class="d-flex gap-2 p-3 border-bottom flex-wrap">';
-        html += '<span class="badge-total">Total : ' + total + '</span> ';
-        html += '<span class="badge-ok">OK : ' + ok + '</span> ';
-        html += '<span class="badge-ecart">Écarts : ' + ecart + '</span> ';
-        html += '<span class="badge-absent">Absents : ' + absent + '</span></div>';
-
-        if (!ecarts.length) {
-            html += '<div class="p-4 text-success fw-semibold text-center"><i class="bi bi-check-circle-fill me-2 fs-4"></i>Aucun écart — tous les articles sont conformes !</div>';
-        } else {
-            html += '<div class="table-responsive"><table class="table vp-table mb-0"><thead><tr>';
-            html += '<th class="ps-3">POS</th><th>Magasin</th><th>Article</th>';
-            html += '<th class="text-center">Pts attendus</th><th class="text-center">Pts POS</th><th class="text-center">Statut</th>';
-            html += '</tr></thead><tbody>';
-            ecarts.forEach(function(r) {
-                var rowCls = r.statut === 'ECART' ? 'detail-row-ecart' : 'detail-row-absent';
-                var badge  = r.statut === 'ECART' ? '<span class="badge-ecart">ÉCART</span>' : '<span class="badge-absent">ABSENT</span>';
-                html += '<tr class="' + rowCls + '"><td class="ps-3">' + r.pos_id + '</td><td>' + r.shop_ref + '</td>';
-                html += '<td><code>' + r.article_code + '</code></td>';
-                html += '<td class="text-center fw-bold">' + r.points_attendus + '</td>';
-                html += '<td class="text-center">' + (r.points_pos !== '' ? r.points_pos : '<em class="text-muted">—</em>') + '</td>';
-                html += '<td class="text-center">' + badge + '</td></tr>';
-            });
-            if (ecart + absent > 500) {
-                html += '<tr><td colspan="6" class="text-center text-muted fst-italic py-2">… ' + (ecart + absent - 500) + ' lignes supplémentaires dans le CSV</td></tr>';
-            }
-            html += '</tbody></table></div>';
-        }
-        body.innerHTML = html;
+        renderDetailPage(1);
     })
     .catch(() => {
         body.innerHTML = '<div class="alert alert-danger m-3">Impossible de charger le rapport.</div>';
