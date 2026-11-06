@@ -254,7 +254,7 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
         pos_data.update(batch_result)
         done_batches = (i // BATCH_SIZE) + 1
         log.info("[%s] Batch %d/%d — %d/%d articles chargés", pos_id, done_batches, nb_batches, min(i + BATCH_SIZE, total_articles), total_articles)
-        if progress_cb:
+            if progress_cb:
             progress_cb(pos_id, min(i + BATCH_SIZE, total_articles), total_articles, [])
 
     # Construire les lignes de résultat
