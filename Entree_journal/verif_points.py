@@ -39,8 +39,11 @@ PROGRESS_FILE = LOGS_DIR / "verif_progress.json"
 LOGS_DIR.mkdir(exist_ok=True)
 
 SMB_BACKUP = Path(
-    "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
-    "Cegid/AstenProd/ReferentielPrecom/Backup"
+    os.getenv(
+        "SMB_BACKUP_PATH",
+        "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
+        "Cegid/AstenProd/ReferentielPrecom/Backup"
+    )
 )
 
 # ─── Logger ─────────────────────────────────────────────────────────────────

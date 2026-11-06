@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 import time
 from pathlib import Path
@@ -12,8 +13,11 @@ LOGS_DIR   = Path(__file__).parent.parent / "Entree_journal" / "logs"
 PROGRESS_F = LOGS_DIR / "verif_progress.json"
 
 SMB_BACKUP = Path(
-    "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
-    "Cegid/AstenProd/ReferentielPrecom/Backup"
+    os.environ.get(
+        "SMB_BACKUP_PATH",
+        "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
+        "Cegid/AstenProd/ReferentielPrecom/Backup"
+    )
 )
 
 # ─── état global de la vérification en cours ────────────────────────────────
