@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <style>
-/* ── Cartes KPI (même style que dashboard) ── */
+/* ── Cartes KPI ── */
 .stat-card {
     background:#fff; border-radius:0;
     border:1px solid #e8edf5; border-left:4px solid transparent;
@@ -28,7 +28,7 @@
 .stat-card.danger  .sc-orb,.stat-card.danger  .sc-orb2{background:#ef4444;}
 .stat-card.info    .sc-orb,.stat-card.info    .sc-orb2{background:#6366f1;}
 
-/* ── Section divider ── */
+/* ── Divider ── */
 .vp-divider {
     display:flex; align-items:center; gap:12px;
     margin:28px 0 20px; padding-top:22px;
@@ -40,28 +40,46 @@
     font-size:.95rem; flex-shrink:0;
 }
 
-/* ── Table rapports ── */
+/* ── Tables ── */
 .vp-table { font-size:.83rem; }
 .vp-table th { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; border-bottom:2px solid #e8edf5; }
 .vp-table td { vertical-align:middle; border-color:#f1f5f9; }
 
-/* ── Badges statut ── */
+/* ── Badges ── */
 .badge-ok     { background:#dcfce7; color:#15803d; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
 .badge-ecart  { background:#fef3c7; color:#92400e; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
 .badge-absent { background:#fee2e2; color:#991b1b; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
 .badge-total  { background:#ede9fe; color:#4c1d95; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
 
-/* ── Panel détail ── */
-#detail-panel .table td,.#detail-panel .table th { font-size:.8rem; }
+/* ── Détail ── */
 .detail-row-ecart  { background:#fffbeb; }
 .detail-row-absent { background:#fff1f2; }
+
+/* ── Progression SSE ── */
+#progression-panel {
+    background:#0f172a; color:#e2e8f0; border-radius:0;
+    padding:20px; font-family:monospace; font-size:.82rem;
+    border-left:4px solid #6366f1;
+}
+#prog-log {
+    max-height:220px; overflow-y:auto;
+    margin-top:12px; padding:10px;
+    background:#1e293b; border-radius:0;
+    font-size:.78rem; line-height:1.6;
+}
+#prog-log .log-ok     { color:#4ade80; }
+#prog-log .log-ecart  { color:#fbbf24; }
+#prog-log .log-absent { color:#f87171; }
+#prog-log .log-info   { color:#94a3b8; }
+.prog-bar-outer { height:10px; background:#1e293b; border-radius:5px; overflow:hidden; margin-top:8px; }
+.prog-bar-inner { height:100%; background:linear-gradient(90deg,#6366f1,#4f46e5); transition:width .4s; border-radius:5px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid px-4 py-4">
 
-    <!-- En-tête page -->
+    <!-- En-tête -->
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h2 class="fw-bold mb-1" style="color:#0f172a;">
@@ -71,7 +89,7 @@
                 Vérification quotidienne CEGID → POS &mdash; Fichier <code>999_articlespoints_*.csv</code>
             </div>
         </div>
-        <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#panel-lancer">
+        <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#panel-lancer" id="btn-open-lancer">
             <i class="bi bi-play-fill me-1"></i>Lancer une vérification
         </button>
     </div>
@@ -84,12 +102,20 @@
     </div>
     {% endif %}
 
-    <!-- Panel lancer (collapsible) -->
+    <!-- Alerte vérification en cours -->
+    {% if verif_en_cours %}
+    <div class="alert alert-info d-flex align-items-center gap-2 mb-4" id="banner-en-cours">
+        <span class="spinner-border spinner-border-sm"></span>
+        Une vérification est en cours — vous pouvez suivre la progression ci-dessous.
+    </div>
+    {% endif %}
+
+    <!-- Panel lancement manuel -->
     <div class="collapse mb-4" id="panel-lancer">
         <div class="card border-0 shadow-sm" style="border-radius:0;">
             <div class="card-header d-flex align-items-center gap-2" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
                 <i class="bi bi-play-circle-fill text-white"></i>
-                <span class="text-white fw-bold">Lancer une vérification manuelle</span>
+                <span class="text-white fw-bold">Vérification manuelle</span>
             </div>
             <div class="card-body">
                 <form id="form-launch" class="row g-3 align-items-end">
@@ -116,7 +142,21 @@
         </div>
     </div>
 
-    <!-- KPI du dernier rapport -->
+    <!-- Panneau progression SSE -->
+    <div id="progression-panel" class="mb-4" style="display:none;">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <span class="spinner-border spinner-border-sm me-2" id="prog-spinner"></span>
+                <strong id="prog-title">Vérification en cours…</strong>
+            </div>
+            <span id="prog-pct" style="font-size:1.1rem;font-weight:900;"></span>
+        </div>
+        <div class="prog-bar-outer"><div class="prog-bar-inner" id="prog-bar" style="width:0%"></div></div>
+        <div id="prog-info" class="mt-2" style="font-size:.78rem;color:#94a3b8;"></div>
+        <div id="prog-log"></div>
+    </div>
+
+    <!-- KPI dernier rapport -->
     {% if dernier %}
     <div class="vp-divider">
         <div class="vp-divider-icon" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;">
@@ -124,24 +164,19 @@
         </div>
         <div>
             <div style="font-size:.95rem;font-weight:800;color:#0f172a;">Dernier rapport</div>
-            <div style="font-size:.76rem;color:#64748b;">
-                {{ dernier.started_at }} &mdash; {{ dernier.source }}
-            </div>
+            <div style="font-size:.76rem;color:#64748b;">{{ dernier.started_at }} &mdash; {{ dernier.source }}</div>
         </div>
         <a href="javascript:showRapport('{{ dernier.filename }}')" class="ms-auto btn btn-sm btn-outline-primary">
             <i class="bi bi-eye me-1"></i>Voir le détail
         </a>
     </div>
 
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-4" id="kpi-cards">
         <div class="col-md-3">
             <div class="stat-card info">
                 <div class="sc-orb"></div><div class="sc-orb2"></div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-label">Total articles</div>
-                        <div class="stat-value">{{ dernier.total }}</div>
-                    </div>
+                    <div><div class="stat-label">Total articles</div><div class="stat-value" id="kpi-total">{{ dernier.total }}</div></div>
                     <i class="bi bi-box-seam stat-icon"></i>
                 </div>
             </div>
@@ -150,10 +185,7 @@
             <div class="stat-card success">
                 <div class="sc-orb"></div><div class="sc-orb2"></div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-label">OK — Points conformes</div>
-                        <div class="stat-value">{{ dernier.ok }}</div>
-                    </div>
+                    <div><div class="stat-label">OK — Conformes</div><div class="stat-value" id="kpi-ok">{{ dernier.ok }}</div></div>
                     <i class="bi bi-check-circle-fill stat-icon"></i>
                 </div>
             </div>
@@ -163,13 +195,7 @@
             <div class="stat-card {% if dernier.ecart %}warning{% else %}success{% endif %}" style="cursor:pointer;">
                 <div class="sc-orb"></div><div class="sc-orb2"></div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-label">Écarts de points</div>
-                        <div class="stat-value">{{ dernier.ecart }}</div>
-                        <div class="stat-label mt-1" style="font-size:.75rem;">
-                            <i class="bi bi-arrow-right-circle"></i> Voir le détail
-                        </div>
-                    </div>
+                    <div><div class="stat-label">Écarts de points</div><div class="stat-value" id="kpi-ecart">{{ dernier.ecart }}</div></div>
                     <i class="bi bi-exclamation-triangle-fill stat-icon"></i>
                 </div>
             </div>
@@ -180,13 +206,7 @@
             <div class="stat-card {% if dernier.absent %}danger{% else %}success{% endif %}" style="cursor:pointer;">
                 <div class="sc-orb"></div><div class="sc-orb2"></div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="stat-label">Articles absents du POS</div>
-                        <div class="stat-value">{{ dernier.absent }}</div>
-                        <div class="stat-label mt-1" style="font-size:.75rem;">
-                            <i class="bi bi-arrow-right-circle"></i> Voir le détail
-                        </div>
-                    </div>
+                    <div><div class="stat-label">Articles absents POS</div><div class="stat-value" id="kpi-absent">{{ dernier.absent }}</div></div>
                     <i class="bi bi-x-circle-fill stat-icon"></i>
                 </div>
             </div>
@@ -194,12 +214,10 @@
         </div>
     </div>
 
-    <!-- Détail écarts du dernier rapport -->
+    <!-- Détail écarts -->
     <div id="detail-panel" style="display:none;" class="mb-4">
         <div class="vp-divider">
-            <div class="vp-divider-icon" style="background:#fef3c7;color:#92400e;">
-                <i class="bi bi-list-ul"></i>
-            </div>
+            <div class="vp-divider-icon" style="background:#fef3c7;color:#92400e;"><i class="bi bi-list-ul"></i></div>
             <div>
                 <div style="font-size:.95rem;font-weight:800;color:#0f172a;" id="detail-title">Détail</div>
                 <div style="font-size:.76rem;color:#64748b;" id="detail-sub"></div>
@@ -218,19 +236,19 @@
     <div class="card border-0 shadow-sm mb-4" style="border-radius:0;">
         <div class="card-body text-center py-5 text-muted">
             <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-            <p class="mb-0">Aucun rapport disponible.<br>Lancez une première vérification ou attendez la vérification automatique (6h00).</p>
+            <p class="mb-0">Aucun rapport disponible.<br>Lancez une vérification ou attendez la vérification automatique (06h00).</p>
         </div>
     </div>
     {% endif %}
 
-    <!-- Historique des rapports -->
+    <!-- Historique -->
     <div class="vp-divider">
         <div class="vp-divider-icon" style="background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;">
             <i class="bi bi-clock-history"></i>
         </div>
         <div>
             <div style="font-size:.95rem;font-weight:800;color:#0f172a;">Historique des rapports</div>
-            <div style="font-size:.76rem;color:#64748b;">20 derniers rapports de vérification</div>
+            <div style="font-size:.76rem;color:#64748b;">20 derniers</div>
         </div>
     </div>
 
@@ -260,14 +278,8 @@
                         <td><code style="font-size:.75rem;">{{ r.source|default:"-" }}</code></td>
                         <td class="text-center"><span class="badge-total">{{ r.total }}</span></td>
                         <td class="text-center"><span class="badge-ok">{{ r.ok }}</span></td>
-                        <td class="text-center">
-                            {% if r.ecart %}<span class="badge-ecart">{{ r.ecart }}</span>
-                            {% else %}<span class="text-muted">0</span>{% endif %}
-                        </td>
-                        <td class="text-center">
-                            {% if r.absent %}<span class="badge-absent">{{ r.absent }}</span>
-                            {% else %}<span class="text-muted">0</span>{% endif %}
-                        </td>
+                        <td class="text-center">{% if r.ecart %}<span class="badge-ecart">{{ r.ecart }}</span>{% else %}<span class="text-muted">0</span>{% endif %}</td>
+                        <td class="text-center">{% if r.absent %}<span class="badge-absent">{{ r.absent }}</span>{% else %}<span class="text-muted">0</span>{% endif %}</td>
                         <td class="text-end text-muted">{{ r.elapsed_s }}s</td>
                         <td class="text-center pe-3">
                             <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="showRapport('{{ r.filename }}')">
@@ -289,14 +301,13 @@
     </div>
     {% endif %}
 
-    <!-- Info planification -->
+    <!-- Info planification cron -->
     <div class="card border-0 mb-4" style="border-radius:0;background:#f8fafc;border:1px solid #e2e8f0;">
         <div class="card-body d-flex align-items-center gap-3 py-3">
             <i class="bi bi-clock-fill text-primary fs-4"></i>
             <div style="font-size:.82rem;">
-                <strong>Vérification automatique</strong> : tous les jours à <strong>06h00</strong> via le service systemd
-                <code>verif_points_fidelite.timer</code>.<br>
-                Le rapport est disponible ici dès la fin de l'exécution.
+                <strong>Vérification automatique</strong> : tous les jours à <strong>06h00</strong> via cron sur le serveur.<br>
+                <code>0 6 * * * /opt/Projet_N8N/venv/bin/python3 /opt/Projet_N8N/Entree_journal/verif_points.py</code>
             </div>
         </div>
     </div>
@@ -306,19 +317,86 @@
 
 {% block extra_js %}
 <script>
-// Lancer vérification
+// ─── SSE progression ─────────────────────────────────────────────────────────
+var _sseSource = null;
+var _logLines  = [];
+
+function startSSE() {
+    if (_sseSource) { _sseSource.close(); }
+    var panel = document.getElementById('progression-panel');
+    panel.style.display = 'block';
+    panel.scrollIntoView({behavior:'smooth', block:'start'});
+
+    _sseSource = new EventSource("{% url 'entree_journal:progression_verif_points' %}");
+
+    _sseSource.onmessage = function(e) {
+        var d;
+        try { d = JSON.parse(e.data); } catch(err) { return; }
+
+        if (d.waiting) return;   // pas encore commencé
+
+        var bar   = document.getElementById('prog-bar');
+        var pct   = document.getElementById('prog-pct');
+        var info  = document.getElementById('prog-info');
+        var log   = document.getElementById('prog-log');
+        var spin  = document.getElementById('prog-spinner');
+        var title = document.getElementById('prog-title');
+
+        if (d.running) {
+            var p = d.pct || 0;
+            bar.style.width = p + '%';
+            pct.textContent  = p + ' %';
+            info.textContent = (d.pos_current ? 'POS en cours : ' + d.pos_current + '  —  ' : '')
+                             + (d.done || 0) + ' / ' + (d.total || '?') + ' articles';
+
+            // Dernières lignes dans le log
+            if (d.rows && d.rows.length) {
+                d.rows.forEach(function(r) {
+                    var cls = r.statut === 'OK' ? 'log-ok' : r.statut === 'ECART' ? 'log-ecart' : 'log-absent';
+                    _logLines.push('<span class="' + cls + '">[' + r.statut + '] ' + r.pos_id + ' / ' + r.shop_ref + ' / ' + r.article_code + ' — attendu:' + r.points_attendus + '  pos:' + (r.points_pos || '-') + '</span>');
+                });
+                if (_logLines.length > 100) _logLines = _logLines.slice(-100);
+                log.innerHTML = _logLines.join('<br>');
+                log.scrollTop = log.scrollHeight;
+            }
+        }
+
+        if (!d.running && d.finished) {
+            bar.style.width = '100%';
+            pct.textContent  = '100 %';
+            spin.style.display = 'none';
+            title.textContent  = 'Vérification terminée';
+            info.innerHTML = '<span class="text-success fw-bold">Terminé en ' + (d.elapsed_s || '?') + 's</span>'
+                           + '  &mdash;  OK: ' + (d.ok||0) + '  Écarts: ' + (d.ecart||0) + '  Absents: ' + (d.absent||0);
+            _sseSource.close();
+            _sseSource = null;
+            // Recharger la page après 3s pour afficher le nouveau rapport
+            setTimeout(function() { location.reload(); }, 3000);
+        }
+    };
+
+    _sseSource.onerror = function() {
+        if (_sseSource) { _sseSource.close(); _sseSource = null; }
+    };
+}
+
+// Si vérification déjà en cours au chargement → ouvrir SSE directement
+{% if verif_en_cours %}
+startSSE();
+{% endif %}
+
+// ─── Lancer vérification ─────────────────────────────────────────────────────
 document.getElementById('form-launch').addEventListener('submit', function(e) {
     e.preventDefault();
-    var btn = document.getElementById('btn-launch');
-    var bar = document.getElementById('launch-status');
+    var btn  = document.getElementById('btn-launch');
+    var bar  = document.getElementById('launch-status');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Lancement…';
 
     var fd = new FormData(this);
     fetch("{% url 'entree_journal:lancer_verif_points' %}", {
-        method: 'POST',
-        body: fd,
-        headers: {'X-CSRFToken': fd.get('csrfmiddlewaretoken')}
+        method:'POST', body:fd,
+        headers:{'X-CSRFToken': fd.get('csrfmiddlewaretoken')}
     })
     .then(r => r.json())
     .then(data => {
@@ -326,12 +404,17 @@ document.getElementById('form-launch').addEventListener('submit', function(e) {
         btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Lancer';
         bar.style.display = 'block';
         if (data.status === 'started') {
-            bar.innerHTML = '<div class="alert alert-success mb-0 py-2"><i class="bi bi-check-circle me-2"></i>Vérification lancée en arrière-plan. Rafraîchissez la page dans quelques minutes.</div>';
+            bar.innerHTML = '<div class="alert alert-success mb-0 py-2"><i class="bi bi-check-circle me-2"></i>Vérification démarrée en arrière-plan — progression ci-dessous.</div>';
+            // Fermer le panel de lancement et ouvrir le SSE
+            var collapse = bootstrap.Collapse.getInstance(document.getElementById('panel-lancer'));
+            if (collapse) collapse.hide();
+            _logLines = [];
+            startSSE();
         } else {
             bar.innerHTML = '<div class="alert alert-danger mb-0 py-2"><i class="bi bi-x-circle me-2"></i>' + (data.error || 'Erreur inconnue') + '</div>';
         }
     })
-    .catch(err => {
+    .catch(() => {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Lancer';
         bar.style.display = 'block';
@@ -339,16 +422,17 @@ document.getElementById('form-launch').addEventListener('submit', function(e) {
     });
 });
 
-// Afficher détail d'un rapport
+// ─── Afficher détail rapport ──────────────────────────────────────────────────
 function showRapport(filename) {
     var panel = document.getElementById('detail-panel');
     var body  = document.getElementById('detail-body');
     var title = document.getElementById('detail-title');
     var sub   = document.getElementById('detail-sub');
+    if (!panel) return;
 
     panel.style.display = 'block';
     body.innerHTML = '<div class="text-center py-4"><span class="spinner-border"></span></div>';
-    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+    panel.scrollIntoView({behavior:'smooth', block:'start'});
 
     fetch("{% url 'entree_journal:rapport_verif_points' filename='__F__' %}".replace('__F__', filename))
     .then(r => r.json())
@@ -362,13 +446,11 @@ function showRapport(filename) {
         var absent = data.absent || 0;
         var ecarts = data.ecarts || [];
 
-        // Mini KPI bar
         var html = '<div class="d-flex gap-2 p-3 border-bottom flex-wrap">';
         html += '<span class="badge-total">Total : ' + total + '</span> ';
         html += '<span class="badge-ok">OK : ' + ok + '</span> ';
         html += '<span class="badge-ecart">Écarts : ' + ecart + '</span> ';
-        html += '<span class="badge-absent">Absents : ' + absent + '</span>';
-        html += '</div>';
+        html += '<span class="badge-absent">Absents : ' + absent + '</span></div>';
 
         if (!ecarts.length) {
             html += '<div class="p-4 text-success fw-semibold text-center"><i class="bi bi-check-circle-fill me-2 fs-4"></i>Aucun écart — tous les articles sont conformes !</div>';
@@ -379,17 +461,12 @@ function showRapport(filename) {
             html += '</tr></thead><tbody>';
             ecarts.forEach(function(r) {
                 var rowCls = r.statut === 'ECART' ? 'detail-row-ecart' : 'detail-row-absent';
-                var badge  = r.statut === 'ECART'
-                    ? '<span class="badge-ecart">ÉCART</span>'
-                    : '<span class="badge-absent">ABSENT</span>';
-                html += '<tr class="' + rowCls + '">';
-                html += '<td class="ps-3">' + r.pos_id + '</td>';
-                html += '<td>' + r.shop_ref + '</td>';
+                var badge  = r.statut === 'ECART' ? '<span class="badge-ecart">ÉCART</span>' : '<span class="badge-absent">ABSENT</span>';
+                html += '<tr class="' + rowCls + '"><td class="ps-3">' + r.pos_id + '</td><td>' + r.shop_ref + '</td>';
                 html += '<td><code>' + r.article_code + '</code></td>';
                 html += '<td class="text-center fw-bold">' + r.points_attendus + '</td>';
                 html += '<td class="text-center">' + (r.points_pos !== '' ? r.points_pos : '<em class="text-muted">—</em>') + '</td>';
-                html += '<td class="text-center">' + badge + '</td>';
-                html += '</tr>';
+                html += '<td class="text-center">' + badge + '</td></tr>';
             });
             if (ecart + absent > 500) {
                 html += '<tr><td colspan="6" class="text-center text-muted fst-italic py-2">… ' + (ecart + absent - 500) + ' lignes supplémentaires dans le CSV</td></tr>';

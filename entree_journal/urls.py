@@ -6,5 +6,7 @@ app_name = "entree_journal"
 urlpatterns = [
     path("points-fidelite/", views.verif_points, name="verif_points"),
     path("points-fidelite/lancer/", views.lancer_verif_points, name="lancer_verif_points"),
+    path("points-fidelite/progression/", views.progression_verif_points, name="progression_verif_points"),
+    path("points-fidelite/statut/", views.statut_verif_points, name="statut_verif_points"),
     path("points-fidelite/rapport/<str:filename>/", views.rapport_verif_points, name="rapport_verif_points"),
 ]

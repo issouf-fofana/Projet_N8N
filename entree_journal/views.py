@@ -1,20 +1,47 @@
 import json
-import subprocess
-import sys
+import threading
+import time
 from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-LOGS_DIR     = Path(__file__).parent.parent / "Entree_journal" / "logs"
-VERIF_SCRIPT = Path(__file__).parent.parent / "Entree_journal" / "verif_points.py"
+LOGS_DIR   = Path(__file__).parent.parent / "Entree_journal" / "logs"
+PROGRESS_F = LOGS_DIR / "verif_progress.json"
 
 SMB_BACKUP = Path(
     "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
     "Cegid/AstenProd/ReferentielPrecom/Backup"
 )
+
+# ─── état global de la vérification en cours ────────────────────────────────
+_verif_lock   = threading.Lock()
+_verif_thread = None
+
+
+def _is_running():
+    with _verif_lock:
+        if _verif_thread is not None and _verif_thread.is_alive():
+            return True
+    # Fallback : vérifier le fichier de progression (au cas où le process a redémarré)
+    if PROGRESS_F.exists():
+        try:
+            d = json.loads(PROGRESS_F.read_text(encoding="utf-8"))
+            return bool(d.get("running"))
+        except Exception:
+            pass
+    return False
+
+
+def _run_in_thread(pos_filter, source_file):
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "Entree_journal"))
+    import importlib
+    import verif_points as vp
+    importlib.reload(vp)   # au cas où le module était déjà chargé
+    vp.run(pos_filter=pos_filter, source_file=source_file)
 
 
 def _list_articlespoints_files():
@@ -51,7 +78,7 @@ def _list_rapports():
 
 
 def get_dernier_rapport():
-    """Retourne le dernier rapport verif_points sous forme de dict (pour le dashboard)."""
+    """Retourne le dernier rapport verif_points (pour le dashboard)."""
     if not LOGS_DIR.exists():
         return None
     rapports = sorted(LOGS_DIR.glob("verif_points_*.json"), reverse=True)
@@ -66,15 +93,17 @@ def get_dernier_rapport():
         return None
 
 
+# ─── vues ────────────────────────────────────────────────────────────────────
+
 @login_required
 def verif_points(request):
     rapports = _list_rapports()
-    dernier  = rapports[0] if rapports else None
     context = {
-        "fichiers_dispo": _list_articlespoints_files(),
-        "rapports":       rapports,
-        "dernier":        dernier,
-        "smb_accessible": SMB_BACKUP.exists(),
+        "fichiers_dispo":  _list_articlespoints_files(),
+        "rapports":        rapports,
+        "dernier":         rapports[0] if rapports else None,
+        "smb_accessible":  SMB_BACKUP.exists(),
+        "verif_en_cours":  _is_running(),
     }
     return render(request, "entree_journal/verif_points.html", context)
 
@@ -82,24 +111,86 @@ def verif_points(request):
 @login_required
 @require_POST
 def lancer_verif_points(request):
-    pos_filter = request.POST.get("pos", "").strip()
-    fichier    = request.POST.get("fichier", "").strip()
+    global _verif_thread
 
-    cmd = [sys.executable, str(VERIF_SCRIPT)]
-    if pos_filter:
-        cmd += ["--pos", pos_filter]
+    if _is_running():
+        return JsonResponse({"error": "Une vérification est déjà en cours."}, status=409)
+
+    pos_filter_raw = request.POST.get("pos", "").strip()
+    fichier        = request.POST.get("fichier", "").strip()
+    pos_filter = {p.strip() for p in pos_filter_raw.split(",") if p.strip()} if pos_filter_raw else None
+
+    source_file = None
     if fichier:
         candidates = [SMB_BACKUP / fichier, SMB_BACKUP / "articlespoints" / fichier]
-        found = next((str(p) for p in candidates if p.exists()), None)
+        found = next((p for p in candidates if p.exists()), None)
         if not found:
             return JsonResponse({"error": f"Fichier introuvable : {fichier}"}, status=400)
-        cmd += ["--fichier", found]
+        source_file = str(found)
 
-    try:
-        subprocess.Popen(cmd, cwd=str(VERIF_SCRIPT.parent))
-        return JsonResponse({"status": "started"})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    with _verif_lock:
+        t = threading.Thread(target=_run_in_thread, args=(pos_filter, source_file), daemon=True)
+        _verif_thread = t
+        t.start()
+
+    return JsonResponse({"status": "started"})
+
+
+@login_required
+def progression_verif_points(request):
+    """
+    SSE : envoie l'état de progression toutes les 2 secondes.
+    Se termine quand running=False dans le fichier de progression.
+    """
+    def event_stream():
+        last_data = None
+        idle = 0
+        while True:
+            time.sleep(2)
+            try:
+                if PROGRESS_F.exists():
+                    raw = PROGRESS_F.read_text(encoding="utf-8")
+                    if raw != last_data:
+                        last_data = raw
+                        idle = 0
+                        yield f"data: {raw}\n\n"
+                    else:
+                        idle += 1
+                    # Arrêter le stream si terminé et idle depuis 10s
+                    try:
+                        state = json.loads(raw)
+                        if not state.get("running") and state.get("finished"):
+                            yield f"data: {raw}\n\n"
+                            return
+                    except Exception:
+                        pass
+                else:
+                    # Pas encore de fichier → heartbeat
+                    yield "data: {\"running\": false, \"waiting\": true}\n\n"
+                    idle += 1
+
+                if idle > 150:   # 5 min sans changement → fermer
+                    return
+            except Exception:
+                yield "data: {\"error\": true}\n\n"
+                return
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
+
+
+@login_required
+def statut_verif_points(request):
+    """État rapide (polling JSON) pour vérifier si une vérif tourne."""
+    state = {"running": _is_running()}
+    if PROGRESS_F.exists():
+        try:
+            state.update(json.loads(PROGRESS_F.read_text(encoding="utf-8")))
+        except Exception:
+            pass
+    return JsonResponse(state)
 
 
 @login_required
