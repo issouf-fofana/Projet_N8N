@@ -399,7 +399,7 @@ def save_report(all_rows, source_file, started_at, elapsed_s):
         "ok":          ok,
         "ecart":       ecart,
         "absent":      absent,
-        "ecarts":      [r for r in all_rows if r["statut"] in ("ECART", "ARTICLE_ABSENT")][:500],
+        "ecarts":      [r for r in all_rows if r["statut"] in ("ECART", "ARTICLE_ABSENT", "ENDPOINT_INCONNU")][:500],
     }
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
