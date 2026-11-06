@@ -2,12 +2,11 @@
 Vérification des points de fidélité article
 --------------------------------------------
 Lit le fichier 999_articlespoints_*.csv (format: shop_ref;article_code;points)
-et vérifie pour chaque article si le champ loyalty_earn_points sur le POS
+et vérifie pour chaque article si le champ earned_points sur le POS
 correspond à la valeur attendue.
 
-Endpoints POS essayés dans l'ordre :
-  1. /api/product_loyalty_option/?product__code=XXX   (loyalty seul)
-  2. /api/product/?code=XXX                           (produit complet)
+Endpoint POS :
+  /api/product/?ean=<code_article>  → results[0].earned_points
 
 Produit un rapport JSON + CSV dans logs/.
 Peut émettre des événements SSE via un fichier de progression (progress.json).
@@ -169,124 +168,60 @@ def build_shop_to_pos(magasin):
             }
     return mapping
 
-# ─── Détection endpoint POS ─────────────────────────────────────────────────
+# ─── Vérification de connectivité POS ───────────────────────────────────────
 
-_ENDPOINT_CACHE = {}  # pos_id → endpoint trouvé
+_REACHABLE_CACHE = {}  # pos_id → bool
 
-def detect_endpoint(session, base_url, pos_id, timeout):
-    """
-    Détecte l'endpoint utilisable sur ce POS pour récupérer loyalty_earn_points.
-    Essaie dans l'ordre :
-      1. /api/product_loyalty_option/   → {results:[{product:{code}, earn_points}]}
-      2. /api/product/                  → {results:[{code, loyalty_earn_points}]}
-    Retourne le nom de l'endpoint ou None.
-    """
-    if pos_id in _ENDPOINT_CACHE:
-        return _ENDPOINT_CACHE[pos_id]
-
-    candidates = [
-        ("product_loyalty_option", "/api/product_loyalty_option/", "earn_points"),
-        ("product",                "/api/product/",                 "loyalty_earn_points"),
-        ("product_loyalty_options","/api/product_loyalty_options/", "earn_points"),
-    ]
-    for name, ep, field in candidates:
-        try:
-            r = session.get(f"{base_url}{ep}", params={"page_size": 1}, timeout=timeout)
-            if r.status_code == 200:
-                data = r.json()
-                results = data.get("results", []) if isinstance(data, dict) else data
-                # Vérifier que le champ loyalty est présent
-                if results and field in results[0]:
-                    log.info("[%s] Endpoint détecté : %s (champ '%s')", pos_id, ep, field)
-                    _ENDPOINT_CACHE[pos_id] = (name, ep, field)
-                    return _ENDPOINT_CACHE[pos_id]
-                elif not results:
-                    # Endpoint existe mais vide — on garde quand même
-                    log.info("[%s] Endpoint %s vide mais accessible", pos_id, ep)
-                    _ENDPOINT_CACHE[pos_id] = (name, ep, field)
-                    return _ENDPOINT_CACHE[pos_id]
-        except requests.RequestException:
-            pass
-
-    log.warning("[%s] Aucun endpoint de points fidélité trouvé", pos_id)
-    _ENDPOINT_CACHE[pos_id] = None
-    return None
+def is_pos_reachable(session, base_url, pos_id, timeout):
+    """Vérifie que le POS répond sur /api/product/ (page_size=1)."""
+    if pos_id in _REACHABLE_CACHE:
+        return _REACHABLE_CACHE[pos_id]
+    try:
+        r = session.get(f"{base_url}/api/product/", params={"page_size": 1}, timeout=timeout)
+        ok = r.status_code == 200
+    except requests.RequestException:
+        ok = False
+    _REACHABLE_CACHE[pos_id] = ok
+    if not ok:
+        log.warning("[%s] POS inaccessible : %s", pos_id, base_url)
+    return ok
 
 # ─── Récupération des points POS ────────────────────────────────────────────
 
-def fetch_loyalty_points(session, base_url, pos_id, article_codes, timeout, shop_id=None):
+def fetch_earned_points(session, base_url, article_code, timeout):
     """
-    Récupère {article_code_normalisé: points} depuis le POS.
-    Essaie plusieurs stratégies selon l'endpoint détecté.
+    Retourne le earned_points d'un article.
+    Stratégie : GET /api/product/?ean=<code> → UUID → GET /api/product/<uuid>/
+    Retourne None si l'article est absent, -1 si erreur réseau.
     """
-    endpoint_info = detect_endpoint(session, base_url, pos_id, timeout)
-    if not endpoint_info:
-        return {}
+    list_url   = f"{base_url}/api/product/"
+    uuid = None
+    for ean_val in [article_code, article_code.zfill(13)]:
+        try:
+            r = session.get(list_url, params={"ean": ean_val, "page_size": 1}, timeout=timeout)
+            if r.status_code != 200:
+                continue
+            data = r.json()
+            results = data.get("results", []) if isinstance(data, dict) else []
+            if results:
+                uuid = results[0].get("id")
+                break
+        except requests.RequestException:
+            return -1
 
-    name, ep, field = endpoint_info
-    result = {}
-    url = f"{base_url}{ep}"
+    if not uuid:
+        return None
 
-    if name in ("product_loyalty_option", "product_loyalty_options"):
-        # Format: {product: {code: "XXX"}, earn_points: N}
-        # Chercher article par article (pas de filtre multi-code connu)
-        for code in article_codes:
-            for search_val in [code, code.zfill(9), code.zfill(13)]:
-                try:
-                    params = {"page_size": 10, "product__code": search_val}
-                    if shop_id:
-                        params["shop"] = shop_id
-                    r = session.get(url, params=params, timeout=timeout)
-                    if r.status_code != 200:
-                        continue
-                    data = r.json()
-                    items = data.get("results", data) if isinstance(data, dict) else data
-                    for item in items:
-                        prod = item.get("product", {})
-                        raw_code = str(prod.get("code", "")).strip().lstrip("0") or "0"
-                        if raw_code == code:
-                            lp = item.get(field)
-                            result[code] = int(lp) if lp not in (None, "") else 0
-                            break
-                    if code in result:
-                        break
-                except requests.RequestException:
-                    break
-
-    else:
-        # Format: {code: "XXX", loyalty_earn_points: N}
-        # Essayer en batch d'abord
-        BATCH = 50
-        codes_list = list(article_codes)
-        for i in range(0, len(codes_list), BATCH):
-            batch = codes_list[i:i + BATCH]
-            page = 1
-            while True:
-                params = {"page_size": 200, "page": page}
-                if len(batch) == 1:
-                    params["search"] = batch[0]
-                    params["code"] = batch[0]
-                else:
-                    params["code__in"] = ",".join(batch)
-                try:
-                    r = session.get(url, params=params, timeout=timeout)
-                    if r.status_code != 200:
-                        break
-                    data = r.json()
-                    items = data.get("results", data) if isinstance(data, dict) else data
-                    for item in items:
-                        raw_code = str(item.get("code", "")).strip().lstrip("0") or "0"
-                        lp = item.get(field)
-                        if lp is not None and raw_code in article_codes:
-                            result[raw_code] = int(lp) if lp != "" else 0
-                    has_next = bool(data.get("next")) or bool(data.get("next_page")) if isinstance(data, dict) else False
-                    if not has_next:
-                        break
-                    page += 1
-                except requests.RequestException:
-                    break
-
-    return result
+    try:
+        r = session.get(f"{list_url}{uuid}/", timeout=timeout)
+        if r.status_code != 200:
+            return None
+        item = r.json()
+        extras = item.get("extras") or {}
+        ep = extras.get("earned_points") if isinstance(extras, dict) else None
+        return int(ep) if ep not in (None, "") else 0
+    except requests.RequestException:
+        return -1
 
 # ─── Vérification par POS ────────────────────────────────────────────────────
 
@@ -306,9 +241,7 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
     total_articles = len(all_articles)
     log.info("[%s] %d articles à vérifier sur %s", pos_id, total_articles, base_url)
 
-    endpoint_info = detect_endpoint(session, base_url, pos_id, timeout)
-    if not endpoint_info:
-        # Endpoint inconnu — marquer tous ABSENT
+    if not is_pos_reachable(session, base_url, pos_id, timeout):
         rows = []
         for article_code, shops in all_articles.items():
             for shop_ref, points_attendus in shops.items():
@@ -320,55 +253,32 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
                 })
         return rows
 
-    name, ep, field = endpoint_info
     rows = []
     done = 0
 
-    if name in ("product_loyalty_option", "product_loyalty_options"):
-        # Article par article avec progression
-        for article_code, shops in all_articles.items():
-            pos_data = fetch_loyalty_points(
-                session, base_url, pos_id, {article_code}, timeout
-            )
-            points_pos = pos_data.get(article_code)
-            done += 1
-            for shop_ref, points_attendus in shops.items():
-                if points_pos is None:
-                    statut = "ARTICLE_ABSENT"
-                elif points_pos == points_attendus:
-                    statut = "OK"
-                else:
-                    statut = "ECART"
-                rows.append({
-                    "pos_id": pos_id, "shop_ref": shop_ref,
-                    "article_code": article_code,
-                    "points_attendus": points_attendus,
-                    "points_pos": points_pos if points_pos is not None else "",
-                    "statut": statut,
-                })
-            if progress_cb and done % 10 == 0:
-                progress_cb(pos_id, done, total_articles, rows)
-    else:
-        # Batch
-        pos_data = fetch_loyalty_points(
-            session, base_url, pos_id, set(all_articles.keys()), timeout
-        )
-        for article_code, shops in all_articles.items():
-            points_pos = pos_data.get(article_code)
-            for shop_ref, points_attendus in shops.items():
-                if points_pos is None:
-                    statut = "ARTICLE_ABSENT"
-                elif points_pos == points_attendus:
-                    statut = "OK"
-                else:
-                    statut = "ECART"
-                rows.append({
-                    "pos_id": pos_id, "shop_ref": shop_ref,
-                    "article_code": article_code,
-                    "points_attendus": points_attendus,
-                    "points_pos": points_pos if points_pos is not None else "",
-                    "statut": statut,
-                })
+    for article_code, shops in all_articles.items():
+        points_pos = fetch_earned_points(session, base_url, article_code, timeout)
+        done += 1
+
+        for shop_ref, points_attendus in shops.items():
+            if points_pos is None:
+                statut = "ARTICLE_ABSENT"
+            elif points_pos == -1:
+                statut = "ENDPOINT_INCONNU"
+            elif points_pos == points_attendus:
+                statut = "OK"
+            else:
+                statut = "ECART"
+            rows.append({
+                "pos_id": pos_id, "shop_ref": shop_ref,
+                "article_code": article_code,
+                "points_attendus": points_attendus,
+                "points_pos": points_pos if points_pos not in (None, -1) else "",
+                "statut": statut,
+            })
+
+        if progress_cb and done % 10 == 0:
+            progress_cb(pos_id, done, total_articles, rows)
 
     ok     = sum(1 for r in rows if r["statut"] == "OK")
     ecart  = sum(1 for r in rows if r["statut"] == "ECART")
