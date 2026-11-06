@@ -248,6 +248,7 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
     log.info("[%s] %d articles à vérifier sur %s (workers=%d)", pos_id, total_articles, base_url, WORKERS_PER_POS)
 
     # Vérification connectivité
+    log.info("[%s] Test connectivité…", pos_id)
     test_session = make_session(pos_id, config)
     if not is_pos_reachable(test_session, base_url, pos_id, timeout):
         rows = []
@@ -261,15 +262,18 @@ def verifier_pos(pos_id, pos_info, shop_articles, config, progress_cb=None):
                 })
         return rows
 
+    log.info("[%s] POS accessible — lancement %d threads…", pos_id, WORKERS_PER_POS)
     rows = []
     done = 0
     lock = __import__("threading").Lock()
 
     def check_article(article_code):
         sess = make_session(pos_id, config)
-        return article_code, fetch_earned_points_for_article(sess, base_url, article_code, timeout)
+        pts = fetch_earned_points_for_article(sess, base_url, article_code, timeout)
+        log.debug("[%s] %s → %s", pos_id, article_code, pts)
+        return article_code, pts
 
-    # 1905 articles × 2 requêtes, toutes en parallèle (20 workers)
+    # 1905 articles × 2 requêtes, toutes en parallèle
     with ThreadPoolExecutor(max_workers=WORKERS_PER_POS) as executor:
         futures = {executor.submit(check_article, code): code for code in all_articles}
         for future in as_completed(futures):
