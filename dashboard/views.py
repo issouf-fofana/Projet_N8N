@@ -1378,6 +1378,13 @@ def dashboard(request):
             context['integration_asten_data'] = None
             context['integration_asten_error'] = str(_e)
 
+        # ── Points fidélité — dernier rapport ────────────────────────────────
+        try:
+            from entree_journal.views import get_dernier_rapport
+            context['points_fidelite_data'] = get_dernier_rapport()
+        except Exception:
+            context['points_fidelite_data'] = None
+
     else:
         try:
             from imports.services import get_versions_asten

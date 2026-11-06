@@ -1,256 +1,406 @@
 {% extends 'core/base.html' %}
+{% load auth_extras %}
 
-{% block title %}Vérification Points Fidélité{% endblock %}
+{% block title %}Points Fidélité — Vérification{% endblock %}
 
 {% block extra_css %}
 <style>
-.vp-card {
+/* ── Cartes KPI (même style que dashboard) ── */
+.stat-card {
     background:#fff; border-radius:0;
-    border:1px solid #e2e8f0;
-    box-shadow:0 2px 8px rgba(0,0,0,.05);
-    margin-bottom:24px; overflow:hidden;
+    border:1px solid #e8edf5; border-left:4px solid transparent;
+    box-shadow:0 2px 10px rgba(15,23,42,.05);
+    padding:20px 22px; position:relative; overflow:hidden;
+    transition:box-shadow .2s, transform .15s;
 }
-.vp-card-header {
-    background:linear-gradient(135deg,#6366f1,#4f46e5);
-    padding:16px 24px; display:flex; align-items:center; gap:12px;
+.stat-card:hover { box-shadow:0 6px 22px rgba(15,23,42,.10); }
+.stat-card.success { border-left-color:#22c55e; }
+.stat-card.warning { border-left-color:#f59e0b; }
+.stat-card.danger  { border-left-color:#ef4444; }
+.stat-card.info    { border-left-color:#6366f1; }
+.stat-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; margin-bottom:4px; }
+.stat-value { font-size:2rem; font-weight:900; color:#0f172a; line-height:1.1; }
+.stat-icon  { font-size:2.2rem; color:#e8edf5; }
+.sc-orb  { position:absolute; width:80px; height:80px; border-radius:50%; opacity:.08; top:-20px; right:-10px; }
+.sc-orb2 { position:absolute; width:50px; height:50px; border-radius:50%; opacity:.06; top:30px; right:40px; }
+.stat-card.success .sc-orb,.stat-card.success .sc-orb2{background:#22c55e;}
+.stat-card.warning .sc-orb,.stat-card.warning .sc-orb2{background:#f59e0b;}
+.stat-card.danger  .sc-orb,.stat-card.danger  .sc-orb2{background:#ef4444;}
+.stat-card.info    .sc-orb,.stat-card.info    .sc-orb2{background:#6366f1;}
+
+/* ── Section divider ── */
+.vp-divider {
+    display:flex; align-items:center; gap:12px;
+    margin:28px 0 20px; padding-top:22px;
+    border-top:2px solid #e8edf5;
 }
-.vp-card-header i { color:#fff; font-size:1.1rem; }
-.vp-card-header h5 { color:#fff; font-weight:700; margin:0; font-size:.95rem; }
-.vp-card-header small { color:rgba(255,255,255,.7); font-size:.75rem; }
-.vp-card-body { padding:20px 24px; }
-.stat-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.8rem; font-weight:600; }
-.stat-ok     { background:#d1fae5; color:#065f46; }
-.stat-ecart  { background:#fef3c7; color:#92400e; }
-.stat-absent { background:#fee2e2; color:#991b1b; }
-.stat-total  { background:#ede9fe; color:#4c1d95; }
-.rapport-row td { vertical-align:middle; font-size:.85rem; }
-.btn-launch { min-width:140px; }
-#status-bar { display:none; }
+.vp-divider-icon {
+    width:38px; height:38px; border-radius:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.95rem; flex-shrink:0;
+}
+
+/* ── Table rapports ── */
+.vp-table { font-size:.83rem; }
+.vp-table th { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; border-bottom:2px solid #e8edf5; }
+.vp-table td { vertical-align:middle; border-color:#f1f5f9; }
+
+/* ── Badges statut ── */
+.badge-ok     { background:#dcfce7; color:#15803d; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
+.badge-ecart  { background:#fef3c7; color:#92400e; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
+.badge-absent { background:#fee2e2; color:#991b1b; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
+.badge-total  { background:#ede9fe; color:#4c1d95; font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:0; }
+
+/* ── Panel détail ── */
+#detail-panel .table td,.#detail-panel .table th { font-size:.8rem; }
+.detail-row-ecart  { background:#fffbeb; }
+.detail-row-absent { background:#fff1f2; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid px-4 py-4">
 
-  <div class="d-flex align-items-center gap-3 mb-4">
-    <i class="bi bi-stars fs-3 text-primary"></i>
-    <div>
-      <h4 class="mb-0 fw-bold">Vérification Points Fidélité</h4>
-      <small class="text-muted">Compare le fichier CEGID avec les valeurs sur les POS</small>
-    </div>
-  </div>
-
-  {% if not smb_accessible %}
-  <div class="alert alert-warning d-flex align-items-center gap-2">
-    <i class="bi bi-exclamation-triangle-fill"></i>
-    Partage réseau SMB inaccessible. Vérifiez que le partage <code>smb://10.0.70.104/d/</code> est monté.
-  </div>
-  {% endif %}
-
-  <!-- Lancer une vérification -->
-  <div class="vp-card">
-    <div class="vp-card-header">
-      <i class="bi bi-play-circle-fill"></i>
-      <div>
-        <h5>Lancer une vérification</h5>
-        <small>Interroge l'API de chaque POS pour comparer les points</small>
-      </div>
-    </div>
-    <div class="vp-card-body">
-      <form id="form-launch" class="row g-3 align-items-end">
-        {% csrf_token %}
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">Fichier articlespoints</label>
-          <select name="fichier" class="form-select">
-            <option value="">— Plus récent automatiquement —</option>
-            {% for f in fichiers_dispo %}
-            <option value="{{ f }}">{{ f }}</option>
-            {% endfor %}
-          </select>
-          <div class="form-text">Fichiers disponibles sur le partage réseau</div>
+    <!-- En-tête page -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-1" style="color:#0f172a;">
+                <i class="bi bi-stars me-2 text-primary"></i>Points de Fidélité
+            </h2>
+            <div class="text-muted" style="font-size:.82rem;">
+                Vérification quotidienne CEGID → POS &mdash; Fichier <code>999_articlespoints_*.csv</code>
+            </div>
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Filtrer par POS (optionnel)</label>
-          <input type="text" name="pos" class="form-control" placeholder="ex: pos4,pos1  (vide = tous)">
-          <div class="form-text">Laisser vide pour vérifier tous les POS</div>
+        <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#panel-lancer">
+            <i class="bi bi-play-fill me-1"></i>Lancer une vérification
+        </button>
+    </div>
+
+    <!-- Alerte SMB -->
+    {% if not smb_accessible %}
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Partage réseau SMB inaccessible (<code>smb://10.0.70.104/d/</code> non monté).
+    </div>
+    {% endif %}
+
+    <!-- Panel lancer (collapsible) -->
+    <div class="collapse mb-4" id="panel-lancer">
+        <div class="card border-0 shadow-sm" style="border-radius:0;">
+            <div class="card-header d-flex align-items-center gap-2" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
+                <i class="bi bi-play-circle-fill text-white"></i>
+                <span class="text-white fw-bold">Lancer une vérification manuelle</span>
+            </div>
+            <div class="card-body">
+                <form id="form-launch" class="row g-3 align-items-end">
+                    {% csrf_token %}
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">Fichier articlespoints</label>
+                        <select name="fichier" class="form-select form-select-sm">
+                            <option value="">— Plus récent automatiquement —</option>
+                            {% for f in fichiers_dispo %}<option>{{ f }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">Filtrer POS (optionnel)</label>
+                        <input type="text" name="pos" class="form-control form-control-sm" placeholder="ex: pos4,pos1  (vide = tous)">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary btn-sm w-100" id="btn-launch">
+                            <i class="bi bi-play-fill me-1"></i>Lancer
+                        </button>
+                    </div>
+                    <div class="col-12" id="launch-status" style="display:none;"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI du dernier rapport -->
+    {% if dernier %}
+    <div class="vp-divider">
+        <div class="vp-divider-icon" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;">
+            <i class="bi bi-stars"></i>
+        </div>
+        <div>
+            <div style="font-size:.95rem;font-weight:800;color:#0f172a;">Dernier rapport</div>
+            <div style="font-size:.76rem;color:#64748b;">
+                {{ dernier.started_at }} &mdash; {{ dernier.source }}
+            </div>
+        </div>
+        <a href="javascript:showRapport('{{ dernier.filename }}')" class="ms-auto btn btn-sm btn-outline-primary">
+            <i class="bi bi-eye me-1"></i>Voir le détail
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card info">
+                <div class="sc-orb"></div><div class="sc-orb2"></div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Total articles</div>
+                        <div class="stat-value">{{ dernier.total }}</div>
+                    </div>
+                    <i class="bi bi-box-seam stat-icon"></i>
+                </div>
+            </div>
         </div>
         <div class="col-md-3">
-          <button type="submit" class="btn btn-primary btn-launch w-100" id="btn-launch">
-            <i class="bi bi-play-fill me-1"></i>Lancer
-          </button>
+            <div class="stat-card success">
+                <div class="sc-orb"></div><div class="sc-orb2"></div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">OK — Points conformes</div>
+                        <div class="stat-value">{{ dernier.ok }}</div>
+                    </div>
+                    <i class="bi bi-check-circle-fill stat-icon"></i>
+                </div>
+            </div>
         </div>
-      </form>
+        <div class="col-md-3">
+            <a href="javascript:showRapport('{{ dernier.filename }}')" style="text-decoration:none;display:block;">
+            <div class="stat-card {% if dernier.ecart %}warning{% else %}success{% endif %}" style="cursor:pointer;">
+                <div class="sc-orb"></div><div class="sc-orb2"></div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Écarts de points</div>
+                        <div class="stat-value">{{ dernier.ecart }}</div>
+                        <div class="stat-label mt-1" style="font-size:.75rem;">
+                            <i class="bi bi-arrow-right-circle"></i> Voir le détail
+                        </div>
+                    </div>
+                    <i class="bi bi-exclamation-triangle-fill stat-icon"></i>
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="javascript:showRapport('{{ dernier.filename }}')" style="text-decoration:none;display:block;">
+            <div class="stat-card {% if dernier.absent %}danger{% else %}success{% endif %}" style="cursor:pointer;">
+                <div class="sc-orb"></div><div class="sc-orb2"></div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="stat-label">Articles absents du POS</div>
+                        <div class="stat-value">{{ dernier.absent }}</div>
+                        <div class="stat-label mt-1" style="font-size:.75rem;">
+                            <i class="bi bi-arrow-right-circle"></i> Voir le détail
+                        </div>
+                    </div>
+                    <i class="bi bi-x-circle-fill stat-icon"></i>
+                </div>
+            </div>
+            </a>
+        </div>
+    </div>
 
-      <div id="status-bar" class="alert mt-3 mb-0"></div>
+    <!-- Détail écarts du dernier rapport -->
+    <div id="detail-panel" style="display:none;" class="mb-4">
+        <div class="vp-divider">
+            <div class="vp-divider-icon" style="background:#fef3c7;color:#92400e;">
+                <i class="bi bi-list-ul"></i>
+            </div>
+            <div>
+                <div style="font-size:.95rem;font-weight:800;color:#0f172a;" id="detail-title">Détail</div>
+                <div style="font-size:.76rem;color:#64748b;" id="detail-sub"></div>
+            </div>
+            <button class="ms-auto btn btn-sm btn-outline-secondary" onclick="document.getElementById('detail-panel').style.display='none'">
+                <i class="bi bi-x"></i> Fermer
+            </button>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius:0;">
+            <div class="card-body p-0" id="detail-body">
+                <div class="text-center py-4"><span class="spinner-border"></span></div>
+            </div>
+        </div>
     </div>
-  </div>
+    {% else %}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:0;">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+            <p class="mb-0">Aucun rapport disponible.<br>Lancez une première vérification ou attendez la vérification automatique (6h00).</p>
+        </div>
+    </div>
+    {% endif %}
 
-  <!-- Rapports existants -->
-  <div class="vp-card">
-    <div class="vp-card-header">
-      <i class="bi bi-file-earmark-bar-graph-fill"></i>
-      <div>
-        <h5>Rapports de vérification</h5>
-        <small>20 derniers rapports générés</small>
-      </div>
+    <!-- Historique des rapports -->
+    <div class="vp-divider">
+        <div class="vp-divider-icon" style="background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div>
+            <div style="font-size:.95rem;font-weight:800;color:#0f172a;">Historique des rapports</div>
+            <div style="font-size:.76rem;color:#64748b;">20 derniers rapports de vérification</div>
+        </div>
     </div>
-    <div class="vp-card-body p-0">
-      {% if rapports %}
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Date</th>
-              <th>Fichier source</th>
-              <th class="text-center">Total</th>
-              <th class="text-center">OK</th>
-              <th class="text-center">Écarts</th>
-              <th class="text-center">Absents</th>
-              <th class="text-end">Durée</th>
-              <th class="text-center">Détail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in rapports %}
-            {% if r.error %}
-            <tr><td colspan="8" class="text-muted fst-italic px-3">{{ r.filename }} — illisible</td></tr>
-            {% else %}
-            <tr>
-              <td>{{ r.started_at|default:"-" }}</td>
-              <td><code>{{ r.source|default:"-" }}</code></td>
-              <td class="text-center"><span class="stat-badge stat-total">{{ r.total }}</span></td>
-              <td class="text-center"><span class="stat-badge stat-ok">{{ r.ok }}</span></td>
-              <td class="text-center">
-                {% if r.ecart %}<span class="stat-badge stat-ecart">{{ r.ecart }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
-              </td>
-              <td class="text-center">
-                {% if r.absent %}<span class="stat-badge stat-absent">{{ r.absent }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
-              </td>
-              <td class="text-end text-muted">{{ r.elapsed_s }}s</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary py-0" onclick="showRapport('{{ r.filename }}')">
-                  <i class="bi bi-eye"></i>
-                </button>
-              </td>
-            </tr>
-            {% endif %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <div class="p-4 text-center text-muted">
-        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-        Aucun rapport disponible. Lancez une vérification ci-dessus.
-      </div>
-      {% endif %}
-    </div>
-  </div>
 
-  <!-- Panneau détail rapport -->
-  <div id="rapport-panel" class="vp-card" style="display:none;">
-    <div class="vp-card-header">
-      <i class="bi bi-list-check"></i>
-      <div>
-        <h5 id="rapport-title">Détail du rapport</h5>
-        <small id="rapport-subtitle"></small>
-      </div>
+    {% if rapports %}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:0;">
+        <div class="table-responsive">
+            <table class="table vp-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Date</th>
+                        <th>Fichier source</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">OK</th>
+                        <th class="text-center">Écarts</th>
+                        <th class="text-center">Absents</th>
+                        <th class="text-end">Durée</th>
+                        <th class="text-center pe-3">Détail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rapports %}
+                    {% if r.error %}
+                    <tr><td colspan="8" class="text-muted fst-italic ps-3">{{ r.filename }} — illisible</td></tr>
+                    {% else %}
+                    <tr>
+                        <td class="ps-3" style="white-space:nowrap;">{{ r.started_at|default:"-" }}</td>
+                        <td><code style="font-size:.75rem;">{{ r.source|default:"-" }}</code></td>
+                        <td class="text-center"><span class="badge-total">{{ r.total }}</span></td>
+                        <td class="text-center"><span class="badge-ok">{{ r.ok }}</span></td>
+                        <td class="text-center">
+                            {% if r.ecart %}<span class="badge-ecart">{{ r.ecart }}</span>
+                            {% else %}<span class="text-muted">0</span>{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if r.absent %}<span class="badge-absent">{{ r.absent }}</span>
+                            {% else %}<span class="text-muted">0</span>{% endif %}
+                        </td>
+                        <td class="text-end text-muted">{{ r.elapsed_s }}s</td>
+                        <td class="text-center pe-3">
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="showRapport('{{ r.filename }}')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="vp-card-body" id="rapport-body"></div>
-  </div>
+    {% else %}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:0;">
+        <div class="card-body text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucun rapport disponible.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Info planification -->
+    <div class="card border-0 mb-4" style="border-radius:0;background:#f8fafc;border:1px solid #e2e8f0;">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+            <i class="bi bi-clock-fill text-primary fs-4"></i>
+            <div style="font-size:.82rem;">
+                <strong>Vérification automatique</strong> : tous les jours à <strong>06h00</strong> via le service systemd
+                <code>verif_points_fidelite.timer</code>.<br>
+                Le rapport est disponible ici dès la fin de l'exécution.
+            </div>
+        </div>
+    </div>
 
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Lancer vérification
 document.getElementById('form-launch').addEventListener('submit', function(e) {
-  e.preventDefault();
-  var btn = document.getElementById('btn-launch');
-  var bar = document.getElementById('status-bar');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Lancement…';
-  bar.style.display = 'none';
+    e.preventDefault();
+    var btn = document.getElementById('btn-launch');
+    var bar = document.getElementById('launch-status');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Lancement…';
 
-  var fd = new FormData(this);
-  fetch("{% url 'entree_journal:lancer_verif_points' %}", {
-    method: 'POST',
-    body: fd,
-    headers: {'X-CSRFToken': fd.get('csrfmiddlewaretoken')}
-  })
-  .then(r => r.json())
-  .then(data => {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Lancer';
-    bar.style.display = 'block';
-    if (data.status === 'started') {
-      bar.className = 'alert alert-success mt-3 mb-0';
-      bar.innerHTML = '<i class="bi bi-check-circle me-2"></i>Vérification lancée en arrière-plan. Rafraîchissez la page dans quelques minutes pour voir le rapport.';
-    } else {
-      bar.className = 'alert alert-danger mt-3 mb-0';
-      bar.innerHTML = '<i class="bi bi-x-circle me-2"></i>' + (data.error || 'Erreur inconnue');
-    }
-  })
-  .catch(err => {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Lancer';
-    bar.style.display = 'block';
-    bar.className = 'alert alert-danger mt-3 mb-0';
-    bar.innerHTML = '<i class="bi bi-x-circle me-2"></i>Erreur réseau : ' + err;
-  });
+    var fd = new FormData(this);
+    fetch("{% url 'entree_journal:lancer_verif_points' %}", {
+        method: 'POST',
+        body: fd,
+        headers: {'X-CSRFToken': fd.get('csrfmiddlewaretoken')}
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Lancer';
+        bar.style.display = 'block';
+        if (data.status === 'started') {
+            bar.innerHTML = '<div class="alert alert-success mb-0 py-2"><i class="bi bi-check-circle me-2"></i>Vérification lancée en arrière-plan. Rafraîchissez la page dans quelques minutes.</div>';
+        } else {
+            bar.innerHTML = '<div class="alert alert-danger mb-0 py-2"><i class="bi bi-x-circle me-2"></i>' + (data.error || 'Erreur inconnue') + '</div>';
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Lancer';
+        bar.style.display = 'block';
+        bar.innerHTML = '<div class="alert alert-danger mb-0 py-2"><i class="bi bi-x-circle me-2"></i>Erreur réseau</div>';
+    });
 });
 
+// Afficher détail d'un rapport
 function showRapport(filename) {
-  var panel = document.getElementById('rapport-panel');
-  var body  = document.getElementById('rapport-body');
-  var title = document.getElementById('rapport-title');
-  var sub   = document.getElementById('rapport-subtitle');
-  panel.style.display = 'block';
-  body.innerHTML = '<div class="text-center py-3"><span class="spinner-border"></span></div>';
-  panel.scrollIntoView({behavior: 'smooth'});
+    var panel = document.getElementById('detail-panel');
+    var body  = document.getElementById('detail-body');
+    var title = document.getElementById('detail-title');
+    var sub   = document.getElementById('detail-sub');
 
-  fetch("{% url 'entree_journal:rapport_verif_points' filename='__FILENAME__' %}".replace('__FILENAME__', filename))
-  .then(r => r.json())
-  .then(data => {
-    title.textContent = 'Rapport du ' + (data.started_at || filename);
-    sub.textContent = data.source_file || '';
-    var ecarts = data.ecarts || [];
-    if (!ecarts.length) {
-      body.innerHTML = '<p class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-2"></i>Aucun écart ni article absent !</p>';
-      return;
-    }
-    var html = '<div class="d-flex gap-3 mb-3 flex-wrap">';
-    html += '<span class="stat-badge stat-total">Total : ' + data.total + '</span>';
-    html += '<span class="stat-badge stat-ok">OK : ' + data.ok + '</span>';
-    html += '<span class="stat-badge stat-ecart">Écarts : ' + data.ecart + '</span>';
-    html += '<span class="stat-badge stat-absent">Absents : ' + data.absent + '</span>';
-    html += '</div>';
-    html += '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light"><tr>';
-    html += '<th>POS</th><th>Magasin</th><th>Article</th><th class="text-center">Pts attendus</th><th class="text-center">Pts POS</th><th class="text-center">Statut</th>';
-    html += '</tr></thead><tbody>';
-    ecarts.forEach(function(r) {
-      var cls = r.statut === 'ECART' ? 'table-warning' : 'table-danger';
-      html += '<tr class="' + cls + '">';
-      html += '<td>' + r.pos_id + '</td>';
-      html += '<td>' + r.shop_ref + '</td>';
-      html += '<td><code>' + r.article_code + '</code></td>';
-      html += '<td class="text-center fw-bold">' + r.points_attendus + '</td>';
-      html += '<td class="text-center">' + (r.points_pos !== '' ? r.points_pos : '<em>—</em>') + '</td>';
-      var badge = r.statut === 'ECART'
-        ? '<span class="stat-badge stat-ecart">ÉCART</span>'
-        : '<span class="stat-badge stat-absent">ABSENT</span>';
-      html += '<td class="text-center">' + badge + '</td>';
-      html += '</tr>';
+    panel.style.display = 'block';
+    body.innerHTML = '<div class="text-center py-4"><span class="spinner-border"></span></div>';
+    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+    fetch("{% url 'entree_journal:rapport_verif_points' filename='__F__' %}".replace('__F__', filename))
+    .then(r => r.json())
+    .then(data => {
+        title.textContent = 'Rapport du ' + (data.started_at || filename);
+        sub.textContent   = data.source_file || '';
+
+        var total  = data.total  || 0;
+        var ok     = data.ok     || 0;
+        var ecart  = data.ecart  || 0;
+        var absent = data.absent || 0;
+        var ecarts = data.ecarts || [];
+
+        // Mini KPI bar
+        var html = '<div class="d-flex gap-2 p-3 border-bottom flex-wrap">';
+        html += '<span class="badge-total">Total : ' + total + '</span> ';
+        html += '<span class="badge-ok">OK : ' + ok + '</span> ';
+        html += '<span class="badge-ecart">Écarts : ' + ecart + '</span> ';
+        html += '<span class="badge-absent">Absents : ' + absent + '</span>';
+        html += '</div>';
+
+        if (!ecarts.length) {
+            html += '<div class="p-4 text-success fw-semibold text-center"><i class="bi bi-check-circle-fill me-2 fs-4"></i>Aucun écart — tous les articles sont conformes !</div>';
+        } else {
+            html += '<div class="table-responsive"><table class="table vp-table mb-0"><thead><tr>';
+            html += '<th class="ps-3">POS</th><th>Magasin</th><th>Article</th>';
+            html += '<th class="text-center">Pts attendus</th><th class="text-center">Pts POS</th><th class="text-center">Statut</th>';
+            html += '</tr></thead><tbody>';
+            ecarts.forEach(function(r) {
+                var rowCls = r.statut === 'ECART' ? 'detail-row-ecart' : 'detail-row-absent';
+                var badge  = r.statut === 'ECART'
+                    ? '<span class="badge-ecart">ÉCART</span>'
+                    : '<span class="badge-absent">ABSENT</span>';
+                html += '<tr class="' + rowCls + '">';
+                html += '<td class="ps-3">' + r.pos_id + '</td>';
+                html += '<td>' + r.shop_ref + '</td>';
+                html += '<td><code>' + r.article_code + '</code></td>';
+                html += '<td class="text-center fw-bold">' + r.points_attendus + '</td>';
+                html += '<td class="text-center">' + (r.points_pos !== '' ? r.points_pos : '<em class="text-muted">—</em>') + '</td>';
+                html += '<td class="text-center">' + badge + '</td>';
+                html += '</tr>';
+            });
+            if (ecart + absent > 500) {
+                html += '<tr><td colspan="6" class="text-center text-muted fst-italic py-2">… ' + (ecart + absent - 500) + ' lignes supplémentaires dans le CSV</td></tr>';
+            }
+            html += '</tbody></table></div>';
+        }
+        body.innerHTML = html;
+    })
+    .catch(() => {
+        body.innerHTML = '<div class="alert alert-danger m-3">Impossible de charger le rapport.</div>';
     });
-    if (data.ecart + data.absent > 500) {
-      html += '<tr><td colspan="6" class="text-muted fst-italic text-center">… ' + (data.ecart + data.absent - 500) + ' lignes supplémentaires dans le CSV</td></tr>';
-    }
-    html += '</tbody></table></div>';
-    body.innerHTML = html;
-  })
-  .catch(err => {
-    body.innerHTML = '<div class="alert alert-danger">Erreur : ' + err + '</div>';
-  });
 }
 </script>
 {% endblock %}
