@@ -60,91 +60,28 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # =========================
 
 EXPORT_FIELDS = [
-    "id",
     "shop__reference",
     "ean",
-    "short_code",
     "label_1",
-    "label_2",
-    "label_3",
     "selling_price",
-    "price_excl_tax",
-    "global_price",
-    "shop_price",
     "promo_price",
-    "selling_unit",
-    "input_method",
-    "blocked",
-    "margin_rate",
-    "buying_price",
-    "shipping_cost",
-    "tare",
-    "handle_stock",
     "stock",
-    "low_stock_alert",
     "department__code",
-    "department__name",
-    "product_type",
-    "discount_allowed",
-    "manual_discount_allowed",
-    "hide_linked_products",
-    "vat__code",
-    "vat__value",
-    "is_component",
-    "has_linked_products",
-    "qualifies_for_ticket_resto",
-    "ordering_unit",
-    "packaging_unit",
-    "packaged_quantity",
-    "supplier_reference",
-    "country_origin",
     "extras",
     "suppliers",
 ]
 
 CSV_HEADERS = [
-    "id",
     "magasin",
     "ean",
-    "code court",
     "label 1",
-    "label 2",
-    "label 3",
     "prix de vente",
-    "prix hors taxes",
-    "prix enseigne",
-    "prix magasin",
     "prix promo",
-    "unité de vente",
-    "procédé entrée",
-    "bloqué",
-    "marge",
-    "prix achat H.T.",
-    "frais de port",
-    "tare",
-    "gérer le stock",
     "stock",
-    "alerte stock bas à partir de",
     "code département",
-    "nom département",
-    "type de produit",
-    "remise automatique autorisée",
-    "remise manuelle autorisée",
-    "cacher les articles liés",
-    "code T.V.A.",
-    "taux T.V.A.",
-    "est un composant",
-    "a des articles liés",
-    "payable en titres restaurant",
-    "unité de commande",
-    "unité de conditionnement",
-    "quantité conditionnée",
-    "référence fournisseur",
-    "origine",
     "extras",
     "nom fournisseur",
     "code fournisseur",
-    "code marketing prosuma",
 ]
 
 # =========================
@@ -257,43 +194,23 @@ def export_promo_for_pos(pos_host):
             for p in products:
                 row = []
 
-                # Champs simples
                 for field in EXPORT_FIELDS:
                     if field == "suppliers":
                         continue
-
                     value = p
                     for part in field.split("__"):
                         value = value.get(part) if isinstance(value, dict) else None
-
                     row.append(value)
 
                 # Fournisseurs
                 suppliers = p.get("suppliers", [])
                 names, codes = [], []
-
                 if isinstance(suppliers, list):
                     for s in suppliers:
                         names.append(str(s.get("name", "")))
                         codes.append(str(s.get("code", "")))
-
                 row.append(", ".join(names))
                 row.append(", ".join(codes))
-
-                # Code marketing Prosuma
-                extras = p.get("extras", {})
-                marketing_code = ""
-
-                if isinstance(extras, dict):
-                    marketing_code = extras.get("prosuma_marketing_code", "")
-                elif isinstance(extras, str):
-                    try:
-                        extras_json = json.loads(extras)
-                        marketing_code = extras_json.get("prosuma_marketing_code", "")
-                    except Exception:
-                        pass
-
-                row.append(marketing_code)
 
                 writer.writerow(row)
 
