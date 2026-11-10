@@ -24,8 +24,8 @@ POS4_PASSWORD = os.getenv('POS4_PASSWORD', 'xikwWR4z')
 
 base_path = os.getenv('BASE_PATH', r"\\10.0.70.169\share" if os.name == 'nt' else "/mnt/share")
 base = Path(base_path)
-EXPORT_DIR = Path("/mnt/share/ASTEN/SALAMI/ABIBI_MARLILY/RealisationProsuma/VerificationPrixPromo/ASTEN_GPV/PRIX PROMO ASTEN/")
-EXPORT_DIR_LOG = Path("/home/ifofana/logs/promo")
+EXPORT_DIR = Path(os.getenv("EXPORT_DIR", "/mnt/share/ASTEN/SALAMI/ABIBI_MARLILY/RealisationProsuma/VerificationPrixPromo/ASTEN_GPV/PRIX PROMO ASTEN/"))
+EXPORT_DIR_LOG = Path(os.getenv("EXPORT_DIR_LOG", "/home/ifofana/logs/promo"))
 
 
 # ensure directory exists and is writable at start-up
