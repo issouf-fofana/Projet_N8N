@@ -1,0 +1,190 @@
+{% extends 'core/base.html' %}
+{% load auth_extras %}
+
+{% block title %}Tâches planifiées{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tache-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: box-shadow .2s;
+  }
+  .tache-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+  .tache-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .tache-icon {
+    width: 42px; height: 42px;
+    border-radius: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .tache-nom { font-weight: 700; font-size: .92rem; color: #1f2937; }
+  .tache-desc { font-size: .8rem; color: #9ca3af; margin-top: 2px; }
+  .statut-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px;
+    font-size: .75rem; font-weight: 700;
+    border-radius: 20px;
+  }
+  .statut-ok      { background: #d1fae5; color: #065f46; }
+  .statut-erreur  { background: #fee2e2; color: #991b1b; }
+  .statut-inconnu { background: #f3f4f6; color: #6b7280; }
+  .tache-body { padding: 14px 20px; }
+  .tache-meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    font-size: .82rem; color: #6b7280; margin-bottom: 10px;
+  }
+  .tache-meta strong { color: #374151; }
+  .log-line {
+    background: #f8fafc;
+    border: 1px solid #e5e9f2;
+    padding: 8px 12px;
+    font-family: monospace;
+    font-size: .78rem;
+    color: #374151;
+    border-radius: 0;
+    word-break: break-all;
+  }
+  .dot-pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+  .dot-ok      { background: #10b981; }
+  .dot-erreur  { background: #ef4444; }
+  .dot-inconnu { background: #9ca3af; }
+  .refresh-bar {
+    display: flex; align-items: center; gap: 10px;
+    font-size: .8rem; color: #9ca3af;
+  }
+  #countdown { font-weight: 700; color: #6b4c35; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1><i class="bi bi-calendar-check"></i> Tâches planifiées</h1>
+    <div style="font-size:.85rem;color:#9ca3af;margin-top:4px">Supervision des crons et tâches automatiques</div>
+  </div>
+  <div class="refresh-bar">
+    <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+    Actualisation dans <span id="countdown">30</span>s
+    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="rafraichir()" style="border-radius:0">
+      <i class="bi bi-arrow-clockwise"></i> Maintenant
+    </button>
+  </div>
+</div>
+
+<div id="taches-container">
+{% for t in taches %}
+<div class="tache-card" id="tache-{{ t.id }}">
+  <div class="tache-header">
+    <div class="tache-icon" style="background:{{ t.couleur }}1a;color:{{ t.couleur }}">
+      <i class="bi {{ t.icone }}"></i>
+    </div>
+    <div style="flex:1">
+      <div class="tache-nom">{{ t.nom }}</div>
+      <div class="tache-desc">{{ t.description }}</div>
+    </div>
+    <div>
+      {% if t.statut == 'ok' %}
+        <span class="statut-badge statut-ok" id="badge-{{ t.id }}">
+          <span class="dot-pulse dot-ok"></span> OK
+        </span>
+      {% elif t.statut == 'erreur' %}
+        <span class="statut-badge statut-erreur" id="badge-{{ t.id }}">
+          <span class="dot-pulse dot-erreur"></span> Erreur
+        </span>
+      {% else %}
+        <span class="statut-badge statut-inconnu" id="badge-{{ t.id }}">
+          <span class="dot-pulse dot-inconnu"></span> Inconnu
+        </span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="tache-body">
+    <div class="tache-meta">
+      <div><strong>Heure cron</strong> {{ t.heure }}</div>
+      <div><strong>Dernière exéc.</strong>
+        <span id="exec-{{ t.id }}">{{ t.derniere_exec|default:"—" }}</span>
+      </div>
+      {% if t.resume %}
+      <div><strong>Résultat</strong>
+        <span id="resume-{{ t.id }}" style="color:#10b981;font-weight:600">{{ t.resume }}</span>
+      </div>
+      {% else %}
+      <div style="display:none"><span id="resume-{{ t.id }}"></span></div>
+      {% endif %}
+    </div>
+    {% if t.derniere_ligne %}
+    <div class="log-line" id="log-{{ t.id }}">{{ t.derniere_ligne|truncatechars:200 }}</div>
+    {% endif %}
+  </div>
+</div>
+{% empty %}
+<div class="alert alert-warning">Aucune tâche définie.</div>
+{% endfor %}
+</div>
+
+<script>
+let _countdown = 30;
+let _timer;
+
+function rafraichir() {
+  document.getElementById('refreshIcon').classList.add('spin');
+  fetch(window.location.pathname, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+    .then(r => r.json())
+    .then(data => {
+      data.taches.forEach(t => {
+        // Badge statut
+        const badge = document.getElementById('badge-' + t.id);
+        if (badge) {
+          const cls = t.statut === 'ok' ? 'statut-ok' : t.statut === 'erreur' ? 'statut-erreur' : 'statut-inconnu';
+          const dot = t.statut === 'ok' ? 'dot-ok' : t.statut === 'erreur' ? 'dot-erreur' : 'dot-inconnu';
+          const label = t.statut === 'ok' ? 'OK' : t.statut === 'erreur' ? 'Erreur' : 'Inconnu';
+          badge.className = 'statut-badge ' + cls;
+          badge.innerHTML = `<span class="dot-pulse ${dot}"></span> ${label}`;
+        }
+        // Dernière exéc
+        const exec = document.getElementById('exec-' + t.id);
+        if (exec && t.derniere_exec) exec.textContent = t.derniere_exec;
+        // Résumé
+        const resume = document.getElementById('resume-' + t.id);
+        if (resume && t.resume) { resume.textContent = t.resume; resume.closest('div').style.display = ''; }
+        // Dernière ligne log
+        const log = document.getElementById('log-' + t.id);
+        if (log && t.derniere_ligne) log.textContent = t.derniere_ligne;
+      });
+    })
+    .catch(() => {})
+    .finally(() => {
+      document.getElementById('refreshIcon').classList.remove('spin');
+      _countdown = 30;
+    });
+}
+
+function tick() {
+  _countdown--;
+  document.getElementById('countdown').textContent = _countdown;
+  if (_countdown <= 0) { rafraichir(); _countdown = 30; }
+}
+
+_timer = setInterval(tick, 1000);
+
+// Style spin
+const style = document.createElement('style');
+style.textContent = '.spin { animation: spin .6s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }';
+document.head.appendChild(style);
+</script>
+{% endblock %}

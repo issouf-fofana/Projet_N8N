@@ -416,3 +416,155 @@ def rapport_controle(request, filename):
         return JsonResponse({"error": "Rapport introuvable"}, status=404)
     with open(path, encoding="utf-8") as f:
         return JsonResponse(json.load(f))
+
+
+# ─── Vue tâches planifiées ────────────────────────────────────────────────────
+
+BASE_DIR = Path(__file__).parent.parent
+
+# Définition des tâches (chemins relatifs à BASE_DIR)
+TACHES_DEF = [
+    {
+        "id":          "export_pos",
+        "nom":         "Export articles commandables (POS)",
+        "description": "Télécharge les articles commandables depuis chaque POS",
+        "cron":        "0 2 * * *",
+        "heure":       "02h00",
+        "log":         BASE_DIR / "Article_commandable" / "logs" / "cron_export.log",
+        "icone":       "bi-cloud-download",
+        "couleur":     "#6b4c35",
+        "mots_ok":     ["Extraction terminée", "terminée"],
+        "mots_ko":     ["ERREUR", "⛔", "Traceback"],
+    },
+    {
+        "id":          "controle_conformite",
+        "nom":         "Contrôle conformité articles",
+        "description": "Compare les articles POS avec le référentiel Asten",
+        "cron":        "0 4 * * *",
+        "heure":       "04h00",
+        "log":         BASE_DIR / "Article_commandable" / "logs" / "cron_controle.log",
+        "icone":       "bi-clipboard-check",
+        "couleur":     "#10b981",
+        "mots_ok":     ["Terminé —"],
+        "mots_ko":     ["ERREUR", "Traceback"],
+    },
+    {
+        "id":          "verif_points",
+        "nom":         "Vérification points fidélité",
+        "description": "Compare les points entre Asten et le référentiel",
+        "cron":        "0 6 * * *",
+        "heure":       "06h00",
+        "log":         BASE_DIR / "Entree_journal" / "logs" / "verif_points.log",
+        "icone":       "bi-stars",
+        "couleur":     "#f59e0b",
+        "mots_ok":     ["terminée", "Terminé"],
+        "mots_ko":     ["ERREUR", "Traceback", "erreur"],
+    },
+    {
+        "id":          "purge",
+        "nom":         "Purge anciens rapports",
+        "description": "Supprime les rapports de plus de 30 jours",
+        "cron":        "0 5 * * *",
+        "heure":       "05h00",
+        "log":         BASE_DIR / "Article_commandable" / "logs" / "cron_purge.log",
+        "icone":       "bi-trash",
+        "couleur":     "#6b7280",
+        "mots_ok":     ["Purge terminée"],
+        "mots_ko":     ["ERREUR", "Traceback"],
+    },
+    {
+        "id":          "collecte_journal",
+        "nom":         "Collecte entrées journal POS",
+        "description": "Collecte les entrées journal depuis les POS",
+        "cron":        "—",
+        "heure":       "Manuel",
+        "log":         BASE_DIR / "Entree_journal" / "logs" / "collector.log",
+        "icone":       "bi-journal-arrow-down",
+        "couleur":     "#8b5cf6",
+        "mots_ok":     ["Collecte terminée", "terminée"],
+        "mots_ko":     ["ERREUR", "Traceback", "Erreur"],
+    },
+]
+
+
+def _lire_statut_log(tache):
+    """Lit les dernières lignes du log et détermine le statut."""
+    log_path = tache["log"]
+    if not log_path.exists():
+        return {"statut": "inconnu", "derniere_ligne": "Aucun log trouvé", "derniere_exec": None, "nb_lignes": 0}
+
+    try:
+        # Lire les 100 dernières lignes
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            lignes = f.readlines()
+        dernieres = lignes[-100:] if len(lignes) > 100 else lignes
+        nb_lignes = len(lignes)
+
+        if not dernieres:
+            return {"statut": "inconnu", "derniere_ligne": "Log vide", "derniere_exec": None, "nb_lignes": 0}
+
+        derniere = dernieres[-1].strip()
+
+        # Chercher la date de dernière exécution (format ISO dans les logs)
+        import re
+        derniere_exec = None
+        for ligne in reversed(dernieres):
+            m = re.search(r'(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2})', ligne)
+            if m:
+                derniere_exec = m.group(1)
+                break
+
+        # Déterminer le statut
+        statut = "inconnu"
+        for mot in tache["mots_ok"]:
+            if any(mot in l for l in dernieres[-5:]):
+                statut = "ok"
+                break
+        if statut != "ok":
+            for mot in tache["mots_ko"]:
+                if any(mot in l for l in dernieres[-20:]):
+                    statut = "erreur"
+                    break
+
+        # Chercher résumé (ex: "51 OK, 1 erreurs")
+        resume = None
+        for ligne in reversed(dernieres[-10:]):
+            if "OK" in ligne and ("erreur" in ligne.lower() or "terminé" in ligne.lower()):
+                resume = ligne.strip()
+                break
+
+        return {
+            "statut": statut,
+            "derniere_ligne": derniere,
+            "derniere_exec": derniere_exec,
+            "nb_lignes": nb_lignes,
+            "resume": resume,
+            "log_path": str(log_path),
+        }
+    except Exception as e:
+        return {"statut": "erreur", "derniere_ligne": str(e), "derniere_exec": None, "nb_lignes": 0}
+
+
+@login_required
+def taches_planifiees(request):
+    """Vue tableau de bord des tâches planifiées."""
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        # Retourne le statut JSON pour le rafraîchissement auto
+        taches = []
+        for t in TACHES_DEF:
+            statut = _lire_statut_log(t)
+            taches.append({
+                "id":           t["id"],
+                "statut":       statut["statut"],
+                "derniere_exec": statut.get("derniere_exec"),
+                "resume":       statut.get("resume"),
+                "derniere_ligne": statut.get("derniere_ligne", "")[:200],
+            })
+        return JsonResponse({"taches": taches})
+
+    taches = []
+    for t in TACHES_DEF:
+        statut = _lire_statut_log(t)
+        taches.append({**t, **statut, "log": str(t["log"])})
+
+    return render(request, "entree_journal/taches_planifiees.html", {"taches": taches})
