@@ -237,9 +237,27 @@ def export_promo_for_pos(pos_host):
 # =========================
 
 if __name__ == "__main__":
-    import sys
-    pos_filter = sys.argv[1:] if len(sys.argv) > 1 else POS_LIST
-    logger.info(f"Début d'extraction pour : {pos_filter}")
-    for pos in pos_filter:
-        export_promo_for_pos(pos)
+    import argparse
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    parser = argparse.ArgumentParser(description="Export articles commandables depuis les POS")
+    parser.add_argument("pos", nargs="*", help="POS à traiter (défaut: tous)")
+    parser.add_argument("--workers", type=int, default=8,
+                        help="Nombre de POS traités en parallèle (défaut: 8)")
+    args = parser.parse_args()
+
+    pos_filter = args.pos if args.pos else POS_LIST
+    workers = min(args.workers, len(pos_filter))
+
+    logger.info(f"Début d'extraction pour {len(pos_filter)} POS ({workers} en parallèle)")
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(export_promo_for_pos, pos): pos for pos in pos_filter}
+        for future in as_completed(futures):
+            pos = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                logger.error(f"⛔ Exception inattendue pour {pos} : {e}")
+
     logger.info("Extraction terminée")
