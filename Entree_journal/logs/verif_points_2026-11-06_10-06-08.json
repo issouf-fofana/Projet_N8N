@@ -1,0 +1,10 @@
+{
+  "started_at": "2026-11-06T10:06:06.994631",
+  "elapsed_s": 1.2,
+  "source_file": "999_articlespoints_20261020121413.csv",
+  "total": 1905,
+  "ok": 0,
+  "ecart": 0,
+  "absent": 1905,
+  "ecarts": []
+}

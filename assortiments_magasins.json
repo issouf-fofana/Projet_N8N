@@ -1,0 +1,248 @@
+{
+    "030": [
+        {
+            "code_magasin": "035",
+            "nom_magasin": "HYPER HAYAT"
+        }
+    ],
+    "050": [
+        {
+            "code_magasin": "050",
+            "nom_magasin": "CASH CENTER ZONE 4"
+        }
+    ],
+    "100": [
+        {
+            "code_magasin": "100",
+            "nom_magasin": "CASINO 2 PLATEAUX"
+        }
+    ],
+    "130": [
+        {
+            "code_magasin": "220",
+            "nom_magasin": "SUPER U PLATEAU"
+        }
+    ],
+    "230": [
+        {
+            "code_magasin": "230",
+            "nom_magasin": "HYPER CASINO PRIMA"
+        }
+    ],
+    "235": [
+        {
+            "code_magasin": "235",
+            "nom_magasin": "SUPER U DJIBI"
+        }
+    ],
+    "236": [
+        {
+            "code_magasin": "110",
+            "nom_magasin": "SUPER U VALLON"
+        }
+    ],
+    "240": [
+        {
+            "code_magasin": "240",
+            "nom_magasin": "FNAC CAP SUD"
+        },
+        {
+            "code_magasin": "245",
+            "nom_magasin": "FNAC CAP NORD"
+        }
+    ],
+    "250": [
+        {
+            "code_magasin": "250",
+            "nom_magasin": "GIFI Z4"
+        }
+    ],
+    "261": [
+        {
+            "code_magasin": "261",
+            "nom_magasin": "MONOP COCODY"
+        }
+    ],
+    "290": [
+        {
+            "code_magasin": "080",
+            "nom_magasin": "MANDARINE MARCORY"
+        },
+        {
+            "code_magasin": "290",
+            "nom_magasin": "MANDARINE BIETRY"
+        },
+        {
+            "code_magasin": "291",
+            "nom_magasin": "MANDARINE DANGA"
+        },
+        {
+            "code_magasin": "292",
+            "nom_magasin": "MANDARINE KOUMASSI"
+        },
+        {
+            "code_magasin": "293",
+            "nom_magasin": "MANDARINE AMBASSADE CHINE"
+        }
+    ],
+    "291": [
+        {
+            "code_magasin": "120",
+            "nom_magasin": "MANDARINE GOLF"
+        },
+        {
+            "code_magasin": "281",
+            "nom_magasin": "CASINO MANDARINE ANGRE"
+        },
+        {
+            "code_magasin": "294",
+            "nom_magasin": "CASINO MANDARINE RIVIERA 4"
+        },
+        {
+            "code_magasin": "296",
+            "nom_magasin": "MANDARINE DJOROGOBITE"
+        }
+    ],
+    "295": [
+        {
+            "code_magasin": "295",
+            "nom_magasin": "CASINO ALLABRA"
+        }
+    ],
+    "301": [
+        {
+            "code_magasin": "301",
+            "nom_magasin": "S2P SOCOCE ZONE 3"
+        },
+        {
+            "code_magasin": "305",
+            "nom_magasin": "S2P SOCOCE RUE DES JARDINS"
+        },
+        {
+            "code_magasin": "308",
+            "nom_magasin": "S2P SOCOCE ABOBO"
+        },
+        {
+            "code_magasin": "311",
+            "nom_magasin": "SOCOCE CHATEAU EAU"
+        }
+    ],
+    "302": [
+        {
+            "code_magasin": "302",
+            "nom_magasin": "S2P HYPER U"
+        }
+    ],
+    "303": [
+        {
+            "code_magasin": "303",
+            "nom_magasin": "S2P SOCOCE BOUAKE"
+        },
+        {
+            "code_magasin": "304",
+            "nom_magasin": "S2P SOCOCE DALOA"
+        },
+        {
+            "code_magasin": "306",
+            "nom_magasin": "S2P SOCOCE YAMOUSSOKRO"
+        },
+        {
+            "code_magasin": "307",
+            "nom_magasin": "S2P SOCOCE GAGNOA"
+        },
+        {
+            "code_magasin": "309",
+            "nom_magasin": "S2P SUPERETTE SOCOCE BOUAKE"
+        },
+        {
+            "code_magasin": "310",
+            "nom_magasin": "S2P ECOMARCHE SAN PEDRO"
+        }
+    ],
+    "312": [
+        {
+            "code_magasin": "312",
+            "nom_magasin": "S2P SOCOCE RIVIERA"
+        }
+    ],
+    "410": [
+        {
+            "code_magasin": "361",
+            "nom_magasin": "CASH IVOIRE ABOBO"
+        },
+        {
+            "code_magasin": "371",
+            "nom_magasin": "CASH IVOIRE ANANERAIE"
+        },
+        {
+            "code_magasin": "378",
+            "nom_magasin": "CASH IVOIRE DJE KONAN"
+        },
+        {
+            "code_magasin": "412",
+            "nom_magasin": "CASH IVOIRE DOKUI"
+        }
+    ],
+    "420": [
+        {
+            "code_magasin": "353",
+            "nom_magasin": "CASH IVOIRE U ANGRE"
+        },
+        {
+            "code_magasin": "354",
+            "nom_magasin": "CASH IVOIRE U TOITS ROUGES"
+        },
+        {
+            "code_magasin": "356",
+            "nom_magasin": "CASH IVOIRE U COCODY"
+        },
+        {
+            "code_magasin": "357",
+            "nom_magasin": "CASH IVOIRE U REMBLAIS"
+        },
+        {
+            "code_magasin": "364",
+            "nom_magasin": "CASH IVOIRE U 7 DECEMBRE"
+        },
+        {
+            "code_magasin": "368",
+            "nom_magasin": "CASH IVOIRE U SADIGUIBA"
+        },
+        {
+            "code_magasin": "372",
+            "nom_magasin": "CASH IVOIRE U MAROC"
+        },
+        {
+            "code_magasin": "376",
+            "nom_magasin": "CASH IVOIRE U SICOGI ANGRE"
+        },
+        {
+            "code_magasin": "410",
+            "nom_magasin": "CASH IVOIRE U BESSIKOI"
+        },
+        {
+            "code_magasin": "411",
+            "nom_magasin": "CASH IVOIRE U ANTENNE"
+        },
+        {
+            "code_magasin": "413",
+            "nom_magasin": "CASH IVOIRE U AGOUTI"
+        },
+        {
+            "code_magasin": "414",
+            "nom_magasin": "CASH IVOIRE U PORT-BOUËT"
+        },
+        {
+            "code_magasin": "415",
+            "nom_magasin": "CASH IVOIRE U M'BADON"
+        },
+        {
+            "code_magasin": "416",
+            "nom_magasin": "CASH IVOIRE U LATRILLE"
+        },
+        {
+            "code_magasin": "417",
+            "nom_magasin": "CASH IVOIRE U BINGERVILLE"
+        }
+    ]
+}

@@ -1100,6 +1100,9 @@
         <a href="{% url 'entree_journal:verif_points' %}" class="sidebar-link {% if request.resolver_match.url_name == 'verif_points' %}active{% endif %}" style="display:flex;align-items:center;gap:10px;padding:9px 20px;color:rgba(255,255,255,.75);text-decoration:none;font-size:.87rem;border-radius:0;transition:background .15s;">
             <i class="bi bi-stars"></i> Points Fidélité
         </a>
+        <a href="{% url 'entree_journal:article_commandable' %}" class="sidebar-link {% if request.resolver_match.url_name == 'article_commandable' %}active{% endif %}" style="display:flex;align-items:center;gap:10px;padding:9px 20px;color:rgba(255,255,255,.75);text-decoration:none;font-size:.87rem;border-radius:0;transition:background .15s;">
+            <i class="bi bi-clipboard-check"></i> Articles Commandables
+        </a>
 
         <!-- Paramètres (selon permissions) -->
         {% with u=request.user %}

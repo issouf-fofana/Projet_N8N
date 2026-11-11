@@ -175,6 +175,9 @@ def export_promo_for_pos(pos_host):
             break
 
         products.extend(results)
+        total_count = data.get("count", "?")
+        final_page  = data.get("final_page", "?")
+        logger.info(f"  page {page}/{final_page} — {len(products)}/{total_count} articles chargés")
         page += 1
 
     logger.info(f"✔ {len(products)} articles commandables récupérés")
@@ -183,8 +186,13 @@ def export_promo_for_pos(pos_host):
         print("⚠️ Aucun article – fichier non généré")
         return
 
+    # Fichier fixe par POS — écrase l'existant pour éviter les doublons
+    # On garde aussi une archive horodatée dans le sous-dossier archive/
+    filepath = EXPORT_DIR / f"commandable_{pos_host}.csv"
+    archive_dir = EXPORT_DIR / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filepath = EXPORT_DIR / f"commandable_{pos_host}_{timestamp}.csv"
+    filepath_archive = archive_dir / f"commandable_{pos_host}_{timestamp}.csv"
 
     try:
         with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
@@ -214,7 +222,11 @@ def export_promo_for_pos(pos_host):
 
                 writer.writerow(row)
 
-        logger.info(f"✅ Fichier généré : {filepath}")
+        logger.info(f"✅ Fichier principal : {filepath}")
+        # Copier en archive horodatée
+        import shutil
+        shutil.copy2(filepath, filepath_archive)
+        logger.info(f"   Archive            : {filepath_archive}")
     except PermissionError as e:
         logger.error(f"⛔ Impossible d'écrire le fichier {filepath} : {e}")
         logger.error("Vérifiez les permissions ou modifiez BASE_PATH dans le .env pour un répertoire local.")
@@ -225,7 +237,9 @@ def export_promo_for_pos(pos_host):
 # =========================
 
 if __name__ == "__main__":
-    logger.info("Début d'extraction des promos pour tous les POS")
-    for pos in POS_LIST:
+    import sys
+    pos_filter = sys.argv[1:] if len(sys.argv) > 1 else POS_LIST
+    logger.info(f"Début d'extraction pour : {pos_filter}")
+    for pos in pos_filter:
         export_promo_for_pos(pos)
     logger.info("Extraction terminée")

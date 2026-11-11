@@ -1,0 +1,30 @@
+{
+  "started_at": "2026-11-06T08:32:16.738118",
+  "elapsed_s": 17.53,
+  "results": [
+    {
+      "pos_id": "pos16",
+      "pos_name": "POS 16",
+      "status": "ok",
+      "count": 667,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos16_2026-11-06_08-31-59.csv",
+      "collected_at": "2026-11-06T08:31:59.206616+00:00"
+    },
+    {
+      "pos_id": "pos17",
+      "pos_name": "POS 17",
+      "status": "ok",
+      "count": 687,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos17_2026-11-06_08-32-04.csv",
+      "collected_at": "2026-11-06T08:32:04.207991+00:00"
+    },
+    {
+      "pos_id": "pos18",
+      "pos_name": "POS 18",
+      "status": "ok",
+      "count": 684,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos18_2026-11-06_08-32-11.csv",
+      "collected_at": "2026-11-06T08:32:11.300764+00:00"
+    }
+  ]
+}

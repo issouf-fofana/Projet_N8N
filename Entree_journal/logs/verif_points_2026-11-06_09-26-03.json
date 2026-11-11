@@ -1,0 +1,4011 @@
+{
+  "started_at": "2026-11-06T09:25:21.513270",
+  "elapsed_s": 42.0,
+  "source_file": "999_articlespoints_20261020121413.csv",
+  "total": 1905,
+  "ok": 0,
+  "ecart": 0,
+  "absent": 1905,
+  "ecarts": [
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "4004513",
+      "points_attendus": 75,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "14014021",
+      "points_attendus": 40,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "21021593",
+      "points_attendus": 25,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100012215",
+      "points_attendus": 30,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100035522",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100044654",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100067961",
+      "points_attendus": 30,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100068807",
+      "points_attendus": 20,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100074550",
+      "points_attendus": 80,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100078627",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100078630",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100078631",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100078633",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100078635",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100078637",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100078640",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100079913",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100086120",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100092388",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100116292",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100116293",
+      "points_attendus": 30,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100120934",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100139332",
+      "points_attendus": 45,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100139333",
+      "points_attendus": 55,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100139334",
+      "points_attendus": 65,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100143197",
+      "points_attendus": 50,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100188769",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100199416",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100209291",
+      "points_attendus": 35,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100221043",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245523",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245524",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245558",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245562",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245563",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245564",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245565",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245566",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245567",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245569",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245570",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245571",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245573",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245577",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245579",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245580",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245581",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245587",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245595",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245599",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245600",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245602",
+      "points_attendus": 25,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245798",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245801",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245803",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245805",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245810",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245820",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245821",
+      "points_attendus": 30,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245822",
+      "points_attendus": 25,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245830",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245831",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245832",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245833",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245834",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245908",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245980",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245981",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100245985",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246714",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246719",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246737",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246747",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246748",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246749",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246790",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246794",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246866",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246869",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246875",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246880",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246881",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246882",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246890",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246892",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246912",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246915",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246922",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246923",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246930",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246932",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246935",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246939",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246949",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246952",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246957",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246966",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246967",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246968",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100246969",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247013",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247015",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247016",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247018",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247021",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247023",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247024",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247025",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247029",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247060",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247062",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247067",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247068",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247081",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247091",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247114",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247115",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247179",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247180",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247199",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247209",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247217",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247229",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247236",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247240",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247241",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247242",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247243",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247244",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247247",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247249",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247250",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247259",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247261",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247262",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247266",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247269",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247271",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247322",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247332",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247342",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247358",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247360",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247363",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247364",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247368",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247369",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247372",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247437",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247440",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247441",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247443",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247448",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247452",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247454",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247456",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247458",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247459",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247492",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247493",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247496",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247497",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247544",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247548",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247550",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247556",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247560",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247572",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247575",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247576",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247577",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247579",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247580",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247606",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247614",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247620",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247625",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247626",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247627",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247628",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247629",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247630",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247631",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247632",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247634",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247635",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247636",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247637",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247638",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247640",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247643",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247644",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247651",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247652",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247655",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247657",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247661",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247662",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247665",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247669",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247672",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247673",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247675",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247676",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247693",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247718",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247772",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247774",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247775",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247777",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247778",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247780",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247781",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247782",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247783",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247786",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247797",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247798",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247812",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247813",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247814",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247818",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247819",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247820",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247821",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247822",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247824",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247835",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247836",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247844",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247848",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247852",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247858",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247859",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247860",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247861",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247884",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100247898",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248225",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248248",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248251",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248495",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248553",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248562",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248583",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248593",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248601",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248602",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248603",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248607",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248609",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248631",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248632",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248634",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248637",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248639",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248642",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248780",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248790",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248795",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248801",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248803",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248806",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248807",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248810",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248811",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248813",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248815",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248818",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248820",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248821",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248822",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248823",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248825",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248832",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248835",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248872",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248909",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248912",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248915",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248916",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100248917",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249062",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249077",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249078",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249082",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249098",
+      "points_attendus": 20,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249160",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249162",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249164",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249174",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249198",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249589",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249592",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249596",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249597",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249599",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249600",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100249602",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250241",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250246",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250247",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250249",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250251",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250257",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250453",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250462",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250475",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250477",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250478",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250479",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250481",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250482",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250491",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250497",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250501",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250502",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250503",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250631",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250632",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250640",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250642",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250643",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250645",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250692",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250723",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250733",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250734",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250936",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250937",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250939",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250940",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100250946",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100251103",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100252087",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254214",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254247",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254327",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254667",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254693",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254701",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254705",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254712",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254737",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254935",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254947",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254953",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254954",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100254955",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100255051",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100256284",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100261399",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100266705",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100266726",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100266862",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100266912",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267218",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267233",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267241",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267274",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267291",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267349",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267358",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267360",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267449",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100267832",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100275227",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100278748",
+      "points_attendus": 50,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100278920",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100278921",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100278922",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100280311",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100280339",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100280342",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100280347",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100280356",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100280360",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100280963",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100283717",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100283718",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100286225",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100286306",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100286307",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100290600",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100290602",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100290603",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100291212",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100292440",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100292675",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100292676",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100295051",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100295057",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100296090",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100296092",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100296621",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297213",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297254",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297257",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297260",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297361",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297380",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297399",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297455",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297456",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297478",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297558",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297569",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297574",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297576",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297577",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100297583",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100298579",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100298587",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100298589",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100298591",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100300936",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100302231",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100302244",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100302248",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100302304",
+      "points_attendus": 40,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100302311",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100307515",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100308772",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100310620",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100310622",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100310631",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100310635",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100310986",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100311209",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100311722",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100311729",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100311731",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100311758",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100313316",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100316883",
+      "points_attendus": 40,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318203",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318206",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318269",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318317",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318328",
+      "points_attendus": 6,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318337",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318907",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318908",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100318919",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100320222",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100320273",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100320275",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100322769",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100322770",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100322773",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100324185",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100327258",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100327261",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100327262",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100327264",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100334164",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100336343",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342303",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342305",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342306",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342308",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342309",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342310",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342311",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342312",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100342855",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100343866",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344221",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344223",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344225",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344226",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344227",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344517",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344523",
+      "points_attendus": 8,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344577",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100344866",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100345533",
+      "points_attendus": 15,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100345681",
+      "points_attendus": 7,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100346212",
+      "points_attendus": 10,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100346219",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100348083",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100348095",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100348172",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100349394",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100353375",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100353515",
+      "points_attendus": 9,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100353660",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100353661",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100353666",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100353667",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100354915",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100356031",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100365419",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100365645",
+      "points_attendus": 12,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100373226",
+      "points_attendus": 25,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100373384",
+      "points_attendus": 50,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100375027",
+      "points_attendus": 50,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100375483",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100377683",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    },
+    {
+      "pos_id": "pos4",
+      "shop_ref": "35",
+      "article_code": "100377684",
+      "points_attendus": 5,
+      "points_pos": "",
+      "statut": "ARTICLE_ABSENT"
+    }
+  ]
+}

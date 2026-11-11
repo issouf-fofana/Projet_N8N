@@ -1,0 +1,1044 @@
+{% extends 'core/base.html' %}
+{% load auth_extras %}
+{% block title %}Articles Commandables — Conformité{% endblock %}
+
+{% block extra_css %}
+<style>
+body { background-color: #e5e7eb !important; }
+.main-content { background: #e5e7eb !important; padding: 20px !important; }
+
+.page-header {
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    color: #1f2937;
+    padding: 20px 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 25px;
+    border: 1px solid rgba(229,231,235,0.8);
+}
+.page-header h1 { font-size:1.6rem; font-weight:700; margin:0; color:#1f2937; }
+.page-header h1 i { color:#6b4c35; }
+
+/* Stat cards */
+.stat-card {
+    background:#fff;
+    padding:24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border:1px solid #e5e7eb;
+    transition: transform .2s ease, box-shadow .2s ease;
+    position:relative; overflow:hidden;
+    min-height:140px; display:flex; flex-direction:column;
+}
+.stat-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.12); }
+.stat-card.info    { border-top: 3px solid #6b4c35; }
+.stat-card.success { border-top: 3px solid #10b981; }
+.stat-card.danger  { border-top: 3px solid #ef4444; }
+.stat-card.warning { border-top: 3px solid #f59e0b; }
+
+.stat-value { font-size:2.4rem; font-weight:700; color:#1f2937; margin:6px 0; }
+.stat-label { font-size:0.78rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+.stat-icon  { font-size:3rem; opacity:.1; position:absolute; right:16px; top:50%; transform:translateY(-50%); color:#1f2937; }
+.stat-sub   { font-size:.8rem; color:#9ca3af; margin-top:auto; }
+
+/* Cards */
+.dashboard-card {
+    border-radius:0; border:1px solid #e5e7eb;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    background:#fff; overflow:hidden; margin-bottom:20px;
+}
+.dashboard-card .card-header {
+    background:rgba(249,250,251,0.9);
+    color:#1f2937; border-bottom:1px solid #e5e7eb;
+    padding:14px 20px; font-weight:600; font-size:.9rem;
+    text-transform:uppercase; letter-spacing:.04em;
+}
+
+/* Table */
+.table { margin:0; }
+.table thead { background:#f9fafb; }
+.table thead th { border-bottom:2px solid #e5e7eb; font-weight:600; color:#374151; padding:11px 14px; font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; }
+.table tbody tr:hover { background:#f9fafb; }
+.table tbody td { padding:10px 14px; vertical-align:middle; font-size:.88rem; }
+
+/* Badges */
+.badge { padding:5px 10px; border-radius:0; font-weight:500; font-size:.78rem; }
+
+/* Filtres */
+.filtre-group .form-control,
+.filtre-group .form-select {
+    border-radius:0; border-color:#d1d5db; font-size:.88rem;
+}
+.filtre-group .form-control:focus,
+.filtre-group .form-select:focus {
+    border-color:#6b4c35; box-shadow:0 0 0 3px rgba(107,76,53,.1);
+}
+
+/* Btn primary */
+.btn-primary {
+    border-radius:0; font-weight:600;
+    background: linear-gradient(135deg, #6b4c35 0%, #8b5e3c 100%);
+    border:none;
+}
+.btn-primary:hover { background: linear-gradient(135deg,#5a3d28 0%,#7a4f31 100%); }
+.btn-primary:disabled { opacity:.6; }
+
+/* Progress bar conformite */
+.progress { border-radius:0; }
+
+/* Pagination */
+.page-link { border-radius:0 !important; color:#6b4c35; }
+.page-item.active .page-link { background:#6b4c35; border-color:#6b4c35; }
+
+/* Onglets OK/KO */
+.tab-btn {
+    background:none; border:none; border-bottom:3px solid transparent;
+    padding:8px 16px; font-size:.88rem; font-weight:600; cursor:pointer;
+    color:#6b7280; transition:all .15s; white-space:nowrap;
+}
+.tab-btn:hover { color:#1f2937; }
+.tab-btn.active { border-bottom-color:#6b4c35; color:#6b4c35; }
+.tab-btn[data-val="OK"].active { border-bottom-color:#10b981; color:#10b981; }
+.tab-btn[data-val="KO"].active { border-bottom-color:#ef4444; color:#ef4444; }
+.tab-count { font-weight:400; font-size:.82rem; opacity:.75; }
+
+/* Ligne KO légère teinte */
+.table-danger-soft { background: rgba(239,68,68,.04) !important; }
+.table-danger-soft:hover { background: rgba(239,68,68,.08) !important; }
+
+/* Bandeau de progression */
+#bandeauProgression {
+    background:rgba(107,76,53,.08);
+    border:1px solid rgba(107,76,53,.2);
+    border-radius:0; padding:12px 20px;
+    display:flex; align-items:center; gap:14px;
+}
+
+/* Taux gauge */
+.gauge-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.gauge-val  { font-size:1.1rem; font-weight:700; color:#1f2937; }
+
+/* Statut badge dernière maj */
+.last-update-badge {
+    font-size:.75rem; color:#9ca3af;
+    display:flex; align-items:center; gap:5px;
+}
+.dot-live { width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+{% endblock %}
+
+{% block content %}
+
+  <!-- En-tête -->
+  <div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+      <h1><i class="bi bi-clipboard-check me-2"></i>Articles Commandables</h1>
+      <div class="text-muted mt-1" style="font-size:.85rem;">Contrôle de conformité Product × Asten × Assortiment</div>
+    </div>
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      {% if rapports %}
+      <div class="d-flex align-items-center gap-2">
+        <label style="font-size:.78rem;color:#6b7280;font-weight:600;white-space:nowrap">
+          <i class="bi bi-clock-history me-1"></i>Rapport
+        </label>
+        <select class="form-select form-select-sm" id="selectRapport" style="min-width:260px;font-size:.82rem">
+          {% for r in rapports %}
+          <option value="{{ r.filename }}"
+            {% if forloop.first %}selected{% endif %}>
+            Magasin {{ r.magasin }} — {{ r.date|default:r.filename }}
+            {% if r.taux_conformite %}({{ r.taux_conformite }}%){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="last-update-badge">
+        <span class="dot-live" id="dotLive" style="background:#9ca3af"></span>
+        <span id="lblDerniereMaj">—</span>
+      </div>
+      <button class="btn btn-sm btn-outline-primary" id="btnVoirCegid" {% if not dernier %}disabled{% endif %}
+              data-bs-toggle="modal" data-bs-target="#modalCegid">
+        <i class="bi bi-database me-1"></i>Fichier CEGID
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" id="btnExportCSV" {% if not dernier %}disabled{% endif %}>
+        <i class="bi bi-download me-1"></i>Export CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Bandeau progression (caché par défaut) -->
+  <div id="bandeauProgression" class="mb-4 d-none">
+    <div class="spinner-border spinner-border-sm text-primary" role="status" style="color:#6b4c35 !important"></div>
+    <div>
+      <div class="fw-semibold text-dark" id="progEtape">Contrôle en cours…</div>
+      <div class="text-muted" style="font-size:.8rem" id="progDetail"></div>
+    </div>
+    <div class="ms-auto">
+      <div class="progress" style="width:180px;height:8px">
+        <div class="progress-bar" id="progBar" style="background:#6b4c35;width:0%" role="progressbar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire lancement -->
+  <div class="dashboard-card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span><i class="bi bi-play-circle me-2"></i>Lancer un contrôle</span>
+      <span class="text-muted" style="font-size:.8rem;text-transform:none;letter-spacing:0">{{ magasins|length }} magasins disponibles</span>
+    </div>
+    <div class="card-body p-3">
+      <form id="formLancer" class="row g-3 align-items-end filtre-group">
+        {% csrf_token %}
+        <div class="col-md-5">
+          <label class="form-label" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;font-weight:600">Magasin</label>
+          <select name="magasin" class="form-select" required>
+            <option value="">— Choisir un magasin —</option>
+            {% for m in magasins %}
+            <option value="{{ m.code }}">{{ m.code }} — {{ m.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary" id="btnLancer" {% if controle_en_cours %}disabled{% endif %}>
+            <i class="bi bi-play-fill me-1"></i>Lancer le contrôle
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="row g-3 mb-4" id="kpiRow">
+    <div class="col-6 col-xl-3">
+      <div class="stat-card info">
+        <div class="stat-label">Articles contrôlés</div>
+        <div class="stat-value" id="kpiTotal">{% if dernier %}{{ dernier.total }}{% else %}—{% endif %}</div>
+        <div class="stat-sub" id="kpiMagasin">{% if dernier %}Magasin {{ dernier.magasin }}{% endif %}</div>
+        <i class="bi bi-box-seam stat-icon"></i>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="stat-card success">
+        <div class="stat-label">Conformes (OK)</div>
+        <div class="stat-value text-success" id="kpiOk">{% if dernier %}{{ dernier.ok }}{% else %}—{% endif %}</div>
+        <div class="stat-sub">Articles en règle</div>
+        <i class="bi bi-check-circle stat-icon" style="color:#10b981"></i>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="stat-card danger">
+        <div class="stat-label">Non conformes (KO)</div>
+        <div class="stat-value text-danger" id="kpiKo">{% if dernier %}{{ dernier.ko }}{% else %}—{% endif %}</div>
+        <div class="stat-sub">Articles à traiter</div>
+        <i class="bi bi-exclamation-circle stat-icon" style="color:#ef4444"></i>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="stat-card warning">
+        <div class="stat-label">Taux de conformité</div>
+        <div class="stat-value" id="kpiTaux">{% if dernier %}{{ dernier.taux_conformite }}%{% else %}—{% endif %}</div>
+        <div class="mt-2">
+          <div class="progress" style="height:6px">
+            <div class="progress-bar bg-success" id="kpiProgressBar" style="width:{% if dernier %}{{ dernier.taux_conformite }}{% else %}0{% endif %}%"></div>
+          </div>
+        </div>
+        <i class="bi bi-graph-up stat-icon" style="color:#f59e0b"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Répartition KO -->
+  <div class="dashboard-card mb-4" id="cardRepartitionKo" style="display:none">
+    <div class="card-header"><i class="bi bi-exclamation-triangle me-2"></i>Répartition des non-conformités</div>
+    <div class="card-body p-3">
+      <div class="row g-3" id="koBreakdown"></div>
+    </div>
+  </div>
+
+  <!-- Tableau de détail -->
+  <div class="dashboard-card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span><i class="bi bi-table me-2"></i>Détail des articles
+        <span class="text-muted fw-normal ms-2" id="lblDetailMag" style="text-transform:none;letter-spacing:0">
+          {% if dernier %}— Magasin {{ dernier.magasin }} ({{ dernier.date }}){% endif %}
+        </span>
+      </span>
+      <span class="badge" style="background:#6b4c35" id="lblNbFiltres">0 articles</span>
+    </div>
+    <div class="card-body p-0">
+
+      <!-- Onglets OK / KO / Tous -->
+      <div class="d-flex align-items-center border-bottom px-3 pt-2 gap-1 flex-wrap" id="tabsResultat">
+        <button class="tab-btn active" data-val="" data-motif="">
+          <i class="bi bi-list me-1"></i>Tous <span class="tab-count" id="tabCountTous">—</span>
+        </button>
+        <button class="tab-btn" data-val="OK" data-motif="">
+          <i class="bi bi-check-circle me-1"></i>OK <span class="tab-count" id="tabCountOk">—</span>
+        </button>
+        <button class="tab-btn" data-val="KO" data-motif="">
+          <i class="bi bi-x-circle me-1"></i>Tous KO <span class="tab-count" id="tabCountKo">—</span>
+        </button>
+        <div class="vr mx-1" style="height:24px;align-self:center;opacity:.3"></div>
+        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Non commandable Asten" style="color:#f59e0b">
+          <i class="bi bi-cart-x me-1"></i>Non cmdable Asten <span class="tab-count" id="tabCountAbsent">—</span>
+        </button>
+        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Statut NA" style="color:#6b7280">
+          <i class="bi bi-slash-circle me-1"></i>Statut NA <span class="tab-count" id="tabCountNA">—</span>
+        </button>
+        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Statut ES" style="color:#8b5cf6">
+          <i class="bi bi-pause-circle me-1"></i>Statut ES <span class="tab-count" id="tabCountES">—</span>
+        </button>
+        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="NC/LD" style="color:#ef4444">
+          <i class="bi bi-ban me-1"></i>NC/LD <span class="tab-count" id="tabCountNCLD">—</span>
+        </button>
+        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Absent assortiment" style="color:#dc7000">
+          <i class="bi bi-clipboard-x me-1"></i>Absent assortiment <span class="tab-count" id="tabCountAssort">—</span>
+        </button>
+      </div>
+
+      <!-- Filtres secondaires -->
+      <div class="row g-2 p-3 border-bottom filtre-group align-items-center">
+        <div class="col-md-4">
+          <input type="search" class="form-control" id="filterRecherche" placeholder="🔍  Référence, libellé…">
+        </div>
+        <div class="col-auto">
+          <select class="form-select" id="filterStatus">
+            <option value="">Tous statuts</option>
+            <option value="AC">AC — Actif</option>
+            <option value="NC">NC — Non conforme</option>
+            <option value="ES">ES — Arrêt</option>
+            <option value="NA">NA — Non autorisé</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <select class="form-select" id="filterMak">
+            <option value="">Tous CODE MAK</option>
+            <option value="CC">CC — Centrale</option>
+            <option value="CD">CD — Centrale + Direct</option>
+            <option value="LD">LD — Livraison Directe</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <select class="form-select" id="filterResultat">
+            <option value="">Tous résultats</option>
+            <option value="OK">✓ OK</option>
+            <option value="KO">✗ KO</option>
+          </select>
+        </div>
+        <div class="col-auto ms-auto">
+          <button class="btn btn-sm btn-outline-secondary" id="btnResetFiltres">
+            <i class="bi bi-x-circle me-1"></i>Réinitialiser
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="tableDetail">
+          <thead>
+            <tr>
+              <th>Référence</th>
+              <th>Libellé</th>
+              <th>Statut</th>
+              <th>CODE MAK</th>
+              <th>Cmdable Asten</th>
+              <th>Assortiment</th>
+              <th>Résultat</th>
+              <th>Motif</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyDetail">
+            <tr><td colspan="8" class="text-center text-muted py-4">
+              {% if dernier %}Chargement…{% else %}Aucun rapport disponible. Lancez un contrôle.{% endif %}
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center p-3 border-top">
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small" id="paginationInfo"></span>
+          <select class="form-select form-select-sm" id="pageSizeSelect" style="width:auto">
+            <option value="25">25 / page</option>
+            <option value="50" selected>50 / page</option>
+            <option value="100">100 / page</option>
+            <option value="250">250 / page</option>
+          </select>
+        </div>
+        <nav><ul class="pagination pagination-sm mb-0" id="paginationLinks"></ul></nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historique -->
+  {% if rapports %}
+  <div class="dashboard-card">
+    <div class="card-header"><i class="bi bi-clock-history me-2"></i>Historique des contrôles</div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Magasin</th>
+            <th>Total</th>
+            <th>OK</th>
+            <th>KO</th>
+            <th>Conformité</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rapports %}
+          <tr>
+            <td class="text-muted">{{ r.date }}</td>
+            <td><span class="badge bg-secondary">{{ r.magasin }}</span></td>
+            <td>{{ r.total }}</td>
+            <td><span class="text-success fw-semibold">{{ r.ok }}</span></td>
+            <td><span class="text-danger fw-semibold">{{ r.ko }}</span></td>
+            <td style="min-width:160px">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-semibold">{{ r.taux_conformite }}%</span>
+                <div class="progress flex-grow-1" style="height:6px">
+                  <div class="progress-bar bg-success" style="width:{{ r.taux_conformite }}%"></div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-primary btn-charger-rapport" data-filename="{{ r.filename }}">
+                <i class="bi bi-eye me-1"></i>Voir
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+<!-- ─── Modal fichier CEGID ─────────────────────────────────────────────────── -->
+<div class="modal fade" id="modalCegid" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
+  <div class="modal-dialog modal-xl" style="max-width:95vw">
+    <div class="modal-content" style="border-radius:0">
+      <div class="modal-header" style="background:#f9fafb;border-bottom:1px solid #e5e7eb">
+        <div>
+          <h5 class="modal-title mb-0"><i class="bi bi-database me-2"></i>Fichier Product CEGID</h5>
+          <div class="text-muted" style="font-size:.8rem" id="cegidFichierInfo">—</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" style="max-height:80vh;overflow-y:auto">
+        <!-- Filtres -->
+        <div class="row g-2 p-3 border-bottom" style="background:#f9fafb;position:sticky;top:0;z-index:2">
+          <div class="col-md-4">
+            <input type="search" class="form-control form-control-sm" id="cegidSearch"
+                   placeholder="🔍  Code article, libellé…">
+          </div>
+          <div class="col-auto">
+            <select class="form-select form-select-sm" id="cegidFilterStatut">
+              <option value="">Tous statuts</option>
+              <option value="AC">AC — Actif</option>
+              <option value="NA">NA — Non autorisé</option>
+              <option value="ES">ES — Arrêt</option>
+              <option value="NC">NC — Non conforme</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select class="form-select form-select-sm" id="cegidFilterMak">
+              <option value="">Tous CODE MAK</option>
+              <option value="CC">CC</option>
+              <option value="CD">CD</option>
+              <option value="LD">LD</option>
+            </select>
+          </div>
+          <div class="col-auto ms-auto d-flex align-items-center gap-2">
+            <span class="badge" style="background:#6b4c35" id="cegidNbFiltres">—</span>
+            <button class="btn btn-sm btn-outline-secondary" id="cegidExportCSV">
+              <i class="bi bi-download me-1"></i>Export
+            </button>
+          </div>
+        </div>
+        <!-- KPI statuts -->
+        <div class="d-flex gap-3 px-3 py-2 border-bottom flex-wrap" id="cegidKpi"
+             style="background:#fff;font-size:.82rem"></div>
+        <!-- Table -->
+        <div>
+          <table class="table table-sm table-hover mb-0">
+            <thead style="position:sticky;top:0;z-index:1;background:#f9fafb">
+              <tr>
+                <th>Code article</th>
+                <th>Réf. famille</th>
+                <th>Libellé</th>
+                <th>Statut</th>
+                <th>CODE MAK</th>
+                <th>Prix achat</th>
+                <th>Prix vente</th>
+              </tr>
+            </thead>
+            <tbody id="cegidTbody">
+              <tr><td colspan="7" class="text-center py-4 text-muted">
+                <span class="spinner-border spinner-border-sm me-2"></span>Chargement…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+          <span class="text-muted small" id="cegidPaginInfo"></span>
+          <nav><ul class="pagination pagination-sm mb-0" id="cegidPaginLinks"></ul></nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Déplace le modal CEGID dans <body> pour éviter les problèmes de z-index / contexte d'empilement
+document.addEventListener('DOMContentLoaded', () => {
+  const m = document.getElementById('modalCegid');
+  if (m && m.parentElement !== document.body) document.body.appendChild(m);
+});
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let _allRows  = [];
+let _filtered = [];
+let _page     = 1;
+let _psize    = 50;
+let _tabVal   = '';   // '' | 'OK' | 'KO'
+let _motifVal = '';   // filtre motif spécifique
+let _polling  = null;
+
+const URL_RAPPORT = "{% url 'entree_journal:rapport_controle' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
+const URL_LANCER  = "{% url 'entree_journal:lancer_controle' %}";
+const URL_STATUT  = "{% url 'entree_journal:statut_controle' %}";
+
+// ─── Chargement rapport ───────────────────────────────────────────────────────
+function chargerRapport(filename) {
+  document.getElementById('tbodyDetail').innerHTML =
+    '<tr><td colspan="8" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+
+  fetch(URL_RAPPORT + filename + '/', {credentials: 'same-origin'})
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      // Normalise les motifs des anciens rapports vers les nouveaux libellés
+      const MOTIF_COMPAT = {
+        'Article absent dans Asten':   'Non commandable Asten',
+        'Statut Product NA':           'Statut NA',
+        'Statut Product ES':           'Statut ES',
+        'Article NC avec CODE MAK LD': 'NC/LD',
+      };
+      _allRows = (data.all_rows || data.ko_details || []).map(r => ({
+        ...r,
+        motif: MOTIF_COMPAT[r.motif] || r.motif,
+      }));
+      setKpi(data);
+      updateTabCounts();
+      document.getElementById('lblDetailMag').textContent =
+        `— Magasin ${data.magasin} (${data.date})`;
+      document.getElementById('lblDerniereMaj').textContent =
+        `Dernière maj : ${data.date}`;
+      document.getElementById('dotLive').style.background = '#10b981';
+      document.getElementById('btnExportCSV').disabled = false;
+      applyFilters();
+    })
+    .catch(() => {
+      document.getElementById('tbodyDetail').innerHTML =
+        '<tr><td colspan="8" class="text-center text-danger py-4">Erreur de chargement du rapport.</td></tr>';
+    });
+}
+
+function setKpi(data) {
+  document.getElementById('kpiTotal').textContent = data.total ?? '—';
+  document.getElementById('kpiOk').textContent    = data.ok    ?? '—';
+  document.getElementById('kpiKo').textContent    = data.ko    ?? '—';
+  document.getElementById('kpiTaux').textContent  = data.taux_conformite != null
+    ? data.taux_conformite + '%' : '—';
+  document.getElementById('kpiProgressBar').style.width =
+    (data.taux_conformite ?? 0) + '%';
+  document.getElementById('kpiMagasin').textContent =
+    data.magasin ? 'Magasin ' + data.magasin : '';
+}
+
+// Définition des types KO avec libellé, couleur, icône
+const KO_TYPES = [
+  { motif:'Non commandable Asten', id:'tabCountAbsent', label:'Non commandable Asten', color:'#f59e0b', bg:'#fef3c7', icon:'bi-cart-x',
+    explication:'Article éligible à la commande centrale (AC ou NC avec CC/CD) et présent dans l\'assortiment, mais non commandable dans Asten (absent du POS).' },
+  { motif:'Absent assortiment',    id:'tabCountAssort', label:'Absent assortiment',    color:'#dc7000', bg:'#fff7ed', icon:'bi-clipboard-x',
+    explication:'Article éligible mais absent de l\'assortiment du magasin — il doit d\'abord être référencé.' },
+  { motif:'Statut NA',             id:'tabCountNA',     label:'Statut NA',             color:'#6b7280', bg:'#f3f4f6', icon:'bi-slash-circle',
+    explication:'Statut NA (Non Autorisé) dans CEGID — cet article ne peut pas être commandé.' },
+  { motif:'Statut ES',             id:'tabCountES',     label:'Statut ES',             color:'#8b5cf6', bg:'#f5f3ff', icon:'bi-pause-circle',
+    explication:'Statut ES (En cours d\'arrêt) dans CEGID — référence arrêtée, non commandable.' },
+  { motif:'NC/LD',                 id:'tabCountNCLD',   label:'NC / LD',               color:'#ef4444', bg:'#fef2f2', icon:'bi-ban',
+    explication:'Article NC avec CODE MAK LD, ou AC/LD — commandable uniquement chez le fournisseur ASP (pas à la centrale).' },
+];
+
+function updateTabCounts() {
+  const nOk = _allRows.filter(r => r.resultat === 'OK').length;
+  const nKo = _allRows.filter(r => r.resultat === 'KO').length;
+  document.getElementById('tabCountTous').textContent = `(${_allRows.length})`;
+  document.getElementById('tabCountOk').textContent   = `(${nOk})`;
+  document.getElementById('tabCountKo').textContent   = `(${nKo})`;
+
+  // Compteurs sous-types KO
+  KO_TYPES.forEach(t => {
+    const n = _allRows.filter(r => r.resultat==='KO' && r.motif===t.motif).length;
+    const el = document.getElementById(t.id);
+    if (el) el.textContent = `(${n})`;
+  });
+
+  // Répartition KO
+  buildKoBreakdown(nKo);
+}
+
+function buildKoBreakdown(totalKo) {
+  const card = document.getElementById('cardRepartitionKo');
+  const container = document.getElementById('koBreakdown');
+  if (!card || !container || totalKo === 0) { card && (card.style.display='none'); return; }
+  card.style.display = '';
+
+  container.innerHTML = KO_TYPES.map(t => {
+    const n = _allRows.filter(r => r.resultat==='KO' && r.motif===t.motif).length;
+    if (n === 0) return '';
+    const pct = Math.round(n / totalKo * 100);
+    return `
+    <div class="col-md-6 col-xl-3">
+      <div style="background:${t.bg};border:1px solid ${t.color}33;padding:16px;cursor:pointer"
+           onclick="filtrerMotif(${JSON.stringify(t.motif)})"
+           title="Cliquer pour filtrer">
+        <div class="d-flex align-items-start gap-2 mb-2">
+          <i class="bi ${t.icon} mt-1" style="color:${t.color};font-size:1.1rem;flex-shrink:0"></i>
+          <div>
+            <div class="fw-semibold" style="color:${t.color};font-size:.88rem">${t.label}</div>
+            <div class="text-muted" style="font-size:.78rem;line-height:1.3;margin-top:3px">${t.explication}</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-baseline gap-2 mt-3">
+          <span style="font-size:1.6rem;font-weight:700;color:${t.color}">${n}</span>
+          <span class="text-muted" style="font-size:.8rem">articles (${pct}% des KO)</span>
+        </div>
+        <div class="progress mt-2" style="height:4px">
+          <div class="progress-bar" style="width:${pct}%;background:${t.color}"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrerMotif(motif) {
+  _motifVal = motif;
+  _tabVal   = 'KO';
+  _page     = 1;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.dataset.val==='KO' && b.dataset.motif===motif) b.classList.add('active');
+  });
+  applyFilters();
+}
+
+{% if dernier %}
+document.addEventListener('DOMContentLoaded', () => chargerRapport('{{ dernier.filename }}'));
+{% endif %}
+
+document.getElementById('selectRapport')?.addEventListener('change', function() {
+  if (this.value) chargerRapport(this.value);
+});
+
+// ─── Onglets OK / KO / Tous ───────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _tabVal   = btn.dataset.val;
+    _motifVal = btn.dataset.motif || '';
+    _page = 1;
+    applyFilters();
+  });
+});
+
+// ─── Filtres ─────────────────────────────────────────────────────────────────
+function applyFilters() {
+  const q   = document.getElementById('filterRecherche').value.toLowerCase();
+  const st  = document.getElementById('filterStatus').value;
+  const mak = document.getElementById('filterMak').value;
+  const res = document.getElementById('filterResultat')?.value || '';
+
+  _filtered = _allRows.filter(r => {
+    if (_tabVal   && r.resultat      !== _tabVal)   return false;
+    if (_motifVal && r.motif         !== _motifVal) return false;
+    if (q && !(r.reference||'').toLowerCase().includes(q)
+          && !(r.libelle||'').toLowerCase().includes(q)) return false;
+    if (st  && r.status_product !== st)             return false;
+    if (mak && r.code_mak       !== mak)            return false;
+    if (res && r.resultat       !== res)            return false;
+    return true;
+  });
+  _page = 1;
+  renderPage();
+}
+
+['filterRecherche','filterStatus','filterMak','filterResultat'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input',  applyFilters);
+  document.getElementById(id)?.addEventListener('change', applyFilters);
+});
+
+document.getElementById('btnResetFiltres')?.addEventListener('click', () => {
+  ['filterRecherche','filterStatus','filterMak','filterResultat']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  _tabVal   = '';
+  _motifVal = '';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.tab-btn[data-val=""][data-motif=""]').classList.add('active');
+  applyFilters();
+});
+
+document.getElementById('pageSizeSelect')?.addEventListener('change', function() {
+  _psize = parseInt(this.value);
+  _page  = 1;
+  renderPage();
+});
+
+// ─── Rendu table ─────────────────────────────────────────────────────────────
+const STATUT_COLOR = { AC:'secondary', NC:'warning', ES:'danger', NA:'dark' };
+
+const MOTIF_STYLE = {
+  'Non commandable Asten':
+    { color:'#92400e', bg:'#fef3c7', icon:'bi-cart-x',
+      short:'Non cmdable Asten',
+      tip:'Article éligible à la commande et dans l\'assortiment, mais non commandable dans Asten (absent du POS)' },
+  'Absent assortiment':
+    { color:'#dc7000', bg:'#fff7ed', icon:'bi-clipboard-x',
+      short:'Absent assortiment',
+      tip:'Article éligible mais absent de l\'assortiment magasin — doit être référencé d\'abord' },
+  'Statut NA':
+    { color:'#374151', bg:'#f3f4f6', icon:'bi-slash-circle',
+      short:'Statut NA',
+      tip:'Statut NA (Non Autorisé) dans CEGID — non commandable' },
+  'Statut ES':
+    { color:'#5b21b6', bg:'#f5f3ff', icon:'bi-pause-circle',
+      short:'Statut ES',
+      tip:'Statut ES (Arrêt) dans CEGID — référence arrêtée, non commandable' },
+  'NC/LD':
+    { color:'#991b1b', bg:'#fef2f2', icon:'bi-ban',
+      short:'NC / LD',
+      tip:'CODE MAK LD — commandable uniquement chez le fournisseur ASP, pas à la centrale' },
+};
+
+function motifBadge(motif, resultat) {
+  if (resultat === 'OK') return '<span class="text-success" style="font-size:.8rem">—</span>';
+  const s = MOTIF_STYLE[motif];
+  if (!s) return `<span class="text-muted" style="font-size:.79rem">${esc(motif)}</span>`;
+  return `<span style="display:inline-flex;align-items:center;gap:5px;background:${s.bg};color:${s.color};
+           border:1px solid ${s.color}33;padding:3px 8px;font-size:.78rem;font-weight:600;cursor:default"
+           title="${esc(s.tip)}">
+    <i class="bi ${s.icon}"></i>${s.short}
+  </span>`;
+}
+
+function renderPage() {
+  const tbody = document.getElementById('tbodyDetail');
+  if (!tbody) return;
+  const start = (_page-1)*_psize;
+  const slice = _filtered.slice(start, start+_psize);
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
+    document.getElementById('paginationInfo').textContent = '';
+    document.getElementById('paginationLinks').innerHTML  = '';
+    document.getElementById('lblNbFiltres').textContent   = '0 articles';
+    return;
+  }
+
+  tbody.innerHTML = slice.map(r => `
+    <tr class="${r.resultat==='KO'?'table-danger-soft':''}">
+      <td><code class="text-dark fw-semibold">${esc(r.reference)}</code></td>
+      <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+          title="${esc(r.libelle)}">${esc(r.libelle)}</td>
+      <td><span class="badge bg-${STATUT_COLOR[r.status_product]||'secondary'}">${esc(r.status_product)}</span></td>
+      <td>${r.code_mak?`<span class="badge bg-light text-dark border">${esc(r.code_mak)}</span>`:'<span class="text-muted">—</span>'}</td>
+      <td>${r.present_asten==='Oui'
+            ?'<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Oui</span>'
+            :'<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Non</span>'}</td>
+      <td>${r.present_assortiment==='Oui'
+            ?'<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Oui</span>'
+            :(r.present_assortiment==='Non'
+              ?'<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Non</span>'
+              :'<span class="text-muted">—</span>')}</td>
+      <td>${r.resultat==='OK'
+            ?'<span class="badge bg-success px-3">✓ OK</span>'
+            :'<span class="badge bg-danger px-3">✗ KO</span>'}</td>
+      <td>${motifBadge(r.motif, r.resultat)}</td>
+    </tr>`).join('');
+
+  const total = _filtered.length;
+  document.getElementById('paginationInfo').textContent =
+    `${start+1}–${Math.min(start+_psize, total)} sur ${total} articles`;
+  document.getElementById('lblNbFiltres').textContent = total + ' articles';
+
+  buildPagination(total);
+}
+
+function buildPagination(total) {
+  const pages = Math.ceil(total/_psize);
+  const ul = document.getElementById('paginationLinks');
+  ul.innerHTML = '';
+  if (pages <= 1) return;
+
+  const addLi = (label, page, disabled=false) => {
+    const li = document.createElement('li');
+    li.className = 'page-item' + (page===_page?' active':'') + (disabled?' disabled':'');
+    li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
+    if (!disabled) li.addEventListener('click', e=>{
+      e.preventDefault(); _page=page;
+      renderPage();
+      document.getElementById('tableDetail').scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    ul.appendChild(li);
+  };
+
+  addLi('‹', _page-1, _page===1);
+  // Fenêtre de pages : 1 … p-2 p-1 p p+1 p+2 … N
+  let shown = new Set([1, pages]);
+  for(let i=Math.max(2,_page-2); i<=Math.min(pages-1,_page+2); i++) shown.add(i);
+  let prev = 0;
+  [...shown].sort((a,b)=>a-b).forEach(p => {
+    if (p - prev > 1) addLi('…', prev+1, true);
+    addLi(p, p);
+    prev = p;
+  });
+  addLi('›', _page+1, _page===pages);
+}
+
+function esc(s) {
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── Lancement contrôle ───────────────────────────────────────────────────────
+document.getElementById('formLancer')?.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const fd = new FormData(this);
+  document.getElementById('btnLancer').disabled = true;
+  startPolling();
+  fetch(URL_LANCER, {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        document.getElementById('btnLancer').disabled = false;
+        stopPolling();
+      }
+    })
+    .catch(() => {
+      alert('Erreur réseau');
+      document.getElementById('btnLancer').disabled = false;
+      stopPolling();
+    });
+});
+
+// ─── Polling statut ───────────────────────────────────────────────────────────
+{% if controle_en_cours %}
+document.addEventListener('DOMContentLoaded', startPolling);
+{% endif %}
+
+function startPolling() {
+  showBandeau(true);
+  if (_polling) return;
+  _polling = setInterval(pollStatut, 3000);
+}
+function stopPolling() {
+  if (_polling) { clearInterval(_polling); _polling = null; }
+}
+function pollStatut() {
+  fetch(URL_STATUT)
+    .then(r => r.json())
+    .then(data => {
+      if (data.running) {
+        showBandeau(true, data);
+      } else if (data.finished) {
+        stopPolling(); showBandeau(false);
+        document.getElementById('btnLancer').disabled = false;
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        showBandeau(false);
+        document.getElementById('btnLancer').disabled = false;
+      }
+    })
+    .catch(() => {});
+}
+function showBandeau(visible, data) {
+  const el = document.getElementById('bandeauProgression');
+  if (!visible) { el.classList.add('d-none'); return; }
+  el.classList.remove('d-none');
+  if (data) {
+    document.getElementById('progEtape').textContent  = data.etape || 'Contrôle en cours…';
+    document.getElementById('progDetail').textContent = data.total
+      ? `${data.done||0} / ${data.total} magasins traités` : '';
+    const pct = data.total ? Math.round((data.done||0)/data.total*100) : 0;
+    document.getElementById('progBar').style.width = pct + '%';
+  }
+}
+
+// ─── Charger rapport depuis historique ───────────────────────────────────────
+document.querySelectorAll('.btn-charger-rapport').forEach(btn => {
+  btn.addEventListener('click', () => {
+    chargerRapport(btn.dataset.filename);
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+
+// ─── Export CSV ──────────────────────────────────────────────────────────────
+document.getElementById('btnExportCSV')?.addEventListener('click', () => {
+  if (!_filtered.length) return;
+  const cols = ['reference','libelle','status_product','code_mak','present_asten','actif_asten','present_assortiment','resultat','motif'];
+  const lines = [cols.join(';')];
+  _filtered.forEach(r => lines.push(cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(';')));
+  const blob = new Blob(['﻿'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'conformite_export.csv';
+  a.click();
+});
+
+// ─── Modal CEGID ─────────────────────────────────────────────────────────────
+let _cegidAll      = [];
+let _cegidFiltered = [];
+let _cegidPage     = 1;
+const _cegidPsize  = 100;
+let _cegidLoaded   = false;
+let _cegidBackup   = '';
+
+const URL_CEGID = "{% url 'entree_journal:cegid_products' '000' %}".replace('/000/', '/');
+
+// Chargement quand on ouvre le modal
+document.getElementById('modalCegid')?.addEventListener('show.bs.modal', () => {
+  if (_cegidLoaded) return;
+  // Déduire le backup_prefix du rapport courant (magasin → backup via assortiments)
+  const MAGASIN_TO_BACKUP = {{ magasin_to_backup|safe }};
+  const magasin = document.getElementById('kpiMagasin')?.textContent?.replace('Magasin ','').trim();
+  _cegidBackup = MAGASIN_TO_BACKUP[magasin] || '030';
+  chargerCegid(_cegidBackup);
+});
+
+function chargerCegid(backup_prefix) {
+  document.getElementById('cegidTbody').innerHTML =
+    '<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Lecture du fichier CEGID…</td></tr>';
+
+  fetch(URL_CEGID + backup_prefix + '/', {credentials:'same-origin'})
+    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(data => {
+      _cegidAll    = data.articles || [];
+      _cegidLoaded = true;
+      document.getElementById('cegidFichierInfo').textContent =
+        `${data.fichier}  —  dossier ${data.backup_dir}  —  ${data.total} articles`;
+      buildCegidKpi();
+      applyCegidFilters();
+    })
+    .catch(e => {
+      document.getElementById('cegidTbody').innerHTML =
+        `<tr><td colspan="7" class="text-center py-4 text-danger">Erreur : ${esc(e.message)}</td></tr>`;
+    });
+}
+
+function buildCegidKpi() {
+  const counts = {};
+  _cegidAll.forEach(r => { counts[r.statut] = (counts[r.statut]||0)+1; });
+  const colors = { AC:'#10b981', NA:'#6b7280', ES:'#8b5cf6', NC:'#f59e0b' };
+  document.getElementById('cegidKpi').innerHTML =
+    Object.entries(counts).sort().map(([s,n]) =>
+      `<span style="color:${colors[s]||'#374151'};font-weight:600">
+        <span style="font-size:1.1rem">${n}</span>
+        <span class="text-muted fw-normal ms-1">${s}</span>
+      </span>`
+    ).join('<span class="text-muted">|</span>');
+}
+
+function applyCegidFilters() {
+  const q  = document.getElementById('cegidSearch').value.toLowerCase();
+  const st = document.getElementById('cegidFilterStatut').value;
+  const mk = document.getElementById('cegidFilterMak').value;
+  _cegidFiltered = _cegidAll.filter(r => {
+    if (st && r.statut   !== st) return false;
+    if (mk && r.code_mak !== mk) return false;
+    if (q  && !(r.code_article||'').toLowerCase().includes(q)
+            && !(r.libelle_long||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  _cegidPage = 1;
+  renderCegidPage();
+}
+
+['cegidSearch','cegidFilterStatut','cegidFilterMak'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input',  applyCegidFilters);
+  document.getElementById(id)?.addEventListener('change', applyCegidFilters);
+});
+
+const CEGID_STATUT_COLOR = { AC:'success', NA:'secondary', ES:'purple', NC:'warning' };
+
+function renderCegidPage() {
+  const tbody = document.getElementById('cegidTbody');
+  const start = (_cegidPage-1)*_cegidPsize;
+  const slice = _cegidFiltered.slice(start, start+_cegidPsize);
+  document.getElementById('cegidNbFiltres').textContent = _cegidFiltered.length + ' articles';
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Aucun résultat.</td></tr>';
+    document.getElementById('cegidPaginInfo').textContent = '';
+    document.getElementById('cegidPaginLinks').innerHTML  = '';
+    return;
+  }
+
+  const colorsStatut = { AC:'#10b981', NA:'#6b7280', ES:'#8b5cf6', NC:'#f59e0b' };
+  tbody.innerHTML = slice.map(r => `
+    <tr>
+      <td><code class="fw-semibold text-dark">${esc(r.code_article)}</code></td>
+      <td class="text-muted" style="font-size:.82rem">${esc(r.reference_famille)}</td>
+      <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+          title="${esc(r.libelle_long)}">${esc(r.libelle_long)}</td>
+      <td><span class="badge" style="background:${colorsStatut[r.statut]||'#6b7280'}">${esc(r.statut)}</span></td>
+      <td>${r.code_mak?`<span class="badge bg-light text-dark border">${esc(r.code_mak)}</span>`:'—'}</td>
+      <td class="text-end text-muted" style="font-size:.82rem">${r.prix_achat?r.prix_achat+' F':'—'}</td>
+      <td class="text-end text-muted" style="font-size:.82rem">${r.prix_vente?r.prix_vente+' F':'—'}</td>
+    </tr>`).join('');
+
+  const total = _cegidFiltered.length;
+  document.getElementById('cegidPaginInfo').textContent =
+    `${start+1}–${Math.min(start+_cegidPsize,total)} sur ${total}`;
+  buildCegidPagination(total);
+}
+
+function buildCegidPagination(total) {
+  const pages = Math.ceil(total/_cegidPsize);
+  const ul = document.getElementById('cegidPaginLinks');
+  ul.innerHTML = '';
+  if (pages <= 1) return;
+  const addLi = (label, page, disabled=false) => {
+    const li = document.createElement('li');
+    li.className = 'page-item'+(page===_cegidPage?' active':'')+(disabled?' disabled':'');
+    li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
+    if(!disabled) li.addEventListener('click',e=>{e.preventDefault();_cegidPage=page;renderCegidPage();});
+    ul.appendChild(li);
+  };
+  addLi('‹', _cegidPage-1, _cegidPage===1);
+  let shown=new Set([1,pages]);
+  for(let i=Math.max(2,_cegidPage-2);i<=Math.min(pages-1,_cegidPage+2);i++) shown.add(i);
+  let prev=0;
+  [...shown].sort((a,b)=>a-b).forEach(p=>{
+    if(p-prev>1) addLi('…',prev+1,true);
+    addLi(p,p); prev=p;
+  });
+  addLi('›', _cegidPage+1, _cegidPage===pages);
+}
+
+document.getElementById('cegidExportCSV')?.addEventListener('click', () => {
+  if(!_cegidFiltered.length) return;
+  const cols = ['code_article','reference_famille','libelle_long','statut','code_mak','prix_achat','prix_vente'];
+  const lines = [cols.join(';')];
+  _cegidFiltered.forEach(r=>lines.push(cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(';')));
+  const blob = new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`cegid_${_cegidBackup}_products.csv`; a.click();
+});
+</script>
+{% endblock %}

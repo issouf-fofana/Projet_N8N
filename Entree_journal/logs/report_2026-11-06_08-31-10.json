@@ -1,0 +1,14 @@
+{
+  "started_at": "2026-11-06T08:31:10.091763",
+  "elapsed_s": 35.73,
+  "results": [
+    {
+      "pos_id": "pos9",
+      "pos_name": "POS 9",
+      "status": "ok",
+      "count": 504,
+      "file": "/home/youssef/Documents/traitement_n8n/media/entree_journal/pos9_2026-11-06_08-30-34.csv",
+      "collected_at": "2026-11-06T08:30:34.364407+00:00"
+    }
+  ]
+}
