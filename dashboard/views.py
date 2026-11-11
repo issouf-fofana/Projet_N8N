@@ -1223,6 +1223,73 @@ def dashboard(request):
         commandes_data = []
         titre_tableau = "BR ASTEN (Statut IC)"
     
+    elif type_donnees == 'article_commandable':
+        import json as _json
+        from pathlib import Path as _Path
+        from datetime import datetime as _dt
+        _CONTROLE_DIR = _Path(__file__).parent.parent / "Article_commandable" / "output"
+        _rapports_ac = []
+        # Pour les articles commandables, si periode='aujourdhui' on élargit à 7 jours
+        # car les rapports sont générés la nuit (pas forcément aujourd'hui)
+        _ac_debut = date_debut_parsed
+        _ac_fin   = date_fin_parsed
+        if periode == 'aujourdhui' or not _ac_debut:
+            _ac_debut = None  # pas de filtre date par défaut → tous les rapports
+            _ac_fin   = None
+        if _CONTROLE_DIR.exists():
+            for _p in sorted(_CONTROLE_DIR.glob("conformite_*.json"), reverse=True):
+                try:
+                    _d = _json.loads(_p.read_text(encoding="utf-8"))
+                    # Filtre magasin
+                    if code_magasin and _d.get("magasin") not in code_magasin:
+                        continue
+                    # Filtre période sur la date du rapport (format YYYYMMDD_HHMMSS)
+                    _ts = _d.get("date", "")
+                    if _ts and (_ac_debut or _ac_fin):
+                        try:
+                            _rdate = _dt.strptime(_ts[:8], "%Y%m%d").date()
+                            if _ac_debut and _rdate < _ac_debut:
+                                continue
+                            if _ac_fin and _rdate > _ac_fin:
+                                continue
+                        except Exception:
+                            pass
+                    _rapports_ac.append({
+                        "filename": _p.name,
+                        "magasin": _d.get("magasin", ""),
+                        "date": _d.get("date", ""),
+                        "total": _d.get("total", 0),
+                        "ok": _d.get("ok", 0),
+                        "ko": _d.get("ko", 0),
+                        "taux": _d.get("taux_conformite", 0),
+                        # Résumé motifs pour affichage dashboard
+                        "nb_non_cmd_asten": sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("Non commandable Asten", "Article absent dans Asten")),
+                        "nb_statut_na":     sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("Statut NA", "Statut Product NA")),
+                        "nb_statut_es":     sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("Statut ES", "Statut Product ES")),
+                        "nb_nc_ld":         sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("NC/LD", "Article NC avec CODE MAK LD")),
+                    })
+                except Exception:
+                    pass
+        # Charger les articles du rapport le plus récent pour affichage direct
+        _articles_ac_rows = []
+        if _rapports_ac:
+            try:
+                _first = _CONTROLE_DIR / _rapports_ac[0]["filename"]
+                _first_data = _json.loads(_first.read_text(encoding="utf-8"))
+                _rows = _first_data.get("all_rows", [])
+                # Mettre à jour les KPI motifs du premier rapport
+                _rapports_ac[0]["nb_non_cmd_asten"] = sum(1 for r in _rows if r.get("motif") in ("Non commandable Asten", "Article absent dans Asten"))
+                _rapports_ac[0]["nb_statut_na"]     = sum(1 for r in _rows if r.get("motif") in ("Statut NA", "Statut Product NA"))
+                _rapports_ac[0]["nb_statut_es"]     = sum(1 for r in _rows if r.get("motif") in ("Statut ES", "Statut Product ES"))
+                _rapports_ac[0]["nb_nc_ld"]         = sum(1 for r in _rows if r.get("motif") in ("NC/LD", "Article NC avec CODE MAK LD"))
+                _articles_ac_rows = _rows
+            except Exception:
+                pass
+        commandes_data = []
+        _dashboard_page_obj = None
+        _dashboard_per_page = 30
+        titre_tableau = "Articles Commandables — Conformité"
+
     # ── Évolution journalière (dashboard) ────────────────────────────────
     try:
         evo_fin   = date_fin_parsed   or timezone.now().date()
@@ -1271,6 +1338,8 @@ def dashboard(request):
             'precedente': locals().get('fv_sql', {}).get('semaine_precedente', {}),
         }) if type_donnees == 'factures_backup' else '{}',
         'full_asten_codes': sorted(locals().get('full_asten_codes', [])),
+        'rapports_ac': locals().get('_rapports_ac', []) if type_donnees == 'article_commandable' else [],
+        'articles_ac_rows': locals().get('_articles_ac_rows', []) if type_donnees == 'article_commandable' else [],
         'magasins': magasins,
         'type_donnees': type_donnees,
         'titre_tableau': titre_tableau,

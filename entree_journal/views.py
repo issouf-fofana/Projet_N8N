@@ -314,9 +314,14 @@ def _get_magasin_to_backup():
 @login_required
 def article_commandable(request):
     rapports = _list_controle_rapports()
+    # Permet d'ouvrir directement un rapport depuis le dashboard (?rapport=filename)
+    rapport_param = request.GET.get("rapport", "")
+    dernier = next((r for r in rapports if r["filename"] == rapport_param), None) if rapport_param else None
+    if dernier is None:
+        dernier = rapports[0] if rapports else None
     context = {
         "rapports":          rapports,
-        "dernier":           rapports[0] if rapports else None,
+        "dernier":           dernier,
         "controle_en_cours": _controle_running(),
         "magasins":          _get_magasins(),
         "magasin_to_backup": json.dumps(_get_magasin_to_backup()),
