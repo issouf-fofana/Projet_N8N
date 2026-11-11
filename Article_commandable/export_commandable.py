@@ -177,10 +177,10 @@ def export_promo_for_pos(pos_host):
         products.extend(results)
         total_count = data.get("count", "?")
         final_page  = data.get("final_page", "?")
-        logger.info(f"  page {page}/{final_page} — {len(products)}/{total_count} articles chargés")
+        logger.info(f"  [{pos_host}] page {page}/{final_page} — {len(products)}/{total_count} articles chargés")
         page += 1
 
-    logger.info(f"✔ {len(products)} articles commandables récupérés")
+    logger.info(f"  [{pos_host}] ✔ {len(products)} articles commandables récupérés")
 
     if not products:
         print("⚠️ Aucun article – fichier non généré")
@@ -222,11 +222,9 @@ def export_promo_for_pos(pos_host):
 
                 writer.writerow(row)
 
-        logger.info(f"✅ Fichier principal : {filepath}")
-        # Copier en archive horodatée
+        logger.info(f"  [{pos_host}] ✅ Fichier : {filepath.name}")
         import shutil
         shutil.copy2(filepath, filepath_archive)
-        logger.info(f"   Archive            : {filepath_archive}")
     except PermissionError as e:
         logger.error(f"⛔ Impossible d'écrire le fichier {filepath} : {e}")
         logger.error("Vérifiez les permissions ou modifiez BASE_PATH dans le .env pour un répertoire local.")
