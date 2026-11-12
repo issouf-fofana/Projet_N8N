@@ -218,10 +218,9 @@ def controler_magasin(magasin_code):
         deref    = info.get("deref", False)
 
         present_asten      = ref in asten_refs
-        actif_asten        = present_asten  # commandable = actif dans Asten
+        actif_asten        = present_asten
         present_assortiment = (ref in assort_refs) if assort_refs is not None else None
 
-        # Si assortiment non disponible, on ne peut pas vérifier (sauf déréférencé, toujours KO)
         if not deref and present_assortiment is None:
             resultat = "INCOMPLET"
             motif    = "Assortiment non disponible"
@@ -246,6 +245,29 @@ def controler_magasin(magasin_code):
             "present_assortiment": "Oui" if present_assortiment else ("Non" if present_assortiment is not None else "N/A"),
             "resultat":            resultat,
             "motif":               motif,
+            "absent_cegid":        "Non",
+        })
+
+    # Articles présents dans Asten mais absents du fichier CEGID products
+    asten_only = asten_refs - set(products.keys())
+    n_asten_only = len(asten_only)
+    if n_asten_only:
+        print(f"  → {n_asten_only} articles Asten absents du fichier CEGID (absent_cegid)")
+    for ref in sorted(asten_only):
+        stats["KO"] = stats.get("KO", 0) + 1
+        rows.append({
+            "reference":           ref,
+            "libelle":             "",
+            "status_product":      "",
+            "code_mak":            "",
+            "num_assortiment":     backup_prefix,
+            "deref":               "Non",
+            "present_asten":       "Oui",
+            "actif_asten":         "Oui",
+            "present_assortiment": "N/A",
+            "resultat":            "KO",
+            "motif":               "Absent CEGID",
+            "absent_cegid":        "Oui",
         })
 
     total = len(rows)

@@ -309,6 +309,9 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
         <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Déréférencé" style="color:#be185d">
           <i class="bi bi-trash me-1"></i>Déréférencé <span class="tab-count" id="tabCountDeref">—</span>
         </button>
+        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Absent CEGID" style="color:#7c3aed">
+          <i class="bi bi-database-x me-1"></i>Absent CEGID <span class="tab-count" id="tabCountAbsentCegid">—</span>
+        </button>
       </div>
 
       <!-- Filtres secondaires -->
@@ -620,8 +623,10 @@ const KO_TYPES = [
     explication:'Statut NA (Non Autorisé) dans CEGID — cet article ne peut pas être commandé.' },
   { motif:'Statut ES',             id:'tabCountES',     label:'Statut ES',             color:'#8b5cf6', bg:'#f5f3ff', icon:'bi-pause-circle',
     explication:'Statut ES (En cours d\'arrêt) dans CEGID — référence arrêtée, non commandable.' },
-  { motif:'NC/LD',                 id:'tabCountNCLD',   label:'NC / LD',               color:'#ef4444', bg:'#fef2f2', icon:'bi-ban',
+  { motif:'NC/LD',                 id:'tabCountNCLD',        label:'NC / LD',        color:'#ef4444', bg:'#fef2f2', icon:'bi-ban',
     explication:'Article NC avec CODE MAK LD, ou AC/LD — commandable uniquement chez le fournisseur ASP (pas à la centrale).' },
+  { motif:'Absent CEGID',          id:'tabCountAbsentCegid', label:'Absent CEGID',   color:'#7c3aed', bg:'#f5f3ff', icon:'bi-database-x',
+    explication:'Article présent dans Asten (POS) mais absent du fichier CEGID products — référence inconnue dans le référentiel CEGID.' },
 ];
 
 function updateTabCounts() {
@@ -823,6 +828,10 @@ const MOTIF_STYLE = {
     { color:'#be185d', bg:'#fdf2f8', icon:'bi-trash',
       short:'Déréférencé',
       tip:'Article marqué D dans CEGID — déréférencé, non commandable' },
+  'Absent CEGID':
+    { color:'#7c3aed', bg:'#f5f3ff', icon:'bi-database-x',
+      short:'Absent CEGID',
+      tip:'Article présent dans Asten (POS) mais absent du fichier CEGID products — référence inconnue dans le référentiel' },
 };
 
 function motifBadge(motif, resultat) {
