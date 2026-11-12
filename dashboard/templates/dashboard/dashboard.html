@@ -2947,26 +2947,33 @@
     }));
   }
 
-  function updateKPIsFromStats(data) {
-    const mc = data.motifs_counts || {};
+  function updateKPIsFromStats(data, hasFilters) {
+    // Si filtres actifs → utiliser les stats filtrées, sinon les globales
+    const total = hasFilters ? (data.total_filtre ?? data.total) : data.total;
+    const ok    = hasFilters ? (data.ok_filtre    ?? data.ok)    : data.ok;
+    const ko    = hasFilters ? (data.ko_filtre    ?? data.ko)    : data.ko;
+    const taux  = hasFilters ? (data.taux_filtre  ?? data.taux_conformite) : data.taux_conformite;
+    const mc    = hasFilters ? (data.motifs_ko_filtres || data.motifs_counts || {}) : (data.motifs_counts || {});
     const nbNonCmd = (mc['Non commandable Asten']||0) + (mc['Article absent dans Asten']||0);
     const nbNA     = (mc['Statut NA']||0) + (mc['Statut Product NA']||0);
     const nbES     = (mc['Statut ES']||0) + (mc['Statut Product ES']||0);
     const nbNcLd   = (mc['NC/LD']||0) + (mc['Article NC avec CODE MAK LD']||0);
-    const taux     = data.taux_conformite != null ? data.taux_conformite + '%' : '—';
-    if (el('acStatTotal')) el('acStatTotal').textContent = (data.total||0).toLocaleString('fr-FR');
-    if (el('acStatOK'))    el('acStatOK').textContent    = (data.ok||0).toLocaleString('fr-FR');
-    if (el('acStatKO'))    el('acStatKO').textContent    = (data.ko||0).toLocaleString('fr-FR');
-    if (el('acStatTaux'))  el('acStatTaux').textContent  = taux;
+    const tauxStr  = taux != null ? taux + '%' : '—';
+    if (el('acStatTotal')) el('acStatTotal').textContent = (total||0).toLocaleString('fr-FR');
+    if (el('acStatOK'))    el('acStatOK').textContent    = (ok||0).toLocaleString('fr-FR');
+    if (el('acStatKO'))    el('acStatKO').textContent    = (ko||0).toLocaleString('fr-FR');
+    if (el('acStatTaux'))  el('acStatTaux').textContent  = tauxStr;
     if (el('acNbNonCmd'))  el('acNbNonCmd').textContent  = nbNonCmd.toLocaleString('fr-FR');
     if (el('acNbNA'))      el('acNbNA').textContent      = nbNA.toLocaleString('fr-FR');
     if (el('acNbES'))      el('acNbES').textContent      = nbES.toLocaleString('fr-FR');
     if (el('acNbNcLd'))    el('acNbNcLd').textContent    = nbNcLd.toLocaleString('fr-FR');
   }
 
-  function applyFilters() {
-    _page = 1;
-    // Construire l'URL AJAX avec les filtres actifs
+  let _ajaxPage = 1;
+  let _ajaxPages = 1;
+  let _ajaxTotal = 0;
+
+  function buildAjaxParams(page) {
     const params = new URLSearchParams();
     if (_filterStatut)  params.set('status', _filterStatut);
     if (_filterMak)     params.set('code_mak', _filterMak);
@@ -2975,24 +2982,65 @@
     if (search)         params.set('q', search);
     if (_filterMagasin) params.set('magasin', _filterMagasin);
     params.set('page_size', 50);
-    // Mettre à jour les KPIs via AJAX
+    params.set('page', page || 1);
+    return params;
+  }
+
+  function applyFilters() {
+    _ajaxPage = 1;
+    const hasFilters = !!(  _filterStatut || _filterMak || _filterRes ||
+                            (document.getElementById('acFilterSearch')?.value||'').trim() );
+    const params = buildAjaxParams(1);
     fetch(`{% url 'entree_journal:rapport_controle_db' %}?${params.toString()}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && !data.error) updateKPIsFromStats(data); })
+      .then(data => {
+        if (!data || data.error) return;
+        updateKPIsFromStats(data, hasFilters);
+        // Remplir la table avec les résultats
+        _ajaxPages = data.pagination?.pages || 1;
+        _ajaxTotal = data.pagination?.total || 0;
+        renderAjaxRows(data.all_rows || [], data.pagination);
+      })
       .catch(() => {});
-    // Filtrer la table locale si les articles sont chargés
-    const search2 = search.toLowerCase();
-    _filtered = _allArticles.filter(r => {
-      if (_filterStatut && (r.status_product||'').toUpperCase() !== _filterStatut) return false;
-      if (_filterMak    && (r.code_mak||'').toUpperCase() !== _filterMak) return false;
-      if (_filterRes    && r.resultat !== _filterRes) return false;
-      if (search2 && !(
-        (r.reference||r.ean||'').toLowerCase().includes(search2) ||
-        (r.libelle||'').toLowerCase().includes(search2)
-      )) return false;
-      return true;
-    });
-    renderPage();
+  }
+
+  function renderAjaxRows(rows, pag) {
+    const tbody = document.getElementById('acArticlesTbody');
+    if (!tbody) return;
+    const countEl = document.getElementById('acArticlesCount');
+    if (countEl) countEl.textContent = `${_ajaxTotal} article${_ajaxTotal>1?'s':''}`;
+    const pageInfo = document.getElementById('acPageInfo');
+    if (pageInfo) pageInfo.textContent = `Page ${pag?.page||1} / ${pag?.pages||1}`;
+    const prev = document.getElementById('acPrevPage');
+    const next = document.getElementById('acNextPage');
+    if (prev) prev.disabled = (pag?.page||1) <= 1;
+    if (next) next.disabled = (pag?.page||1) >= (pag?.pages||1);
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:24px;text-align:center;color:#9ca3af">Aucun article pour ces filtres</td></tr>';
+      return;
+    }
+    const STATUT_STYLE = {
+      'AC': 'background:#d1fae5;color:#065f46',
+      'NC': 'background:#fef3c7;color:#92400e',
+      'NA': 'background:#ede9fe;color:#5b21b6',
+      'ES': 'background:#fee2e2;color:#991b1b',
+    };
+    const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    tbody.innerHTML = rows.map(r => {
+      const statStyle = STATUT_STYLE[r.status_product] || 'background:#f3f4f6;color:#374151';
+      const resColor  = r.resultat === 'OK' ? '#10b981' : r.resultat === 'KO' ? '#ef4444' : '#6b7280';
+      return `<tr>
+        <td style="padding:8px 10px"><span class="badge bg-secondary">${esc(r.magasin)}</span></td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:.85rem">${esc(r.reference)}</td>
+        <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.libelle)}</td>
+        <td style="padding:8px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:.8rem;font-weight:600;${statStyle}">${esc(r.status_product)}</span></td>
+        <td style="padding:8px 10px">${esc(r.code_mak)}</td>
+        <td style="padding:8px 10px">${esc(r.num_assortiment)}</td>
+        <td style="padding:8px 10px;font-weight:700;color:${resColor}">${esc(r.resultat)}</td>
+        <td style="padding:8px 10px;font-size:.8rem;color:#6b7280;max-width:200px">${esc(r.motif)}</td>
+      </tr>`;
+    }).join('');
   }
 
   function renderPage() {
@@ -3076,8 +3124,24 @@
     searchEl.parentNode.replaceChild(sc, searchEl);
     document.getElementById('acFilterSearch')?.addEventListener('input', applyFilters);
   }
-  document.getElementById('acPrevPage')?.addEventListener('click', ()=>{ _page--; renderPage(); });
-  document.getElementById('acNextPage')?.addEventListener('click', ()=>{ _page++; renderPage(); });
+  document.getElementById('acPrevPage')?.addEventListener('click', () => {
+    if (_ajaxPage > 1) {
+      _ajaxPage--;
+      const params = buildAjaxParams(_ajaxPage);
+      fetch(`{% url 'entree_journal:rapport_controle_db' %}?${params.toString()}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data && !data.error) renderAjaxRows(data.all_rows||[], data.pagination); });
+    }
+  });
+  document.getElementById('acNextPage')?.addEventListener('click', () => {
+    if (_ajaxPage < _ajaxPages) {
+      _ajaxPage++;
+      const params = buildAjaxParams(_ajaxPage);
+      fetch(`{% url 'entree_journal:rapport_controle_db' %}?${params.toString()}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data && !data.error) renderAjaxRows(data.all_rows||[], data.pagination); });
+    }
+  });
 
   document.getElementById('acExportArticles')?.addEventListener('click', () => {
     const lines = ['Code article;Libellé;Statut;CODE MAK;Résultat;Motif'];

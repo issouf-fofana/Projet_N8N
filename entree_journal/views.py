@@ -517,6 +517,26 @@ def rapport_controle_db(request):
         from django.db.models import Q
         articles_qs = articles_qs.filter(Q(reference__icontains=q) | Q(libelle__icontains=q))
 
+    # Stats après filtres (pour les KPIs filtrés)
+    from django.db.models import Q as _Q
+    stats_filtres = articles_qs.aggregate(
+        ok_f=Count('id', filter=_Q(resultat='OK')),
+        ko_f=Count('id', filter=_Q(resultat='KO')),
+        total_f=Count('id'),
+    )
+    total_f = stats_filtres['total_f'] or 0
+    ok_f    = stats_filtres['ok_f'] or 0
+    ko_f    = stats_filtres['ko_f'] or 0
+    taux_f  = round(ok_f / total_f * 100, 1) if total_f else 0
+
+    # Motifs filtrés
+    motifs_ko_filtres = dict(
+        articles_qs.filter(resultat='KO')
+                   .values('motif')
+                   .annotate(n=Count('id'))
+                   .values_list('motif', 'n')
+    )
+
     # Tri serveur
     if sort_col and sort_col in SORT_FIELDS:
         order = SORT_FIELDS[sort_col]
@@ -524,7 +544,7 @@ def rapport_controle_db(request):
             order = '-' + order
         articles_qs = articles_qs.order_by(order)
 
-    total_filtre = articles_qs.count()
+    total_filtre = total_f
     offset = (page - 1) * page_size
     articles_page = articles_qs.values(
         'reference', 'libelle', 'status_product', 'code_mak',
@@ -571,7 +591,12 @@ def rapport_controle_db(request):
         "ok":              ok_global,
         "ko":              ko_global,
         "taux_conformite": taux_global,
+        "total_filtre":    total_f,
+        "ok_filtre":       ok_f,
+        "ko_filtre":       ko_f,
+        "taux_filtre":     taux_f,
         "motifs_counts":   motifs_counts,
+        "motifs_ko_filtres": motifs_ko_filtres,
         "info_count":      info_count,
         "assortiments":    assortiments,
         "magasins_list":   magasins_list,
