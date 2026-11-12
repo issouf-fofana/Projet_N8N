@@ -51,3 +51,9 @@ ENV/
 Thumbs.db
 media/
 .cache/
+
+# Rapports générés (output Article_commandable)
+Article_commandable/output/conformite_*.csv
+Article_commandable/output/conformite_*.json
+Article_commandable/output/commandable_*.csv
+Article_commandable/output/_vg_refs_cache.txt
