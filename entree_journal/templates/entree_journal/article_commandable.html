@@ -358,6 +358,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
         <table class="table table-hover mb-0" id="tableDetail">
           <thead>
             <tr>
+              <th class="sortable" data-sort="num_assortiment">N° Assort.</th>
               <th class="sortable" data-sort="reference">Référence</th>
               <th class="sortable" data-sort="libelle">Libellé</th>
               <th class="sortable" data-sort="status_product">Statut</th>
@@ -370,7 +371,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
             </tr>
           </thead>
           <tbody id="tbodyDetail">
-            <tr><td colspan="9" class="text-center text-muted py-4">
+            <tr><td colspan="10" class="text-center text-muted py-4">
               {% if dernier %}Chargement…{% else %}Aucun rapport disponible. Lancez un contrôle.{% endif %}
             </td></tr>
           </tbody>
@@ -552,7 +553,7 @@ const URL_STATUT  = "{% url 'entree_journal:statut_controle' %}";
 // ─── Chargement rapport ───────────────────────────────────────────────────────
 function chargerRapport(filename) {
   document.getElementById('tbodyDetail').innerHTML =
-    '<tr><td colspan="9" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+    '<tr><td colspan="10" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
   fetch(URL_RAPPORT + filename + '/', {credentials: 'same-origin'})
     .then(r => {
@@ -583,7 +584,7 @@ function chargerRapport(filename) {
     })
     .catch(() => {
       document.getElementById('tbodyDetail').innerHTML =
-        '<tr><td colspan="9" class="text-center text-danger py-4">Erreur de chargement du rapport.</td></tr>';
+        '<tr><td colspan="10" class="text-center text-danger py-4">Erreur de chargement du rapport.</td></tr>';
     });
 }
 
@@ -822,7 +823,7 @@ function renderPage() {
   const slice = _filtered.slice(start, start+_psize);
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
     document.getElementById('paginationInfo').textContent = '';
     document.getElementById('paginationLinks').innerHTML  = '';
     document.getElementById('lblNbFiltres').textContent   = '0 articles';
@@ -831,6 +832,9 @@ function renderPage() {
 
   tbody.innerHTML = slice.map(r => `
     <tr class="${r.resultat==='KO'?'table-danger-soft':''}">
+      <td class="text-center">${r.num_assortiment
+            ?`<span class="badge bg-light text-dark border" style="font-size:.78rem">${esc(r.num_assortiment)}</span>`
+            :'<span class="text-muted">—</span>'}</td>
       <td><code class="text-dark fw-semibold">${esc(r.reference)}</code></td>
       <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
           title="${esc(r.libelle)}">${esc(r.libelle)}</td>
