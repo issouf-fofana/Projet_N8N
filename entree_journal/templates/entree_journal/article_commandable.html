@@ -620,9 +620,9 @@ const KO_TYPES = [
   { motif:'Déréférencé',           id:'tabCountDeref',  label:'Déréférencé',           color:'#be185d', bg:'#fdf2f8', icon:'bi-trash',
     explication:'Article marqué D (déréférencé) dans le fichier CEGID — non commandable.' },
   { motif:'Statut NA',             id:'tabCountNA',     label:'Statut NA',             color:'#6b7280', bg:'#f3f4f6', icon:'bi-slash-circle',
-    explication:'Statut NA (Non Autorisé) dans CEGID — cet article ne peut pas être commandé.' },
+    explication:'Statut NA dans CEGID ET encore commandable dans Asten — anomalie : Asten autorise la commande alors que CEGID l\'interdit.' },
   { motif:'Statut ES',             id:'tabCountES',     label:'Statut ES',             color:'#8b5cf6', bg:'#f5f3ff', icon:'bi-pause-circle',
-    explication:'Statut ES (En cours d\'arrêt) dans CEGID — référence arrêtée, non commandable.' },
+    explication:'Statut ES (arrêt) dans CEGID ET encore commandable dans Asten — anomalie : référence arrêtée mais toujours active dans Asten.' },
   { motif:'NC/LD',                 id:'tabCountNCLD',        label:'NC / LD',        color:'#ef4444', bg:'#fef2f2', icon:'bi-ban',
     explication:'Article NC avec CODE MAK LD, ou AC/LD — commandable uniquement chez le fournisseur ASP (pas à la centrale).' },
   { motif:'Absent CEGID',          id:'tabCountAbsentCegid', label:'Absent CEGID',   color:'#7c3aed', bg:'#f5f3ff', icon:'bi-database-x',
@@ -815,11 +815,11 @@ const MOTIF_STYLE = {
   'Statut NA':
     { color:'#374151', bg:'#f3f4f6', icon:'bi-slash-circle',
       short:'Statut NA',
-      tip:'Statut NA (Non Autorisé) dans CEGID — non commandable' },
+      tip:'Statut NA dans CEGID mais encore commandable dans Asten — anomalie à corriger' },
   'Statut ES':
     { color:'#5b21b6', bg:'#f5f3ff', icon:'bi-pause-circle',
       short:'Statut ES',
-      tip:'Statut ES (Arrêt) dans CEGID — référence arrêtée, non commandable' },
+      tip:'Statut ES (arrêt) dans CEGID mais encore commandable dans Asten — anomalie à corriger' },
   'NC/LD':
     { color:'#991b1b', bg:'#fef2f2', icon:'bi-ban',
       short:'NC / LD',

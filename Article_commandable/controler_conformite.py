@@ -77,10 +77,16 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
         return "OK", f"Commandable ({code_mak})"
 
     elif status_product == "ES":
-        return "KO", "Statut ES"
+        # ES = arrêt : KO seulement si encore commandable dans Asten (anomalie)
+        if present_asten:
+            return "KO", "Statut ES"
+        return "OK", "Statut ES (non cmdable Asten)"
 
     elif status_product == "NA":
-        return "KO", "Statut NA"
+        # NA = non autorisé : KO seulement si encore commandable dans Asten (anomalie)
+        if present_asten:
+            return "KO", "Statut NA"
+        return "OK", "Statut NA (non cmdable Asten)"
 
     elif status_product == "NC":
         if code_mak in ("CC", "CD"):
