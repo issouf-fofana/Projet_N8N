@@ -452,6 +452,7 @@ def rapport_controle_db(request):
 
     # Mapping frontend → champ Django
     SORT_FIELDS = {
+        'magasin': 'controle__magasin',
         'reference': 'reference', 'libelle': 'libelle',
         'status_product': 'status_product', 'code_mak': 'code_mak',
         'num_assortiment': 'num_assortiment', 'resultat': 'resultat',
@@ -528,12 +529,14 @@ def rapport_controle_db(request):
     articles_page = articles_qs.values(
         'reference', 'libelle', 'status_product', 'code_mak',
         'num_assortiment', 'deref', 'present_asten',
-        'present_assortiment', 'resultat', 'motif', 'absent_cegid'
+        'present_assortiment', 'resultat', 'motif', 'absent_cegid',
+        'controle__magasin'
     )[offset:offset + page_size]
 
     # Convertir pour compatibilité avec le frontend existant
     def fmt(a):
         return {
+            'magasin':             a['controle__magasin'],
             'reference':           a['reference'],
             'libelle':             a['libelle'],
             'status_product':      a['status_product'],
@@ -549,10 +552,9 @@ def rapport_controle_db(request):
             'absent_cegid':        'Oui' if a['absent_cegid'] else 'Non',
         }
 
-    # Numéros d'assortiments disponibles
-    assortiments = sorted(set(
-        controles.values_list('num_assortiment', flat=True)
-    ))
+    # Numéros d'assortiments et magasins disponibles
+    assortiments = sorted(set(controles.values_list('num_assortiment', flat=True)))
+    magasins_list = sorted(set(controles.values_list('magasin', flat=True)))
 
     # Date du contrôle le plus récent parmi les contrôles sélectionnés
     dernier_controle = controles.order_by('-date_controle').first()
@@ -568,6 +570,7 @@ def rapport_controle_db(request):
         "motifs_counts":   motifs_counts,
         "info_count":      info_count,
         "assortiments":    assortiments,
+        "magasins_list":   magasins_list,
         "pagination": {
             "page":        page,
             "page_size":   page_size,

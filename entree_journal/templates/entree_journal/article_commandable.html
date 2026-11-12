@@ -338,6 +338,11 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
           </select>
         </div>
         <div class="col-auto">
+          <select class="form-select" id="filterMagasin">
+            <option value="">Tous magasins</option>
+          </select>
+        </div>
+        <div class="col-auto">
           <select class="form-select" id="filterAssortiment">
             <option value="">Tous assortiments</option>
           </select>
@@ -367,12 +372,12 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
         <table class="table table-hover mb-0" id="tableDetail">
           <thead>
             <tr>
+              <th class="sortable" data-sort="magasin">Magasin</th>
               <th class="sortable" data-sort="num_assortiment">N° Assort.</th>
               <th class="sortable" data-sort="reference">Référence</th>
               <th class="sortable" data-sort="libelle">Libellé</th>
               <th class="sortable" data-sort="status_product">Statut</th>
               <th class="sortable" data-sort="code_mak">CODE MAK</th>
-              <th class="sortable" data-sort="num_assortiment">N° Assort.</th>
               <th class="sortable" data-sort="present_asten">Cmdable Asten</th>
               <th class="sortable" data-sort="present_assortiment">Assortiment</th>
               <th class="sortable" data-sort="resultat">Résultat</th>
@@ -380,7 +385,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
             </tr>
           </thead>
           <tbody id="tbodyDetail">
-            <tr><td colspan="10" class="text-center text-muted py-4">
+            <tr><td colspan="11" class="text-center text-muted py-4">
               {% if dernier %}Chargement…{% else %}Aucun rapport disponible. Lancez un contrôle.{% endif %}
             </td></tr>
           </tbody>
@@ -589,6 +594,7 @@ function buildDBParams() {
   const q  = document.getElementById('filterRecherche')?.value.trim();
   const st = document.getElementById('filterStatus')?.value;
   const mak= document.getElementById('filterMak')?.value;
+  const mg = document.getElementById('filterMagasin')?.value;
   const an = document.getElementById('filterAssortiment')?.value;
   const pa = document.getElementById('filterPresentAssort')?.value;
   const re = document.getElementById('filterResultat')?.value;
@@ -596,6 +602,7 @@ function buildDBParams() {
   if (q)  p.set('q',  q);
   if (st) p.set('status', st);
   if (mak)p.set('code_mak', mak);
+  if (mg) p.set('magasin', mg);
   if (an) p.set('num_assortiment', an);
   if (pa) p.set('present_assortiment', pa);
   if (re && !_tabVal) p.set('resultat', re);
@@ -611,7 +618,7 @@ function buildDBParams() {
 
 function fetchDB() {
   document.getElementById('tbodyDetail').innerHTML =
-    '<tr><td colspan="10" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+    '<tr><td colspan="11" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
   const params = buildDBParams();
   params.set('_ts', Date.now()); // anti-cache navigateur
@@ -620,7 +627,7 @@ function fetchDB() {
     .then(({ok, status, data}) => {
       if (!ok) {
         document.getElementById('tbodyDetail').innerHTML =
-          `<tr><td colspan="10" class="text-center text-warning py-4">
+          `<tr><td colspan="11" class="text-center text-warning py-4">
            <i class="bi bi-exclamation-triangle me-2"></i>
            ${data.error || 'Aucune donnée disponible. Lancez un contrôle pour peupler la base.'}</td></tr>`;
         return;
@@ -639,6 +646,17 @@ function fetchDB() {
       if (data.motifs_counts) {
         _motifsCountsDB = data.motifs_counts;
         updateTabCountsDB(data);
+      }
+
+      // Magasins disponibles
+      if (data.magasins_list) {
+        const selMag = document.getElementById('filterMagasin');
+        if (selMag) {
+          const cur = selMag.value;
+          selMag.innerHTML = '<option value="">Tous magasins</option>'
+            + data.magasins_list.map(m => `<option value="${m}">${m}</option>`).join('');
+          if (data.magasins_list.includes(cur)) selMag.value = cur;
+        }
       }
 
       // Assortiments disponibles
@@ -663,7 +681,7 @@ function fetchDB() {
     })
     .catch(() => {
       document.getElementById('tbodyDetail').innerHTML =
-        '<tr><td colspan="10" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
+        '<tr><td colspan="11" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
     });
 }
 
@@ -812,7 +830,7 @@ function sortFiltered() {
   });
 }
 
-['filterRecherche','filterStatus','filterMak','filterAssortiment','filterPresentAssort','filterResultat'].forEach(id => {
+['filterRecherche','filterStatus','filterMak','filterMagasin','filterAssortiment','filterPresentAssort','filterResultat'].forEach(id => {
   document.getElementById(id)?.addEventListener('input',  applyFilters);
   document.getElementById(id)?.addEventListener('change', applyFilters);
 });
@@ -837,7 +855,7 @@ document.querySelectorAll('#tableDetail th.sortable').forEach(th => {
 });
 
 document.getElementById('btnResetFiltres')?.addEventListener('click', () => {
-  ['filterRecherche','filterStatus','filterMak','filterAssortiment','filterPresentAssort','filterResultat']
+  ['filterRecherche','filterStatus','filterMak','filterMagasin','filterAssortiment','filterPresentAssort','filterResultat']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   _tabVal   = '';
   _motifVal = '';
@@ -908,7 +926,7 @@ function renderPage() {
   const slice = _filtered;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
     document.getElementById('paginationInfo').textContent = '';
     document.getElementById('paginationLinks').innerHTML  = '';
     document.getElementById('lblNbFiltres').textContent   = '0 articles';
@@ -917,6 +935,7 @@ function renderPage() {
 
   tbody.innerHTML = slice.map(r => `
     <tr class="${r.resultat==='KO'?'table-danger-soft':(r.resultat==='INFO'?'table-info-soft':'')}">
+      <td class="text-center"><span class="badge bg-secondary" style="font-size:.78rem">${esc(r.magasin||'—')}</span></td>
       <td class="text-center">${r.num_assortiment
             ?`<span class="badge bg-light text-dark border" style="font-size:.78rem">${esc(r.num_assortiment)}</span>`
             :'<span class="text-muted">—</span>'}</td>
@@ -925,9 +944,6 @@ function renderPage() {
           title="${esc(r.libelle)}">${esc(r.libelle)}</td>
       <td><span class="badge bg-${STATUT_COLOR[r.status_product]||'secondary'}">${esc(r.status_product)}</span></td>
       <td>${r.code_mak?`<span class="badge bg-light text-dark border">${esc(r.code_mak)}</span>`:'<span class="text-muted">—</span>'}</td>
-      <td class="text-center">${r.num_assortiment
-            ?`<span class="badge bg-light text-dark border" style="font-size:.78rem">${esc(r.num_assortiment)}</span>`
-            :'<span class="text-muted" style="font-size:.8rem">—</span>'}</td>
       <td>${r.present_asten==='Oui'
             ?'<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Oui</span>'
             :'<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Non</span>'}</td>
