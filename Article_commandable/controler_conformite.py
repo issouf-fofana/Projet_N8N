@@ -331,11 +331,13 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
         import django
         import os as _os
         _os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
-        django.setup()
+        if not django.apps.apps.ready:
+            django.setup()
         from entree_journal.models import ControleConformite, ArticleConformite
         from datetime import datetime as _dt
 
-        date_controle = _dt.strptime(ts, "%Y%m%d_%H%M%S")
+        from django.utils import timezone as _tz
+        date_controle = _tz.make_aware(_dt.strptime(ts, "%Y%m%d_%H%M%S"))
 
         # Supprimer l'ancien rapport pour ce magasin (garder uniquement le plus récent)
         ControleConformite.objects.filter(magasin=magasin_code).delete()
@@ -375,6 +377,14 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Initialiser Django ici pour que _sauvegarder_en_base puisse l'utiliser
+    import django
+    _root = Path(__file__).resolve().parent.parent
+    if str(_root) not in sys.path:
+        sys.path.insert(0, str(_root))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
+    django.setup()
+
     magasins = sys.argv[1:] if len(sys.argv) > 1 else ["035"]
     for mag in magasins:
         controler_magasin(mag)
