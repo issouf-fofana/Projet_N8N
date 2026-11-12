@@ -255,6 +255,10 @@ def controler_magasin(magasin_code):
 
     print(f"\n  Résultats : Total={total}  OK={ok}  KO={ko}  Conformité={taux}%")
 
+    if not rows:
+        print(f"  ⚠️  Aucun article trouvé pour magasin {magasin_code} — fichier ignoré")
+        return None
+
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_path  = OUTPUT_DIR / f"conformite_{magasin_code}_{ts}.csv"
     json_path = OUTPUT_DIR / f"conformite_{magasin_code}_{ts}.json"
