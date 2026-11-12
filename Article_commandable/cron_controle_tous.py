@@ -40,9 +40,12 @@ def tous_les_magasins():
             codes.append(m["code_magasin"])
     return sorted(set(codes))
 
-def controler_un(code, counter, total, vg_cache=""):
+def controler_un(code, counter, total, vg_cache="", backup_dir=""):
+    cmd = [sys.executable, str(CONTROLE_SCRIPT), code, "--vg-cache", vg_cache]
+    if backup_dir:
+        cmd += ["--backup-dir", backup_dir]
     result = subprocess.run(
-        [sys.executable, str(CONTROLE_SCRIPT), code, "--vg-cache", vg_cache],
+        cmd,
         cwd=str(BASE),
         capture_output=True, text=True
     )
@@ -92,6 +95,10 @@ def main():
     parser = argparse.ArgumentParser(description="Contrôle conformité tous magasins")
     parser.add_argument("--workers", type=int, default=8,
                         help="Nombre de magasins traités en parallèle (défaut: 8)")
+    parser.add_argument("--backup-dir", default="",
+                        help="Forcer un dossier backup spécifique (ex: prdP2A_2026-11-11_23h00m01s)")
+    parser.add_argument("--purge-db", action="store_true",
+                        help="Supprimer tous les contrôles en base avant de recommencer")
     args = parser.parse_args()
 
     magasins = tous_les_magasins()
@@ -99,6 +106,22 @@ def main():
     workers = min(args.workers, total)
 
     log(f"[{datetime.now():%Y-%m-%d %H:%M}] Contrôle lancé pour {total} magasins ({workers} en parallèle)")
+    if args.backup_dir:
+        log(f"  Backup forcé : {args.backup_dir}")
+
+    # Purge DB si demandé
+    if args.purge_db:
+        log("  Purge de tous les contrôles en base…")
+        import os as _os, sys as _sys
+        _root = Path(__file__).resolve().parent.parent
+        if str(_root) not in _sys.path:
+            _sys.path.insert(0, str(_root))
+        _os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
+        import django
+        django.setup()
+        from entree_journal.models import ControleConformite
+        n, _ = ControleConformite.objects.all().delete()
+        log(f"  → {n} enregistrements supprimés")
 
     # Précalculer VG une seule fois avant de lancer les subprocesses
     log("  Chargement VG_VERIF_PPROMO2…")
@@ -107,7 +130,7 @@ def main():
     counter = {"done": 0, "ok": 0, "ko": 0}
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(controler_un, code, counter, total, vg_cache): code for code in magasins}
+        futures = {pool.submit(controler_un, code, counter, total, vg_cache, args.backup_dir): code for code in magasins}
         for future in as_completed(futures):
             try:
                 future.result()

@@ -226,11 +226,19 @@ def lire_vg_refs():
 
 # ─── Contrôle principal ──────────────────────────────────────────────────────
 
+_FORCED_BACKUP_DIR = None  # forcé via --backup-dir
+
+
 def _trouver_backup_dir(backup_prefix):
     """
     Cherche le dossier backup contenant {backup_prefix}_products_*.csv.
-    Priorité : prdP2A_* (backup quotidien) > VG_VERIF_PPROMO2 (backup alternatif).
+    Si _FORCED_BACKUP_DIR est défini, l'utilise en priorité.
+    Sinon : prdP2A_* (backup quotidien, le plus récent) > VG_VERIF_PPROMO2.
     """
+    if _FORCED_BACKUP_DIR:
+        forced = Path(_FORCED_BACKUP_DIR)
+        if forced.exists() and list(forced.glob(f"{backup_prefix}_products_*.csv")):
+            return forced
     for candidate in [
         *sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True),
         SMB_BACKUP / "VG_VERIF_PPROMO2",
@@ -419,7 +427,13 @@ if __name__ == "__main__":
     parser = _ap.ArgumentParser()
     parser.add_argument("magasins", nargs="*", default=["035"])
     parser.add_argument("--vg-cache", default="", help="Fichier cache VG refs précalculé")
+    parser.add_argument("--backup-dir", default="", help="Forcer un dossier backup spécifique (ex: prdP2A_2026-11-11_23h00m01s)")
     args = parser.parse_args()
+
+    # Forcer le dossier backup si fourni
+    if args.backup_dir:
+        _FORCED_BACKUP_DIR = args.backup_dir if Path(args.backup_dir).is_absolute() \
+            else str(SMB_BACKUP / args.backup_dir)
 
     # Charger le cache VG si fourni (évite de relire VG_VERIF_PPROMO2 × 52)
     if args.vg_cache and Path(args.vg_cache).exists():
