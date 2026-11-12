@@ -544,59 +544,172 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── State ───────────────────────────────────────────────────────────────────
-let _allRows  = [];
-let _filtered = [];
+let _allRows  = [];   // page courante (depuis DB)
+let _filtered = [];   // idem (alias pour compatibilité renderPage)
 let _page     = 1;
 let _psize    = 50;
+let _totalRows= 0;    // total côté serveur
 let _tabVal   = '';   // '' | 'OK' | 'KO'
 let _motifVal = '';   // filtre motif spécifique
 let _polling  = null;
-let _sortCol  = '';   // colonne de tri active
-let _sortDir  = 1;    // 1 = croissant, -1 = décroissant
+let _sortCol  = '';
+let _sortDir  = 1;
+let _currentMagasin = '';   // '' = tous
+let _motifsCountsDB = {};   // compteurs motifs depuis DB
 
 const URL_RAPPORT      = "{% url 'entree_journal:rapport_controle' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
 const URL_RAPPORT_TOUS = "{% url 'entree_journal:rapport_controle_tous' %}";
+const URL_RAPPORT_DB   = "{% url 'entree_journal:rapport_controle_db' %}";
 const URL_LANCER  = "{% url 'entree_journal:lancer_controle' %}";
 const URL_STATUT  = "{% url 'entree_journal:statut_controle' %}";
 
-// ─── Chargement rapport ───────────────────────────────────────────────────────
-function chargerRapport(filename) {
+// ─── Chargement rapport depuis DB ────────────────────────────────────────────
+function chargerRapport(magasinOrFilename) {
+  // Accepte '__tous__', un code magasin numérique, ou un filename legacy
+  if (magasinOrFilename === '__tous__') {
+    _currentMagasin = '';
+  } else if (/^\d+$/.test(magasinOrFilename)) {
+    _currentMagasin = magasinOrFilename;
+  } else {
+    // Filename legacy → extraire code magasin (conformite_035_...)
+    const m = magasinOrFilename.match(/conformite_(\d+)_/);
+    _currentMagasin = m ? m[1] : '';
+  }
+  _page = 1;
+  fetchDB();
+}
+
+function buildDBParams() {
+  const p = new URLSearchParams();
+  if (_currentMagasin) p.set('magasin', _currentMagasin);
+  if (_tabVal)         p.set('resultat', _tabVal);
+  if (_motifVal)       p.set('motif', _motifVal);
+
+  const q  = document.getElementById('filterRecherche')?.value.trim();
+  const st = document.getElementById('filterStatus')?.value;
+  const mak= document.getElementById('filterMak')?.value;
+  const an = document.getElementById('filterAssortiment')?.value;
+  const pa = document.getElementById('filterPresentAssort')?.value;
+  const re = document.getElementById('filterResultat')?.value;
+
+  if (q)  p.set('q',  q);
+  if (st) p.set('status', st);
+  if (mak)p.set('code_mak', mak);
+  if (an) p.set('num_assortiment', an);
+  if (pa) p.set('present_assortiment', pa);
+  if (re && !_tabVal) p.set('resultat', re);
+
+  p.set('page', _page);
+  p.set('page_size', _psize);
+  return p;
+}
+
+function fetchDB() {
   document.getElementById('tbodyDetail').innerHTML =
     '<tr><td colspan="10" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
-  const url = filename === '__tous__' ? URL_RAPPORT_TOUS + '?ko_only=1' : URL_RAPPORT + filename + '/';
-  fetch(url, {credentials: 'same-origin'})
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
+  fetch(URL_RAPPORT_DB + '?' + buildDBParams(), {credentials: 'same-origin'})
+    .then(r => r.json().then(d => ({ok: r.ok, status: r.status, data: d})))
+    .then(({ok, status, data}) => {
+      if (!ok) {
+        document.getElementById('tbodyDetail').innerHTML =
+          `<tr><td colspan="10" class="text-center text-warning py-4">
+           <i class="bi bi-exclamation-triangle me-2"></i>
+           ${data.error || 'Aucune donnée disponible. Lancez un contrôle pour peupler la base.'}</td></tr>`;
+        return;
+      }
+      return data;
     })
     .then(data => {
-      // Normalise les motifs des anciens rapports vers les nouveaux libellés
-      const MOTIF_COMPAT = {
-        'Article absent dans Asten':   'Non commandable Asten',
-        'Statut Product NA':           'Statut NA',
-        'Statut Product ES':           'Statut ES',
-        'Article NC avec CODE MAK LD': 'NC/LD',
-      };
-      _allRows = (data.all_rows || data.ko_details || []).map(r => ({
-        ...r,
-        motif: MOTIF_COMPAT[r.motif] || r.motif,
-      }));
+      if (!data) return;
+      _allRows  = data.all_rows || [];
+      _filtered = _allRows;
+      _totalRows = data.pagination?.total ?? _allRows.length;
+
       setKpi(data);
-      updateTabCounts();
-      buildAssortimentSelect();
+
+      // Compteurs onglets depuis motifs_counts DB
+      if (data.motifs_counts) {
+        _motifsCountsDB = data.motifs_counts;
+        updateTabCountsDB(data);
+      }
+
+      // Assortiments disponibles
+      if (data.assortiments) {
+        const sel = document.getElementById('filterAssortiment');
+        if (sel) {
+          const cur = sel.value;
+          sel.innerHTML = '<option value="">Tous assortiments</option>'
+            + data.assortiments.map(n => `<option value="${n}">${n}</option>`).join('');
+          if (data.assortiments.includes(cur)) sel.value = cur;
+        }
+      }
+
       document.getElementById('lblDetailMag').textContent =
-        `— Magasin ${data.magasin} (${data.date})`;
-      document.getElementById('lblDerniereMaj').textContent =
-        `Dernière maj : ${data.date}`;
+        `— Magasin ${data.magasin}`;
+      document.getElementById('lblDerniereMaj').textContent = '';
       document.getElementById('dotLive').style.background = '#10b981';
       document.getElementById('btnExportCSV').disabled = false;
-      applyFilters();
+
+      renderPage();
     })
     .catch(() => {
       document.getElementById('tbodyDetail').innerHTML =
-        '<tr><td colspan="10" class="text-center text-danger py-4">Erreur de chargement du rapport.</td></tr>';
+        '<tr><td colspan="10" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
     });
+}
+
+function updateTabCountsDB(data) {
+  const counts = data.motifs_counts || {};
+  const totalKo = data.ko ?? 0;
+  const totalOk = data.ok ?? 0;
+  const total   = data.total ?? 0;
+
+  document.getElementById('tabCountTous').textContent = `(${total})`;
+  document.getElementById('tabCountOk').textContent   = `(${totalOk})`;
+  document.getElementById('tabCountKo').textContent   = `(${totalKo})`;
+
+  KO_TYPES.forEach(t => {
+    const n = counts[t.motif] ?? 0;
+    const el = document.getElementById(t.id);
+    if (el) el.textContent = `(${n})`;
+  });
+
+  buildKoBreakdownDB(totalKo, counts);
+}
+
+function buildKoBreakdownDB(totalKo, counts) {
+  const card = document.getElementById('cardRepartitionKo');
+  const container = document.getElementById('koBreakdown');
+  if (!card || !container || totalKo === 0) { card && (card.style.display='none'); return; }
+  card.style.display = '';
+
+  container.innerHTML = KO_TYPES.map(t => {
+    const n = counts[t.motif] ?? 0;
+    if (n === 0) return '';
+    const pct = Math.round(n / totalKo * 100);
+    return `
+    <div class="col-md-6 col-xl-3">
+      <div style="background:${t.bg};border:1px solid ${t.color}33;padding:16px;cursor:pointer"
+           onclick="filtrerMotif(${JSON.stringify(t.motif)})"
+           title="Cliquer pour filtrer">
+        <div class="d-flex align-items-start gap-2 mb-2">
+          <i class="bi ${t.icon} mt-1" style="color:${t.color};font-size:1.1rem;flex-shrink:0"></i>
+          <div>
+            <div class="fw-semibold" style="color:${t.color};font-size:.88rem">${t.label}</div>
+            <div class="text-muted" style="font-size:.78rem;line-height:1.3;margin-top:3px">${t.explication}</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-baseline gap-2 mt-3">
+          <span style="font-size:1.6rem;font-weight:700;color:${t.color}">${n}</span>
+          <span class="text-muted" style="font-size:.8rem">articles (${pct}% des KO)</span>
+        </div>
+        <div class="progress mt-2" style="height:4px">
+          <div class="progress-bar" style="width:${pct}%;background:${t.color}"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function setKpi(data) {
@@ -630,55 +743,7 @@ const KO_TYPES = [
 ];
 
 function updateTabCounts() {
-  const nOk = _allRows.filter(r => r.resultat === 'OK').length;
-  const nKo = _allRows.filter(r => r.resultat === 'KO').length;
-  document.getElementById('tabCountTous').textContent = `(${_allRows.length})`;
-  document.getElementById('tabCountOk').textContent   = `(${nOk})`;
-  document.getElementById('tabCountKo').textContent   = `(${nKo})`;
-
-  // Compteurs sous-types KO
-  KO_TYPES.forEach(t => {
-    const n = _allRows.filter(r => r.resultat==='KO' && r.motif===t.motif).length;
-    const el = document.getElementById(t.id);
-    if (el) el.textContent = `(${n})`;
-  });
-
-  // Répartition KO
-  buildKoBreakdown(nKo);
-}
-
-function buildKoBreakdown(totalKo) {
-  const card = document.getElementById('cardRepartitionKo');
-  const container = document.getElementById('koBreakdown');
-  if (!card || !container || totalKo === 0) { card && (card.style.display='none'); return; }
-  card.style.display = '';
-
-  container.innerHTML = KO_TYPES.map(t => {
-    const n = _allRows.filter(r => r.resultat==='KO' && r.motif===t.motif).length;
-    if (n === 0) return '';
-    const pct = Math.round(n / totalKo * 100);
-    return `
-    <div class="col-md-6 col-xl-3">
-      <div style="background:${t.bg};border:1px solid ${t.color}33;padding:16px;cursor:pointer"
-           onclick="filtrerMotif(${JSON.stringify(t.motif)})"
-           title="Cliquer pour filtrer">
-        <div class="d-flex align-items-start gap-2 mb-2">
-          <i class="bi ${t.icon} mt-1" style="color:${t.color};font-size:1.1rem;flex-shrink:0"></i>
-          <div>
-            <div class="fw-semibold" style="color:${t.color};font-size:.88rem">${t.label}</div>
-            <div class="text-muted" style="font-size:.78rem;line-height:1.3;margin-top:3px">${t.explication}</div>
-          </div>
-        </div>
-        <div class="d-flex align-items-baseline gap-2 mt-3">
-          <span style="font-size:1.6rem;font-weight:700;color:${t.color}">${n}</span>
-          <span class="text-muted" style="font-size:.8rem">articles (${pct}% des KO)</span>
-        </div>
-        <div class="progress mt-2" style="height:4px">
-          <div class="progress-bar" style="width:${pct}%;background:${t.color}"></div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  // Conservé pour compatibilité — avec DB on utilise updateTabCountsDB
 }
 
 function filtrerMotif(motif) {
@@ -689,7 +754,7 @@ function filtrerMotif(motif) {
   document.querySelectorAll('.tab-btn').forEach(b => {
     if (b.dataset.val==='KO' && b.dataset.motif===motif) b.classList.add('active');
   });
-  applyFilters();
+  fetchDB();
 }
 
 {% if rapports %}
@@ -697,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => chargerRapport('__tous__'));
 {% endif %}
 
 document.getElementById('selectRapport')?.addEventListener('change', function() {
-  if (this.value) chargerRapport(this.value);
+  if (this.value) chargerRapport(this.value === '__tous__' ? '__tous__' : this.value);
 });
 
 // ─── Onglets OK / KO / Tous ───────────────────────────────────────────────────
@@ -714,41 +779,16 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // ─── Filtres ─────────────────────────────────────────────────────────────────
 function buildAssortimentSelect() {
-  const sel = document.getElementById('filterAssortiment');
-  if (!sel) return;
-  const current = sel.value;
-  const nums = [...new Set(_allRows.map(r => r.num_assortiment || '').filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">Tous assortiments</option>'
-    + nums.map(n => `<option value="${n}">${n}</option>`).join('');
-  if (nums.includes(current)) sel.value = current;
+  // Rempli par fetchDB via data.assortiments
 }
 
 function applyFilters() {
-  const q            = document.getElementById('filterRecherche').value.toLowerCase();
-  const st           = document.getElementById('filterStatus').value;
-  const mak          = document.getElementById('filterMak').value;
-  const assortNum    = document.getElementById('filterAssortiment')?.value || '';
-  const presentAssort= document.getElementById('filterPresentAssort')?.value || '';
-  const res          = document.getElementById('filterResultat')?.value || '';
-
-  _filtered = _allRows.filter(r => {
-    if (_tabVal   && r.resultat      !== _tabVal)   return false;
-    if (_motifVal && r.motif         !== _motifVal) return false;
-    if (q && !(r.reference||'').toLowerCase().includes(q)
-          && !(r.libelle||'').toLowerCase().includes(q)) return false;
-    if (st           && r.status_product      !== st)           return false;
-    if (mak          && r.code_mak            !== mak)          return false;
-    if (assortNum    && (r.num_assortiment||'')!== assortNum)   return false;
-    if (presentAssort&& r.present_assortiment !== presentAssort)return false;
-    if (res          && r.resultat            !== res)          return false;
-    return true;
-  });
-  sortFiltered();
   _page = 1;
-  renderPage();
+  fetchDB();
 }
 
 function sortFiltered() {
+  // Tri local sur la page courante
   if (!_sortCol) return;
   _filtered.sort((a, b) => {
     const va = (a[_sortCol] || '').toString().toLowerCase();
@@ -764,7 +804,7 @@ function sortFiltered() {
   document.getElementById(id)?.addEventListener('change', applyFilters);
 });
 
-// Tri colonnes tableau articles
+// Tri colonnes : tri local sur la page courante
 document.querySelectorAll('#tableDetail th.sortable').forEach(th => {
   th.addEventListener('click', () => {
     const col = th.dataset.sort;
@@ -779,7 +819,6 @@ document.querySelectorAll('#tableDetail th.sortable').forEach(th => {
     });
     th.classList.add(_sortDir === 1 ? 'asc' : 'desc');
     sortFiltered();
-    _page = 1;
     renderPage();
   });
 });
@@ -789,15 +828,16 @@ document.getElementById('btnResetFiltres')?.addEventListener('click', () => {
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   _tabVal   = '';
   _motifVal = '';
+  _page     = 1;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('.tab-btn[data-val=""][data-motif=""]').classList.add('active');
-  applyFilters();
+  fetchDB();
 });
 
 document.getElementById('pageSizeSelect')?.addEventListener('change', function() {
   _psize = parseInt(this.value);
   _page  = 1;
-  renderPage();
+  fetchDB();
 });
 
 // ─── Rendu table ─────────────────────────────────────────────────────────────
@@ -848,8 +888,8 @@ function motifBadge(motif, resultat) {
 function renderPage() {
   const tbody = document.getElementById('tbodyDetail');
   if (!tbody) return;
-  const start = (_page-1)*_psize;
-  const slice = _filtered.slice(start, start+_psize);
+  sortFiltered();
+  const slice = _filtered;
 
   if (!slice.length) {
     tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
@@ -886,12 +926,12 @@ function renderPage() {
       <td>${motifBadge(r.motif, r.resultat)}</td>
     </tr>`).join('');
 
-  const total = _filtered.length;
+  const start = (_page-1)*_psize;
   document.getElementById('paginationInfo').textContent =
-    `${start+1}–${Math.min(start+_psize, total)} sur ${total} articles`;
-  document.getElementById('lblNbFiltres').textContent = total + ' articles';
+    `${start+1}–${Math.min(start+_psize, _totalRows)} sur ${_totalRows} articles`;
+  document.getElementById('lblNbFiltres').textContent = _totalRows + ' articles';
 
-  buildPagination(total);
+  buildPagination(_totalRows);
 }
 
 function buildPagination(total) {
@@ -900,20 +940,21 @@ function buildPagination(total) {
   ul.innerHTML = '';
   if (pages <= 1) return;
 
+  const goPage = (p) => {
+    _page = p;
+    fetchDB();
+    document.getElementById('tableDetail').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+
   const addLi = (label, page, disabled=false) => {
     const li = document.createElement('li');
     li.className = 'page-item' + (page===_page?' active':'') + (disabled?' disabled':'');
     li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
-    if (!disabled) li.addEventListener('click', e=>{
-      e.preventDefault(); _page=page;
-      renderPage();
-      document.getElementById('tableDetail').scrollIntoView({behavior:'smooth', block:'start'});
-    });
+    if (!disabled) li.addEventListener('click', e=>{ e.preventDefault(); goPage(page); });
     ul.appendChild(li);
   };
 
   addLi('‹', _page-1, _page===1);
-  // Fenêtre de pages : 1 … p-2 p-1 p p+1 p+2 … N
   let shown = new Set([1, pages]);
   for(let i=Math.max(2,_page-2); i<=Math.min(pages-1,_page+2); i++) shown.add(i);
   let prev = 0;
@@ -1003,11 +1044,19 @@ document.querySelectorAll('.btn-charger-rapport').forEach(btn => {
 });
 
 // ─── Export CSV ──────────────────────────────────────────────────────────────
-document.getElementById('btnExportCSV')?.addEventListener('click', () => {
-  if (!_filtered.length) return;
-  const cols = ['reference','libelle','status_product','code_mak','present_asten','actif_asten','present_assortiment','resultat','motif'];
+document.getElementById('btnExportCSV')?.addEventListener('click', async () => {
+  // Télécharger toutes les pages filtrées en augmentant page_size
+  const params = buildDBParams();
+  params.set('page', 1);
+  params.set('page_size', 10000);
+  const r = await fetch(URL_RAPPORT_DB + '?' + params, {credentials:'same-origin'});
+  if (!r.ok) return;
+  const data = await r.json();
+  const rows = data.all_rows || [];
+  if (!rows.length) return;
+  const cols = ['reference','libelle','status_product','code_mak','present_asten','present_assortiment','resultat','motif','num_assortiment'];
   const lines = [cols.join(';')];
-  _filtered.forEach(r => lines.push(cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(';')));
+  rows.forEach(row => lines.push(cols.map(c=>`"${String(row[c]??'').replace(/"/g,'""')}"`).join(';')));
   const blob = new Blob(['﻿'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

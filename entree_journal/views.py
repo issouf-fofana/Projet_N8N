@@ -433,6 +433,125 @@ def rapport_controle(request, filename):
 
 
 @login_required
+def rapport_controle_db(request):
+    """Lecture depuis la base Django avec pagination et filtres côté serveur."""
+    from .models import ControleConformite, ArticleConformite
+
+    magasin      = request.GET.get("magasin", "")      # vide = tous
+    resultat     = request.GET.get("resultat", "")
+    motif        = request.GET.get("motif", "")
+    status       = request.GET.get("status", "")
+    code_mak     = request.GET.get("code_mak", "")
+    num_assort   = request.GET.get("num_assortiment", "")
+    present_assort = request.GET.get("present_assortiment", "")
+    q            = request.GET.get("q", "").strip()
+    page         = max(1, int(request.GET.get("page", 1)))
+    page_size    = min(200, max(10, int(request.GET.get("page_size", 50))))
+
+    # Récupérer le(s) contrôle(s) le(s) plus récent(s)
+    if magasin:
+        controles = ControleConformite.objects.filter(magasin=magasin).order_by('-date_controle')[:1]
+    else:
+        # Un seul contrôle par magasin (le plus récent)
+        from django.db.models import Max
+        derniers_ids = (ControleConformite.objects
+                        .values('magasin')
+                        .annotate(last_id=Max('id'))
+                        .values_list('last_id', flat=True))
+        controles = ControleConformite.objects.filter(id__in=derniers_ids)
+
+    if not controles:
+        return JsonResponse({"error": "Aucun rapport en base"}, status=404)
+
+    # Stats globales
+    from django.db.models import Count, Sum
+    stats = controles.aggregate(
+        total=Sum('total'), ok=Sum('ok'), ko=Sum('ko')
+    )
+    total_global = stats['total'] or 0
+    ok_global    = stats['ok'] or 0
+    ko_global    = stats['ko'] or 0
+    taux_global  = round(ok_global / total_global * 100, 1) if total_global else 0
+
+    # Compteurs par motif (pour les onglets)
+    articles_qs = ArticleConformite.objects.filter(controle__in=controles)
+    motifs_counts = dict(
+        articles_qs.filter(resultat='KO')
+                   .values('motif')
+                   .annotate(n=Count('id'))
+                   .values_list('motif', 'n')
+    )
+
+    # Filtres
+    if resultat:
+        articles_qs = articles_qs.filter(resultat=resultat)
+    if motif:
+        articles_qs = articles_qs.filter(motif=motif)
+    if status:
+        articles_qs = articles_qs.filter(status_product=status)
+    if code_mak:
+        articles_qs = articles_qs.filter(code_mak=code_mak)
+    if num_assort:
+        articles_qs = articles_qs.filter(num_assortiment=num_assort)
+    if present_assort == "Oui":
+        articles_qs = articles_qs.filter(present_assortiment=True)
+    elif present_assort == "Non":
+        articles_qs = articles_qs.filter(present_assortiment=False)
+    if q:
+        from django.db.models import Q
+        articles_qs = articles_qs.filter(Q(reference__icontains=q) | Q(libelle__icontains=q))
+
+    total_filtre = articles_qs.count()
+    offset = (page - 1) * page_size
+    articles_page = articles_qs.values(
+        'reference', 'libelle', 'status_product', 'code_mak',
+        'num_assortiment', 'deref', 'present_asten',
+        'present_assortiment', 'resultat', 'motif', 'absent_cegid'
+    )[offset:offset + page_size]
+
+    # Convertir pour compatibilité avec le frontend existant
+    def fmt(a):
+        return {
+            'reference':           a['reference'],
+            'libelle':             a['libelle'],
+            'status_product':      a['status_product'],
+            'code_mak':            a['code_mak'],
+            'num_assortiment':     a['num_assortiment'],
+            'deref':               'Oui' if a['deref'] else 'Non',
+            'present_asten':       'Oui' if a['present_asten'] else 'Non',
+            'actif_asten':         'Oui' if a['present_asten'] else 'Non',
+            'present_assortiment': 'Oui' if a['present_assortiment'] is True
+                                   else ('Non' if a['present_assortiment'] is False else 'N/A'),
+            'resultat':            a['resultat'],
+            'motif':               a['motif'],
+            'absent_cegid':        'Oui' if a['absent_cegid'] else 'Non',
+        }
+
+    # Numéros d'assortiments disponibles
+    assortiments = sorted(set(
+        controles.values_list('num_assortiment', flat=True)
+    ))
+
+    return JsonResponse({
+        "magasin":         magasin or "TOUS",
+        "date":            "",
+        "total":           total_global,
+        "ok":              ok_global,
+        "ko":              ko_global,
+        "taux_conformite": taux_global,
+        "motifs_counts":   motifs_counts,
+        "assortiments":    assortiments,
+        "pagination": {
+            "page":        page,
+            "page_size":   page_size,
+            "total":       total_filtre,
+            "pages":       (total_filtre + page_size - 1) // page_size,
+        },
+        "all_rows": [fmt(a) for a in articles_page],
+    })
+
+
+@login_required
 def rapport_controle_tous(request):
     """Fusionne le dernier rapport de chaque magasin en un seul JSON."""
     if not CONTROLE_DIR.exists():
