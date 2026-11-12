@@ -14,6 +14,7 @@ urlpatterns = [
     path("article-commandable/lancer/", views.lancer_controle, name="lancer_controle"),
     path("article-commandable/statut/", views.statut_controle, name="statut_controle"),
     path("article-commandable/rapport/<str:filename>/", views.rapport_controle, name="rapport_controle"),
+    path("article-commandable/rapport-tous/", views.rapport_controle_tous, name="rapport_controle_tous"),
     path("article-commandable/cegid/<str:backup_prefix>/", views.cegid_products, name="cegid_products"),
 
     path("taches/", views.taches_planifiees, name="taches_planifiees"),

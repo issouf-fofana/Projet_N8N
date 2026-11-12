@@ -154,9 +154,9 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
           <i class="bi bi-clock-history me-1"></i>Rapport
         </label>
         <select class="form-select form-select-sm" id="selectRapport" style="min-width:260px;font-size:.82rem">
+          <option value="__tous__" selected>★ Tous les magasins</option>
           {% for r in rapports %}
-          <option value="{{ r.filename }}"
-            {% if forloop.first %}selected{% endif %}>
+          <option value="{{ r.filename }}">
             Magasin {{ r.magasin }} — {{ r.date|default:r.filename }}
             {% if r.taux_conformite %}({{ r.taux_conformite }}%){% endif %}
           </option>
@@ -551,7 +551,8 @@ let _polling  = null;
 let _sortCol  = '';   // colonne de tri active
 let _sortDir  = 1;    // 1 = croissant, -1 = décroissant
 
-const URL_RAPPORT = "{% url 'entree_journal:rapport_controle' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
+const URL_RAPPORT      = "{% url 'entree_journal:rapport_controle' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
+const URL_RAPPORT_TOUS = "{% url 'entree_journal:rapport_controle_tous' %}";
 const URL_LANCER  = "{% url 'entree_journal:lancer_controle' %}";
 const URL_STATUT  = "{% url 'entree_journal:statut_controle' %}";
 
@@ -560,7 +561,8 @@ function chargerRapport(filename) {
   document.getElementById('tbodyDetail').innerHTML =
     '<tr><td colspan="10" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
-  fetch(URL_RAPPORT + filename + '/', {credentials: 'same-origin'})
+  const url = filename === '__tous__' ? URL_RAPPORT_TOUS : URL_RAPPORT + filename + '/';
+  fetch(url, {credentials: 'same-origin'})
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
@@ -685,8 +687,8 @@ function filtrerMotif(motif) {
   applyFilters();
 }
 
-{% if dernier %}
-document.addEventListener('DOMContentLoaded', () => chargerRapport('{{ dernier.filename }}'));
+{% if rapports %}
+document.addEventListener('DOMContentLoaded', () => chargerRapport('__tous__'));
 {% endif %}
 
 document.getElementById('selectRapport')?.addEventListener('change', function() {

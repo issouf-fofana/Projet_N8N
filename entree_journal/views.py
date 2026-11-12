@@ -432,6 +432,49 @@ def rapport_controle(request, filename):
         return JsonResponse(json.load(f))
 
 
+@login_required
+def rapport_controle_tous(request):
+    """Fusionne le dernier rapport de chaque magasin en un seul JSON."""
+    if not CONTROLE_DIR.exists():
+        return JsonResponse({"error": "Aucun rapport"}, status=404)
+
+    # Pour chaque magasin, ne garder que le rapport le plus récent
+    derniers = {}
+    for p in sorted(CONTROLE_DIR.glob("conformite_*.json"), reverse=True):
+        try:
+            # conformite_035_20261112_114329.json → magasin = 035
+            parts = p.stem.split("_")
+            magasin = parts[1]
+            if magasin not in derniers:
+                derniers[magasin] = p
+        except Exception:
+            continue
+
+    all_rows = []
+    total = ok = ko = 0
+    for magasin, p in sorted(derniers.items()):
+        try:
+            with open(p, encoding="utf-8") as f:
+                data = json.load(f)
+            all_rows.extend(data.get("all_rows", []))
+            total += data.get("total", 0)
+            ok    += data.get("ok", 0)
+            ko    += data.get("ko", 0)
+        except Exception:
+            continue
+
+    taux = round(ok / total * 100, 1) if total else 0
+    return JsonResponse({
+        "magasin":         "TOUS",
+        "date":            "",
+        "total":           total,
+        "ok":              ok,
+        "ko":              ko,
+        "taux_conformite": taux,
+        "all_rows":        all_rows,
+    })
+
+
 # ─── Vue tâches planifiées ────────────────────────────────────────────────────
 
 BASE_DIR = Path(__file__).parent.parent
