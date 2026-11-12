@@ -142,32 +142,36 @@ def lire_products(backup_prefix, backup_dir):
 
 def lire_asten(magasin_code):
     """
-    Retourne set des codes articles présents pour ce magasin dans le CSV commandable.
-    La colonne 'ean' contient le code article POS (9 chiffres), filtré par 'magasin'.
+    Retourne set des codes articles présents pour ce magasin dans les CSV commandables.
+    Cherche dans tous les fichiers commandable_pos*.csv (tous les POS).
     """
-    # Cherche d'abord le fichier fixe (nouveau format), puis l'ancien format horodaté
-    pattern = list(OUTPUT_DIR.glob("commandable_pos4*.csv"))
-    if not pattern:
-        raise FileNotFoundError(f"Fichier commandable_pos4*.csv introuvable dans {OUTPUT_DIR}")
-    # Préférer le fichier sans horodatage (fichier courant mis à jour par le cron)
-    # Format horodaté : commandable_pos4-..._20261112_024218.csv (stem se termine par _YYYYMMDD_HHMMSS)
     import re as _re
-    fixes = [p for p in pattern if not _re.search(r'_\d{8}_\d{6}$', p.stem)]
-    if fixes:
-        fichier = sorted(fixes, key=lambda p: p.stat().st_mtime)[-1]
-    else:
-        fichier = sorted(pattern)[-1]
-    print(f"  Asten   : {fichier.name}")
+    # Tous les fichiers courants (sans horodatage) en priorité, sinon les horodatés
+    tous = list(OUTPUT_DIR.glob("commandable_pos*.csv"))
+    if not tous:
+        raise FileNotFoundError(f"Aucun fichier commandable_pos*.csv dans {OUTPUT_DIR}")
+
+    # Regrouper par "base" (nom sans horodatage) → garder le plus récent par mtime
+    bases = {}
+    for p in tous:
+        base = _re.sub(r'_\d{8}_\d{6}$', '', p.stem)
+        if base not in bases or p.stat().st_mtime > bases[base].stat().st_mtime:
+            bases[base] = p
+
+    fichiers = sorted(bases.values(), key=lambda p: p.name)
     present = set()
-    with open(fichier, encoding="utf-8-sig", errors="replace") as f:
-        reader = csv.DictReader(f, delimiter=";")
-        for row in reader:
-            if row.get("magasin", "").strip() != magasin_code:
-                continue
-            ref = row.get("ean", "").strip()
-            if ref:
-                present.add(ref)
-    print(f"  → {len(present)} articles Asten pour magasin {magasin_code}")
+    for fichier in fichiers:
+        with open(fichier, encoding="utf-8-sig", errors="replace") as f:
+            for row in csv.DictReader(f, delimiter=";"):
+                if row.get("magasin", "").strip() != magasin_code:
+                    continue
+                ref = row.get("ean", "").strip()
+                if ref:
+                    present.add(ref)
+    if present:
+        print(f"  Asten   : {len(fichiers)} fichiers POS — {len(present)} articles pour magasin {magasin_code}")
+    else:
+        print(f"  Asten   : magasin {magasin_code} introuvable dans {len(fichiers)} fichiers POS")
     return present
 
 
