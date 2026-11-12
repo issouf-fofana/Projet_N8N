@@ -105,6 +105,18 @@ body { background-color: #e5e7eb !important; }
 .table-danger-soft { background: rgba(239,68,68,.04) !important; }
 .table-danger-soft:hover { background: rgba(239,68,68,.08) !important; }
 
+/* En-têtes triables */
+th.sortable {
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+th.sortable:hover { background: #f0f0f0; }
+th.sortable::after {
+  content: ' ⇅';
+  opacity: .3; font-size: .75em;
+}
+th.sortable.asc::after  { content: ' ↑'; opacity: .8; color: #6b4c35; }
+th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
+
 /* Bandeau de progression */
 #bandeauProgression {
     background:rgba(107,76,53,.08);
@@ -346,15 +358,15 @@ body { background-color: #e5e7eb !important; }
         <table class="table table-hover mb-0" id="tableDetail">
           <thead>
             <tr>
-              <th>Référence</th>
-              <th>Libellé</th>
-              <th>Statut</th>
-              <th>CODE MAK</th>
-              <th>N° Assort.</th>
-              <th>Cmdable Asten</th>
-              <th>Assortiment</th>
-              <th>Résultat</th>
-              <th>Motif</th>
+              <th class="sortable" data-sort="reference">Référence</th>
+              <th class="sortable" data-sort="libelle">Libellé</th>
+              <th class="sortable" data-sort="status_product">Statut</th>
+              <th class="sortable" data-sort="code_mak">CODE MAK</th>
+              <th class="sortable" data-sort="num_assortiment">N° Assort.</th>
+              <th class="sortable" data-sort="present_asten">Cmdable Asten</th>
+              <th class="sortable" data-sort="present_assortiment">Assortiment</th>
+              <th class="sortable" data-sort="resultat">Résultat</th>
+              <th class="sortable" data-sort="motif">Motif</th>
             </tr>
           </thead>
           <tbody id="tbodyDetail">
@@ -485,17 +497,17 @@ body { background-color: #e5e7eb !important; }
             <thead style="position:sticky;top:0;z-index:1;background:#f9fafb">
               <tr>
                 <th style="width:32px"></th>
-                <th>Code article</th>
-                <th>Code interne</th>
-                <th>N° Assort.</th>
-                <th>Libellé long</th>
-                <th>Libellé court</th>
-                <th>Qté cond.</th>
-                <th>Statut</th>
-                <th>CODE MAK</th>
-                <th>TVA %</th>
-                <th>Prix vente</th>
-                <th>Prix achat</th>
+                <th class="sortable" data-csort="code_article">Code article</th>
+                <th class="sortable" data-csort="code_interne">Code interne</th>
+                <th class="sortable" data-csort="num_assortiment">N° Assort.</th>
+                <th class="sortable" data-csort="libelle_long">Libellé long</th>
+                <th class="sortable" data-csort="libelle_court">Libellé court</th>
+                <th class="sortable" data-csort="qte_cond">Qté cond.</th>
+                <th class="sortable" data-csort="statut">Statut</th>
+                <th class="sortable" data-csort="code_mak">CODE MAK</th>
+                <th class="sortable" data-csort="tva">TVA %</th>
+                <th class="sortable" data-csort="prix_vente">Prix vente</th>
+                <th class="sortable" data-csort="prix_achat">Prix achat</th>
               </tr>
             </thead>
             <tbody id="cegidTbody">
@@ -530,6 +542,8 @@ let _psize    = 50;
 let _tabVal   = '';   // '' | 'OK' | 'KO'
 let _motifVal = '';   // filtre motif spécifique
 let _polling  = null;
+let _sortCol  = '';   // colonne de tri active
+let _sortDir  = 1;    // 1 = croissant, -1 = décroissant
 
 const URL_RAPPORT = "{% url 'entree_journal:rapport_controle' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
 const URL_LANCER  = "{% url 'entree_journal:lancer_controle' %}";
@@ -703,13 +717,45 @@ function applyFilters() {
     if (res    && r.resultat            !== res)    return false;
     return true;
   });
+  sortFiltered();
   _page = 1;
   renderPage();
+}
+
+function sortFiltered() {
+  if (!_sortCol) return;
+  _filtered.sort((a, b) => {
+    const va = (a[_sortCol] || '').toString().toLowerCase();
+    const vb = (b[_sortCol] || '').toString().toLowerCase();
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if (!isNaN(na) && !isNaN(nb)) return (na - nb) * _sortDir;
+    return va < vb ? -_sortDir : va > vb ? _sortDir : 0;
+  });
 }
 
 ['filterRecherche','filterStatus','filterMak','filterAssortiment','filterResultat'].forEach(id => {
   document.getElementById(id)?.addEventListener('input',  applyFilters);
   document.getElementById(id)?.addEventListener('change', applyFilters);
+});
+
+// Tri colonnes tableau articles
+document.querySelectorAll('#tableDetail th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (_sortCol === col) {
+      _sortDir = -_sortDir;
+    } else {
+      _sortCol = col;
+      _sortDir = 1;
+    }
+    document.querySelectorAll('#tableDetail th.sortable').forEach(h => {
+      h.classList.remove('asc', 'desc');
+    });
+    th.classList.add(_sortDir === 1 ? 'asc' : 'desc');
+    sortFiltered();
+    _page = 1;
+    renderPage();
+  });
 });
 
 document.getElementById('btnResetFiltres')?.addEventListener('click', () => {
@@ -943,6 +989,8 @@ let _cegidPage     = 1;
 const _cegidPsize  = 100;
 let _cegidLoaded   = false;
 let _cegidBackup   = '';
+let _cegidSortCol  = '';
+let _cegidSortDir  = 1;
 
 const URL_CEGID = "{% url 'entree_journal:cegid_products' '000' %}".replace('/000/', '/');
 
@@ -1019,13 +1067,43 @@ function applyCegidFilters() {
             && !(r.libelle_court||'').toLowerCase().includes(q)) return false;
     return true;
   });
+  sortCegidFiltered();
   _cegidPage = 1;
   renderCegidPage();
+}
+
+function sortCegidFiltered() {
+  if (!_cegidSortCol) return;
+  _cegidFiltered.sort((a, b) => {
+    const va = (a[_cegidSortCol] || '').toString().toLowerCase();
+    const vb = (b[_cegidSortCol] || '').toString().toLowerCase();
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if (!isNaN(na) && !isNaN(nb)) return (na - nb) * _cegidSortDir;
+    return va < vb ? -_cegidSortDir : va > vb ? _cegidSortDir : 0;
+  });
 }
 
 ['cegidSearch','cegidFilterStatut','cegidFilterMak','cegidFilterDeref'].forEach(id => {
   document.getElementById(id)?.addEventListener('input',  applyCegidFilters);
   document.getElementById(id)?.addEventListener('change', applyCegidFilters);
+});
+
+// Tri colonnes modal CEGID — liaison différée car le modal est dans <body> après DOMContentLoaded
+document.addEventListener('click', e => {
+  const th = e.target.closest('#modalCegid th.sortable[data-csort]');
+  if (!th) return;
+  const col = th.dataset.csort;
+  if (_cegidSortCol === col) {
+    _cegidSortDir = -_cegidSortDir;
+  } else {
+    _cegidSortCol = col;
+    _cegidSortDir = 1;
+  }
+  document.querySelectorAll('#modalCegid th.sortable').forEach(h => h.classList.remove('asc','desc'));
+  th.classList.add(_cegidSortDir === 1 ? 'asc' : 'desc');
+  sortCegidFiltered();
+  _cegidPage = 1;
+  renderCegidPage();
 });
 
 function renderCegidPage() {
