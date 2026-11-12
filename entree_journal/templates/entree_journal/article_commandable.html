@@ -294,6 +294,9 @@ body { background-color: #e5e7eb !important; }
         <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Absent assortiment" style="color:#dc7000">
           <i class="bi bi-clipboard-x me-1"></i>Absent assortiment <span class="tab-count" id="tabCountAssort">—</span>
         </button>
+        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Déréférencé" style="color:#be185d">
+          <i class="bi bi-trash me-1"></i>Déréférencé <span class="tab-count" id="tabCountDeref">—</span>
+        </button>
       </div>
 
       <!-- Filtres secondaires -->
@@ -316,6 +319,13 @@ body { background-color: #e5e7eb !important; }
             <option value="CC">CC — Centrale</option>
             <option value="CD">CD — Centrale + Direct</option>
             <option value="LD">LD — Livraison Directe</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <select class="form-select" id="filterAssortiment">
+            <option value="">Tous assortiments</option>
+            <option value="Oui">✓ Dans l'assortiment</option>
+            <option value="Non">✗ Absent assortiment</option>
           </select>
         </div>
         <div class="col-auto">
@@ -567,6 +577,8 @@ const KO_TYPES = [
     explication:'Article éligible à la commande centrale (AC ou NC avec CC/CD) et présent dans l\'assortiment, mais non commandable dans Asten (absent du POS).' },
   { motif:'Absent assortiment',    id:'tabCountAssort', label:'Absent assortiment',    color:'#dc7000', bg:'#fff7ed', icon:'bi-clipboard-x',
     explication:'Article éligible mais absent de l\'assortiment du magasin — il doit d\'abord être référencé.' },
+  { motif:'Déréférencé',           id:'tabCountDeref',  label:'Déréférencé',           color:'#be185d', bg:'#fdf2f8', icon:'bi-trash',
+    explication:'Article marqué D (déréférencé) dans le fichier CEGID — non commandable.' },
   { motif:'Statut NA',             id:'tabCountNA',     label:'Statut NA',             color:'#6b7280', bg:'#f3f4f6', icon:'bi-slash-circle',
     explication:'Statut NA (Non Autorisé) dans CEGID — cet article ne peut pas être commandé.' },
   { motif:'Statut ES',             id:'tabCountES',     label:'Statut ES',             color:'#8b5cf6', bg:'#f5f3ff', icon:'bi-pause-circle',
@@ -660,32 +672,34 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // ─── Filtres ─────────────────────────────────────────────────────────────────
 function applyFilters() {
-  const q   = document.getElementById('filterRecherche').value.toLowerCase();
-  const st  = document.getElementById('filterStatus').value;
-  const mak = document.getElementById('filterMak').value;
-  const res = document.getElementById('filterResultat')?.value || '';
+  const q     = document.getElementById('filterRecherche').value.toLowerCase();
+  const st    = document.getElementById('filterStatus').value;
+  const mak   = document.getElementById('filterMak').value;
+  const assort= document.getElementById('filterAssortiment')?.value || '';
+  const res   = document.getElementById('filterResultat')?.value || '';
 
   _filtered = _allRows.filter(r => {
     if (_tabVal   && r.resultat      !== _tabVal)   return false;
     if (_motifVal && r.motif         !== _motifVal) return false;
     if (q && !(r.reference||'').toLowerCase().includes(q)
           && !(r.libelle||'').toLowerCase().includes(q)) return false;
-    if (st  && r.status_product !== st)             return false;
-    if (mak && r.code_mak       !== mak)            return false;
-    if (res && r.resultat       !== res)            return false;
+    if (st     && r.status_product      !== st)     return false;
+    if (mak    && r.code_mak            !== mak)    return false;
+    if (assort && r.present_assortiment !== assort) return false;
+    if (res    && r.resultat            !== res)    return false;
     return true;
   });
   _page = 1;
   renderPage();
 }
 
-['filterRecherche','filterStatus','filterMak','filterResultat'].forEach(id => {
+['filterRecherche','filterStatus','filterMak','filterAssortiment','filterResultat'].forEach(id => {
   document.getElementById(id)?.addEventListener('input',  applyFilters);
   document.getElementById(id)?.addEventListener('change', applyFilters);
 });
 
 document.getElementById('btnResetFiltres')?.addEventListener('click', () => {
-  ['filterRecherche','filterStatus','filterMak','filterResultat']
+  ['filterRecherche','filterStatus','filterMak','filterAssortiment','filterResultat']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   _tabVal   = '';
   _motifVal = '';
@@ -724,6 +738,10 @@ const MOTIF_STYLE = {
     { color:'#991b1b', bg:'#fef2f2', icon:'bi-ban',
       short:'NC / LD',
       tip:'CODE MAK LD — commandable uniquement chez le fournisseur ASP, pas à la centrale' },
+  'Déréférencé':
+    { color:'#be185d', bg:'#fdf2f8', icon:'bi-trash',
+      short:'Déréférencé',
+      tip:'Article marqué D dans CEGID — déréférencé, non commandable' },
 };
 
 function motifBadge(motif, resultat) {

@@ -48,7 +48,7 @@ MAGASIN_TO_BACKUP = build_magasin_to_backup()
 
 # ─── Moteur de conformité ────────────────────────────────────────────────────
 
-def controler_article(status_product, code_mak, present_asten, actif_asten, present_assortiment):
+def controler_article(status_product, code_mak, present_asten, actif_asten, present_assortiment, deref=False):
     """
     Règles de commandabilité à la centrale (source: tableau référentiel Prosuma) :
       AC/CC  → commandable si actif dans l'assortiment (Asten = canal de commande, pas critère d'éligibilité)
@@ -60,6 +60,10 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
       NC/CD  → commandable si actif dans l'assortiment
       NC/LD  → NON commandable
     """
+    # Déréférencé dans CEGID : non commandable quelle que soit la situation Asten
+    if deref:
+        return "KO", "Déréférencé"
+
     if status_product == "AC":
         if code_mak == "LD":
             # AC/LD : uniquement commandable chez fournisseur ASP — non commandable à la centrale
@@ -97,7 +101,8 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
 
 def lire_products(backup_prefix, backup_dir):
     """
-    Retourne {code_article: {label, status, code_mak}} depuis 030_products_*.csv
+    Retourne {code_article: {label, status, code_mak, deref}} depuis 030_products_*.csv
+    col0 = flag déréférencé ('D' = déréférencé, espace = actif)
     col4 = code article POS (9 chiffres) — clé de jointure avec le CSV commandable
     col6 = libellé long
     col10 = statut (AC/NA/ES/NC)
@@ -113,13 +118,15 @@ def lire_products(backup_prefix, backup_dir):
         for row in csv.reader(f, delimiter=";"):
             if len(row) < 16:
                 continue
-            code_art = row[4].strip()   # code article POS, 9 chiffres
+            deref    = row[0].strip() == "D"  # col0 : D = déréférencé
+            code_art = row[4].strip()          # code article POS, 9 chiffres
             label    = row[6].strip()
             status   = row[10].strip()
             code_mak = row[15].strip()
-            if code_art and status:     # ignorer les lignes sans code ou statut
-                result[code_art] = {"label": label, "status": status, "code_mak": code_mak}
-    print(f"  → {len(result)} articles Product (clé=code_article col4)")
+            if code_art and status:            # ignorer les lignes sans code ou statut
+                result[code_art] = {"label": label, "status": status, "code_mak": code_mak, "deref": deref}
+    n_deref = sum(1 for v in result.values() if v["deref"])
+    print(f"  → {len(result)} articles Product (clé=code_article col4) dont {n_deref} déréférencés")
     return result
 
 
@@ -196,20 +203,22 @@ def controler_magasin(magasin_code):
     for ref, info in products.items():
         status   = info["status"]
         code_mak = info["code_mak"]
+        deref    = info.get("deref", False)
 
         present_asten      = ref in asten_refs
         actif_asten        = present_asten  # commandable = actif dans Asten
         present_assortiment = (ref in assort_refs) if assort_refs is not None else None
 
-        # Si assortiment non disponible, on ne peut pas vérifier
-        if present_assortiment is None:
+        # Si assortiment non disponible, on ne peut pas vérifier (sauf déréférencé, toujours KO)
+        if not deref and present_assortiment is None:
             resultat = "INCOMPLET"
             motif    = "Assortiment non disponible"
         else:
             resultat, motif = controler_article(
                 status, code_mak,
                 present_asten, actif_asten,
-                present_assortiment
+                present_assortiment,
+                deref=deref,
             )
 
         stats[resultat] = stats.get(resultat, 0) + 1
@@ -218,6 +227,7 @@ def controler_magasin(magasin_code):
             "libelle":             info["label"],
             "status_product":      status,
             "code_mak":            code_mak,
+            "deref":               "Oui" if deref else "Non",
             "present_asten":       "Oui" if present_asten else "Non",
             "actif_asten":         "Oui" if actif_asten else "Non",
             "present_assortiment": "Oui" if present_assortiment else ("Non" if present_assortiment is not None else "N/A"),
