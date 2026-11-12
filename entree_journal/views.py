@@ -449,19 +449,23 @@ def rapport_controle_db(request):
     page_size    = min(200, max(10, int(request.GET.get("page_size", 50))))
 
     # Récupérer le(s) contrôle(s) le(s) plus récent(s)
+    from django.db.models import Max
     if magasin:
-        controles = ControleConformite.objects.filter(magasin=magasin).order_by('-date_controle')[:1]
+        dernier = ControleConformite.objects.filter(magasin=magasin).order_by('-date_controle').first()
+        if not dernier:
+            return JsonResponse({"error": f"Aucun rapport en base pour magasin {magasin}"}, status=404)
+        controles = ControleConformite.objects.filter(id=dernier.id)
     else:
         # Un seul contrôle par magasin (le plus récent)
-        from django.db.models import Max
-        derniers_ids = (ControleConformite.objects
-                        .values('magasin')
-                        .annotate(last_id=Max('id'))
-                        .values_list('last_id', flat=True))
+        derniers_ids = list(
+            ControleConformite.objects
+                .values('magasin')
+                .annotate(last_id=Max('id'))
+                .values_list('last_id', flat=True)
+        )
+        if not derniers_ids:
+            return JsonResponse({"error": "Aucun rapport en base"}, status=404)
         controles = ControleConformite.objects.filter(id__in=derniers_ids)
-
-    if not controles:
-        return JsonResponse({"error": "Aucun rapport en base"}, status=404)
 
     # Stats globales
     from django.db.models import Count, Sum
