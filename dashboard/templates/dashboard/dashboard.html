@@ -2994,14 +2994,15 @@
     fetch(`{% url 'entree_journal:rapport_controle_db' %}?${params.toString()}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data || data.error) return;
+        if (!data || data.error) { console.warn('AC AJAX error:', data); return; }
+        console.log('AC AJAX ok — total_filtre:', data.total_filtre, 'rows:', data.all_rows?.length);
         updateKPIsFromStats(data, hasFilters);
         // Remplir la table avec les résultats
         _ajaxPages = data.pagination?.pages || 1;
         _ajaxTotal = data.pagination?.total || 0;
         renderAjaxRows(data.all_rows || [], data.pagination);
       })
-      .catch(() => {});
+      .catch(e => { console.error('AC AJAX fetch error:', e); });
   }
 
   function renderAjaxRows(rows, pag) {
