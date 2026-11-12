@@ -400,7 +400,8 @@ def dashboard(request):
     date_fin = request.GET.get('date_fin')
     code_magasin = request.GET.getlist('magasin')  # Récupérer plusieurs valeurs pour la sélection multiple
     type_donnees = request.GET.get('type_donnees', 'commandes_asten')  # Par défaut: commandes Asten
-    periode = request.GET.get('periode', 'aujourdhui')
+    _default_periode = 'semaine' if type_donnees == 'article_commandable' else 'aujourdhui'
+    periode = request.GET.get('periode', _default_periode)
     theme_promo_dash = request.GET.get('theme_promo', '')
     # Pour GPV sans filtre de date : défaut = non_integres (évite de charger les 61k résolus)
     # Avec un filtre de date actif : afficher tout (sinon les nouvelles commandes sans écart calculé sont invisibles)
@@ -1231,67 +1232,40 @@ def dashboard(request):
         titre_tableau = "BR ASTEN (Statut IC)"
     
     elif type_donnees == 'article_commandable':
-        import json as _json
-        from pathlib import Path as _Path
-        from datetime import datetime as _dt
-        _CONTROLE_DIR = _Path(__file__).parent.parent / "Article_commandable" / "output"
+        # Lecture depuis la DB uniquement — pas de lecture fichiers JSON (trop lent)
+        from entree_journal.models import ControleConformite, ArticleConformite
+        from django.db.models import Max, Count
+
+        # Dernier contrôle par magasin
+        _derniers_ids = list(
+            ControleConformite.objects.values('magasin')
+                .annotate(last_id=Max('id')).values_list('last_id', flat=True)
+        )
+        _controles_qs = ControleConformite.objects.filter(id__in=_derniers_ids)
+        if code_magasin:
+            _controles_qs = _controles_qs.filter(magasin__in=code_magasin)
+
         _rapports_ac = []
-        # Pour les articles commandables, si periode='aujourdhui' on élargit à 7 jours
-        # car les rapports sont générés la nuit (pas forcément aujourd'hui)
-        _ac_debut = date_debut_parsed
-        _ac_fin   = date_fin_parsed
-        if periode == 'aujourdhui' or not _ac_debut:
-            _ac_debut = None  # pas de filtre date par défaut → tous les rapports
-            _ac_fin   = None
-        if _CONTROLE_DIR.exists():
-            for _p in sorted(_CONTROLE_DIR.glob("conformite_*.json"), reverse=True):
-                try:
-                    _d = _json.loads(_p.read_text(encoding="utf-8"))
-                    # Filtre magasin
-                    if code_magasin and _d.get("magasin") not in code_magasin:
-                        continue
-                    # Filtre période sur la date du rapport (format YYYYMMDD_HHMMSS)
-                    _ts = _d.get("date", "")
-                    if _ts and (_ac_debut or _ac_fin):
-                        try:
-                            _rdate = _dt.strptime(_ts[:8], "%Y%m%d").date()
-                            if _ac_debut and _rdate < _ac_debut:
-                                continue
-                            if _ac_fin and _rdate > _ac_fin:
-                                continue
-                        except Exception:
-                            pass
-                    _rapports_ac.append({
-                        "filename": _p.name,
-                        "magasin": _d.get("magasin", ""),
-                        "date": _d.get("date", ""),
-                        "total": _d.get("total", 0),
-                        "ok": _d.get("ok", 0),
-                        "ko": _d.get("ko", 0),
-                        "taux": _d.get("taux_conformite", 0),
-                        # Résumé motifs pour affichage dashboard
-                        "nb_non_cmd_asten": sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("Non commandable Asten", "Article absent dans Asten")),
-                        "nb_statut_na":     sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("Statut NA", "Statut Product NA")),
-                        "nb_statut_es":     sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("Statut ES", "Statut Product ES")),
-                        "nb_nc_ld":         sum(1 for r in _d.get("all_rows", []) if r.get("motif") in ("NC/LD", "Article NC avec CODE MAK LD")),
-                    })
-                except Exception:
-                    pass
-        # Charger les articles du rapport le plus récent pour affichage direct
+        for _c in _controles_qs.order_by('-date_controle'):
+            # Compteurs motifs depuis ArticleConformite
+            _motifs = dict(
+                ArticleConformite.objects.filter(controle=_c, resultat='KO')
+                    .values('motif').annotate(n=Count('id')).values_list('motif', 'n')
+            )
+            _rapports_ac.append({
+                "filename": "",
+                "magasin":  _c.magasin,
+                "date":     _c.date_controle.strftime('%Y%m%d_%H%M%S'),
+                "total":    _c.total,
+                "ok":       _c.ok,
+                "ko":       _c.ko,
+                "taux":     _c.taux_conformite,
+                "nb_non_cmd_asten": _motifs.get("Non commandable Asten", 0) + _motifs.get("Article absent dans Asten", 0),
+                "nb_statut_na":     _motifs.get("Statut NA", 0) + _motifs.get("Statut Product NA", 0),
+                "nb_statut_es":     _motifs.get("Statut ES", 0) + _motifs.get("Statut Product ES", 0),
+                "nb_nc_ld":         _motifs.get("NC/LD", 0) + _motifs.get("Article NC avec CODE MAK LD", 0),
+            })
         _articles_ac_rows = []
-        if _rapports_ac:
-            try:
-                _first = _CONTROLE_DIR / _rapports_ac[0]["filename"]
-                _first_data = _json.loads(_first.read_text(encoding="utf-8"))
-                _rows = _first_data.get("all_rows", [])
-                # Mettre à jour les KPI motifs du premier rapport
-                _rapports_ac[0]["nb_non_cmd_asten"] = sum(1 for r in _rows if r.get("motif") in ("Non commandable Asten", "Article absent dans Asten"))
-                _rapports_ac[0]["nb_statut_na"]     = sum(1 for r in _rows if r.get("motif") in ("Statut NA", "Statut Product NA"))
-                _rapports_ac[0]["nb_statut_es"]     = sum(1 for r in _rows if r.get("motif") in ("Statut ES", "Statut Product ES"))
-                _rapports_ac[0]["nb_nc_ld"]         = sum(1 for r in _rows if r.get("motif") in ("NC/LD", "Article NC avec CODE MAK LD"))
-                _articles_ac_rows = _rows
-            except Exception:
-                pass
         commandes_data = []
         _dashboard_page_obj = None
         _dashboard_per_page = 30
