@@ -236,3 +236,55 @@ class EntreeJournal(models.Model):
 
     def __str__(self):
         return f"{self.pos_id} | {self.shop_reference} | {self.entry_type_detail_type} | {self.status_label}"
+
+
+# ─── Conformité articles commandables ────────────────────────────────────────
+
+class ControleConformite(models.Model):
+    """En-tête d'un rapport de contrôle pour un magasin."""
+    magasin          = models.CharField(max_length=20, db_index=True)
+    num_assortiment  = models.CharField(max_length=20, blank=True)
+    date_controle    = models.DateTimeField(db_index=True)
+    total            = models.IntegerField(default=0)
+    ok               = models.IntegerField(default=0)
+    ko               = models.IntegerField(default=0)
+    taux_conformite  = models.FloatField(default=0)
+    source_fichier   = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-date_controle']
+        indexes = [
+            models.Index(fields=['magasin', '-date_controle']),
+        ]
+        verbose_name = "Contrôle conformité"
+
+    def __str__(self):
+        return f"{self.magasin} — {self.date_controle:%Y-%m-%d %H:%M} ({self.taux_conformite}%)"
+
+
+class ArticleConformite(models.Model):
+    """Résultat de conformité pour un article."""
+    controle         = models.ForeignKey(ControleConformite, on_delete=models.CASCADE, related_name='articles')
+    reference        = models.CharField(max_length=50, db_index=True)
+    libelle          = models.CharField(max_length=255, blank=True)
+    status_product   = models.CharField(max_length=10, blank=True)
+    code_mak         = models.CharField(max_length=10, blank=True)
+    num_assortiment  = models.CharField(max_length=20, blank=True, db_index=True)
+    deref            = models.BooleanField(default=False)
+    present_asten    = models.BooleanField(default=False)
+    present_assortiment = models.BooleanField(null=True)
+    resultat         = models.CharField(max_length=20, db_index=True)  # OK / KO / INCOMPLET
+    motif            = models.CharField(max_length=100, blank=True, db_index=True)
+    absent_cegid     = models.BooleanField(default=False)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['controle', 'resultat']),
+            models.Index(fields=['controle', 'motif']),
+            models.Index(fields=['reference']),
+            models.Index(fields=['num_assortiment', 'resultat']),
+        ]
+        verbose_name = "Article conformité"
+
+    def __str__(self):
+        return f"{self.reference} — {self.resultat} ({self.motif})"

@@ -319,7 +319,58 @@ def controler_magasin(magasin_code):
         json.dump(rapport, f, ensure_ascii=False, indent=2)
     print(f"  JSON : {json_path}")
 
+    # Sauvegarde en base Django
+    _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, json_path.name, rows)
+
     return rapport
+
+
+def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, source_fichier, rows):
+    """Insère ou remplace le dernier rapport de conformité en base Django."""
+    try:
+        import django
+        import os as _os
+        _os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
+        django.setup()
+        from entree_journal.models import ControleConformite, ArticleConformite
+        from datetime import datetime as _dt
+
+        date_controle = _dt.strptime(ts, "%Y%m%d_%H%M%S")
+
+        # Supprimer l'ancien rapport pour ce magasin (garder uniquement le plus récent)
+        ControleConformite.objects.filter(magasin=magasin_code).delete()
+
+        controle = ControleConformite.objects.create(
+            magasin=magasin_code,
+            num_assortiment=backup_prefix,
+            date_controle=date_controle,
+            total=total, ok=ok, ko=ko,
+            taux_conformite=taux,
+            source_fichier=source_fichier,
+        )
+
+        # Insertion en batch
+        articles = []
+        for r in rows:
+            articles.append(ArticleConformite(
+                controle=controle,
+                reference=r.get("reference", ""),
+                libelle=r.get("libelle", "")[:255],
+                status_product=r.get("status_product", ""),
+                code_mak=r.get("code_mak", ""),
+                num_assortiment=r.get("num_assortiment", ""),
+                deref=r.get("deref") == "Oui",
+                present_asten=r.get("present_asten") == "Oui",
+                present_assortiment=None if r.get("present_assortiment") == "N/A"
+                                    else r.get("present_assortiment") == "Oui",
+                resultat=r.get("resultat", ""),
+                motif=r.get("motif", ""),
+                absent_cegid=r.get("absent_cegid") == "Oui",
+            ))
+        ArticleConformite.objects.bulk_create(articles, batch_size=500)
+        print(f"  DB   : {len(articles)} articles insérés en base (magasin {magasin_code})")
+    except Exception as e:
+        print(f"  ⚠️  Erreur sauvegarde base : {e}")
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
