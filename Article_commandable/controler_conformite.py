@@ -194,6 +194,36 @@ def lire_assortiment(backup_prefix, backup_dir):
     print(f"  Assortiment : {len(refs)} codes articles ({fichier.name})")
     return refs
 
+# Cache global — chargé une seule fois par process
+_VG_REFS_CACHE = None
+
+def lire_vg_refs():
+    """
+    Retourne le set de TOUS les codes articles présents dans VG_VERIF_PPROMO2.
+    Utilisé pour distinguer un vrai "Absent CEGID" d'un article d'un autre groupe.
+    Résultat mis en cache pour ne lire qu'une fois par process.
+    """
+    global _VG_REFS_CACHE
+    if _VG_REFS_CACHE is not None:
+        return _VG_REFS_CACHE
+    vg_dir = SMB_BACKUP / "VG_VERIF_PPROMO2"
+    if not vg_dir.exists():
+        print(f"  ⚠️  VG_VERIF_PPROMO2 introuvable — Absent CEGID non filtré")
+        _VG_REFS_CACHE = set()
+        return _VG_REFS_CACHE
+    refs = set()
+    for fichier in sorted(vg_dir.glob("*_products_*.csv")):
+        with open(fichier, encoding="utf-8", errors="replace") as f:
+            for row in csv.reader(f, delimiter=";"):
+                if len(row) >= 5:
+                    code_art = row[4].strip()
+                    if code_art:
+                        refs.add(code_art)
+    print(f"  VG      : {len(refs)} références connues dans VG_VERIF_PPROMO2")
+    _VG_REFS_CACHE = refs
+    return refs
+
+
 # ─── Contrôle principal ──────────────────────────────────────────────────────
 
 def _trouver_backup_dir(backup_prefix):
@@ -266,8 +296,15 @@ def controler_magasin(magasin_code):
         })
 
     # Articles présents dans Asten mais absents du fichier CEGID products
-    asten_only = asten_refs - set(products.keys())
+    # On exclut ceux qui existent dans VG_VERIF_PPROMO2 (autre groupe) — pas de faux positifs
+    vg_refs   = lire_vg_refs()
+    asten_only_raw = asten_refs - set(products.keys())
+    # Absent CEGID = absent du groupe ET absent de VG (vraiment inconnu de CEGID)
+    asten_only = asten_only_raw - vg_refs
     n_asten_only = len(asten_only)
+    n_autre_groupe = len(asten_only_raw) - n_asten_only
+    if n_autre_groupe:
+        print(f"  → {n_autre_groupe} articles Asten d'un autre groupe CEGID (ignorés)")
     if n_asten_only:
         print(f"  → {n_asten_only} articles Asten absents du fichier CEGID (absent_cegid)")
     for ref in sorted(asten_only):
