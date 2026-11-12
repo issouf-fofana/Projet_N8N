@@ -485,6 +485,7 @@ def rapport_controle_db(request):
                    .annotate(n=Count('id'))
                    .values_list('motif', 'n')
     )
+    info_count = articles_qs.filter(resultat='INFO').count()
 
     # Filtres
     if resultat:
@@ -544,6 +545,7 @@ def rapport_controle_db(request):
         "ko":              ko_global,
         "taux_conformite": taux_global,
         "motifs_counts":   motifs_counts,
+        "info_count":      info_count,
         "assortiments":    assortiments,
         "pagination": {
             "page":        page,

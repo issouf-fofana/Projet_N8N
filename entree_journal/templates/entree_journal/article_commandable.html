@@ -104,6 +104,8 @@ body { background-color: #e5e7eb !important; }
 /* Ligne KO légère teinte */
 .table-danger-soft { background: rgba(239,68,68,.04) !important; }
 .table-danger-soft:hover { background: rgba(239,68,68,.08) !important; }
+.table-info-soft { background: rgba(124,58,237,.04) !important; }
+.table-info-soft:hover { background: rgba(124,58,237,.08) !important; }
 
 /* En-têtes triables */
 th.sortable {
@@ -308,7 +310,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
         <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Déréférencé" style="color:#be185d">
           <i class="bi bi-trash me-1"></i>Déréférencé <span class="tab-count" id="tabCountDeref">—</span>
         </button>
-        <button class="tab-btn tab-ko-sub" data-val="KO" data-motif="Absent CEGID" style="color:#7c3aed">
+        <button class="tab-btn tab-ko-sub" data-val="INFO" data-motif="Absent CEGID" style="color:#7c3aed">
           <i class="bi bi-database-x me-1"></i>Absent CEGID <span class="tab-count" id="tabCountAbsentCegid">—</span>
         </button>
       </div>
@@ -659,16 +661,21 @@ function fetchDB() {
 }
 
 function updateTabCountsDB(data) {
-  const counts = data.motifs_counts || {};
+  const counts  = data.motifs_counts || {};
   const totalKo = data.ko ?? 0;
   const totalOk = data.ok ?? 0;
   const total   = data.total ?? 0;
+  const infoCount = data.info_count ?? 0;
 
-  document.getElementById('tabCountTous').textContent = `(${total})`;
+  document.getElementById('tabCountTous').textContent = `(${total + infoCount})`;
   document.getElementById('tabCountOk').textContent   = `(${totalOk})`;
   document.getElementById('tabCountKo').textContent   = `(${totalKo})`;
+  // Absent CEGID = INFO
+  const elInfo = document.getElementById('tabCountAbsentCegid');
+  if (elInfo) elInfo.textContent = `(${infoCount})`;
 
   KO_TYPES.forEach(t => {
+    if (t.motif === 'Absent CEGID') return; // déjà géré via info_count
     const n = counts[t.motif] ?? 0;
     const el = document.getElementById(t.id);
     if (el) el.textContent = `(${n})`;
@@ -899,7 +906,7 @@ function renderPage() {
   }
 
   tbody.innerHTML = slice.map(r => `
-    <tr class="${r.resultat==='KO'?'table-danger-soft':''}">
+    <tr class="${r.resultat==='KO'?'table-danger-soft':(r.resultat==='INFO'?'table-info-soft':'')}">
       <td class="text-center">${r.num_assortiment
             ?`<span class="badge bg-light text-dark border" style="font-size:.78rem">${esc(r.num_assortiment)}</span>`
             :'<span class="text-muted">—</span>'}</td>
@@ -921,7 +928,9 @@ function renderPage() {
               :'<span class="text-muted">—</span>')}</td>
       <td>${r.resultat==='OK'
             ?'<span class="badge bg-success px-3">✓ OK</span>'
-            :'<span class="badge bg-danger px-3">✗ KO</span>'}</td>
+            :(r.resultat==='INFO'
+              ?'<span class="badge px-3" style="background:#7c3aed">ℹ INFO</span>'
+              :'<span class="badge bg-danger px-3">✗ KO</span>')}</td>
       <td>${motifBadge(r.motif, r.resultat)}</td>
     </tr>`).join('');
 

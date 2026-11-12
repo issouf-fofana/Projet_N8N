@@ -308,7 +308,7 @@ def controler_magasin(magasin_code):
     if n_asten_only:
         print(f"  → {n_asten_only} articles Asten absents du fichier CEGID (absent_cegid)")
     for ref in sorted(asten_only):
-        stats["KO"] = stats.get("KO", 0) + 1
+        stats["INFO"] = stats.get("INFO", 0) + 1
         rows.append({
             "reference":           ref,
             "libelle":             "",
@@ -319,17 +319,18 @@ def controler_magasin(magasin_code):
             "present_asten":       "Oui",
             "actif_asten":         "Oui",
             "present_assortiment": "N/A",
-            "resultat":            "KO",
+            "resultat":            "INFO",
             "motif":               "Absent CEGID",
             "absent_cegid":        "Oui",
         })
 
-    total = len(rows)
+    info  = stats.get("INFO", 0)   # Absent CEGID — hors conformité
+    total = len(rows) - info       # on ne compte que les articles CEGID connus
     ok    = stats.get("OK", 0)
     ko    = stats.get("KO", 0)
     taux  = round(ok / total * 100, 1) if total else 0
 
-    print(f"\n  Résultats : Total={total}  OK={ok}  KO={ko}  Conformité={taux}%")
+    print(f"\n  Résultats : Total={total}  OK={ok}  KO={ko}  Conformité={taux}%  (+ {info} Absent CEGID hors calcul)")
 
     if not rows:
         print(f"  ⚠️  Aucun article trouvé pour magasin {magasin_code} — fichier ignoré")
