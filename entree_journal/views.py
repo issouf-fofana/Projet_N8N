@@ -554,7 +554,11 @@ def rapport_controle_db(request):
 
     # Numéros d'assortiments et magasins disponibles
     assortiments = sorted(set(controles.values_list('num_assortiment', flat=True)))
-    magasins_list = sorted(set(controles.values_list('magasin', flat=True)))
+    _mag_noms = {m['code']: m['nom'] for m in _get_magasins()}
+    magasins_list = [
+        {"code": c, "nom": _mag_noms.get(c, c)}
+        for c in sorted(set(controles.values_list('magasin', flat=True)))
+    ]
 
     # Date du contrôle le plus récent parmi les contrôles sélectionnés
     dernier_controle = controles.order_by('-date_controle').first()

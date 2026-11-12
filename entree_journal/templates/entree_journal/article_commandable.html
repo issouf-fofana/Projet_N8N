@@ -562,6 +562,7 @@ let _sortCol  = '';
 let _sortDir  = 1;
 let _currentMagasin = '';   // '' = tous
 let _motifsCountsDB = {};   // compteurs motifs depuis DB
+let _magasinNoms    = {};   // {code: nom} depuis magasins_list
 
 const URL_RAPPORT      = "{% url 'entree_journal:rapport_controle' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
 const URL_RAPPORT_TOUS = "{% url 'entree_journal:rapport_controle_tous' %}";
@@ -650,12 +651,14 @@ function fetchDB() {
 
       // Magasins disponibles
       if (data.magasins_list) {
+        _magasinNoms = {};
+        data.magasins_list.forEach(m => { _magasinNoms[m.code] = m.nom; });
         const selMag = document.getElementById('filterMagasin');
         if (selMag) {
           const cur = selMag.value;
           selMag.innerHTML = '<option value="">Tous magasins</option>'
-            + data.magasins_list.map(m => `<option value="${m}">${m}</option>`).join('');
-          if (data.magasins_list.includes(cur)) selMag.value = cur;
+            + data.magasins_list.map(m => `<option value="${m.code}">${m.code} — ${m.nom}</option>`).join('');
+          if (data.magasins_list.some(m => m.code === cur)) selMag.value = cur;
         }
       }
 
@@ -935,7 +938,7 @@ function renderPage() {
 
   tbody.innerHTML = slice.map(r => `
     <tr class="${r.resultat==='KO'?'table-danger-soft':(r.resultat==='INFO'?'table-info-soft':'')}">
-      <td class="text-center"><span class="badge bg-secondary" style="font-size:.78rem">${esc(r.magasin||'—')}</span></td>
+      <td class="text-center" style="white-space:nowrap"><span class="badge bg-secondary" style="font-size:.78rem">${esc(r.magasin||'—')}</span>${_magasinNoms[r.magasin]?` <small class="text-muted" style="font-size:.72rem">${esc(_magasinNoms[r.magasin])}</small>`:''}</td>
       <td class="text-center">${r.num_assortiment
             ?`<span class="badge bg-light text-dark border" style="font-size:.78rem">${esc(r.num_assortiment)}</span>`
             :'<span class="text-muted">—</span>'}</td>
