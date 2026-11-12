@@ -618,7 +618,7 @@ const KO_TYPES = [
   { motif:'Absent assortiment',    id:'tabCountAssort', label:'Absent assortiment',    color:'#dc7000', bg:'#fff7ed', icon:'bi-clipboard-x',
     explication:'Article éligible mais absent de l\'assortiment du magasin — il doit d\'abord être référencé.' },
   { motif:'Déréférencé',           id:'tabCountDeref',  label:'Déréférencé',           color:'#be185d', bg:'#fdf2f8', icon:'bi-trash',
-    explication:'Article marqué D (déréférencé) dans le fichier CEGID — non commandable.' },
+    explication:'Article marqué D (déréférencé) dans CEGID ET encore commandable dans Asten — anomalie : doit être retiré du POS.' },
   { motif:'Statut NA',             id:'tabCountNA',     label:'Statut NA',             color:'#6b7280', bg:'#f3f4f6', icon:'bi-slash-circle',
     explication:'Statut NA dans CEGID ET encore commandable dans Asten — anomalie : Asten autorise la commande alors que CEGID l\'interdit.' },
   { motif:'Statut ES',             id:'tabCountES',     label:'Statut ES',             color:'#8b5cf6', bg:'#f5f3ff', icon:'bi-pause-circle',
@@ -827,7 +827,7 @@ const MOTIF_STYLE = {
   'Déréférencé':
     { color:'#be185d', bg:'#fdf2f8', icon:'bi-trash',
       short:'Déréférencé',
-      tip:'Article marqué D dans CEGID — déréférencé, non commandable' },
+      tip:'Article marqué D dans CEGID mais encore commandable dans Asten — anomalie à corriger' },
   'Absent CEGID':
     { color:'#7c3aed', bg:'#f5f3ff', icon:'bi-database-x',
       short:'Absent CEGID',

@@ -60,9 +60,11 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
       NC/CD  → commandable si actif dans l'assortiment
       NC/LD  → NON commandable
     """
-    # Déréférencé dans CEGID : non commandable quelle que soit la situation Asten
+    # Déréférencé dans CEGID : KO seulement si encore commandable dans Asten (anomalie)
     if deref:
-        return "KO", "Déréférencé"
+        if present_asten:
+            return "KO", "Déréférencé"
+        return "OK", "Déréférencé (non cmdable Asten)"
 
     if status_product == "AC":
         if code_mak == "LD":
