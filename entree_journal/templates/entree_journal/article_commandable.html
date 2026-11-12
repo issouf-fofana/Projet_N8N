@@ -497,7 +497,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
             <thead style="position:sticky;top:0;z-index:1;background:#f9fafb">
               <tr>
                 <th class="sortable" data-csort="num_assortiment">N° Assort.</th>
-                <th style="width:32px">D</th>
+                <th id="thDeref" style="width:40px;cursor:pointer;user-select:none;text-align:center" title="Cliquer pour filtrer déréférencés">D</th>
                 <th class="sortable" data-csort="code_article">Code article</th>
                 <th class="sortable" data-csort="code_interne">Code interne</th>
                 <th class="sortable" data-csort="libelle_long">Libellé long</th>
@@ -1086,6 +1086,34 @@ function sortCegidFiltered() {
 ['cegidSearch','cegidFilterStatut','cegidFilterMak','cegidFilterDeref'].forEach(id => {
   document.getElementById(id)?.addEventListener('input',  applyCegidFilters);
   document.getElementById(id)?.addEventListener('change', applyCegidFilters);
+});
+
+// Sync entête D quand le select change (depuis le dropdown)
+document.getElementById('cegidFilterDeref')?.addEventListener('change', function() {
+  const th = document.getElementById('thDeref');
+  if (!th) return;
+  const labels = { '': 'D', 'deref': 'D ✓', 'actif': 'D ✗' };
+  const colors = { '': '', 'deref': '#be185d', 'actif': '#10b981' };
+  th.textContent = labels[this.value] ?? 'D';
+  th.style.color = colors[this.value] ?? '';
+  th.style.fontWeight = this.value ? '700' : '';
+});
+
+// Filtre D cliquable sur l'entête colonne (cycle : tous → déréf. → actifs → tous)
+document.addEventListener('click', e => {
+  const th = e.target.closest('#modalCegid #thDeref');
+  if (!th) return;
+  const sel = document.getElementById('cegidFilterDeref');
+  if (!sel) return;
+  const cycle = { '': 'deref', 'deref': 'actif', 'actif': '' };
+  sel.value = cycle[sel.value] ?? '';
+  // Mise à jour visuelle de l'entête
+  const labels = { '': 'D', 'deref': 'D ✓', 'actif': 'D ✗' };
+  const colors = { '': '', 'deref': '#be185d', 'actif': '#10b981' };
+  th.textContent = labels[sel.value];
+  th.style.color  = colors[sel.value];
+  th.style.fontWeight = sel.value ? '700' : '';
+  applyCegidFilters();
 });
 
 // Tri colonnes modal CEGID — liaison différée car le modal est dans <body> après DOMContentLoaded
