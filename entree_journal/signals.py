@@ -28,9 +28,18 @@ def _precalculer_cache():
         taux_c  = round(ok_c / total_c * 100, 1) if total_c else 0
         dernier = controles.order_by('-date_controle').first()
 
+        # Compteurs motifs globaux
+        motifs_ko = dict(
+            ArticleConformite.objects.filter(controle_id__in=derniers_ids, resultat='KO')
+                .values('motif').annotate(n=Count('id')).values_list('motif', 'n')
+        )
         conformite_stats = {
             'total': total_c, 'ok': ok_c, 'ko': ko_c, 'taux': taux_c,
             'date': dernier.date_controle.strftime('%d/%m/%Y %H:%M') if dernier else '',
+            'nb_non_cmd_asten': motifs_ko.get('Non commandable Asten', 0) + motifs_ko.get('Article absent dans Asten', 0),
+            'nb_statut_na':     motifs_ko.get('Statut NA', 0) + motifs_ko.get('Statut Product NA', 0),
+            'nb_statut_es':     motifs_ko.get('Statut ES', 0) + motifs_ko.get('Statut Product ES', 0),
+            'nb_nc_ld':         motifs_ko.get('NC/LD', 0) + motifs_ko.get('Article NC avec CODE MAK LD', 0),
         }
         cache.set('conformite_stats', conformite_stats, timeout=3600)
 

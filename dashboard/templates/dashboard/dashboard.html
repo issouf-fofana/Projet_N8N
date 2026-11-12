@@ -2671,69 +2671,105 @@
   </div>
   {% else %}
 
-  {# ── KPI globaux ── #}
+  {# ── KPI globaux — mêmes cartes que /article-commandable ── #}
+  {% with cs=conformite_stats %}
   <div class="row g-3 mb-4 mt-2">
     <div class="col-6 col-xl-3">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-top:3px solid #6b4c35;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-        <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Rapports analysés</div>
-        <div style="font-size:2rem;font-weight:700;color:#1f2937;margin:6px 0">{{ rapports_ac|length }}</div>
-        <div style="font-size:.8rem;color:#9ca3af">Contrôles disponibles</div>
+      <div class="stat-card info">
+        <div class="sc-orb"></div><div class="sc-orb2"></div>
+        <div class="d-flex justify-content-between align-items-center position-relative">
+          <div>
+            <div class="stat-label">Articles contrôlés</div>
+            <div class="stat-value">{% if cs %}{{ cs.total }}{% else %}—{% endif %}</div>
+            <div class="stat-label mt-1">Magasin TOUS</div>
+          </div>
+          <i class="bi bi-box-seam stat-icon"></i>
+        </div>
       </div>
     </div>
     <div class="col-6 col-xl-3">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-top:3px solid #10b981;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-        <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Meilleur taux</div>
-        <div style="font-size:2rem;font-weight:700;color:#10b981;margin:6px 0" id="acBestTaux">—</div>
-        <div style="font-size:.8rem;color:#9ca3af" id="acBestMag">—</div>
+      <div class="stat-card success">
+        <div class="sc-orb"></div><div class="sc-orb2"></div>
+        <div class="d-flex justify-content-between align-items-center position-relative">
+          <div>
+            <div class="stat-label">Conformes (OK)</div>
+            <div class="stat-value" style="color:#10b981">{% if cs %}{{ cs.ok }}{% else %}—{% endif %}</div>
+            <div class="stat-label mt-1">Articles en règle</div>
+          </div>
+          <i class="bi bi-check-circle-fill stat-icon"></i>
+        </div>
       </div>
     </div>
     <div class="col-6 col-xl-3">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-top:3px solid #ef4444;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-        <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Pire taux</div>
-        <div style="font-size:2rem;font-weight:700;color:#ef4444;margin:6px 0" id="acWorstTaux">—</div>
-        <div style="font-size:.8rem;color:#9ca3af" id="acWorstMag">—</div>
+      <a href="{% url 'entree_journal:article_commandable' %}" style="text-decoration:none;display:block;">
+      <div class="stat-card {% if cs and cs.ko %}danger{% else %}success{% endif %}" style="cursor:pointer;">
+        <div class="sc-orb"></div><div class="sc-orb2"></div>
+        <div class="d-flex justify-content-between align-items-center position-relative">
+          <div>
+            <div class="stat-label">Non conformes (KO)</div>
+            <div class="stat-value">{% if cs %}{{ cs.ko }}{% else %}—{% endif %}</div>
+            <div class="stat-label mt-1"><i class="bi bi-arrow-right-circle"></i> Voir le détail</div>
+          </div>
+          <i class="bi bi-x-circle-fill stat-icon"></i>
+        </div>
       </div>
+      </a>
     </div>
     <div class="col-6 col-xl-3">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-top:3px solid #f59e0b;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
-        <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Taux moyen</div>
-        <div style="font-size:2rem;font-weight:700;color:#f59e0b;margin:6px 0" id="acAvgTaux">—</div>
-        <div style="font-size:.8rem;color:#9ca3af">Sur tous les rapports</div>
+      <div class="stat-card {% if cs %}{% if cs.taux >= 80 %}success{% elif cs.taux >= 50 %}warning{% else %}danger{% endif %}{% else %}info{% endif %}">
+        <div class="sc-orb"></div><div class="sc-orb2"></div>
+        <div class="d-flex justify-content-between align-items-center position-relative">
+          <div>
+            <div class="stat-label">Taux de conformité</div>
+            <div class="stat-value">{% if cs %}{{ cs.taux }}%{% else %}—{% endif %}</div>
+            <div class="stat-label mt-1">{% if cs %}Contrôle du {{ cs.date }}{% endif %}</div>
+          </div>
+          <i class="bi bi-percent stat-icon"></i>
+        </div>
       </div>
     </div>
   </div>
+  {% endwith %}
 
   {# ── KPI motifs ── #}
+  {% with cs=conformite_stats %}
   <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #ef4444;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <a href="{% url 'entree_journal:article_commandable' %}?resultat=KO&motif=Non+commandable+Asten" style="text-decoration:none">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #ef4444;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07);cursor:pointer">
         <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Non cmd. Asten</div>
-        <div style="font-size:1.6rem;font-weight:700;color:#ef4444;margin:4px 0" id="acNbNonCmd">0</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#ef4444;margin:4px 0" id="acNbNonCmd">{% if cs %}{{ cs.nb_non_cmd_asten }}{% else %}0{% endif %}</div>
         <div style="font-size:.8rem;color:#9ca3af">Articles non commandables</div>
       </div>
+      </a>
     </div>
     <div class="col-6 col-xl-3">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #8b5cf6;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <a href="{% url 'entree_journal:article_commandable' %}?resultat=KO&motif=Statut+NA" style="text-decoration:none">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #8b5cf6;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07);cursor:pointer">
         <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Statut NA</div>
-        <div style="font-size:1.6rem;font-weight:700;color:#8b5cf6;margin:4px 0" id="acNbNA">0</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#8b5cf6;margin:4px 0" id="acNbNA">{% if cs %}{{ cs.nb_statut_na }}{% else %}0{% endif %}</div>
         <div style="font-size:.8rem;color:#9ca3af">Articles non actifs</div>
       </div>
+      </a>
     </div>
     <div class="col-6 col-xl-3">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #f97316;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+      <a href="{% url 'entree_journal:article_commandable' %}?resultat=KO&motif=Statut+ES" style="text-decoration:none">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #f97316;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07);cursor:pointer">
         <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Statut ES</div>
-        <div style="font-size:1.6rem;font-weight:700;color:#f97316;margin:4px 0" id="acNbES">0</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#f97316;margin:4px 0" id="acNbES">{% if cs %}{{ cs.nb_statut_es }}{% else %}0{% endif %}</div>
         <div style="font-size:.8rem;color:#9ca3af">Articles en solde</div>
       </div>
+      </a>
     </div>
     <div class="col-6 col-xl-3">
       <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #64748b;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
         <div style="font-size:.75rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">NC/LD</div>
-        <div style="font-size:1.6rem;font-weight:700;color:#64748b;margin:4px 0" id="acNbNcLd">0</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#64748b;margin:4px 0" id="acNbNcLd">{% if cs %}{{ cs.nb_nc_ld }}{% else %}0{% endif %}</div>
         <div style="font-size:.8rem;color:#9ca3af">Fournisseur direct</div>
       </div>
     </div>
   </div>
+  {% endwith %}
 
   {# ── Liste articles ── #}
   <div class="card mb-4" style="border-radius:0;border:1px solid #e5e9f2;box-shadow:0 2px 8px rgba(0,0,0,.06)">
