@@ -68,13 +68,15 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
 
     if status_product == "AC":
         if code_mak == "LD":
-            # AC/LD : uniquement commandable chez fournisseur ASP — non commandable à la centrale
-            return "KO", "NC/LD"
+            if present_asten:
+                return "KO", "NC/LD"
+            return "OK", "NC/LD (non cmdable Asten)"
         # AC/CC ou AC/CD : commandable si présent dans l'assortiment
         if not present_assortiment:
-            return "KO", "Absent assortiment"
+            if present_asten:
+                return "KO", "Absent assortiment"  # anomalie : cmdable Asten mais absent assortiment
+            return "OK", "Absent assortiment (non cmdable Asten)"  # cohérent
         if not present_asten:
-            # Présent dans l'assortiment mais non commandable dans Asten
             return "KO", "Non commandable Asten"
         return "OK", f"Commandable ({code_mak})"
 
@@ -92,14 +94,17 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
 
     elif status_product == "NC":
         if code_mak in ("CC", "CD"):
-            # NC/CC ou NC/CD : commandable si actif dans l'assortiment
             if not present_assortiment:
-                return "KO", "Absent assortiment"
+                if present_asten:
+                    return "KO", "Absent assortiment"
+                return "OK", "Absent assortiment (non cmdable Asten)"
             if not present_asten:
                 return "KO", "Non commandable Asten"
             return "OK", f"Commandable NC ({code_mak})"
         elif code_mak == "LD":
-            return "KO", "NC/LD"
+            if present_asten:
+                return "KO", "NC/LD"
+            return "OK", "NC/LD (non cmdable Asten)"
         else:
             return "KO", f"CODE MAK inconnu : {code_mak}"
 
