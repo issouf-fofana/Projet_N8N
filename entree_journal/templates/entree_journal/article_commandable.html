@@ -224,15 +224,15 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
     <div class="col-6 col-xl-3">
       <div class="stat-card info">
         <div class="stat-label">Articles contrôlés</div>
-        <div class="stat-value" id="kpiTotal">{% if dernier %}{{ dernier.total }}{% else %}—{% endif %}</div>
-        <div class="stat-sub" id="kpiMagasin">{% if dernier %}Magasin {{ dernier.magasin }}{% endif %}</div>
+        <div class="stat-value" id="kpiTotal">—</div>
+        <div class="stat-sub" id="kpiMagasin"></div>
         <i class="bi bi-box-seam stat-icon"></i>
       </div>
     </div>
     <div class="col-6 col-xl-3">
       <div class="stat-card success">
         <div class="stat-label">Conformes (OK)</div>
-        <div class="stat-value text-success" id="kpiOk">{% if dernier %}{{ dernier.ok }}{% else %}—{% endif %}</div>
+        <div class="stat-value text-success" id="kpiOk">—</div>
         <div class="stat-sub">Articles en règle</div>
         <i class="bi bi-check-circle stat-icon" style="color:#10b981"></i>
       </div>
@@ -240,7 +240,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
     <div class="col-6 col-xl-3">
       <div class="stat-card danger">
         <div class="stat-label">Non conformes (KO)</div>
-        <div class="stat-value text-danger" id="kpiKo">{% if dernier %}{{ dernier.ko }}{% else %}—{% endif %}</div>
+        <div class="stat-value text-danger" id="kpiKo">—</div>
         <div class="stat-sub">Articles à traiter</div>
         <i class="bi bi-exclamation-circle stat-icon" style="color:#ef4444"></i>
       </div>
@@ -248,10 +248,10 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
     <div class="col-6 col-xl-3">
       <div class="stat-card warning">
         <div class="stat-label">Taux de conformité</div>
-        <div class="stat-value" id="kpiTaux">{% if dernier %}{{ dernier.taux_conformite }}%{% else %}—{% endif %}</div>
+        <div class="stat-value" id="kpiTaux">—</div>
         <div class="mt-2">
           <div class="progress" style="height:6px">
-            <div class="progress-bar bg-success" id="kpiProgressBar" style="width:{% if dernier %}{{ dernier.taux_conformite }}{% else %}0{% endif %}%"></div>
+            <div class="progress-bar bg-success" id="kpiProgressBar" style="width:0%"></div>
           </div>
         </div>
         <i class="bi bi-graph-up stat-icon" style="color:#f59e0b"></i>
@@ -272,7 +272,6 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
     <div class="card-header d-flex align-items-center justify-content-between">
       <span><i class="bi bi-table me-2"></i>Détail des articles
         <span class="text-muted fw-normal ms-2" id="lblDetailMag" style="text-transform:none;letter-spacing:0">
-          {% if dernier %}— Magasin {{ dernier.magasin }} ({{ dernier.date }}){% endif %}
         </span>
       </span>
       <span class="badge" style="background:#6b4c35" id="lblNbFiltres">0 articles</span>
