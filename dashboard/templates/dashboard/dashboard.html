@@ -2680,7 +2680,7 @@
         <div class="d-flex justify-content-between align-items-center position-relative">
           <div>
             <div class="stat-label">Articles contrôlés</div>
-            <div class="stat-value">{% if cs %}{{ cs.total }}{% else %}—{% endif %}</div>
+            <div class="stat-value" id="acStatTotal">{% if cs %}{{ cs.total }}{% else %}—{% endif %}</div>
             <div class="stat-label mt-1">Magasin TOUS</div>
           </div>
           <i class="bi bi-box-seam stat-icon"></i>
@@ -2693,7 +2693,7 @@
         <div class="d-flex justify-content-between align-items-center position-relative">
           <div>
             <div class="stat-label">Conformes (OK)</div>
-            <div class="stat-value" style="color:#10b981">{% if cs %}{{ cs.ok }}{% else %}—{% endif %}</div>
+            <div class="stat-value" style="color:#10b981" id="acStatOK">{% if cs %}{{ cs.ok }}{% else %}—{% endif %}</div>
             <div class="stat-label mt-1">Articles en règle</div>
           </div>
           <i class="bi bi-check-circle-fill stat-icon"></i>
@@ -2707,7 +2707,7 @@
         <div class="d-flex justify-content-between align-items-center position-relative">
           <div>
             <div class="stat-label">Non conformes (KO)</div>
-            <div class="stat-value">{% if cs %}{{ cs.ko }}{% else %}—{% endif %}</div>
+            <div class="stat-value" id="acStatKO">{% if cs %}{{ cs.ko }}{% else %}—{% endif %}</div>
             <div class="stat-label mt-1"><i class="bi bi-arrow-right-circle"></i> Voir le détail</div>
           </div>
           <i class="bi bi-x-circle-fill stat-icon"></i>
@@ -2721,7 +2721,7 @@
         <div class="d-flex justify-content-between align-items-center position-relative">
           <div>
             <div class="stat-label">Taux de conformité</div>
-            <div class="stat-value">{% if cs %}{{ cs.taux }}%{% else %}—{% endif %}</div>
+            <div class="stat-value" id="acStatTaux">{% if cs %}{{ cs.taux }}%{% else %}—{% endif %}</div>
             <div class="stat-label mt-1">{% if cs %}Contrôle du {{ cs.date }}{% endif %}</div>
           </div>
           <i class="bi bi-percent stat-icon"></i>
@@ -2871,18 +2871,32 @@
 (function(){
   const rapportsAC = JSON.parse(document.getElementById('acRapportsData')?.textContent || '[]');
 
-  // KPI taux (seulement si on a des rapports)
-  if (rapportsAC.length) {
-    const best  = rapportsAC.reduce((a,b)=>b.taux>a.taux?b:a);
-    const worst = rapportsAC.reduce((a,b)=>b.taux<a.taux?b:a);
-    const avg   = (rapportsAC.reduce((s,r)=>s+r.taux,0)/rapportsAC.length).toFixed(1);
-    const el = id => document.getElementById(id);
-    if (el('acBestTaux'))  el('acBestTaux').textContent  = best.taux  + '%';
-    if (el('acBestMag'))   el('acBestMag').textContent   = 'Magasin ' + best.magasin;
-    if (el('acWorstTaux')) el('acWorstTaux').textContent = worst.taux + '%';
-    if (el('acWorstMag'))  el('acWorstMag').textContent  = 'Magasin ' + worst.magasin;
-    if (el('acAvgTaux'))   el('acAvgTaux').textContent   = avg + '%';
+  const el = id => document.getElementById(id);
+
+  function updateGlobalKPIs(rapports) {
+    if (!rapports.length) return;
+    const total = rapports.reduce((s,r)=>s+(r.total||0),0);
+    const ok    = rapports.reduce((s,r)=>s+(r.ok||0),0);
+    const ko    = rapports.reduce((s,r)=>s+(r.ko||0),0);
+    const taux  = total ? (ok/total*100).toFixed(1) : 0;
+    const nbNonCmd = rapports.reduce((s,r)=>s+(r.nb_non_cmd_asten||0),0);
+    const nbNA     = rapports.reduce((s,r)=>s+(r.nb_statut_na||0),0);
+    const nbES     = rapports.reduce((s,r)=>s+(r.nb_statut_es||0),0);
+    const nbNcLd   = rapports.reduce((s,r)=>s+(r.nb_nc_ld||0),0);
+    // Grandes cartes
+    const sc = el('acStatTotal'); if (sc) sc.textContent = total.toLocaleString('fr-FR');
+    const so = el('acStatOK');    if (so) so.textContent = ok.toLocaleString('fr-FR');
+    const sk = el('acStatKO');    if (sk) sk.textContent = ko.toLocaleString('fr-FR');
+    const st = el('acStatTaux');  if (st) st.textContent = taux + '%';
+    // Cartes motifs
+    if (el('acNbNonCmd')) el('acNbNonCmd').textContent = nbNonCmd.toLocaleString('fr-FR');
+    if (el('acNbNA'))     el('acNbNA').textContent     = nbNA.toLocaleString('fr-FR');
+    if (el('acNbES'))     el('acNbES').textContent     = nbES.toLocaleString('fr-FR');
+    if (el('acNbNcLd'))   el('acNbNcLd').textContent  = nbNcLd.toLocaleString('fr-FR');
   }
+
+  // Init avec tous les rapports
+  updateGlobalKPIs(rapportsAC);
 
   // KPI motifs calculés depuis all_rows après chargement
   // (mis à jour dans loadArticles)
@@ -2920,6 +2934,7 @@
   let _filterStatut  = '';
   let _filterMak     = '';
   let _filterRes     = '';
+  const _filterMagasin = "{{ filtres.code_magasin|default:''|join:',' }}";
   const PER_PAGE     = 50;
 
   // Données chargées depuis le template via json_script (safe embedding)
@@ -2932,29 +2947,51 @@
     }));
   }
 
-  function updateMotifKPIs(rows) {
-    const count = m => rows.filter(x => x.motif_norm === m).length;
-    const el = id => document.getElementById(id);
-    if (el('acNbNonCmd')) el('acNbNonCmd').textContent = count('Non commandable Asten');
-    if (el('acNbNA'))     el('acNbNA').textContent     = count('Statut NA');
-    if (el('acNbES'))     el('acNbES').textContent     = count('Statut ES');
-    if (el('acNbNcLd'))  el('acNbNcLd').textContent   = count('NC/LD');
+  function updateKPIsFromStats(data) {
+    const mc = data.motifs_counts || {};
+    const nbNonCmd = (mc['Non commandable Asten']||0) + (mc['Article absent dans Asten']||0);
+    const nbNA     = (mc['Statut NA']||0) + (mc['Statut Product NA']||0);
+    const nbES     = (mc['Statut ES']||0) + (mc['Statut Product ES']||0);
+    const nbNcLd   = (mc['NC/LD']||0) + (mc['Article NC avec CODE MAK LD']||0);
+    const taux     = data.taux_conformite != null ? data.taux_conformite + '%' : '—';
+    if (el('acStatTotal')) el('acStatTotal').textContent = (data.total||0).toLocaleString('fr-FR');
+    if (el('acStatOK'))    el('acStatOK').textContent    = (data.ok||0).toLocaleString('fr-FR');
+    if (el('acStatKO'))    el('acStatKO').textContent    = (data.ko||0).toLocaleString('fr-FR');
+    if (el('acStatTaux'))  el('acStatTaux').textContent  = taux;
+    if (el('acNbNonCmd'))  el('acNbNonCmd').textContent  = nbNonCmd.toLocaleString('fr-FR');
+    if (el('acNbNA'))      el('acNbNA').textContent      = nbNA.toLocaleString('fr-FR');
+    if (el('acNbES'))      el('acNbES').textContent      = nbES.toLocaleString('fr-FR');
+    if (el('acNbNcLd'))    el('acNbNcLd').textContent    = nbNcLd.toLocaleString('fr-FR');
   }
 
   function applyFilters() {
-    const search = (document.getElementById('acFilterSearch')?.value||'').trim().toLowerCase();
+    _page = 1;
+    // Construire l'URL AJAX avec les filtres actifs
+    const params = new URLSearchParams();
+    if (_filterStatut)  params.set('status', _filterStatut);
+    if (_filterMak)     params.set('code_mak', _filterMak);
+    if (_filterRes)     params.set('resultat', _filterRes);
+    const search = (document.getElementById('acFilterSearch')?.value||'').trim();
+    if (search)         params.set('q', search);
+    if (_filterMagasin) params.set('magasin', _filterMagasin);
+    params.set('page_size', 50);
+    // Mettre à jour les KPIs via AJAX
+    fetch(`{% url 'entree_journal:rapport_controle_db' %}?${params.toString()}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) updateKPIsFromStats(data); })
+      .catch(() => {});
+    // Filtrer la table locale si les articles sont chargés
+    const search2 = search.toLowerCase();
     _filtered = _allArticles.filter(r => {
       if (_filterStatut && (r.status_product||'').toUpperCase() !== _filterStatut) return false;
       if (_filterMak    && (r.code_mak||'').toUpperCase() !== _filterMak) return false;
       if (_filterRes    && r.resultat !== _filterRes) return false;
-      if (search && !(
-        (r.reference||r.ean||'').toLowerCase().includes(search) ||
-        (r.libelle||'').toLowerCase().includes(search)
+      if (search2 && !(
+        (r.reference||r.ean||'').toLowerCase().includes(search2) ||
+        (r.libelle||'').toLowerCase().includes(search2)
       )) return false;
       return true;
     });
-    _page = 1;
-    updateMotifKPIs(_filtered);
     renderPage();
   }
 
