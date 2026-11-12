@@ -1232,39 +1232,16 @@ def dashboard(request):
         titre_tableau = "BR ASTEN (Statut IC)"
     
     elif type_donnees == 'article_commandable':
-        # Lecture depuis la DB uniquement — pas de lecture fichiers JSON (trop lent)
-        from entree_journal.models import ControleConformite, ArticleConformite
-        from django.db.models import Max, Count
-
-        # Dernier contrôle par magasin
-        _derniers_ids = list(
-            ControleConformite.objects.values('magasin')
-                .annotate(last_id=Max('id')).values_list('last_id', flat=True)
-        )
-        _controles_qs = ControleConformite.objects.filter(id__in=_derniers_ids)
+        # Lecture depuis le cache pre-calculé
+        from django.core.cache import cache as _cache
+        _rapports_ac = _cache.get('conformite_rapports_ac')
+        if _rapports_ac is None:
+            from entree_journal.signals import _precalculer_cache
+            _precalculer_cache()
+            _rapports_ac = _cache.get('conformite_rapports_ac') or []
+        # Filtre magasin si demandé
         if code_magasin:
-            _controles_qs = _controles_qs.filter(magasin__in=code_magasin)
-
-        _rapports_ac = []
-        for _c in _controles_qs.order_by('-date_controle'):
-            # Compteurs motifs depuis ArticleConformite
-            _motifs = dict(
-                ArticleConformite.objects.filter(controle=_c, resultat='KO')
-                    .values('motif').annotate(n=Count('id')).values_list('motif', 'n')
-            )
-            _rapports_ac.append({
-                "filename": "",
-                "magasin":  _c.magasin,
-                "date":     _c.date_controle.strftime('%Y%m%d_%H%M%S'),
-                "total":    _c.total,
-                "ok":       _c.ok,
-                "ko":       _c.ko,
-                "taux":     _c.taux_conformite,
-                "nb_non_cmd_asten": _motifs.get("Non commandable Asten", 0) + _motifs.get("Article absent dans Asten", 0),
-                "nb_statut_na":     _motifs.get("Statut NA", 0) + _motifs.get("Statut Product NA", 0),
-                "nb_statut_es":     _motifs.get("Statut ES", 0) + _motifs.get("Statut Product ES", 0),
-                "nb_nc_ld":         _motifs.get("NC/LD", 0) + _motifs.get("Article NC avec CODE MAK LD", 0),
-            })
+            _rapports_ac = [r for r in _rapports_ac if r['magasin'] in code_magasin]
         _articles_ac_rows = []
         commandes_data = []
         _dashboard_page_obj = None
@@ -1349,26 +1326,16 @@ def dashboard(request):
     from datetime import date as _date_cls, timedelta as _td
     _today_v = _date_cls.today()
 
-    # ── Conformité articles commandables — toujours chargé ───────────────────
+    # ── Conformité articles commandables — depuis cache (pre-calculé) ────────
     try:
-        from entree_journal.models import ControleConformite
-        from django.db.models import Max, Sum
-        _derniers_ids = list(
-            ControleConformite.objects.values('magasin')
-                .annotate(last_id=Max('id')).values_list('last_id', flat=True)
-        )
-        _stats_conf = ControleConformite.objects.filter(id__in=_derniers_ids).aggregate(
-            total=Sum('total'), ok=Sum('ok'), ko=Sum('ko')
-        )
-        _total_c = _stats_conf['total'] or 0
-        _ok_c    = _stats_conf['ok'] or 0
-        _ko_c    = _stats_conf['ko'] or 0
-        _taux_c  = round(_ok_c / _total_c * 100, 1) if _total_c else 0
-        _dernier_c = ControleConformite.objects.order_by('-date_controle').first()
-        context['conformite_stats'] = {
-            'total': _total_c, 'ok': _ok_c, 'ko': _ko_c, 'taux': _taux_c,
-            'date': _dernier_c.date_controle.strftime('%d/%m/%Y %H:%M') if _dernier_c else '',
-        }
+        from django.core.cache import cache as _cache
+        _conf_stats = _cache.get('conformite_stats')
+        if _conf_stats is None:
+            # Cache froid : calcul synchrone unique puis mise en cache
+            from entree_journal.signals import _precalculer_cache
+            _precalculer_cache()
+            _conf_stats = _cache.get('conformite_stats')
+        context['conformite_stats'] = _conf_stats
     except Exception:
         context['conformite_stats'] = None
 
