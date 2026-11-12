@@ -40,9 +40,9 @@ def tous_les_magasins():
             codes.append(m["code_magasin"])
     return sorted(set(codes))
 
-def controler_un(code, counter, total):
+def controler_un(code, counter, total, vg_cache=""):
     result = subprocess.run(
-        [sys.executable, str(CONTROLE_SCRIPT), code],
+        [sys.executable, str(CONTROLE_SCRIPT), code, "--vg-cache", vg_cache],
         cwd=str(BASE),
         capture_output=True, text=True
     )
@@ -58,6 +58,36 @@ def controler_un(code, counter, total):
             print(f"  [{n}/{total}] ✗ Magasin {code} — {err[:120]}", flush=True)
     return result.returncode == 0
 
+def precalculer_vg():
+    """Lit VG_VERIF_PPROMO2 une seule fois et écrit les refs dans un fichier cache."""
+    import csv, os
+    from pathlib import Path
+    from dotenv import load_dotenv
+    load_dotenv(BASE / ".env")
+    smb = Path(os.getenv(
+        "SMB_BACKUP_PATH",
+        "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
+        "Cegid/AstenProd/ReferentielPrecom/Backup"
+    ))
+    vg_dir = smb / "VG_VERIF_PPROMO2"
+    cache_path = BASE / "output" / "_vg_refs_cache.txt"
+    if not vg_dir.exists():
+        log(f"  ⚠️  VG_VERIF_PPROMO2 introuvable — Absent CEGID non filtré")
+        cache_path.write_text("")
+        return str(cache_path)
+    refs = set()
+    for fichier in sorted(vg_dir.glob("*_products_*.csv")):
+        with open(fichier, encoding="utf-8", errors="replace") as f:
+            for row in csv.reader(f, delimiter=";"):
+                if len(row) >= 5:
+                    code_art = row[4].strip()
+                    if code_art:
+                        refs.add(code_art)
+    cache_path.write_text("\n".join(sorted(refs)), encoding="utf-8")
+    log(f"  VG cache : {len(refs)} références écrites dans {cache_path.name}")
+    return str(cache_path)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Contrôle conformité tous magasins")
     parser.add_argument("--workers", type=int, default=8,
@@ -70,10 +100,14 @@ def main():
 
     log(f"[{datetime.now():%Y-%m-%d %H:%M}] Contrôle lancé pour {total} magasins ({workers} en parallèle)")
 
+    # Précalculer VG une seule fois avant de lancer les subprocesses
+    log("  Chargement VG_VERIF_PPROMO2…")
+    vg_cache = precalculer_vg()
+
     counter = {"done": 0, "ok": 0, "ko": 0}
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(controler_un, code, counter, total): code for code in magasins}
+        futures = {pool.submit(controler_un, code, counter, total, vg_cache): code for code in magasins}
         for future in as_completed(futures):
             try:
                 future.result()

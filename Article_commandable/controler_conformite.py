@@ -414,7 +414,18 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # Initialiser Django ici pour que _sauvegarder_en_base puisse l'utiliser
+    import argparse as _ap
+    parser = _ap.ArgumentParser()
+    parser.add_argument("magasins", nargs="*", default=["035"])
+    parser.add_argument("--vg-cache", default="", help="Fichier cache VG refs précalculé")
+    args = parser.parse_args()
+
+    # Charger le cache VG si fourni (évite de relire VG_VERIF_PPROMO2 × 52)
+    if args.vg_cache and Path(args.vg_cache).exists():
+        content = Path(args.vg_cache).read_text(encoding="utf-8").strip()
+        _VG_REFS_CACHE = set(content.splitlines()) if content else set()
+
+    # Initialiser Django
     import django
     _root = Path(__file__).resolve().parent.parent
     if str(_root) not in sys.path:
@@ -422,6 +433,5 @@ if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
     django.setup()
 
-    magasins = sys.argv[1:] if len(sys.argv) > 1 else ["035"]
-    for mag in magasins:
+    for mag in args.magasins:
         controler_magasin(mag)
