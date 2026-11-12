@@ -460,7 +460,15 @@ body { background-color: #e5e7eb !important; }
               <option value="LD">LD</option>
             </select>
           </div>
+          <div class="col-auto">
+            <select class="form-select form-select-sm" id="cegidFilterDeref">
+              <option value="">Tous (actifs + déréf.)</option>
+              <option value="actif">Actifs seulement</option>
+              <option value="deref">Déréférencés seulement</option>
+            </select>
+          </div>
           <div class="col-auto ms-auto d-flex align-items-center gap-2">
+            <span class="badge bg-danger" id="cegidNbDeref" style="display:none"></span>
             <span class="badge" style="background:#6b4c35" id="cegidNbFiltres">—</span>
             <button class="btn btn-sm btn-outline-secondary" id="cegidExportCSV">
               <i class="bi bi-download me-1"></i>Export
@@ -475,17 +483,21 @@ body { background-color: #e5e7eb !important; }
           <table class="table table-sm table-hover mb-0">
             <thead style="position:sticky;top:0;z-index:1;background:#f9fafb">
               <tr>
+                <th style="width:32px"></th>
                 <th>Code article</th>
-                <th>Réf. famille</th>
-                <th>Libellé</th>
+                <th>Code interne</th>
+                <th>Libellé long</th>
+                <th>Libellé court</th>
+                <th>Qté cond.</th>
                 <th>Statut</th>
                 <th>CODE MAK</th>
-                <th>Prix achat</th>
+                <th>TVA %</th>
                 <th>Prix vente</th>
+                <th>Prix achat</th>
               </tr>
             </thead>
             <tbody id="cegidTbody">
-              <tr><td colspan="7" class="text-center py-4 text-muted">
+              <tr><td colspan="11" class="text-center py-4 text-muted">
                 <span class="spinner-border spinner-border-sm me-2"></span>Chargement…
               </td></tr>
             </tbody>
@@ -941,58 +953,75 @@ document.getElementById('modalCegid')?.addEventListener('show.bs.modal', () => {
 
 function chargerCegid(backup_prefix) {
   document.getElementById('cegidTbody').innerHTML =
-    '<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Lecture du fichier CEGID…</td></tr>';
+    '<tr><td colspan="11" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Lecture du fichier CEGID…</td></tr>';
 
   fetch(URL_CEGID + backup_prefix + '/', {credentials:'same-origin'})
     .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(data => {
       _cegidAll    = data.articles || [];
       _cegidLoaded = true;
+      const nDeref = data.n_deref || 0;
       document.getElementById('cegidFichierInfo').textContent =
         `${data.fichier}  —  dossier ${data.backup_dir}  —  ${data.total} articles`;
+      const badgeDeref = document.getElementById('cegidNbDeref');
+      if (nDeref > 0) {
+        badgeDeref.textContent = `${nDeref} déréférencés`;
+        badgeDeref.style.display = '';
+      } else {
+        badgeDeref.style.display = 'none';
+      }
       buildCegidKpi();
       applyCegidFilters();
     })
     .catch(e => {
       document.getElementById('cegidTbody').innerHTML =
-        `<tr><td colspan="7" class="text-center py-4 text-danger">Erreur : ${esc(e.message)}</td></tr>`;
+        `<tr><td colspan="11" class="text-center py-4 text-danger">Erreur : ${esc(e.message)}</td></tr>`;
     });
 }
 
 function buildCegidKpi() {
   const counts = {};
-  _cegidAll.forEach(r => { counts[r.statut] = (counts[r.statut]||0)+1; });
+  let nDeref = 0;
+  _cegidAll.forEach(r => {
+    counts[r.statut] = (counts[r.statut]||0)+1;
+    if (r.deref) nDeref++;
+  });
   const colors = { AC:'#10b981', NA:'#6b7280', ES:'#8b5cf6', NC:'#f59e0b' };
-  document.getElementById('cegidKpi').innerHTML =
-    Object.entries(counts).sort().map(([s,n]) =>
-      `<span style="color:${colors[s]||'#374151'};font-weight:600">
-        <span style="font-size:1.1rem">${n}</span>
-        <span class="text-muted fw-normal ms-1">${s}</span>
-      </span>`
-    ).join('<span class="text-muted">|</span>');
+  const kpiHtml = Object.entries(counts).sort().map(([s,n]) =>
+    `<span style="color:${colors[s]||'#374151'};font-weight:600">
+      <span style="font-size:1.1rem">${n}</span>
+      <span class="text-muted fw-normal ms-1">${s}</span>
+    </span>`
+  ).join('<span class="text-muted mx-1">|</span>');
+  const derefHtml = nDeref > 0
+    ? `<span class="text-muted mx-1">|</span><span style="color:#be185d;font-weight:600"><span style="font-size:1.1rem">${nDeref}</span> <span class="text-muted fw-normal">D (déréférencés)</span></span>`
+    : '';
+  document.getElementById('cegidKpi').innerHTML = kpiHtml + derefHtml;
 }
 
 function applyCegidFilters() {
-  const q  = document.getElementById('cegidSearch').value.toLowerCase();
-  const st = document.getElementById('cegidFilterStatut').value;
-  const mk = document.getElementById('cegidFilterMak').value;
+  const q     = document.getElementById('cegidSearch').value.toLowerCase();
+  const st    = document.getElementById('cegidFilterStatut').value;
+  const mk    = document.getElementById('cegidFilterMak').value;
+  const deref = document.getElementById('cegidFilterDeref').value;  // '' | 'actif' | 'deref'
   _cegidFiltered = _cegidAll.filter(r => {
+    if (deref === 'actif' &&  r.deref) return false;
+    if (deref === 'deref' && !r.deref) return false;
     if (st && r.statut   !== st) return false;
     if (mk && r.code_mak !== mk) return false;
     if (q  && !(r.code_article||'').toLowerCase().includes(q)
-            && !(r.libelle_long||'').toLowerCase().includes(q)) return false;
+            && !(r.libelle_long||'').toLowerCase().includes(q)
+            && !(r.libelle_court||'').toLowerCase().includes(q)) return false;
     return true;
   });
   _cegidPage = 1;
   renderCegidPage();
 }
 
-['cegidSearch','cegidFilterStatut','cegidFilterMak'].forEach(id => {
+['cegidSearch','cegidFilterStatut','cegidFilterMak','cegidFilterDeref'].forEach(id => {
   document.getElementById(id)?.addEventListener('input',  applyCegidFilters);
   document.getElementById(id)?.addEventListener('change', applyCegidFilters);
 });
-
-const CEGID_STATUT_COLOR = { AC:'success', NA:'secondary', ES:'purple', NC:'warning' };
 
 function renderCegidPage() {
   const tbody = document.getElementById('cegidTbody');
@@ -1001,7 +1030,7 @@ function renderCegidPage() {
   document.getElementById('cegidNbFiltres').textContent = _cegidFiltered.length + ' articles';
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Aucun résultat.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">Aucun résultat.</td></tr>';
     document.getElementById('cegidPaginInfo').textContent = '';
     document.getElementById('cegidPaginLinks').innerHTML  = '';
     return;
@@ -1009,15 +1038,22 @@ function renderCegidPage() {
 
   const colorsStatut = { AC:'#10b981', NA:'#6b7280', ES:'#8b5cf6', NC:'#f59e0b' };
   tbody.innerHTML = slice.map(r => `
-    <tr>
-      <td><code class="fw-semibold text-dark">${esc(r.code_article)}</code></td>
-      <td class="text-muted" style="font-size:.82rem">${esc(r.reference_famille)}</td>
-      <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+    <tr class="${r.deref ? 'table-secondary' : ''}">
+      <td style="text-align:center;padding:6px 4px">
+        ${r.deref ? '<span style="background:#be185d;color:#fff;font-size:.65rem;font-weight:700;padding:2px 5px;letter-spacing:.05em">D</span>' : ''}
+      </td>
+      <td><code class="fw-semibold ${r.deref?'text-muted':'text-dark'}">${esc(r.code_article)}</code></td>
+      <td class="text-muted" style="font-size:.8rem">${esc(r.code_interne)}</td>
+      <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
           title="${esc(r.libelle_long)}">${esc(r.libelle_long)}</td>
+      <td class="text-muted" style="font-size:.8rem;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+          title="${esc(r.libelle_court)}">${esc(r.libelle_court)}</td>
+      <td class="text-center text-muted" style="font-size:.82rem">${esc(r.qte_cond)||'—'}</td>
       <td><span class="badge" style="background:${colorsStatut[r.statut]||'#6b7280'}">${esc(r.statut)}</span></td>
       <td>${r.code_mak?`<span class="badge bg-light text-dark border">${esc(r.code_mak)}</span>`:'—'}</td>
-      <td class="text-end text-muted" style="font-size:.82rem">${r.prix_achat?r.prix_achat+' F':'—'}</td>
-      <td class="text-end text-muted" style="font-size:.82rem">${r.prix_vente?r.prix_vente+' F':'—'}</td>
+      <td class="text-center text-muted" style="font-size:.82rem">${esc(r.tva)||'—'}</td>
+      <td class="text-end" style="font-size:.82rem">${r.prix_vente?`<span class="text-dark">${r.prix_vente}</span>`:'—'}</td>
+      <td class="text-end text-muted" style="font-size:.82rem">${r.prix_achat||'—'}</td>
     </tr>`).join('');
 
   const total = _cegidFiltered.length;
@@ -1051,9 +1087,13 @@ function buildCegidPagination(total) {
 
 document.getElementById('cegidExportCSV')?.addEventListener('click', () => {
   if(!_cegidFiltered.length) return;
-  const cols = ['code_article','reference_famille','libelle_long','statut','code_mak','prix_achat','prix_vente'];
-  const lines = [cols.join(';')];
-  _cegidFiltered.forEach(r=>lines.push(cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(';')));
+  const cols = ['deref','code_article','code_interne','libelle_long','libelle_court','qte_cond','statut','code_mak','tva','prix_vente','prix_achat'];
+  const headers = ['Deref','Code article','Code interne','Libellé long','Libellé court','Qté cond.','Statut','CODE MAK','TVA','Prix vente','Prix achat'];
+  const lines = [headers.join(';')];
+  _cegidFiltered.forEach(r=>lines.push(cols.map(c=>{
+    const v = c==='deref' ? (r.deref?'D':'') : (r[c]??'');
+    return `"${String(v).replace(/"/g,'""')}"`;
+  }).join(';')));
   const blob = new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`cegid_${_cegidBackup}_products.csv`; a.click();

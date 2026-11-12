@@ -370,15 +370,23 @@ def cegid_products(request, backup_prefix):
     if not backup_prefix.isdigit() or len(backup_prefix) != 3:
         return JsonResponse({"error": "Préfixe invalide"}, status=400)
 
-    dossiers = sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True)
-    if not dossiers:
-        return JsonResponse({"error": "Aucun dossier backup trouvé"}, status=404)
-    backup_dir = dossiers[0]
+    # Cherche d'abord dans prdP2A_* (backup quotidien), puis dans VG_VERIF_PPROMO2
+    fichier = None
+    backup_dir_name = None
+    for candidate_dir in [
+        *sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True),
+        SMB_BACKUP / "VG_VERIF_PPROMO2",
+    ]:
+        if not candidate_dir.exists():
+            continue
+        pattern = list(candidate_dir.glob(f"{backup_prefix}_products_*.csv"))
+        if pattern:
+            fichier = sorted(pattern)[-1]
+            backup_dir_name = candidate_dir.name
+            break
 
-    pattern = list(backup_dir.glob(f"{backup_prefix}_products_*.csv"))
-    if not pattern:
-        return JsonResponse({"error": f"Fichier {backup_prefix}_products_*.csv introuvable"}, status=404)
-    fichier = sorted(pattern)[-1]
+    if not fichier:
+        return JsonResponse({"error": f"Fichier {backup_prefix}_products_*.csv introuvable dans les backups"}, status=404)
 
     articles = []
     with open(fichier, encoding="utf-8", errors="replace") as f:
@@ -389,20 +397,26 @@ def cegid_products(request, backup_prefix):
             if not code_art:
                 continue
             articles.append({
-                "code_article": code_art,
+                "deref":             row[0].strip() == "D",
+                "code_interne":      row[1].strip(),
+                "code_article":      code_art,
                 "reference_famille": row[1].strip(),
-                "libelle_long": row[6].strip(),
-                "libelle_court": row[7].strip(),
-                "statut": row[10].strip(),
-                "code_mak": row[15].strip(),
-                "prix_achat": row[12].strip(),
-                "prix_vente": row[13].strip(),
+                "qte_cond":          row[5].strip(),
+                "libelle_long":      row[6].strip(),
+                "libelle_court":     row[7].strip(),
+                "statut":            row[10].strip(),
+                "tva":               row[12].strip(),
+                "prix_vente":        row[13].strip(),
+                "prix_achat":        row[14].strip(),
+                "code_mak":          row[15].strip(),
             })
 
+    n_deref = sum(1 for a in articles if a["deref"])
     return JsonResponse({
-        "backup_dir": backup_dir.name,
+        "backup_dir": backup_dir_name,
         "fichier": fichier.name,
         "total": len(articles),
+        "n_deref": n_deref,
         "articles": articles,
     })
 

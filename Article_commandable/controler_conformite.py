@@ -179,18 +179,30 @@ def lire_assortiment(backup_prefix, backup_dir):
 
 # ─── Contrôle principal ──────────────────────────────────────────────────────
 
+def _trouver_backup_dir(backup_prefix):
+    """
+    Cherche le dossier backup contenant {backup_prefix}_products_*.csv.
+    Priorité : prdP2A_* (backup quotidien) > VG_VERIF_PPROMO2 (backup alternatif).
+    """
+    for candidate in [
+        *sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True),
+        SMB_BACKUP / "VG_VERIF_PPROMO2",
+    ]:
+        if candidate.exists() and list(candidate.glob(f"{backup_prefix}_products_*.csv")):
+            return candidate
+    return None
+
+
 def controler_magasin(magasin_code):
     backup_prefix = MAGASIN_TO_BACKUP.get(magasin_code)
     if not backup_prefix:
         print(f"⛔ Pas de mapping backup pour magasin {magasin_code}")
         return
 
-    # Trouver le dossier backup le plus récent
-    dossiers = sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True)
-    if not dossiers:
-        print(f"⛔ Aucun dossier prdP2A_* dans {SMB_BACKUP}")
+    backup_dir = _trouver_backup_dir(backup_prefix)
+    if not backup_dir:
+        print(f"⛔ Fichier {backup_prefix}_products_*.csv introuvable dans prdP2A_* ni VG_VERIF_PPROMO2")
         return
-    backup_dir = dossiers[0]
     print(f"\n[{magasin_code}] Dossier backup : {backup_dir.name}")
 
     products     = lire_products(backup_prefix, backup_dir)
