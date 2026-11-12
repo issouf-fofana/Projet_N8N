@@ -600,6 +600,10 @@ function buildDBParams() {
   if (pa) p.set('present_assortiment', pa);
   if (re && !_tabVal) p.set('resultat', re);
 
+  if (_sortCol) {
+    p.set('sort', _sortCol);
+    p.set('sort_dir', _sortDir === 1 ? 'asc' : 'desc');
+  }
   p.set('page', _page);
   p.set('page_size', _psize);
   return p;
@@ -810,7 +814,7 @@ function sortFiltered() {
   document.getElementById(id)?.addEventListener('change', applyFilters);
 });
 
-// Tri colonnes : tri local sur la page courante
+// Tri colonnes : tri serveur (refetch page 1)
 document.querySelectorAll('#tableDetail th.sortable').forEach(th => {
   th.addEventListener('click', () => {
     const col = th.dataset.sort;
@@ -824,8 +828,8 @@ document.querySelectorAll('#tableDetail th.sortable').forEach(th => {
       h.classList.remove('asc', 'desc');
     });
     th.classList.add(_sortDir === 1 ? 'asc' : 'desc');
-    sortFiltered();
-    renderPage();
+    _page = 1;
+    fetchDB();
   });
 });
 
@@ -835,6 +839,9 @@ document.getElementById('btnResetFiltres')?.addEventListener('click', () => {
   _tabVal   = '';
   _motifVal = '';
   _page     = 1;
+  _sortCol  = '';
+  _sortDir  = 1;
+  document.querySelectorAll('#tableDetail th.sortable').forEach(h => h.classList.remove('asc', 'desc'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('.tab-btn[data-val=""][data-motif=""]').classList.add('active');
   fetchDB();

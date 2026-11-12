@@ -445,8 +445,18 @@ def rapport_controle_db(request):
     num_assort   = request.GET.get("num_assortiment", "")
     present_assort = request.GET.get("present_assortiment", "")
     q            = request.GET.get("q", "").strip()
+    sort_col     = request.GET.get("sort", "")
+    sort_dir     = request.GET.get("sort_dir", "asc")
     page         = max(1, int(request.GET.get("page", 1)))
     page_size    = min(200, max(10, int(request.GET.get("page_size", 50))))
+
+    # Mapping frontend → champ Django
+    SORT_FIELDS = {
+        'reference': 'reference', 'libelle': 'libelle',
+        'status_product': 'status_product', 'code_mak': 'code_mak',
+        'num_assortiment': 'num_assortiment', 'resultat': 'resultat',
+        'motif': 'motif',
+    }
 
     # Récupérer le(s) contrôle(s) le(s) plus récent(s)
     from django.db.models import Max
@@ -505,6 +515,13 @@ def rapport_controle_db(request):
     if q:
         from django.db.models import Q
         articles_qs = articles_qs.filter(Q(reference__icontains=q) | Q(libelle__icontains=q))
+
+    # Tri serveur
+    if sort_col and sort_col in SORT_FIELDS:
+        order = SORT_FIELDS[sort_col]
+        if sort_dir == 'desc':
+            order = '-' + order
+        articles_qs = articles_qs.order_by(order)
 
     total_filtre = articles_qs.count()
     offset = (page - 1) * page_size
