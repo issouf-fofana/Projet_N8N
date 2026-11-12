@@ -336,6 +336,11 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
         <div class="col-auto">
           <select class="form-select" id="filterAssortiment">
             <option value="">Tous assortiments</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <select class="form-select" id="filterPresentAssort">
+            <option value="">✓/✗ Présence assort.</option>
             <option value="Oui">✓ Dans l'assortiment</option>
             <option value="Non">✗ Absent assortiment</option>
           </select>
@@ -574,6 +579,7 @@ function chargerRapport(filename) {
       }));
       setKpi(data);
       updateTabCounts();
+      buildAssortimentSelect();
       document.getElementById('lblDetailMag').textContent =
         `— Magasin ${data.magasin} (${data.date})`;
       document.getElementById('lblDerniereMaj').textContent =
@@ -700,22 +706,34 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ─── Filtres ─────────────────────────────────────────────────────────────────
+function buildAssortimentSelect() {
+  const sel = document.getElementById('filterAssortiment');
+  if (!sel) return;
+  const current = sel.value;
+  const nums = [...new Set(_allRows.map(r => r.num_assortiment || '').filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Tous assortiments</option>'
+    + nums.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (nums.includes(current)) sel.value = current;
+}
+
 function applyFilters() {
-  const q     = document.getElementById('filterRecherche').value.toLowerCase();
-  const st    = document.getElementById('filterStatus').value;
-  const mak   = document.getElementById('filterMak').value;
-  const assort= document.getElementById('filterAssortiment')?.value || '';
-  const res   = document.getElementById('filterResultat')?.value || '';
+  const q            = document.getElementById('filterRecherche').value.toLowerCase();
+  const st           = document.getElementById('filterStatus').value;
+  const mak          = document.getElementById('filterMak').value;
+  const assortNum    = document.getElementById('filterAssortiment')?.value || '';
+  const presentAssort= document.getElementById('filterPresentAssort')?.value || '';
+  const res          = document.getElementById('filterResultat')?.value || '';
 
   _filtered = _allRows.filter(r => {
     if (_tabVal   && r.resultat      !== _tabVal)   return false;
     if (_motifVal && r.motif         !== _motifVal) return false;
     if (q && !(r.reference||'').toLowerCase().includes(q)
           && !(r.libelle||'').toLowerCase().includes(q)) return false;
-    if (st     && r.status_product      !== st)     return false;
-    if (mak    && r.code_mak            !== mak)    return false;
-    if (assort && r.present_assortiment !== assort) return false;
-    if (res    && r.resultat            !== res)    return false;
+    if (st           && r.status_product      !== st)           return false;
+    if (mak          && r.code_mak            !== mak)          return false;
+    if (assortNum    && (r.num_assortiment||'')!== assortNum)   return false;
+    if (presentAssort&& r.present_assortiment !== presentAssort)return false;
+    if (res          && r.resultat            !== res)          return false;
     return true;
   });
   sortFiltered();
@@ -734,7 +752,7 @@ function sortFiltered() {
   });
 }
 
-['filterRecherche','filterStatus','filterMak','filterAssortiment','filterResultat'].forEach(id => {
+['filterRecherche','filterStatus','filterMak','filterAssortiment','filterPresentAssort','filterResultat'].forEach(id => {
   document.getElementById(id)?.addEventListener('input',  applyFilters);
   document.getElementById(id)?.addEventListener('change', applyFilters);
 });
@@ -760,7 +778,7 @@ document.querySelectorAll('#tableDetail th.sortable').forEach(th => {
 });
 
 document.getElementById('btnResetFiltres')?.addEventListener('click', () => {
-  ['filterRecherche','filterStatus','filterMak','filterAssortiment','filterResultat']
+  ['filterRecherche','filterStatus','filterMak','filterAssortiment','filterPresentAssort','filterResultat']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   _tabVal   = '';
   _motifVal = '';
