@@ -496,10 +496,10 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
           <table class="table table-sm table-hover mb-0">
             <thead style="position:sticky;top:0;z-index:1;background:#f9fafb">
               <tr>
-                <th style="width:32px"></th>
+                <th class="sortable" data-csort="num_assortiment">N° Assort.</th>
+                <th style="width:32px">D</th>
                 <th class="sortable" data-csort="code_article">Code article</th>
                 <th class="sortable" data-csort="code_interne">Code interne</th>
-                <th class="sortable" data-csort="num_assortiment">N° Assort.</th>
                 <th class="sortable" data-csort="libelle_long">Libellé long</th>
                 <th class="sortable" data-csort="libelle_court">Libellé court</th>
                 <th class="sortable" data-csort="qte_cond">Qté cond.</th>
@@ -1122,14 +1122,14 @@ function renderCegidPage() {
   const colorsStatut = { AC:'#10b981', NA:'#6b7280', ES:'#8b5cf6', NC:'#f59e0b' };
   tbody.innerHTML = slice.map(r => `
     <tr class="${r.deref ? 'table-secondary' : ''}">
+      <td class="text-center">${r.num_assortiment
+            ?`<span class="badge bg-light text-dark border" style="font-size:.75rem">${esc(r.num_assortiment)}</span>`
+            :'<span class="text-muted">—</span>'}</td>
       <td style="text-align:center;padding:6px 4px">
         ${r.deref ? '<span style="background:#be185d;color:#fff;font-size:.65rem;font-weight:700;padding:2px 5px;letter-spacing:.05em">D</span>' : ''}
       </td>
       <td><code class="fw-semibold ${r.deref?'text-muted':'text-dark'}">${esc(r.code_article)}</code></td>
       <td class="text-muted" style="font-size:.8rem">${esc(r.code_interne)}</td>
-      <td class="text-center">${r.num_assortiment
-            ?`<span class="badge bg-light text-dark border" style="font-size:.75rem">${esc(r.num_assortiment)}</span>`
-            :'<span class="text-muted">—</span>'}</td>
       <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
           title="${esc(r.libelle_long)}">${esc(r.libelle_long)}</td>
       <td class="text-muted" style="font-size:.8rem;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
@@ -1173,8 +1173,8 @@ function buildCegidPagination(total) {
 
 document.getElementById('cegidExportCSV')?.addEventListener('click', () => {
   if(!_cegidFiltered.length) return;
-  const cols = ['deref','code_article','code_interne','num_assortiment','libelle_long','libelle_court','qte_cond','statut','code_mak','tva','prix_vente','prix_achat'];
-  const headers = ['Deref','Code article','Code interne','N° Assort.','Libellé long','Libellé court','Qté cond.','Statut','CODE MAK','TVA','Prix vente','Prix achat'];
+  const cols = ['num_assortiment','deref','code_article','code_interne','libelle_long','libelle_court','qte_cond','statut','code_mak','tva','prix_vente','prix_achat'];
+  const headers = ['N° Assort.','Deref','Code article','Code interne','Libellé long','Libellé court','Qté cond.','Statut','CODE MAK','TVA','Prix vente','Prix achat'];
   const lines = [headers.join(';')];
   _cegidFiltered.forEach(r=>lines.push(cols.map(c=>{
     const v = c==='deref' ? (r.deref?'D':'') : (r[c]??'');
