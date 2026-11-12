@@ -149,11 +149,14 @@ def lire_asten(magasin_code):
     pattern = list(OUTPUT_DIR.glob("commandable_pos4*.csv"))
     if not pattern:
         raise FileNotFoundError(f"Fichier commandable_pos4*.csv introuvable dans {OUTPUT_DIR}")
-    # Préférer le fichier non-horodaté (fichier courant) s'il existe
-    fixes = [p for p in pattern if p.stem.count('_') == 2]  # commandable_posX_host
+    # Préférer le fichier sans horodatage (fichier courant mis à jour par le cron)
+    # Format horodaté : commandable_pos4-..._20261112_024218.csv (stem se termine par _YYYYMMDD_HHMMSS)
+    import re as _re
+    fixes = [p for p in pattern if not _re.search(r'_\d{8}_\d{6}$', p.stem)]
     if fixes:
-        pattern = fixes
-    fichier = sorted(pattern)[-1]
+        fichier = sorted(fixes, key=lambda p: p.stat().st_mtime)[-1]
+    else:
+        fichier = sorted(pattern)[-1]
     print(f"  Asten   : {fichier.name}")
     present = set()
     with open(fichier, encoding="utf-8-sig", errors="replace") as f:
