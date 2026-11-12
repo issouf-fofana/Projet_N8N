@@ -564,7 +564,7 @@ function chargerRapport(filename) {
   document.getElementById('tbodyDetail').innerHTML =
     '<tr><td colspan="10" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
-  const url = filename === '__tous__' ? URL_RAPPORT_TOUS : URL_RAPPORT + filename + '/';
+  const url = filename === '__tous__' ? URL_RAPPORT_TOUS + '?ko_only=1' : URL_RAPPORT + filename + '/';
   fetch(url, {credentials: 'same-origin'})
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);

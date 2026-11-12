@@ -452,11 +452,17 @@ def rapport_controle_tous(request):
 
     all_rows = []
     total = ok = ko = 0
+    # Filtre optionnel : ?ko_only=1 pour ne charger que les KO (mode "tous")
+    ko_only = request.GET.get("ko_only") == "1"
+
     for magasin, p in sorted(derniers.items()):
         try:
             with open(p, encoding="utf-8") as f:
                 data = json.load(f)
-            all_rows.extend(data.get("all_rows", []))
+            rows = data.get("all_rows", [])
+            if ko_only:
+                rows = [r for r in rows if r.get("resultat") == "KO"]
+            all_rows.extend(rows)
             total += data.get("total", 0)
             ok    += data.get("ok", 0)
             ko    += data.get("ko", 0)
@@ -472,6 +478,7 @@ def rapport_controle_tous(request):
         "ko":              ko,
         "taux_conformite": taux,
         "all_rows":        all_rows,
+        "ko_only":         ko_only,
     })
 
 
