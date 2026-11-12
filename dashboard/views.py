@@ -180,6 +180,11 @@ def _magasins_commande_listes(source, date_debut=None, date_fin=None):
 
 def _get_semaine_comparison(periode='semaine'):
     """Retourne les stats comparées période courante vs période précédente pour tous les types."""
+    from django.core.cache import cache as _cache
+    _key = f'semaine_comparison_{periode}'
+    _cached = _cache.get(_key)
+    if _cached is not None:
+        return _cached
     from datetime import date, timedelta
     from django.db.models import Q
 
@@ -252,7 +257,7 @@ def _get_semaine_comparison(periode='semaine'):
         dt = curr['total'] - prev['total']
         return {'current': curr, 'previous': prev, 'delta_total': dt, 'delta_integres': di, 'delta_non': dn}
 
-    return {
+    _result = {
         'debut_s': debut_s, 'fin_s': fin_s,
         'debut_sp': debut_sp, 'fin_sp': fin_sp,
         'periode': periode,
@@ -262,6 +267,8 @@ def _get_semaine_comparison(periode='semaine'):
         'br':       _row(_br(debut_s, fin_s),        _br(debut_sp, fin_sp)),
         'remontees':_row(_tickets(debut_s, fin_s),   _tickets(debut_sp, fin_sp)),
     }
+    _cache.set(_key, _result, timeout=300)  # cache 5 minutes
+    return _result
 
 
 def _get_top5_magasins(debut=None, fin=None, n=5, source=None):
@@ -1367,6 +1374,29 @@ def dashboard(request):
     # Widget / données Version Asten
     from datetime import date as _date_cls, timedelta as _td
     _today_v = _date_cls.today()
+
+    # ── Conformité articles commandables — toujours chargé ───────────────────
+    try:
+        from entree_journal.models import ControleConformite
+        from django.db.models import Max, Sum
+        _derniers_ids = list(
+            ControleConformite.objects.values('magasin')
+                .annotate(last_id=Max('id')).values_list('last_id', flat=True)
+        )
+        _stats_conf = ControleConformite.objects.filter(id__in=_derniers_ids).aggregate(
+            total=Sum('total'), ok=Sum('ok'), ko=Sum('ko')
+        )
+        _total_c = _stats_conf['total'] or 0
+        _ok_c    = _stats_conf['ok'] or 0
+        _ko_c    = _stats_conf['ko'] or 0
+        _taux_c  = round(_ok_c / _total_c * 100, 1) if _total_c else 0
+        _dernier_c = ControleConformite.objects.order_by('-date_controle').first()
+        context['conformite_stats'] = {
+            'total': _total_c, 'ok': _ok_c, 'ko': _ko_c, 'taux': _taux_c,
+            'date': _dernier_c.date_controle.strftime('%d/%m/%Y %H:%M') if _dernier_c else '',
+        }
+    except Exception:
+        context['conformite_stats'] = None
 
     if type_donnees == 'version':
         context['today'] = _today_v

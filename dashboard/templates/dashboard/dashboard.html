@@ -909,6 +909,75 @@
 {% endif %}
 {% endwith %}
 
+<!-- ── Conformité Articles Commandables ──────────────────── -->
+{% if conformite_stats %}
+<div class="va-section-divider">
+    <div class="va-section-icon-sm" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;">
+        <i class="bi bi-shield-check-fill"></i>
+    </div>
+    <div>
+        <div style="font-size:.95rem;font-weight:800;color:#0f172a;">Conformité Articles</div>
+        <div style="font-size:.76rem;color:#64748b;">Dernier contrôle : {{ conformite_stats.date }}</div>
+    </div>
+    <a href="{% url 'entree_journal:article_commandable' %}" class="ms-auto btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-up-right-square"></i> Voir le détail
+    </a>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="sc-orb"></div><div class="sc-orb2"></div>
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">Articles contrôlés</div>
+                    <div class="stat-value">{{ conformite_stats.total|default:"—" }}</div>
+                </div>
+                <i class="bi bi-box-seam stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="sc-orb"></div><div class="sc-orb2"></div>
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">Conformes (OK)</div>
+                    <div class="stat-value">{{ conformite_stats.ok|default:"—" }}</div>
+                </div>
+                <i class="bi bi-check-circle-fill stat-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'entree_journal:article_commandable' %}" style="text-decoration:none;display:block;">
+        <div class="stat-card {% if conformite_stats.ko %}danger{% else %}success{% endif %}" style="cursor:pointer;">
+            <div class="sc-orb"></div><div class="sc-orb2"></div>
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">Non conformes (KO)</div>
+                    <div class="stat-value">{{ conformite_stats.ko|default:"—" }}</div>
+                    <div class="stat-label mt-1" style="font-size:.8rem;"><i class="bi bi-arrow-right-circle"></i> Voir le détail</div>
+                </div>
+                <i class="bi bi-x-circle-fill stat-icon"></i>
+            </div>
+        </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card {% if conformite_stats.taux >= 80 %}success{% elif conformite_stats.taux >= 50 %}warning{% else %}danger{% endif %}">
+            <div class="sc-orb"></div><div class="sc-orb2"></div>
+            <div class="d-flex justify-content-between align-items-center position-relative">
+                <div>
+                    <div class="stat-label">Taux de conformité</div>
+                    <div class="stat-value">{{ conformite_stats.taux }}%</div>
+                </div>
+                <i class="bi bi-percent stat-icon"></i>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- ── Versions Backup (SMB) ─────────────────────────────── -->
 <div class="va-section-divider">
     <div class="va-section-icon-sm" style="background:linear-gradient(135deg,#6b4c35,#8b5e3c);color:#fff;">
