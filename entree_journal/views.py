@@ -400,7 +400,7 @@ def cegid_products(request, backup_prefix):
                 "deref":             row[0].strip() == "D",
                 "code_interne":      row[1].strip(),
                 "code_article":      code_art,
-                "num_assortiment":   row[3].strip(),
+                "num_assortiment":   backup_prefix,
                 "qte_cond":          row[5].strip(),
                 "libelle_long":      row[6].strip(),
                 "libelle_court":     row[7].strip(),

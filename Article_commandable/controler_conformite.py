@@ -120,12 +120,11 @@ def lire_products(backup_prefix, backup_dir):
                 continue
             deref    = row[0].strip() == "D"  # col0 : D = déréférencé
             code_art = row[4].strip()          # code article POS, 9 chiffres
-            assort   = row[3].strip()          # col3 : numéro assortiment (peut être vide)
             label    = row[6].strip()
             status   = row[10].strip()
             code_mak = row[15].strip()
             if code_art and status:            # ignorer les lignes sans code ou statut
-                result[code_art] = {"label": label, "status": status, "code_mak": code_mak, "deref": deref, "assort_num": assort}
+                result[code_art] = {"label": label, "status": status, "code_mak": code_mak, "deref": deref}
     n_deref = sum(1 for v in result.values() if v["deref"])
     print(f"  → {len(result)} articles Product (clé=code_article col4) dont {n_deref} déréférencés")
     return result
@@ -240,7 +239,7 @@ def controler_magasin(magasin_code):
             "libelle":             info["label"],
             "status_product":      status,
             "code_mak":            code_mak,
-            "num_assortiment":     info.get("assort_num", ""),
+            "num_assortiment":     backup_prefix,
             "deref":               "Oui" if deref else "Non",
             "present_asten":       "Oui" if present_asten else "Non",
             "actif_asten":         "Oui" if actif_asten else "Non",
