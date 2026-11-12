@@ -613,7 +613,9 @@ function fetchDB() {
   document.getElementById('tbodyDetail').innerHTML =
     '<tr><td colspan="10" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
-  fetch(URL_RAPPORT_DB + '?' + buildDBParams(), {credentials: 'same-origin'})
+  const params = buildDBParams();
+  params.set('_ts', Date.now()); // anti-cache navigateur
+  fetch(URL_RAPPORT_DB + '?' + params, {credentials: 'same-origin'})
     .then(r => r.json().then(d => ({ok: r.ok, status: r.status, data: d})))
     .then(({ok, status, data}) => {
       if (!ok) {
@@ -652,7 +654,8 @@ function fetchDB() {
 
       document.getElementById('lblDetailMag').textContent =
         `— Magasin ${data.magasin}`;
-      document.getElementById('lblDerniereMaj').textContent = '';
+      document.getElementById('lblDerniereMaj').textContent =
+        data.date ? `Contrôle du ${data.date}` : '';
       document.getElementById('dotLive').style.background = '#10b981';
       document.getElementById('btnExportCSV').disabled = false;
 

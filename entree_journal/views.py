@@ -554,9 +554,13 @@ def rapport_controle_db(request):
         controles.values_list('num_assortiment', flat=True)
     ))
 
+    # Date du contrôle le plus récent parmi les contrôles sélectionnés
+    dernier_controle = controles.order_by('-date_controle').first()
+    date_str = dernier_controle.date_controle.strftime("%Y-%m-%d %H:%M") if dernier_controle else ""
+
     return JsonResponse({
         "magasin":         magasin or "TOUS",
-        "date":            "",
+        "date":            date_str,
         "total":           total_global,
         "ok":              ok_global,
         "ko":              ko_global,
