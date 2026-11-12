@@ -350,6 +350,7 @@ body { background-color: #e5e7eb !important; }
               <th>Libellé</th>
               <th>Statut</th>
               <th>CODE MAK</th>
+              <th>N° Assort.</th>
               <th>Cmdable Asten</th>
               <th>Assortiment</th>
               <th>Résultat</th>
@@ -357,7 +358,7 @@ body { background-color: #e5e7eb !important; }
             </tr>
           </thead>
           <tbody id="tbodyDetail">
-            <tr><td colspan="8" class="text-center text-muted py-4">
+            <tr><td colspan="9" class="text-center text-muted py-4">
               {% if dernier %}Chargement…{% else %}Aucun rapport disponible. Lancez un contrôle.{% endif %}
             </td></tr>
           </tbody>
@@ -486,6 +487,7 @@ body { background-color: #e5e7eb !important; }
                 <th style="width:32px"></th>
                 <th>Code article</th>
                 <th>Code interne</th>
+                <th>N° Assort.</th>
                 <th>Libellé long</th>
                 <th>Libellé court</th>
                 <th>Qté cond.</th>
@@ -497,7 +499,7 @@ body { background-color: #e5e7eb !important; }
               </tr>
             </thead>
             <tbody id="cegidTbody">
-              <tr><td colspan="11" class="text-center py-4 text-muted">
+              <tr><td colspan="12" class="text-center py-4 text-muted">
                 <span class="spinner-border spinner-border-sm me-2"></span>Chargement…
               </td></tr>
             </tbody>
@@ -536,7 +538,7 @@ const URL_STATUT  = "{% url 'entree_journal:statut_controle' %}";
 // ─── Chargement rapport ───────────────────────────────────────────────────────
 function chargerRapport(filename) {
   document.getElementById('tbodyDetail').innerHTML =
-    '<tr><td colspan="8" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+    '<tr><td colspan="9" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
   fetch(URL_RAPPORT + filename + '/', {credentials: 'same-origin'})
     .then(r => {
@@ -567,7 +569,7 @@ function chargerRapport(filename) {
     })
     .catch(() => {
       document.getElementById('tbodyDetail').innerHTML =
-        '<tr><td colspan="8" class="text-center text-danger py-4">Erreur de chargement du rapport.</td></tr>';
+        '<tr><td colspan="9" class="text-center text-danger py-4">Erreur de chargement du rapport.</td></tr>';
     });
 }
 
@@ -774,7 +776,7 @@ function renderPage() {
   const slice = _filtered.slice(start, start+_psize);
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
     document.getElementById('paginationInfo').textContent = '';
     document.getElementById('paginationLinks').innerHTML  = '';
     document.getElementById('lblNbFiltres').textContent   = '0 articles';
@@ -788,6 +790,9 @@ function renderPage() {
           title="${esc(r.libelle)}">${esc(r.libelle)}</td>
       <td><span class="badge bg-${STATUT_COLOR[r.status_product]||'secondary'}">${esc(r.status_product)}</span></td>
       <td>${r.code_mak?`<span class="badge bg-light text-dark border">${esc(r.code_mak)}</span>`:'<span class="text-muted">—</span>'}</td>
+      <td class="text-center">${r.num_assortiment
+            ?`<span class="badge bg-light text-dark border" style="font-size:.78rem">${esc(r.num_assortiment)}</span>`
+            :'<span class="text-muted" style="font-size:.8rem">—</span>'}</td>
       <td>${r.present_asten==='Oui'
             ?'<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Oui</span>'
             :'<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Non</span>'}</td>
@@ -953,7 +958,7 @@ document.getElementById('modalCegid')?.addEventListener('show.bs.modal', () => {
 
 function chargerCegid(backup_prefix) {
   document.getElementById('cegidTbody').innerHTML =
-    '<tr><td colspan="11" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Lecture du fichier CEGID…</td></tr>';
+    '<tr><td colspan="12" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Lecture du fichier CEGID…</td></tr>';
 
   fetch(URL_CEGID + backup_prefix + '/', {credentials:'same-origin'})
     .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
@@ -975,7 +980,7 @@ function chargerCegid(backup_prefix) {
     })
     .catch(e => {
       document.getElementById('cegidTbody').innerHTML =
-        `<tr><td colspan="11" class="text-center py-4 text-danger">Erreur : ${esc(e.message)}</td></tr>`;
+        `<tr><td colspan="12" class="text-center py-4 text-danger">Erreur : ${esc(e.message)}</td></tr>`;
     });
 }
 
@@ -1030,7 +1035,7 @@ function renderCegidPage() {
   document.getElementById('cegidNbFiltres').textContent = _cegidFiltered.length + ' articles';
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">Aucun résultat.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="text-center py-4 text-muted">Aucun résultat.</td></tr>';
     document.getElementById('cegidPaginInfo').textContent = '';
     document.getElementById('cegidPaginLinks').innerHTML  = '';
     return;
@@ -1044,6 +1049,9 @@ function renderCegidPage() {
       </td>
       <td><code class="fw-semibold ${r.deref?'text-muted':'text-dark'}">${esc(r.code_article)}</code></td>
       <td class="text-muted" style="font-size:.8rem">${esc(r.code_interne)}</td>
+      <td class="text-center">${r.num_assortiment
+            ?`<span class="badge bg-light text-dark border" style="font-size:.75rem">${esc(r.num_assortiment)}</span>`
+            :'<span class="text-muted">—</span>'}</td>
       <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
           title="${esc(r.libelle_long)}">${esc(r.libelle_long)}</td>
       <td class="text-muted" style="font-size:.8rem;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
@@ -1087,8 +1095,8 @@ function buildCegidPagination(total) {
 
 document.getElementById('cegidExportCSV')?.addEventListener('click', () => {
   if(!_cegidFiltered.length) return;
-  const cols = ['deref','code_article','code_interne','libelle_long','libelle_court','qte_cond','statut','code_mak','tva','prix_vente','prix_achat'];
-  const headers = ['Deref','Code article','Code interne','Libellé long','Libellé court','Qté cond.','Statut','CODE MAK','TVA','Prix vente','Prix achat'];
+  const cols = ['deref','code_article','code_interne','num_assortiment','libelle_long','libelle_court','qte_cond','statut','code_mak','tva','prix_vente','prix_achat'];
+  const headers = ['Deref','Code article','Code interne','N° Assort.','Libellé long','Libellé court','Qté cond.','Statut','CODE MAK','TVA','Prix vente','Prix achat'];
   const lines = [headers.join(';')];
   _cegidFiltered.forEach(r=>lines.push(cols.map(c=>{
     const v = c==='deref' ? (r.deref?'D':'') : (r[c]??'');
