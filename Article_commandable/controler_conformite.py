@@ -206,11 +206,15 @@ def lire_vg_refs():
     global _VG_REFS_CACHE
     if _VG_REFS_CACHE is not None:
         return _VG_REFS_CACHE
-    vg_dir = SMB_BACKUP / "VG_VERIF_PPROMO2"
-    if not vg_dir.exists():
-        print(f"  ⚠️  VG_VERIF_PPROMO2 introuvable — Absent CEGID non filtré")
+    # Prendre le dossier VG_VERIF_PPROMO* le plus récent
+    vg_candidates = sorted(SMB_BACKUP.glob("VG_VERIF_PPROMO*"),
+                           key=lambda p: p.stat().st_mtime, reverse=True)
+    vg_dir = vg_candidates[0] if vg_candidates else None
+    if not vg_dir or not vg_dir.exists():
+        print(f"  ⚠️  Aucun dossier VG_VERIF_PPROMO* trouvé — Absent CEGID non filtré")
         _VG_REFS_CACHE = set()
         return _VG_REFS_CACHE
+    print(f"  VG dir  : {vg_dir.name}")
     refs = set()
     for fichier in sorted(vg_dir.glob("*_products_*.csv")):
         with open(fichier, encoding="utf-8", errors="replace") as f:
@@ -239,9 +243,11 @@ def _trouver_backup_dir(backup_prefix):
         forced = Path(_FORCED_BACKUP_DIR)
         if forced.exists() and list(forced.glob(f"{backup_prefix}_products_*.csv")):
             return forced
+    vg_dirs = sorted(SMB_BACKUP.glob("VG_VERIF_PPROMO*"),
+                     key=lambda p: p.stat().st_mtime, reverse=True)
     for candidate in [
         *sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True),
-        SMB_BACKUP / "VG_VERIF_PPROMO2",
+        *vg_dirs,
     ]:
         if candidate.exists() and list(candidate.glob(f"{backup_prefix}_products_*.csv")):
             return candidate
