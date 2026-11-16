@@ -112,12 +112,14 @@ def precalculer_vg():
         "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
         "Cegid/AstenProd/ReferentielPrecom/Backup"
     ))
-    vg_dir = smb / "VG_VERIF_PPROMO2"
+    vg_candidates = sorted(smb.glob("VG_VERIF_*"), key=lambda p: p.stat().st_mtime, reverse=True)
+    vg_dir = vg_candidates[0] if vg_candidates else None
     cache_path = BASE / "output" / "_vg_refs_cache.txt"
-    if not vg_dir.exists():
-        log(f"  ⚠️  VG_VERIF_PPROMO2 introuvable — Absent CEGID non filtré")
+    if not vg_dir or not vg_dir.exists():
+        log(f"  ⚠️  Aucun dossier VG_VERIF_* trouvé — Absent CEGID non filtré")
         cache_path.write_text("")
         return str(cache_path)
+    log(f"  VG dir  : {vg_dir.name}")
     refs = set()
     for fichier in sorted(vg_dir.glob("*_products_*.csv")):
         with open(fichier, encoding="utf-8", errors="replace") as f:
