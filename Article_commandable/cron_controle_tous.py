@@ -42,10 +42,12 @@ def tous_les_magasins():
             codes.append(m["code_magasin"])
     return sorted(set(codes))
 
-def controler_un(code, counter, total, vg_cache="", backup_dir=""):
+def controler_un(code, counter, total, vg_cache="", backup_dir="", merge=False):
     cmd = [sys.executable, str(CONTROLE_SCRIPT), code, "--vg-cache", vg_cache]
     if backup_dir:
         cmd += ["--backup-dir", backup_dir]
+    if merge:
+        cmd += ["--merge"]
     result = subprocess.run(
         cmd,
         cwd=str(BASE),
@@ -174,21 +176,69 @@ def main():
         log(f"  → {n} enregistrements supprimés")
 
     # Précalculer VG une seule fois avant de lancer les subprocesses
-    log("  Chargement VG_VERIF_PPROMO2…")
+    log("  Chargement VG_VERIF_*…")
     vg_cache = precalculer_vg()
 
     counter = {"done": 0, "ok": 0, "ko": 0}
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(controler_un, code, counter, total, vg_cache, args.backup_dir): code for code in magasins}
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                code = futures[future]
-                log(f"  ✗ Magasin {code} — exception : {e}")
-                with _print_lock:
-                    counter["ko"] += 1
+    # Passe 1 : VG_VERIF_* (référentiel complet) — mode normal (replace)
+    # Si --backup-dir est fourni, on saute la passe VG et on fait juste la passe forcée
+    if not args.backup_dir:
+        log(f"  Passe 1/2 : VG_VERIF (référentiel complet)…")
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(controler_un, code, counter, total, vg_cache, ""): code for code in magasins}
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    code = futures[future]
+                    log(f"  ✗ Magasin {code} — exception : {e}")
+                    with _print_lock:
+                        counter["ko"] += 1
+        log(f"  Passe 1/2 terminée — {counter['ok']} OK, {counter['ko']} erreurs")
+
+        # Passe 2 : prdP2A_* (export quotidien) — mode merge (upsert)
+        # Trouver le dossier prdP2A le plus récent
+        from pathlib import Path as _Path
+        from dotenv import load_dotenv as _load_dotenv
+        import os as _os
+        _load_dotenv(BASE / ".env")
+        smb = _Path(_os.getenv(
+            "SMB_BACKUP_PATH",
+            "/run/user/1000/gvfs/smb-share:server=10.0.70.104,share=d/"
+            "Cegid/AstenProd/ReferentielPrecom/Backup"
+        ))
+        prd_dirs = sorted(smb.glob("prdP2A_*"), reverse=True)
+        if prd_dirs:
+            prd_dir = prd_dirs[0]
+            log(f"  Passe 2/2 : {prd_dir.name} (export quotidien, fusion)…")
+            counter2 = {"done": 0, "ok": 0, "ko": 0}
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = {pool.submit(controler_un, code, counter2, total, vg_cache, str(prd_dir), True): code for code in magasins}
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        code = futures[future]
+                        log(f"  ✗ Magasin {code} — exception : {e}")
+                        with _print_lock:
+                            counter2["ko"] += 1
+            log(f"  Passe 2/2 terminée — {counter2['ok']} OK, {counter2['ko']} erreurs")
+        else:
+            log("  Passe 2/2 : aucun dossier prdP2A_* trouvé — ignoré")
+    else:
+        # Mode --backup-dir forcé : un seul passage sans merge
+        log(f"  Passage unique (backup forcé)…")
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(controler_un, code, counter, total, vg_cache, args.backup_dir): code for code in magasins}
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    code = futures[future]
+                    log(f"  ✗ Magasin {code} — exception : {e}")
+                    with _print_lock:
+                        counter["ko"] += 1
 
     log(f"[{datetime.now():%Y-%m-%d %H:%M}] Terminé — {counter['ok']} OK, {counter['ko']} erreurs")
 

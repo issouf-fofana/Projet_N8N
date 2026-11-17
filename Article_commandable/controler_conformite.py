@@ -231,6 +231,7 @@ def lire_vg_refs():
 # ─── Contrôle principal ──────────────────────────────────────────────────────
 
 _FORCED_BACKUP_DIR = None  # forcé via --backup-dir
+_MODE_MERGE = False        # True = upsert au lieu de delete+recreate
 
 
 def _trouver_backup_dir(backup_prefix):
@@ -254,7 +255,7 @@ def _trouver_backup_dir(backup_prefix):
     return None
 
 
-def controler_magasin(magasin_code):
+def controler_magasin(magasin_code, mode_merge=None):
     backup_prefix = MAGASIN_TO_BACKUP.get(magasin_code)
     if not backup_prefix:
         print(f"⛔ Pas de mapping backup pour magasin {magasin_code}")
@@ -372,13 +373,18 @@ def controler_magasin(magasin_code):
     print(f"  JSON : {json_path}")
 
     # Sauvegarde en base Django
-    _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, json_path.name, rows)
+    merge = _MODE_MERGE if mode_merge is None else mode_merge
+    _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, json_path.name, rows, mode_merge=merge)
 
     return rapport
 
 
-def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, source_fichier, rows):
-    """Insère ou remplace le dernier rapport de conformité en base Django."""
+def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, source_fichier, rows, mode_merge=False):
+    """Insère ou remplace le dernier rapport de conformité en base Django.
+
+    Si mode_merge=True : met à jour les articles existants (upsert par référence)
+    au lieu de supprimer et recréer — permet de fusionner VG_VERIF + prdP2A.
+    """
     try:
         import django
         import os as _os
@@ -391,38 +397,114 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
         from django.utils import timezone as _tz
         date_controle = _tz.make_aware(_dt.strptime(ts, "%Y%m%d_%H%M%S"))
 
-        # Supprimer l'ancien rapport pour ce magasin (garder uniquement le plus récent)
-        ControleConformite.objects.filter(magasin=magasin_code).delete()
+        if mode_merge:
+            # Mode fusion : récupérer ou créer le contrôle existant, puis upsert articles
+            controle = ControleConformite.objects.filter(magasin=magasin_code).order_by('-date_controle').first()
+            if controle is None:
+                controle = ControleConformite.objects.create(
+                    magasin=magasin_code,
+                    num_assortiment=backup_prefix,
+                    date_controle=date_controle,
+                    total=total, ok=ok, ko=ko,
+                    taux_conformite=taux,
+                    source_fichier=source_fichier,
+                )
+            else:
+                # Mettre à jour les stats avec les nouvelles données fusionnées
+                controle.date_controle = date_controle
+                controle.source_fichier = source_fichier
+                controle.save(update_fields=["date_controle", "source_fichier"])
 
-        controle = ControleConformite.objects.create(
-            magasin=magasin_code,
-            num_assortiment=backup_prefix,
-            date_controle=date_controle,
-            total=total, ok=ok, ko=ko,
-            taux_conformite=taux,
-            source_fichier=source_fichier,
-        )
+            # Upsert articles : mettre à jour si la référence existe, sinon créer
+            refs_nouvelles = {r.get("reference", "") for r in rows if r.get("reference")}
+            existantes = {
+                a.reference: a
+                for a in ArticleConformite.objects.filter(controle=controle, reference__in=refs_nouvelles)
+            }
+            a_creer = []
+            a_mettre_a_jour = []
+            for r in rows:
+                ref = r.get("reference", "")
+                if not ref:
+                    continue
+                fields = dict(
+                    libelle=r.get("libelle", "")[:255],
+                    status_product=r.get("status_product", ""),
+                    code_mak=r.get("code_mak", ""),
+                    num_assortiment=r.get("num_assortiment", ""),
+                    deref=r.get("deref") == "Oui",
+                    present_asten=r.get("present_asten") == "Oui",
+                    present_assortiment=None if r.get("present_assortiment") == "N/A"
+                                        else r.get("present_assortiment") == "Oui",
+                    resultat=r.get("resultat", ""),
+                    motif=r.get("motif", ""),
+                    absent_cegid=r.get("absent_cegid") == "Oui",
+                )
+                if ref in existantes:
+                    art = existantes[ref]
+                    for k, v in fields.items():
+                        setattr(art, k, v)
+                    a_mettre_a_jour.append(art)
+                else:
+                    a_creer.append(ArticleConformite(controle=controle, reference=ref, **fields))
+            if a_creer:
+                ArticleConformite.objects.bulk_create(a_creer, batch_size=500)
+            if a_mettre_a_jour:
+                ArticleConformite.objects.bulk_update(
+                    a_mettre_a_jour,
+                    ["libelle", "status_product", "code_mak", "num_assortiment",
+                     "deref", "present_asten", "present_assortiment",
+                     "resultat", "motif", "absent_cegid"],
+                    batch_size=500,
+                )
+            # Recalculer les stats globales du contrôle
+            from django.db.models import Count, Q as _Q
+            stats = ArticleConformite.objects.filter(controle=controle).aggregate(
+                total=Count('id'),
+                ok=Count('id', filter=_Q(resultat='OK')),
+                ko=Count('id', filter=_Q(resultat='KO')),
+            )
+            t = stats['total'] or 0
+            o = stats['ok'] or 0
+            k = stats['ko'] or 0
+            controle.total = t
+            controle.ok = o
+            controle.ko = k
+            controle.taux_conformite = round(o / t * 100, 1) if t else 0
+            controle.save(update_fields=["total", "ok", "ko", "taux_conformite"])
+            print(f"  DB   : {len(a_creer)} créés + {len(a_mettre_a_jour)} mis à jour (merge, magasin {magasin_code})")
+        else:
+            # Mode normal : supprimer et recréer
+            ControleConformite.objects.filter(magasin=magasin_code).delete()
 
-        # Insertion en batch
-        articles = []
-        for r in rows:
-            articles.append(ArticleConformite(
-                controle=controle,
-                reference=r.get("reference", ""),
-                libelle=r.get("libelle", "")[:255],
-                status_product=r.get("status_product", ""),
-                code_mak=r.get("code_mak", ""),
-                num_assortiment=r.get("num_assortiment", ""),
-                deref=r.get("deref") == "Oui",
-                present_asten=r.get("present_asten") == "Oui",
-                present_assortiment=None if r.get("present_assortiment") == "N/A"
-                                    else r.get("present_assortiment") == "Oui",
-                resultat=r.get("resultat", ""),
-                motif=r.get("motif", ""),
-                absent_cegid=r.get("absent_cegid") == "Oui",
-            ))
-        ArticleConformite.objects.bulk_create(articles, batch_size=500)
-        print(f"  DB   : {len(articles)} articles insérés en base (magasin {magasin_code})")
+            controle = ControleConformite.objects.create(
+                magasin=magasin_code,
+                num_assortiment=backup_prefix,
+                date_controle=date_controle,
+                total=total, ok=ok, ko=ko,
+                taux_conformite=taux,
+                source_fichier=source_fichier,
+            )
+
+            articles = []
+            for r in rows:
+                articles.append(ArticleConformite(
+                    controle=controle,
+                    reference=r.get("reference", ""),
+                    libelle=r.get("libelle", "")[:255],
+                    status_product=r.get("status_product", ""),
+                    code_mak=r.get("code_mak", ""),
+                    num_assortiment=r.get("num_assortiment", ""),
+                    deref=r.get("deref") == "Oui",
+                    present_asten=r.get("present_asten") == "Oui",
+                    present_assortiment=None if r.get("present_assortiment") == "N/A"
+                                        else r.get("present_assortiment") == "Oui",
+                    resultat=r.get("resultat", ""),
+                    motif=r.get("motif", ""),
+                    absent_cegid=r.get("absent_cegid") == "Oui",
+                ))
+            ArticleConformite.objects.bulk_create(articles, batch_size=500)
+            print(f"  DB   : {len(articles)} articles insérés en base (magasin {magasin_code})")
     except Exception as e:
         print(f"  ⚠️  Erreur sauvegarde base : {e}")
 
@@ -434,7 +516,11 @@ if __name__ == "__main__":
     parser.add_argument("magasins", nargs="*", default=["035"])
     parser.add_argument("--vg-cache", default="", help="Fichier cache VG refs précalculé")
     parser.add_argument("--backup-dir", default="", help="Forcer un dossier backup spécifique (ex: prdP2A_2026-11-11_23h00m01s)")
+    parser.add_argument("--merge", action="store_true", help="Fusionner avec les données existantes (upsert) au lieu de remplacer")
     args = parser.parse_args()
+
+    if args.merge:
+        _MODE_MERGE = True
 
     # Forcer le dossier backup si fourni
     if args.backup_dir:
