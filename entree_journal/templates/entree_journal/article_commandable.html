@@ -263,7 +263,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
       </span>
     </div>
     <div class="card-body p-3">
-      <form id="formCorriger" class="row g-3 align-items-end filtre-group">
+      <form id="formCorriger" class="row g-3 align-items-end filtre-group" data-no-loader>
         {% csrf_token %}
         <div class="col-md-5">
           <label class="form-label" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;font-weight:600">Magasin(s)</label>
