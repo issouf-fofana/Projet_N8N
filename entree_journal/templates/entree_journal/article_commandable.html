@@ -759,10 +759,12 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
 </div>
 
 <script>
-// Déplace le modal CEGID dans <body> pour éviter les problèmes de z-index / contexte d'empilement
+// Déplace les modals dans <body> pour éviter les problèmes de z-index / contexte d'empilement
 document.addEventListener('DOMContentLoaded', () => {
-  const m = document.getElementById('modalCegid');
-  if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  ['modalCegid', 'modalCorrectionProgress', 'modalHistoriqueCorrections'].forEach(id => {
+    const m = document.getElementById(id);
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  });
 });
 
 // ─── State ───────────────────────────────────────────────────────────────────
