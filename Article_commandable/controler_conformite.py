@@ -387,6 +387,7 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
     """
     try:
         import django
+        import django.apps
         import os as _os
         _os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
         if not django.apps.apps.ready:

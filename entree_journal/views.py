@@ -532,6 +532,21 @@ def corriger_article_unique(request):
 
 
 @login_required
+@require_POST
+def annuler_correction(request):
+    """Demande l'arrêt propre de la correction en cours (flag lu entre deux articles)."""
+    if not _correction_running():
+        return JsonResponse({"error": "Aucune correction en cours."}, status=409)
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
+    import importlib
+    import corriger_conformite as cc
+    importlib.reload(cc)
+    cc.demander_arret()
+    return JsonResponse({"status": "stop_requested"})
+
+
+@login_required
 def statut_correction(request):
     """Polling JSON — état en cours de la correction (progression par magasin/article)."""
     state = {"running": _correction_running()}

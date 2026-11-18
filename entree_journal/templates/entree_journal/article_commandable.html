@@ -222,22 +222,28 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
   </div>
 
   <!-- Bandeau progression correction (caché par défaut) -->
-  <div id="bandeauCorrection" class="mb-4 d-none">
-    <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
-    <div>
-      <div class="fw-semibold text-dark" id="correctionEtape">Correction en cours…</div>
-      <div class="text-muted" style="font-size:.8rem" id="correctionDetail"></div>
-    </div>
-    <div class="ms-auto d-flex align-items-center gap-3">
-      <div class="text-end" style="font-size:.78rem">
-        <span class="text-success">✓ <span id="correctionTraites">0</span></span>
-        &nbsp;<span class="text-muted">· ignorés <span id="correctionIgnores">0</span></span>
-        &nbsp;<span class="text-danger">⛔ <span id="correctionErreurs">0</span></span>
+  <div id="bandeauCorrection" class="mb-4 d-none dashboard-card">
+    <div class="d-flex align-items-center p-3 gap-3">
+      <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+      <div>
+        <div class="fw-semibold text-dark" id="correctionEtape">Correction en cours…</div>
+        <div class="text-muted" style="font-size:.8rem" id="correctionDetail"></div>
       </div>
-      <div class="progress" style="width:180px;height:8px">
-        <div class="progress-bar bg-warning" id="correctionBar" style="width:0%" role="progressbar"></div>
+      <div class="ms-auto d-flex align-items-center gap-3">
+        <div class="text-end" style="font-size:.78rem">
+          <span class="text-success">✓ <span id="correctionTraites">0</span></span>
+          &nbsp;<span class="text-muted">· ignorés <span id="correctionIgnores">0</span></span>
+          &nbsp;<span class="text-danger">⛔ <span id="correctionErreurs">0</span></span>
+        </div>
+        <div class="progress" style="width:140px;height:8px">
+          <div class="progress-bar bg-warning" id="correctionBar" style="width:0%" role="progressbar"></div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="btnAnnulerCorrection">
+          <i class="bi bi-stop-circle me-1"></i>Annuler
+        </button>
       </div>
     </div>
+    <div id="correctionLog" class="px-3 pb-3" style="max-height:220px;overflow-y:auto;font-family:ui-monospace,monospace;font-size:.76rem;color:#374151;background:#fafafa;border-top:1px solid #e5e7eb"></div>
   </div>
 
   <!-- Formulaire correction des KO -->
@@ -251,22 +257,35 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
     <div class="card-body p-3">
       <form id="formCorriger" class="row g-3 align-items-end filtre-group">
         {% csrf_token %}
-        <div class="col-md-6">
-          <label class="form-label" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;font-weight:600">
-            Magasin(s)
-            <span class="text-muted" style="font-size:.7rem;text-transform:none;font-weight:400">— ctrl/cmd+clic pour en sélectionner plusieurs</span>
-          </label>
-          <div class="d-flex align-items-start gap-2">
-            <div class="form-check mt-1" style="white-space:nowrap">
-              <input class="form-check-input" type="checkbox" id="chkTousMagasins" checked>
-              <label class="form-check-label" for="chkTousMagasins" style="font-size:.85rem">Tous</label>
-            </div>
-            <select name="magasin" id="selectMagasinsCorrection" class="form-select" multiple size="4" disabled>
+        <div class="col-md-5">
+          <label class="form-label" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;font-weight:600">Magasin(s)</label>
+          <div class="dropdown" id="dropdownMagasins">
+            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button"
+                    id="btnDropdownMagasins" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                    aria-expanded="false">
+              <span id="lblMagasinsSelection">Tous les magasins ayant des KO</span>
+            </button>
+            <div class="dropdown-menu p-2" style="max-height:340px;overflow-y:auto;min-width:320px" aria-labelledby="btnDropdownMagasins">
+              <div class="d-flex justify-content-between align-items-center px-2 pb-2 mb-2 border-bottom">
+                <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" id="chkTousMagasins" checked>
+                  <label class="form-check-label fw-semibold" for="chkTousMagasins" style="font-size:.85rem">Tous les magasins</label>
+                </div>
+                <input type="search" class="form-control form-control-sm ms-2" id="searchMagasinsDropdown"
+                       placeholder="Filtrer…" style="width:120px">
+              </div>
               {% for m in magasins %}
-              <option value="{{ m.code }}">{{ m.code }} — {{ m.nom }}</option>
+              <div class="form-check magasin-option">
+                <input class="form-check-input chk-magasin" type="checkbox" value="{{ m.code }}"
+                       id="chkMag_{{ m.code }}" data-nom="{{ m.code }} — {{ m.nom }}">
+                <label class="form-check-label" for="chkMag_{{ m.code }}" style="font-size:.83rem">
+                  {{ m.code }} — {{ m.nom }}
+                </label>
+              </div>
               {% endfor %}
-            </select>
+            </div>
           </div>
+          <input type="hidden" name="magasin" id="hiddenMagasinCorrection">
         </div>
         <div class="col-auto">
           <div class="form-check">
@@ -1270,26 +1289,54 @@ const URL_CORRIGER_STATUT  = "{% url 'entree_journal:statut_correction' %}";
 const URL_CORRIGER_HISTO   = "{% url 'entree_journal:liste_corrections' %}";
 const URL_ARTICLES_CORRIGES= "{% url 'entree_journal:historique_articles_corriges' %}";
 const URL_CORRECTION_RAPPORT = "{% url 'entree_journal:rapport_correction' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
+const URL_CORRIGER_ANNULER = "{% url 'entree_journal:annuler_correction' %}";
 
 let _correctionPolling = null;
 
+// ─── Dropdown magasins (cases à cocher) ─────────────────────────────────────
+function majLabelMagasinsSelection() {
+  const tous = document.getElementById('chkTousMagasins').checked;
+  const lbl = document.getElementById('lblMagasinsSelection');
+  if (tous) { lbl.textContent = 'Tous les magasins ayant des KO'; return; }
+  const checked = Array.from(document.querySelectorAll('.chk-magasin:checked'));
+  if (!checked.length) { lbl.textContent = 'Aucun magasin sélectionné'; return; }
+  if (checked.length === 1) { lbl.textContent = checked[0].dataset.nom; return; }
+  lbl.textContent = `${checked.length} magasins sélectionnés`;
+}
+
 document.getElementById('chkTousMagasins')?.addEventListener('change', function() {
-  const sel = document.getElementById('selectMagasinsCorrection');
-  sel.disabled = this.checked;
-  if (this.checked) Array.from(sel.options).forEach(o => o.selected = false);
+  if (this.checked) {
+    document.querySelectorAll('.chk-magasin').forEach(c => c.checked = false);
+  }
+  majLabelMagasinsSelection();
+});
+
+document.querySelectorAll('.chk-magasin').forEach(chk => {
+  chk.addEventListener('change', function() {
+    if (this.checked) document.getElementById('chkTousMagasins').checked = false;
+    const anyChecked = document.querySelectorAll('.chk-magasin:checked').length > 0;
+    if (!anyChecked) document.getElementById('chkTousMagasins').checked = true;
+    majLabelMagasinsSelection();
+  });
+});
+
+document.getElementById('searchMagasinsDropdown')?.addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  document.querySelectorAll('.magasin-option').forEach(row => {
+    const txt = row.textContent.toLowerCase();
+    row.style.display = txt.includes(q) ? '' : 'none';
+  });
 });
 
 document.getElementById('formCorriger')?.addEventListener('submit', function(e) {
   e.preventDefault();
   const fd = new FormData(this);
   const tous = document.getElementById('chkTousMagasins').checked;
-  const sel = document.getElementById('selectMagasinsCorrection');
-  const codes = tous ? [] : Array.from(sel.selectedOptions).map(o => o.value);
+  const codes = tous ? [] : Array.from(document.querySelectorAll('.chk-magasin:checked')).map(c => c.value);
   if (!tous && !codes.length) {
     alert('Sélectionnez au moins un magasin, ou cochez "Tous".');
     return;
   }
-  fd.delete('magasin');
   fd.set('magasin', codes.join(','));
   const apply = document.getElementById('chkApply').checked;
   const libelle = apply ? 'Application réelle des corrections…' : 'Simulation (dry-run)…';
@@ -1297,6 +1344,8 @@ document.getElementById('formCorriger')?.addEventListener('submit', function(e) 
     return;
   }
   document.getElementById('btnCorriger').disabled = true;
+  clearCorrectionLog();
+  addCorrectionLog(libelle);
   showBandeauCorrection(true, {etape: libelle});
   startCorrectionPolling();
   fetch(URL_CORRIGER_LANCER, {method:'POST', body:fd})
@@ -1317,36 +1366,89 @@ document.getElementById('formCorriger')?.addEventListener('submit', function(e) 
     });
 });
 
+// ─── Annulation ──────────────────────────────────────────────────────────────
+document.getElementById('btnAnnulerCorrection')?.addEventListener('click', function() {
+  if (!confirm('Arrêter la correction en cours ?')) return;
+  this.disabled = true;
+  fetch(URL_CORRIGER_ANNULER, {method: 'POST', headers: {'X-CSRFToken': getCsrfToken()}})
+    .then(r => r.json())
+    .then(() => addCorrectionLog('⏹ Demande d\'arrêt envoyée…'))
+    .catch(() => addCorrectionLog('⛔ Erreur réseau lors de la demande d\'arrêt'));
+});
+
+function getCsrfToken() {
+  const el = document.querySelector('#formCorriger input[name=csrfmiddlewaretoken]');
+  return el ? el.value : '';
+}
+
+// ─── Journal (logs) de la correction en cours ───────────────────────────────
+function clearCorrectionLog() {
+  const el = document.getElementById('correctionLog');
+  if (el) el.innerHTML = '';
+}
+function addCorrectionLog(line) {
+  const el = document.getElementById('correctionLog');
+  if (!el) return;
+  const now = new Date().toLocaleTimeString('fr-FR');
+  const div = document.createElement('div');
+  div.textContent = `[${now}] ${line}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+let _lastLoggedCount = 0;
+function logNouvellesActions(derniers) {
+  if (!derniers || !derniers.length) return;
+  // On n'affiche que les entrées pas encore loggées (approximation par longueur cumulée)
+  const nouvelles = derniers.slice(Math.max(0, derniers.length - (derniers.length - _lastLoggedCount)));
+  derniers.forEach((entry, i) => {
+    if (i < _lastLoggedCount) return;
+    const icon = entry.statut === 'corrige' ? '✓' : (entry.statut === 'erreur' ? '⛔' : (entry.statut === 'a_corriger' ? '·' : '—'));
+    const detail = entry.detail ? ` — ${entry.detail}` : (entry.action ? ` → ${entry.action}` : '');
+    addCorrectionLog(`${icon} [${entry.magasin}] ${entry.reference} ${entry.libelle ? '('+entry.libelle+')' : ''} — motif='${entry.motif}'${detail}`);
+  });
+  _lastLoggedCount = derniers.length;
+}
+
 function startCorrectionPolling() {
+  _lastLoggedCount = 0;
   if (_correctionPolling) return;
-  _correctionPolling = setInterval(pollCorrectionStatut, 2000);
+  _correctionPolling = setInterval(pollCorrectionStatut, 1000);
   pollCorrectionStatut();
 }
 function stopCorrectionPolling() {
   if (_correctionPolling) { clearInterval(_correctionPolling); _correctionPolling = null; }
 }
 function pollCorrectionStatut() {
-  fetch(URL_CORRIGER_STATUT)
+  fetch(URL_CORRIGER_STATUT, {cache: 'no-store'})
     .then(r => r.json())
     .then(data => {
+      logNouvellesActions(data.derniers);
       if (data.running) {
         showBandeauCorrection(true, data);
       } else if (data.finished) {
         stopCorrectionPolling();
         showBandeauCorrection(true, data);
-        setTimeout(() => showBandeauCorrection(false), 2500);
+        if (data.erreur_fatale) {
+          addCorrectionLog(`⛔ Erreur fatale : ${data.erreur_fatale}`);
+        } else if (data.arrete) {
+          addCorrectionLog('⏹ Correction arrêtée par l\'utilisateur.');
+        } else {
+          addCorrectionLog(`✅ Terminé — ${data.traites||0} traités, ${data.ignores||0} ignorés, ${data.erreurs||0} erreurs.`);
+        }
         document.getElementById('btnCorriger').disabled = false;
+        document.getElementById('btnAnnulerCorrection').disabled = true;
       } else {
         showBandeauCorrection(false);
         document.getElementById('btnCorriger').disabled = false;
       }
     })
-    .catch(() => {});
+    .catch(() => { addCorrectionLog('⚠️ Erreur réseau lors du suivi de progression.'); });
 }
 function showBandeauCorrection(visible, data) {
   const el = document.getElementById('bandeauCorrection');
   if (!visible) { el.classList.add('d-none'); return; }
   el.classList.remove('d-none');
+  document.getElementById('btnAnnulerCorrection').disabled = !(data && data.running);
   if (!data) return;
 
   const magasinInfo = data.magasin_courant
@@ -1355,8 +1457,12 @@ function showBandeauCorrection(visible, data) {
   const articleInfo = data.article_total
     ? ` — article ${data.article_done||0}/${data.article_total}` : '';
 
-  document.getElementById('correctionEtape').textContent =
-    data.finished ? `Terminé (${data.mode || ''})` : (data.etape || `Correction en cours (${data.mode || ''})…`);
+  let etape = data.etape || `Correction en cours (${data.mode || ''})…`;
+  if (data.finished) {
+    etape = data.erreur_fatale ? `Erreur (${data.mode || ''})`
+          : (data.arrete ? `Arrêtée (${data.mode || ''})` : `Terminé (${data.mode || ''})`);
+  }
+  document.getElementById('correctionEtape').textContent = etape;
   document.getElementById('correctionDetail').textContent = magasinInfo + articleInfo;
   document.getElementById('correctionTraites').textContent = data.traites ?? 0;
   document.getElementById('correctionIgnores').textContent = data.ignores ?? 0;

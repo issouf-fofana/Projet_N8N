@@ -126,12 +126,52 @@ def patcher_produit(session, base_url, product_id, payload):
     return True, None
 
 
+STOP_FLAG_FILE = OUTPUT_DIR / "correction_stop.flag"
+
+
+def demander_arret():
+    """Pose un flag lu par run() entre deux articles pour arrêter proprement."""
+    STOP_FLAG_FILE.write_text("1", encoding="utf-8")
+
+
+def _stop_requested():
+    return STOP_FLAG_FILE.exists()
+
+
+def _clear_stop_flag():
+    try:
+        STOP_FLAG_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def run(magasins=None, apply=False, log=print):
     """
     Exécute la correction. `log` reçoit des lignes de texte (print par défaut,
     ou un callback pour les logs UI). Retourne le rapport final (dict).
+
+    Quoi qu'il arrive (succès, erreur imprévue, arrêt demandé), le fichier de
+    progression est toujours finalisé avec running=False — sinon l'UI reste
+    bloquée sur "en cours" indéfiniment.
     """
+    _clear_stop_flag()
+    try:
+        return _run_impl(magasins=magasins, apply=apply, log=log)
+    except Exception as e:
+        import traceback
+        log(f"⛔ Erreur inattendue : {e}")
+        log(traceback.format_exc())
+        write_progress({
+            "running": False, "finished": True, "erreur_fatale": str(e),
+        })
+        raise
+    finally:
+        _clear_stop_flag()
+
+
+def _run_impl(magasins=None, apply=False, log=print):
     import django
+    import django.apps
     root = BASE_DIR.parent
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
@@ -176,8 +216,14 @@ def run(magasins=None, apply=False, log=print):
     })
 
     derniers = []  # 20 dernières actions, pour affichage live
+    arrete = False
 
     for idx_mag, controle in enumerate(controles):
+        if _stop_requested():
+            log("⏹ Arrêt demandé — correction interrompue.")
+            arrete = True
+            break
+
         magasin = controle.magasin
         pos_info = shop_to_pos.get(magasin.lstrip("0") or "0")
         if not pos_info:
@@ -204,6 +250,11 @@ def run(magasins=None, apply=False, log=print):
         })
 
         for idx_art, art in enumerate(articles_ko):
+            if _stop_requested():
+                log("⏹ Arrêt demandé — correction interrompue.")
+                arrete = True
+                break
+
             action = determiner_action(art.motif)
             entry = {
                 "magasin": magasin, "reference": art.reference, "libelle": art.libelle,
@@ -288,8 +339,14 @@ def run(magasins=None, apply=False, log=print):
         })
         log("")
 
+        if arrete:
+            break
+
+    _clear_stop_flag()
+
     rapport = {
         "mode": mode, "date": ts,
+        "arrete": arrete,
         "total_traites": resume["total_traites"],
         "total_ignores": resume["total_ignores"],
         "total_erreurs": resume["total_erreurs"],
@@ -298,20 +355,27 @@ def run(magasins=None, apply=False, log=print):
     }
 
     rapport_path = OUTPUT_DIR / f"correction_{ts}.json"
-    with open(rapport_path, "w", encoding="utf-8") as f:
-        json.dump(rapport, f, ensure_ascii=False, indent=2)
-    rapport["filename"] = rapport_path.name
+    try:
+        with open(rapport_path, "w", encoding="utf-8") as f:
+            json.dump(rapport, f, ensure_ascii=False, indent=2)
+        rapport["filename"] = rapport_path.name
+        rapport_filename = rapport_path.name
+    except OSError as e:
+        log(f"⚠️  Impossible d'écrire le rapport {rapport_path} : {e}")
+        rapport["filename"] = None
+        rapport_filename = None
 
     write_progress({
-        "running": False, "finished": True, "mode": mode,
+        "running": False, "finished": True, "mode": mode, "arrete": arrete,
         "magasin_done": total_magasins, "magasin_total": total_magasins,
         "magasin_courant": None,
         "traites": resume["total_traites"], "ignores": resume["total_ignores"],
         "erreurs": resume["total_erreurs"], "derniers": derniers[-20:],
-        "rapport_filename": rapport_path.name,
+        "rapport_filename": rapport_filename,
     })
 
-    log(f"=== Résumé ({mode}) : {resume['total_traites']} traités, "
+    suffixe = " (interrompue)" if arrete else ""
+    log(f"=== Résumé ({mode}){suffixe} : {resume['total_traites']} traités, "
         f"{resume['total_ignores']} ignorés (pas de règle), {resume['total_erreurs']} erreurs ===")
     if not apply:
         log("Aucune modification écrite. Relancer avec --apply pour appliquer.")
@@ -325,6 +389,7 @@ def corriger_un_article(article_id, apply=True):
     Utilisé pour la correction unitaire depuis l'UI (bouton par ligne).
     """
     import django
+    import django.apps
     root = BASE_DIR.parent
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))

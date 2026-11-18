@@ -21,6 +21,7 @@ urlpatterns = [
     path("article-commandable/corriger/lancer/", views.lancer_correction, name="lancer_correction"),
     path("article-commandable/corriger/article/", views.corriger_article_unique, name="corriger_article_unique"),
     path("article-commandable/corriger/statut/", views.statut_correction, name="statut_correction"),
+    path("article-commandable/corriger/annuler/", views.annuler_correction, name="annuler_correction"),
     path("article-commandable/corriger/progression/", views.progression_correction, name="progression_correction"),
     path("article-commandable/corriger/historique/", views.liste_corrections, name="liste_corrections"),
     path("article-commandable/corriger/rapport/<str:filename>/", views.rapport_correction, name="rapport_correction"),
