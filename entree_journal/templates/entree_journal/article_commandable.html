@@ -10,6 +10,14 @@ body { background-color: #e5e7eb !important; }
 /* Le dropdown magasins doit pouvoir déborder de la carte (sinon coupé par overflow:hidden) */
 #cardFormulaireCorrection { overflow: visible; }
 
+#badgeCorrectionEnCours {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff7ed; border: 1px solid #fde68a; color: #92400e;
+    border-radius: 6px; padding: 8px 14px; font-size: .85rem; font-weight: 600;
+    cursor: pointer;
+}
+#badgeCorrectionEnCours:hover { background: #fef3c7; }
+
 #barreSelectionMulti {
     position: sticky; bottom: 16px; z-index: 5;
     margin: 12px 16px 0; padding: 10px 16px;
@@ -232,30 +240,12 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
     </div>
   </div>
 
-  <!-- Bandeau progression correction (caché par défaut) -->
-  <div id="bandeauCorrection" class="mb-4 d-none dashboard-card">
-    <div class="d-flex align-items-center p-3 gap-3">
-      <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
-      <div>
-        <div class="fw-semibold text-dark" id="correctionEtape">Correction en cours…</div>
-        <div class="text-muted" style="font-size:.8rem" id="correctionDetail"></div>
-      </div>
-      <div class="ms-auto d-flex align-items-center gap-3">
-        <div class="text-end" style="font-size:.78rem">
-          <span class="text-success">✓ <span id="correctionTraites">0</span></span>
-          &nbsp;<span class="text-muted">· ignorés <span id="correctionIgnores">0</span></span>
-          &nbsp;<span class="text-danger">⛔ <span id="correctionErreurs">0</span></span>
-        </div>
-        <div class="progress" style="width:140px;height:8px">
-          <div class="progress-bar bg-warning" id="correctionBar" style="width:0%" role="progressbar"></div>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-danger" id="btnAnnulerCorrection">
-          <i class="bi bi-stop-circle me-1"></i>Annuler
-        </button>
-      </div>
-    </div>
-    <div id="correctionLog" class="px-3 pb-3" style="max-height:220px;overflow-y:auto;font-family:ui-monospace,monospace;font-size:.76rem;color:#374151;background:#fafafa;border-top:1px solid #e5e7eb"></div>
-  </div>
+  <!-- Badge discret : correction en cours, pour rouvrir le modal si fermé -->
+  <button type="button" id="badgeCorrectionEnCours" class="d-none mb-3"
+          data-bs-toggle="modal" data-bs-target="#modalCorrectionProgress">
+    <span class="spinner-border spinner-border-sm"></span>
+    Correction en cours… <span id="badgeCorrectionResume"></span> — cliquer pour voir le détail
+  </button>
 
   <!-- Formulaire correction des KO -->
   <div class="dashboard-card mb-4" id="cardFormulaireCorrection">
@@ -656,6 +646,44 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
 </div>
 
 <!-- Modal Historique des corrections -->
+<!-- Modal Progression de la correction (pop-up principal pendant un run) -->
+<div class="modal fade" id="modalCorrectionProgress" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border-radius:0">
+      <div class="modal-header" style="background:#fff7ed;border-bottom:1px solid #fde68a">
+        <div class="d-flex align-items-center gap-2">
+          <span class="spinner-border spinner-border-sm text-warning" id="correctionModalSpinner" role="status"></span>
+          <div>
+            <h5 class="modal-title mb-0" id="correctionEtape">Correction en cours…</h5>
+            <div class="text-muted" style="font-size:.8rem" id="correctionDetail"></div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" title="Réduire (la correction continue en fond)"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="d-flex align-items-center gap-3 p-3 border-bottom" style="background:#fafafa">
+          <div class="text-nowrap" style="font-size:.82rem">
+            <span class="text-success fw-semibold">✓ <span id="correctionTraites">0</span></span>
+            &nbsp;<span class="text-muted">· ignorés <span id="correctionIgnores">0</span></span>
+            &nbsp;<span class="text-danger fw-semibold">⛔ <span id="correctionErreurs">0</span></span>
+          </div>
+          <div class="progress flex-grow-1" style="height:8px">
+            <div class="progress-bar bg-warning" id="correctionBar" style="width:0%" role="progressbar"></div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger text-nowrap" id="btnAnnulerCorrection">
+            <i class="bi bi-stop-circle me-1"></i>Annuler
+          </button>
+        </div>
+        <div id="correctionLog" style="height:320px;overflow-y:auto;font-family:ui-monospace,monospace;font-size:.78rem;color:#374151;background:#111827;color:#d1d5db;padding:12px 16px"></div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #e5e7eb">
+        <span class="text-muted me-auto" style="font-size:.78rem">Vous pouvez réduire cette fenêtre : la correction continue en arrière-plan.</span>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Réduire</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="modalHistoriqueCorrections" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
   <div class="modal-dialog modal-xl" style="max-width:95vw">
     <div class="modal-content" style="border-radius:0">
@@ -1463,7 +1491,8 @@ document.getElementById('formCorriger')?.addEventListener('submit', function(e) 
   document.getElementById('btnCorriger').disabled = true;
   clearCorrectionLog();
   addCorrectionLog(libelle);
-  showBandeauCorrection(true, {etape: libelle});
+  getCorrectionModal().show();
+  showModalCorrection(true, {etape: libelle, running: true});
   startCorrectionPolling();
   fetch(URL_CORRIGER_LANCER, {method:'POST', body:fd})
     .then(r => r.json())
@@ -1472,14 +1501,14 @@ document.getElementById('formCorriger')?.addEventListener('submit', function(e) 
         alert(data.error);
         document.getElementById('btnCorriger').disabled = false;
         stopCorrectionPolling();
-        showBandeauCorrection(false);
+        showModalCorrection(false);
       }
     })
     .catch(() => {
       alert('Erreur réseau');
       document.getElementById('btnCorriger').disabled = false;
       stopCorrectionPolling();
-      showBandeauCorrection(false);
+      showModalCorrection(false);
     });
 });
 
@@ -1541,10 +1570,10 @@ function pollCorrectionStatut() {
     .then(data => {
       logNouvellesActions(data.derniers);
       if (data.running) {
-        showBandeauCorrection(true, data);
+        showModalCorrection(true, data);
       } else if (data.finished) {
         stopCorrectionPolling();
-        showBandeauCorrection(true, data);
+        showModalCorrection(true, data);
         if (data.erreur_fatale) {
           addCorrectionLog(`⛔ Erreur fatale : ${data.erreur_fatale}`);
         } else if (data.arrete) {
@@ -1554,17 +1583,40 @@ function pollCorrectionStatut() {
         }
         document.getElementById('btnCorriger').disabled = false;
         document.getElementById('btnAnnulerCorrection').disabled = true;
+        document.getElementById('badgeCorrectionEnCours').classList.add('d-none');
       } else {
-        showBandeauCorrection(false);
+        showModalCorrection(false);
         document.getElementById('btnCorriger').disabled = false;
       }
     })
     .catch(() => { addCorrectionLog('⚠️ Erreur réseau lors du suivi de progression.'); });
 }
-function showBandeauCorrection(visible, data) {
-  const el = document.getElementById('bandeauCorrection');
-  if (!visible) { el.classList.add('d-none'); return; }
-  el.classList.remove('d-none');
+
+let _correctionModalInstance = null;
+function getCorrectionModal() {
+  if (!_correctionModalInstance) {
+    _correctionModalInstance = new bootstrap.Modal(document.getElementById('modalCorrectionProgress'));
+  }
+  return _correctionModalInstance;
+}
+
+function showModalCorrection(visible, data) {
+  const badge = document.getElementById('badgeCorrectionEnCours');
+  if (!visible) {
+    getCorrectionModal().hide();
+    badge.classList.add('d-none');
+    return;
+  }
+
+  // Le polling ne fait que mettre à jour le contenu — il ne réouvre jamais
+  // le modal si l'utilisateur l'a réduit (seul "Lancer la correction" l'ouvre).
+  if (data && data.running) {
+    badge.classList.remove('d-none');
+    document.getElementById('correctionModalSpinner').classList.remove('d-none');
+  } else if (data && data.finished) {
+    document.getElementById('correctionModalSpinner').classList.add('d-none');
+  }
+
   document.getElementById('btnAnnulerCorrection').disabled = !(data && data.running);
   if (!data) return;
 
@@ -1584,14 +1636,32 @@ function showBandeauCorrection(visible, data) {
   document.getElementById('correctionTraites').textContent = data.traites ?? 0;
   document.getElementById('correctionIgnores').textContent = data.ignores ?? 0;
   document.getElementById('correctionErreurs').textContent = data.erreurs ?? 0;
+  document.getElementById('badgeCorrectionResume').textContent =
+    `${data.traites ?? 0} traités / ${data.erreurs ?? 0} erreurs`;
 
   const pct = data.magasin_total ? Math.round(((data.magasin_done||0)/data.magasin_total)*100) : 0;
   document.getElementById('correctionBar').style.width = pct + '%';
 }
 
-{% if request.GET.correction_en_cours %}
-document.addEventListener('DOMContentLoaded', startCorrectionPolling);
-{% endif %}
+document.getElementById('badgeCorrectionEnCours')?.addEventListener('click', () => getCorrectionModal().show());
+
+// Au chargement de la page : si une correction tourne déjà en fond (lancée
+// depuis cet onglet ou un autre), afficher le badge et reprendre le polling
+// sans ouvrir le modal automatiquement.
+document.addEventListener('DOMContentLoaded', () => {
+  fetch(URL_CORRIGER_STATUT, {cache: 'no-store'})
+    .then(r => r.json())
+    .then(data => {
+      if (data.running) {
+        document.getElementById('badgeCorrectionEnCours').classList.remove('d-none');
+        document.getElementById('badgeCorrectionResume').textContent =
+          `${data.traites ?? 0} traités / ${data.erreurs ?? 0} erreurs`;
+        document.getElementById('btnCorriger').disabled = true;
+        startCorrectionPolling();
+      }
+    })
+    .catch(() => {});
+});
 
 // ─── Historique des corrections (modal) ─────────────────────────────────────
 document.getElementById('btnHistoriqueCorrections')?.addEventListener('click', () => {
@@ -1611,15 +1681,34 @@ document.querySelectorAll('#correctionHistTabs .nav-link').forEach(tab => {
 function chargerHistoriqueRuns() {
   const tbody = document.getElementById('tbodyCorrectionRuns');
   tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
-  fetch(URL_CORRIGER_HISTO)
-    .then(r => r.json())
-    .then(data => {
+  Promise.all([
+    fetch(URL_CORRIGER_HISTO).then(r => r.json()),
+    fetch(URL_CORRIGER_STATUT, {cache: 'no-store'}).then(r => r.json()),
+  ])
+    .then(([data, statut]) => {
       const rapports = data.rapports || [];
-      if (!rapports.length) {
+      let rows = '';
+
+      if (statut.running) {
+        rows += `<tr style="background:#fff7ed">
+          <td><span class="spinner-border spinner-border-sm text-warning me-1"></span>En cours</td>
+          <td>${statut.mode === 'APPLY'
+                ? '<span class="badge bg-warning text-dark">APPLY</span>'
+                : '<span class="badge bg-secondary">DRY-RUN</span>'}</td>
+          <td>${esc(statut.magasin_courant || '—')}</td>
+          <td class="text-success">${statut.traites ?? 0}</td>
+          <td class="text-muted">${statut.ignores ?? 0}</td>
+          <td class="text-danger">${statut.erreurs ?? 0}</td>
+          <td><button type="button" class="btn btn-sm btn-warning btn-voir-correction-en-cours">Voir le détail</button></td>
+        </tr>`;
+      }
+
+      if (!rapports.length && !statut.running) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Aucune correction lancée pour le moment.</td></tr>';
         return;
       }
-      tbody.innerHTML = rapports.map(r => {
+
+      rows += rapports.map(r => {
         const magasinsStr = (r.magasins || []).map(m => m.magasin).join(', ') || '—';
         const badgeMode = r.mode === 'APPLY'
           ? '<span class="badge bg-warning text-dark">APPLY</span>'
@@ -1634,6 +1723,12 @@ function chargerHistoriqueRuns() {
           <td><a href="${URL_CORRECTION_RAPPORT}${esc(r.filename)}/" target="_blank" class="btn btn-sm btn-outline-secondary">Détail</a></td>
         </tr>`;
       }).join('');
+
+      tbody.innerHTML = rows;
+      tbody.querySelector('.btn-voir-correction-en-cours')?.addEventListener('click', () => {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHistoriqueCorrections')).hide();
+        getCorrectionModal().show();
+      });
     })
     .catch(() => {
       tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Erreur de chargement</td></tr>';
