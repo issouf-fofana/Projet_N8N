@@ -18,5 +18,13 @@ urlpatterns = [
     path("article-commandable/rapport-db/", views.rapport_controle_db, name="rapport_controle_db"),
     path("article-commandable/cegid/<str:backup_prefix>/", views.cegid_products, name="cegid_products"),
 
+    path("article-commandable/corriger/lancer/", views.lancer_correction, name="lancer_correction"),
+    path("article-commandable/corriger/article/", views.corriger_article_unique, name="corriger_article_unique"),
+    path("article-commandable/corriger/statut/", views.statut_correction, name="statut_correction"),
+    path("article-commandable/corriger/progression/", views.progression_correction, name="progression_correction"),
+    path("article-commandable/corriger/historique/", views.liste_corrections, name="liste_corrections"),
+    path("article-commandable/corriger/rapport/<str:filename>/", views.rapport_correction, name="rapport_correction"),
+    path("article-commandable/corriger/articles-corriges/", views.historique_articles_corriges, name="historique_articles_corriges"),
+
     path("taches/", views.taches_planifiees, name="taches_planifiees"),
 ]

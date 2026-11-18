@@ -221,6 +221,76 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
     </div>
   </div>
 
+  <!-- Bandeau progression correction (caché par défaut) -->
+  <div id="bandeauCorrection" class="mb-4 d-none">
+    <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+    <div>
+      <div class="fw-semibold text-dark" id="correctionEtape">Correction en cours…</div>
+      <div class="text-muted" style="font-size:.8rem" id="correctionDetail"></div>
+    </div>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <div class="text-end" style="font-size:.78rem">
+        <span class="text-success">✓ <span id="correctionTraites">0</span></span>
+        &nbsp;<span class="text-muted">· ignorés <span id="correctionIgnores">0</span></span>
+        &nbsp;<span class="text-danger">⛔ <span id="correctionErreurs">0</span></span>
+      </div>
+      <div class="progress" style="width:180px;height:8px">
+        <div class="progress-bar bg-warning" id="correctionBar" style="width:0%" role="progressbar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire correction des KO -->
+  <div class="dashboard-card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span><i class="bi bi-tools me-2"></i>Corriger les articles KO</span>
+      <span class="text-muted" style="font-size:.8rem;text-transform:none;letter-spacing:0">
+        orderable/blocked via API RPOS, selon le motif KO
+      </span>
+    </div>
+    <div class="card-body p-3">
+      <form id="formCorriger" class="row g-3 align-items-end filtre-group">
+        {% csrf_token %}
+        <div class="col-md-6">
+          <label class="form-label" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;font-weight:600">
+            Magasin(s)
+            <span class="text-muted" style="font-size:.7rem;text-transform:none;font-weight:400">— ctrl/cmd+clic pour en sélectionner plusieurs</span>
+          </label>
+          <div class="d-flex align-items-start gap-2">
+            <div class="form-check mt-1" style="white-space:nowrap">
+              <input class="form-check-input" type="checkbox" id="chkTousMagasins" checked>
+              <label class="form-check-label" for="chkTousMagasins" style="font-size:.85rem">Tous</label>
+            </div>
+            <select name="magasin" id="selectMagasinsCorrection" class="form-select" multiple size="4" disabled>
+              {% for m in magasins %}
+              <option value="{{ m.code }}">{{ m.code }} — {{ m.nom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="col-auto">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="chkApply" name="apply" value="1">
+            <label class="form-check-label" for="chkApply" style="font-size:.85rem">
+              Appliquer réellement (sinon simulation / dry-run)
+            </label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-warning" id="btnCorriger">
+            <i class="bi bi-wrench-adjustable me-1"></i>Lancer la correction
+          </button>
+        </div>
+        <div class="col-auto">
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnHistoriqueCorrections"
+                  data-bs-toggle="modal" data-bs-target="#modalHistoriqueCorrections">
+            <i class="bi bi-clock-history me-1"></i>Historique des corrections
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- KPI cards -->
   <div class="row g-3 mb-4" id="kpiRow">
     <div class="col-6 col-xl-3">
@@ -382,10 +452,11 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
               <th class="sortable" data-sort="present_assortiment">Assortiment</th>
               <th class="sortable" data-sort="resultat">Résultat</th>
               <th class="sortable" data-sort="motif">Motif</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="tbodyDetail">
-            <tr><td colspan="11" class="text-center text-muted py-4">
+            <tr><td colspan="12" class="text-center text-muted py-4">
               {% if dernier %}Chargement…{% else %}Aucun rapport disponible. Lancez un contrôle.{% endif %}
             </td></tr>
           </tbody>
@@ -542,6 +613,81 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
   </div>
 </div>
 
+<!-- Modal Historique des corrections -->
+<div class="modal fade" id="modalHistoriqueCorrections" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
+  <div class="modal-dialog modal-xl" style="max-width:95vw">
+    <div class="modal-content" style="border-radius:0">
+      <div class="modal-header" style="background:#f9fafb;border-bottom:1px solid #e5e7eb">
+        <div>
+          <h5 class="modal-title mb-0"><i class="bi bi-clock-history me-2"></i>Historique des corrections</h5>
+          <div class="text-muted" style="font-size:.8rem">Runs de correction (dry-run et appliqués) + articles corrigés en base</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" style="max-height:80vh;overflow-y:auto">
+        <ul class="nav nav-tabs px-3 pt-2" id="correctionHistTabs" style="border-bottom:1px solid #e5e7eb">
+          <li class="nav-item">
+            <button class="nav-link active" data-target="panelRuns" type="button">Runs</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-target="panelArticlesCorriges" type="button">Articles corrigés</button>
+          </li>
+        </ul>
+
+        <div id="panelRuns" class="p-3">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Mode</th>
+                <th>Magasins</th>
+                <th>Traités</th>
+                <th>Ignorés</th>
+                <th>Erreurs</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyCorrectionRuns">
+              <tr><td colspan="7" class="text-center text-muted py-4">
+                <span class="spinner-border spinner-border-sm me-2"></span>Chargement…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="panelArticlesCorriges" class="p-3 d-none">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <select class="form-select form-select-sm" id="filterMagasinCorriges" style="max-width:260px">
+              <option value="">Tous les magasins</option>
+              {% for m in magasins %}
+              <option value="{{ m.code }}">{{ m.code }} — {{ m.nom }}</option>
+              {% endfor %}
+            </select>
+            <span class="text-muted small" id="nbArticlesCorriges"></span>
+          </div>
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Magasin</th>
+                <th>Référence</th>
+                <th>Libellé</th>
+                <th>Motif KO</th>
+                <th>Action appliquée</th>
+                <th>Date correction</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyArticlesCorriges">
+              <tr><td colspan="6" class="text-center text-muted py-4">
+                <span class="spinner-border spinner-border-sm me-2"></span>Chargement…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // Déplace le modal CEGID dans <body> pour éviter les problèmes de z-index / contexte d'empilement
 document.addEventListener('DOMContentLoaded', () => {
@@ -619,7 +765,7 @@ function buildDBParams() {
 
 function fetchDB() {
   document.getElementById('tbodyDetail').innerHTML =
-    '<tr><td colspan="11" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+    '<tr><td colspan="12" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
   const params = buildDBParams();
   params.set('_ts', Date.now()); // anti-cache navigateur
@@ -628,7 +774,7 @@ function fetchDB() {
     .then(({ok, status, data}) => {
       if (!ok) {
         document.getElementById('tbodyDetail').innerHTML =
-          `<tr><td colspan="11" class="text-center text-warning py-4">
+          `<tr><td colspan="12" class="text-center text-warning py-4">
            <i class="bi bi-exclamation-triangle me-2"></i>
            ${data.error || 'Aucune donnée disponible. Lancez un contrôle pour peupler la base.'}</td></tr>`;
         return;
@@ -684,7 +830,7 @@ function fetchDB() {
     })
     .catch(() => {
       document.getElementById('tbodyDetail').innerHTML =
-        '<tr><td colspan="11" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
+        '<tr><td colspan="12" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
     });
 }
 
@@ -922,6 +1068,51 @@ function motifBadge(motif, resultat) {
   </span>`;
 }
 
+const MOTIFS_CORRIGIBLES = new Set([
+  'Non commandable Asten', 'Statut NA', 'Statut ES', 'Déréférencé', 'NC/LD', 'Absent assortiment',
+]);
+const URL_CORRIGER_ARTICLE = "{% url 'entree_journal:corriger_article_unique' %}";
+
+function actionCell(r) {
+  if (r.resultat !== 'KO') return '';
+  if (r.corrige) return '<span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check2"></i> Corrigé</span>';
+  if (!MOTIFS_CORRIGIBLES.has(r.motif)) return '<span class="text-muted" style="font-size:.72rem">—</span>';
+  return `<button class="btn btn-sm btn-outline-warning btn-corriger-article" data-id="${esc(r.id)}" data-ref="${esc(r.reference)}">
+    <i class="bi bi-wrench-adjustable"></i> Corriger
+  </button>`;
+}
+
+document.getElementById('tbodyDetail')?.addEventListener('click', function(e) {
+  const btn = e.target.closest('.btn-corriger-article');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const ref = btn.dataset.ref;
+  if (!confirm(`Corriger réellement l'article ${ref} sur RPOS maintenant ?`)) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+  const fd = new FormData();
+  fd.set('article_id', id);
+  fd.set('apply', '1');
+  fetch(URL_CORRIGER_ARTICLE, {method: 'POST', body: fd})
+    .then(r => r.json().then(data => ({ok: r.ok, data})))
+    .then(({ok, data}) => {
+      if (!ok) {
+        alert('Erreur : ' + (data.error || 'inconnue'));
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-wrench-adjustable"></i> Corriger';
+        return;
+      }
+      btn.closest('td').innerHTML = '<span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check2"></i> Corrigé</span>';
+    })
+    .catch(() => {
+      alert('Erreur réseau');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-wrench-adjustable"></i> Corriger';
+    });
+});
+
 function renderPage() {
   const tbody = document.getElementById('tbodyDetail');
   if (!tbody) return;
@@ -929,7 +1120,7 @@ function renderPage() {
   const slice = _filtered;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
     document.getElementById('paginationInfo').textContent = '';
     document.getElementById('paginationLinks').innerHTML  = '';
     document.getElementById('lblNbFiltres').textContent   = '0 articles';
@@ -961,6 +1152,7 @@ function renderPage() {
               ?'<span class="badge px-3" style="background:#7c3aed">ℹ INFO</span>'
               :'<span class="badge bg-danger px-3">✗ KO</span>')}</td>
       <td>${motifBadge(r.motif, r.resultat)}</td>
+      <td class="text-center">${actionCell(r)}</td>
     </tr>`).join('');
 
   const start = (_page-1)*_psize;
@@ -1071,6 +1263,192 @@ function showBandeau(visible, data) {
     document.getElementById('progBar').style.width = pct + '%';
   }
 }
+
+// ─── Correction des KO ─────────────────────────────────────────────────────
+const URL_CORRIGER_LANCER  = "{% url 'entree_journal:lancer_correction' %}";
+const URL_CORRIGER_STATUT  = "{% url 'entree_journal:statut_correction' %}";
+const URL_CORRIGER_HISTO   = "{% url 'entree_journal:liste_corrections' %}";
+const URL_ARTICLES_CORRIGES= "{% url 'entree_journal:historique_articles_corriges' %}";
+const URL_CORRECTION_RAPPORT = "{% url 'entree_journal:rapport_correction' 'PLACEHOLDER' %}".replace('/PLACEHOLDER/', '/');
+
+let _correctionPolling = null;
+
+document.getElementById('chkTousMagasins')?.addEventListener('change', function() {
+  const sel = document.getElementById('selectMagasinsCorrection');
+  sel.disabled = this.checked;
+  if (this.checked) Array.from(sel.options).forEach(o => o.selected = false);
+});
+
+document.getElementById('formCorriger')?.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const fd = new FormData(this);
+  const tous = document.getElementById('chkTousMagasins').checked;
+  const sel = document.getElementById('selectMagasinsCorrection');
+  const codes = tous ? [] : Array.from(sel.selectedOptions).map(o => o.value);
+  if (!tous && !codes.length) {
+    alert('Sélectionnez au moins un magasin, ou cochez "Tous".');
+    return;
+  }
+  fd.delete('magasin');
+  fd.set('magasin', codes.join(','));
+  const apply = document.getElementById('chkApply').checked;
+  const libelle = apply ? 'Application réelle des corrections…' : 'Simulation (dry-run)…';
+  if (apply && !confirm('Confirmer l\'application RÉELLE des corrections sur RPOS (pas une simulation) ?')) {
+    return;
+  }
+  document.getElementById('btnCorriger').disabled = true;
+  showBandeauCorrection(true, {etape: libelle});
+  startCorrectionPolling();
+  fetch(URL_CORRIGER_LANCER, {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        document.getElementById('btnCorriger').disabled = false;
+        stopCorrectionPolling();
+        showBandeauCorrection(false);
+      }
+    })
+    .catch(() => {
+      alert('Erreur réseau');
+      document.getElementById('btnCorriger').disabled = false;
+      stopCorrectionPolling();
+      showBandeauCorrection(false);
+    });
+});
+
+function startCorrectionPolling() {
+  if (_correctionPolling) return;
+  _correctionPolling = setInterval(pollCorrectionStatut, 2000);
+  pollCorrectionStatut();
+}
+function stopCorrectionPolling() {
+  if (_correctionPolling) { clearInterval(_correctionPolling); _correctionPolling = null; }
+}
+function pollCorrectionStatut() {
+  fetch(URL_CORRIGER_STATUT)
+    .then(r => r.json())
+    .then(data => {
+      if (data.running) {
+        showBandeauCorrection(true, data);
+      } else if (data.finished) {
+        stopCorrectionPolling();
+        showBandeauCorrection(true, data);
+        setTimeout(() => showBandeauCorrection(false), 2500);
+        document.getElementById('btnCorriger').disabled = false;
+      } else {
+        showBandeauCorrection(false);
+        document.getElementById('btnCorriger').disabled = false;
+      }
+    })
+    .catch(() => {});
+}
+function showBandeauCorrection(visible, data) {
+  const el = document.getElementById('bandeauCorrection');
+  if (!visible) { el.classList.add('d-none'); return; }
+  el.classList.remove('d-none');
+  if (!data) return;
+
+  const magasinInfo = data.magasin_courant
+    ? `Magasin ${data.magasin_courant} (${(data.magasin_done||0)+1}/${data.magasin_total||'?'})`
+    : (data.magasin_total ? `${data.magasin_done||0}/${data.magasin_total} magasins traités` : '');
+  const articleInfo = data.article_total
+    ? ` — article ${data.article_done||0}/${data.article_total}` : '';
+
+  document.getElementById('correctionEtape').textContent =
+    data.finished ? `Terminé (${data.mode || ''})` : (data.etape || `Correction en cours (${data.mode || ''})…`);
+  document.getElementById('correctionDetail').textContent = magasinInfo + articleInfo;
+  document.getElementById('correctionTraites').textContent = data.traites ?? 0;
+  document.getElementById('correctionIgnores').textContent = data.ignores ?? 0;
+  document.getElementById('correctionErreurs').textContent = data.erreurs ?? 0;
+
+  const pct = data.magasin_total ? Math.round(((data.magasin_done||0)/data.magasin_total)*100) : 0;
+  document.getElementById('correctionBar').style.width = pct + '%';
+}
+
+{% if request.GET.correction_en_cours %}
+document.addEventListener('DOMContentLoaded', startCorrectionPolling);
+{% endif %}
+
+// ─── Historique des corrections (modal) ─────────────────────────────────────
+document.getElementById('btnHistoriqueCorrections')?.addEventListener('click', () => {
+  chargerHistoriqueRuns();
+  chargerArticlesCorriges();
+});
+
+document.querySelectorAll('#correctionHistTabs .nav-link').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('#correctionHistTabs .nav-link').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panelRuns').classList.toggle('d-none', tab.dataset.target !== 'panelRuns');
+    document.getElementById('panelArticlesCorriges').classList.toggle('d-none', tab.dataset.target !== 'panelArticlesCorriges');
+  });
+});
+
+function chargerHistoriqueRuns() {
+  const tbody = document.getElementById('tbodyCorrectionRuns');
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+  fetch(URL_CORRIGER_HISTO)
+    .then(r => r.json())
+    .then(data => {
+      const rapports = data.rapports || [];
+      if (!rapports.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Aucune correction lancée pour le moment.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rapports.map(r => {
+        const magasinsStr = (r.magasins || []).map(m => m.magasin).join(', ') || '—';
+        const badgeMode = r.mode === 'APPLY'
+          ? '<span class="badge bg-warning text-dark">APPLY</span>'
+          : '<span class="badge bg-secondary">DRY-RUN</span>';
+        return `<tr>
+          <td>${esc(r.date)}</td>
+          <td>${badgeMode}</td>
+          <td>${esc(magasinsStr)}</td>
+          <td class="text-success">${r.total_traites ?? 0}</td>
+          <td class="text-muted">${r.total_ignores ?? 0}</td>
+          <td class="text-danger">${r.total_erreurs ?? 0}</td>
+          <td><a href="${URL_CORRECTION_RAPPORT}${esc(r.filename)}/" target="_blank" class="btn btn-sm btn-outline-secondary">Détail</a></td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(() => {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Erreur de chargement</td></tr>';
+    });
+}
+
+function chargerArticlesCorriges(magasin) {
+  const tbody = document.getElementById('tbodyArticlesCorriges');
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+  const params = new URLSearchParams();
+  if (magasin) params.set('magasin', magasin);
+  params.set('page_size', 200);
+  fetch(URL_ARTICLES_CORRIGES + '?' + params)
+    .then(r => r.json())
+    .then(data => {
+      const items = data.articles || [];
+      document.getElementById('nbArticlesCorriges').textContent = `${data.total ?? items.length} article(s) corrigé(s)`;
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Aucun article corrigé pour ce filtre.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(a => `<tr>
+        <td>${esc(a.magasin)}</td>
+        <td>${esc(a.reference)}</td>
+        <td>${esc(a.libelle)}</td>
+        <td>${esc(a.motif)}</td>
+        <td><code>${esc(a.action_correction)}</code></td>
+        <td>${a.date_correction ? new Date(a.date_correction).toLocaleString('fr-FR') : '—'}</td>
+      </tr>`).join('');
+    })
+    .catch(() => {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erreur de chargement</td></tr>';
+    });
+}
+
+document.getElementById('filterMagasinCorriges')?.addEventListener('change', function() {
+  chargerArticlesCorriges(this.value);
+});
 
 // ─── Charger rapport depuis historique ───────────────────────────────────────
 document.querySelectorAll('.btn-charger-rapport').forEach(btn => {

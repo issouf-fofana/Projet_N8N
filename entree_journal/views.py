@@ -232,8 +232,21 @@ def _controle_running():
     return False
 
 
+def _auto_corriger_active():
+    """Lit AUTO_CORRIGER_KO depuis config.env (toggle Paramètres > Articles commandables)."""
+    from django.conf import settings
+    config_path = Path(settings.BASE_DIR) / 'config.env'
+    if not config_path.exists():
+        return False
+    for line in config_path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if line.startswith('AUTO_CORRIGER_KO='):
+            return line.split('=', 1)[1].strip() == '1'
+    return False
+
+
 def _run_controle(magasin_codes):
-    """Lance export puis contrôle pour chaque magasin."""
+    """Lance export puis contrôle pour chaque magasin, puis correction auto si activée."""
     import subprocess, sys
     codes = magasin_codes if isinstance(magasin_codes, list) else [magasin_codes]
     total = len(codes)
@@ -259,6 +272,16 @@ def _run_controle(magasin_codes):
             json.dumps({"running": False, "finished": True, "done": total, "total": total}),
             encoding="utf-8"
         )
+
+    if _auto_corriger_active():
+        from .models import ControleConformite
+        magasins_avec_ko = list(
+            ControleConformite.objects
+            .filter(magasin__in=codes, ko__gt=0)
+            .order_by('magasin').values_list('magasin', flat=True).distinct()
+        )
+        if magasins_avec_ko and not _correction_running():
+            _run_correction(magasins_avec_ko, apply_=True)
 
 
 def _list_controle_rapports():
@@ -432,6 +455,200 @@ def rapport_controle(request, filename):
         return JsonResponse(json.load(f))
 
 
+CORRECTION_DIR = Path(__file__).parent.parent / "Article_commandable" / "output"
+CORRECTION_PROGRESS_F = CORRECTION_DIR / "correction_progress.json"
+
+_correction_lock   = threading.Lock()
+_correction_thread = None
+
+
+def _correction_running():
+    with _correction_lock:
+        if _correction_thread is not None and _correction_thread.is_alive():
+            return True
+    if CORRECTION_PROGRESS_F.exists():
+        try:
+            d = json.loads(CORRECTION_PROGRESS_F.read_text(encoding="utf-8"))
+            return bool(d.get("running"))
+        except Exception:
+            pass
+    return False
+
+
+def _run_correction(magasins, apply_):
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
+    import importlib
+    import corriger_conformite as cc
+    importlib.reload(cc)
+    cc.run(magasins=magasins, apply=apply_, log=lambda *a: None)
+
+
+@login_required
+@require_POST
+def lancer_correction(request):
+    global _correction_thread
+
+    if _correction_running():
+        return JsonResponse({"error": "Une correction est déjà en cours."}, status=409)
+    if _controle_running():
+        return JsonResponse({"error": "Un contrôle de conformité est en cours — attendre la fin avant de corriger."}, status=409)
+
+    magasin_raw = request.POST.get("magasin", "").strip()
+    apply_ = request.POST.get("apply", "").strip() in ("1", "true", "True")
+    magasins = [c.strip() for c in magasin_raw.split(",") if c.strip()] or None
+
+    with _correction_lock:
+        t = threading.Thread(target=_run_correction, args=(magasins, apply_), daemon=True)
+        _correction_thread = t
+        t.start()
+
+    return JsonResponse({"status": "started", "magasins": magasins, "apply": apply_})
+
+
+@login_required
+@require_POST
+def corriger_article_unique(request):
+    """Corrige un seul article KO (bouton par ligne dans le tableau de détail)."""
+    article_id = request.POST.get("article_id", "").strip()
+    apply_ = request.POST.get("apply", "1").strip() in ("1", "true", "True")
+    if not article_id:
+        return JsonResponse({"error": "article_id manquant"}, status=400)
+
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
+    import importlib
+    import corriger_conformite as cc
+    importlib.reload(cc)
+
+    try:
+        result = cc.corriger_un_article(article_id, apply=apply_)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+    if not result.get("ok"):
+        return JsonResponse({"error": result.get("error", "Erreur inconnue")}, status=400)
+    return JsonResponse(result)
+
+
+@login_required
+def statut_correction(request):
+    """Polling JSON — état en cours de la correction (progression par magasin/article)."""
+    state = {"running": _correction_running()}
+    if CORRECTION_PROGRESS_F.exists():
+        try:
+            state.update(json.loads(CORRECTION_PROGRESS_F.read_text(encoding="utf-8")))
+        except Exception:
+            pass
+    return JsonResponse(state)
+
+
+@login_required
+def progression_correction(request):
+    """SSE : flux de progression de la correction en cours."""
+    def event_stream():
+        last_data = None
+        idle = 0
+        while True:
+            time.sleep(1)
+            try:
+                if CORRECTION_PROGRESS_F.exists():
+                    raw = CORRECTION_PROGRESS_F.read_text(encoding="utf-8")
+                    if raw != last_data:
+                        last_data = raw
+                        idle = 0
+                        yield f"data: {raw}\n\n"
+                    else:
+                        idle += 1
+                    try:
+                        state = json.loads(raw)
+                        if not state.get("running") and state.get("finished"):
+                            yield f"data: {raw}\n\n"
+                            return
+                    except Exception:
+                        pass
+                else:
+                    yield "data: {\"running\": false, \"waiting\": true}\n\n"
+                    idle += 1
+                if idle > 150:
+                    return
+            except Exception:
+                yield "data: {\"error\": true}\n\n"
+                return
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
+
+
+@login_required
+def liste_corrections(request):
+    """Historique des runs de correction (rapports JSON correction_*.json)."""
+    rapports = sorted(CORRECTION_DIR.glob("correction_*.json"), reverse=True)
+    result = []
+    for p in rapports[:30]:
+        try:
+            with open(p, encoding="utf-8") as f:
+                data = json.load(f)
+            result.append({
+                "filename": p.name,
+                "date": data.get("date", ""),
+                "mode": data.get("mode", ""),
+                "total_traites": data.get("total_traites", 0),
+                "total_ignores": data.get("total_ignores", 0),
+                "total_erreurs": data.get("total_erreurs", 0),
+                "magasins": data.get("magasins", []),
+            })
+        except Exception:
+            result.append({"filename": p.name, "error": True})
+    return JsonResponse({"rapports": result})
+
+
+@login_required
+def rapport_correction(request, filename):
+    """Détail d'un run de correction (liste article par article)."""
+    if ".." in filename or "/" in filename:
+        return JsonResponse({"error": "Nom invalide"}, status=400)
+    path = CORRECTION_DIR / filename
+    if not path.exists():
+        return JsonResponse({"error": "Rapport introuvable"}, status=404)
+    with open(path, encoding="utf-8") as f:
+        return JsonResponse(json.load(f))
+
+
+@login_required
+def historique_articles_corriges(request):
+    """Articles marqués corrigés en base (toutes magasins confondus), paginé."""
+    from .models import ArticleConformite
+
+    magasin = request.GET.get("magasin", "")
+    page = max(1, int(request.GET.get("page", 1)))
+    page_size = min(200, max(10, int(request.GET.get("page_size", 50))))
+
+    qs = ArticleConformite.objects.filter(corrige=True).select_related("controle")
+    if magasin:
+        qs = qs.filter(controle__magasin=magasin)
+    qs = qs.order_by("-date_correction")
+
+    total = qs.count()
+    start = (page - 1) * page_size
+    items = qs[start:start + page_size]
+
+    return JsonResponse({
+        "total": total, "page": page, "page_size": page_size,
+        "articles": [{
+            "magasin": a.controle.magasin,
+            "reference": a.reference,
+            "libelle": a.libelle,
+            "motif": a.motif,
+            "action_correction": a.action_correction,
+            "date_correction": a.date_correction.isoformat() if a.date_correction else None,
+            "correction_erreur": a.correction_erreur,
+        } for a in items],
+    })
+
+
 @login_required
 def rapport_controle_db(request):
     """Lecture depuis la base Django avec pagination et filtres côté serveur."""
@@ -547,15 +764,16 @@ def rapport_controle_db(request):
     total_filtre = total_f
     offset = (page - 1) * page_size
     articles_page = articles_qs.values(
-        'reference', 'libelle', 'status_product', 'code_mak',
+        'id', 'reference', 'libelle', 'status_product', 'code_mak',
         'num_assortiment', 'deref', 'present_asten',
         'present_assortiment', 'resultat', 'motif', 'absent_cegid',
-        'controle__magasin'
+        'corrige', 'controle__magasin'
     )[offset:offset + page_size]
 
     # Convertir pour compatibilité avec le frontend existant
     def fmt(a):
         return {
+            'id':                  a['id'],
             'magasin':             a['controle__magasin'],
             'reference':           a['reference'],
             'libelle':             a['libelle'],
@@ -570,6 +788,7 @@ def rapport_controle_db(request):
             'resultat':            a['resultat'],
             'motif':               a['motif'],
             'absent_cegid':        'Oui' if a['absent_cegid'] else 'Non',
+            'corrige':             a['corrige'],
         }
 
     # Numéros d'assortiments et magasins disponibles

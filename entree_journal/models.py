@@ -277,6 +277,11 @@ class ArticleConformite(models.Model):
     motif            = models.CharField(max_length=100, blank=True, db_index=True)
     absent_cegid     = models.BooleanField(default=False)
 
+    corrige          = models.BooleanField(default=False, db_index=True)
+    date_correction  = models.DateTimeField(null=True, blank=True)
+    action_correction = models.CharField(max_length=50, blank=True)  # ex: "orderable=True"
+    correction_erreur = models.CharField(max_length=255, blank=True)
+
     class Meta:
         indexes = [
             models.Index(fields=['controle', 'resultat']),

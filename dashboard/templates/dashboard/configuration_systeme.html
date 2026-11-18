@@ -236,6 +236,49 @@ function togglePwd(id) {
     </form>
 </div>
 
+<!-- ── Articles commandables — correction automatique ──────────────────── -->
+<div class="config-card mt-4" id="article-commandable-auto">
+    <div class="config-card-header" style="background:linear-gradient(135deg,#7c2d12,#b45309);">
+        <i class="bi bi-wrench-adjustable"></i>
+        <div>
+            <h5>Articles commandables — Correction automatique</h5>
+            <small>Corrige automatiquement les articles KO (orderable/blocked sur RPOS) juste après chaque contrôle de conformité</small>
+        </div>
+    </div>
+    <form method="post" class="p-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="article_commandable">
+        <div class="d-flex align-items-center gap-3 p-3 rounded-3 border"
+             style="background:{% if auto_corriger_ko %}#f0fdf4{% else %}#fafafa{% endif %};max-width:520px;">
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox"
+                       name="AUTO_CORRIGER_KO" value="1"
+                       id="auto_corriger_ko"
+                       {% if auto_corriger_ko %}checked{% endif %}
+                       style="width:2.2em;height:1.2em;cursor:pointer;">
+            </div>
+            <label for="auto_corriger_ko" style="cursor:pointer;margin:0;flex:1;">
+                <div style="font-weight:700;font-size:.85rem;color:#0f172a;">Correction automatique après contrôle</div>
+                <div style="font-size:.78rem;color:#64748b;">
+                    Si activé, chaque contrôle de conformité (manuel ou planifié) qui détecte des KO
+                    lance automatiquement leur correction réelle (--apply) juste après.
+                </div>
+            </label>
+            {% if auto_corriger_ko %}
+                <span class="badge" style="background:#22c55e;font-size:.7rem;">Activé</span>
+            {% else %}
+                <span class="badge" style="background:#94a3b8;font-size:.7rem;">Désactivé</span>
+            {% endif %}
+        </div>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary"
+                    style="border-radius:0;font-size:.85rem;font-weight:600;background:#7c2d12;border:none;padding:9px 24px;">
+                <i class="bi bi-check2-circle"></i> Enregistrer
+            </button>
+        </div>
+    </form>
+</div>
+
 <!-- ── Erreurs ignorées ──────────────────────────────────────────────── -->
 <div class="config-card mt-4" id="erreurs-ignorees">
     <div class="config-card-header" style="background:linear-gradient(135deg,#92400e,#b45309);">

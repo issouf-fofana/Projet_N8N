@@ -3431,6 +3431,18 @@ def configuration_systeme(request):
                 messages.error(request, f"Erreur lors de la sauvegarde : {e}")
             return redirect('dashboard:configuration_systeme')
 
+        if action == 'article_commandable':
+            if not peut_configurer_integration:
+                messages.error(request, "Permission insuffisante.")
+                return redirect('dashboard:configuration_systeme')
+            auto_corriger = request.POST.get('AUTO_CORRIGER_KO') == '1'
+            update_config('AUTO_CORRIGER_KO', '1' if auto_corriger else '0')
+            if auto_corriger:
+                messages.success(request, "Correction automatique des KO activée — s'exécutera après chaque contrôle de conformité.")
+            else:
+                messages.success(request, "Correction automatique des KO désactivée.")
+            return redirect('dashboard:configuration_systeme')
+
         vals = read_config()
         changed = []
         for key, label, _ in CHAMPS:
@@ -3471,6 +3483,7 @@ def configuration_systeme(request):
     erreurs_ignorees_ctx = list(ErreurIgnoreeConfig.objects.order_by('ignorer', 'pattern'))
 
     ai_provider = vals.get('AI_PROVIDER') or get_default('AI_PROVIDER') or 'gemini'
+    auto_corriger_ko = vals.get('AUTO_CORRIGER_KO') == '1'
 
     return render(request, 'dashboard/configuration_systeme.html', {
         'champs': champs_ctx,
@@ -3478,6 +3491,7 @@ def configuration_systeme(request):
         'ai_provider': ai_provider,
         'types_fichiers': types_fichiers_ctx,
         'erreurs_ignorees': erreurs_ignorees_ctx,
+        'auto_corriger_ko': auto_corriger_ko,
         'peut_configurer_systeme':    peut_configurer_systeme,
         'peut_configurer_integration': peut_configurer_integration,
     })
