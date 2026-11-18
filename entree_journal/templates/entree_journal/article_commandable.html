@@ -1177,7 +1177,7 @@ document.getElementById('tbodyDetail')?.addEventListener('click', async function
   const fd = new FormData();
   fd.set('article_id', id);
   fd.set('apply', '1');
-  fetch(URL_CORRIGER_ARTICLE, {method: 'POST', body: fd})
+  fetch(URL_CORRIGER_ARTICLE, {method: 'POST', body: fd, headers: {'X-CSRFToken': getCsrfToken()}})
     .then(r => r.json().then(data => ({ok: r.ok, data})))
     .then(async ({ok, data}) => {
       if (!ok) {
@@ -1257,7 +1257,7 @@ document.getElementById('btnCorrigerSelection')?.addEventListener('click', async
 
   const fd = new FormData();
   fd.set('article_ids', ids.join(','));
-  fetch(URL_CORRIGER_PLUSIEURS, {method: 'POST', body: fd})
+  fetch(URL_CORRIGER_PLUSIEURS, {method: 'POST', body: fd, headers: {'X-CSRFToken': getCsrfToken()}})
     .then(r => r.json().then(data => ({ok: r.ok, data})))
     .then(async ({ok, data}) => {
       btn.disabled = false;
@@ -1563,7 +1563,11 @@ document.getElementById('btnAnnulerCorrection')?.addEventListener('click', async
 });
 
 function getCsrfToken() {
-  const el = document.querySelector('#formCorriger input[name=csrfmiddlewaretoken]');
+  // Lit le cookie csrftoken directement (fiable, indépendant du formulaire /
+  // de son âge) plutôt qu'un input caché qui peut être désynchronisé.
+  const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+  if (match) return decodeURIComponent(match[1]);
+  const el = document.querySelector('input[name=csrfmiddlewaretoken]');
   return el ? el.value : '';
 }
 
