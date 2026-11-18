@@ -1159,12 +1159,17 @@ function actionCell(r) {
   </button>`;
 }
 
-document.getElementById('tbodyDetail')?.addEventListener('click', function(e) {
+document.getElementById('tbodyDetail')?.addEventListener('click', async function(e) {
   const btn = e.target.closest('.btn-corriger-article');
   if (!btn) return;
   const id = btn.dataset.id;
   const ref = btn.dataset.ref;
-  if (!confirm(`Corriger réellement l'article ${ref} sur RPOS maintenant ?`)) return;
+  const ok1 = await AppModal.confirm({
+    title: 'Corriger cet article ?',
+    body: `Appliquer réellement la correction sur RPOS pour l'article <strong>${esc(ref)}</strong> ?`,
+    type: 'warning', okLabel: 'Corriger', okIcon: 'bi-wrench-adjustable',
+  });
+  if (!ok1) return;
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -1174,17 +1179,17 @@ document.getElementById('tbodyDetail')?.addEventListener('click', function(e) {
   fd.set('apply', '1');
   fetch(URL_CORRIGER_ARTICLE, {method: 'POST', body: fd})
     .then(r => r.json().then(data => ({ok: r.ok, data})))
-    .then(({ok, data}) => {
+    .then(async ({ok, data}) => {
       if (!ok) {
-        alert('Erreur : ' + (data.error || 'inconnue'));
+        await AppModal.alert({title: 'Erreur', body: data.error || 'Erreur inconnue', type: 'danger'});
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-wrench-adjustable"></i> Corriger';
         return;
       }
       btn.closest('td').innerHTML = '<span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check2"></i> Corrigé</span>';
     })
-    .catch(() => {
-      alert('Erreur réseau');
+    .catch(async () => {
+      await AppModal.alert({title: 'Erreur réseau', body: 'La requête a échoué.', type: 'danger'});
       btn.disabled = false;
       btn.innerHTML = '<i class="bi bi-wrench-adjustable"></i> Corriger';
     });
@@ -1235,10 +1240,15 @@ document.getElementById('btnViderSelection')?.addEventListener('click', function
   majBarreSelection();
 });
 
-document.getElementById('btnCorrigerSelection')?.addEventListener('click', function() {
+document.getElementById('btnCorrigerSelection')?.addEventListener('click', async function() {
   const ids = Array.from(_selectionArticles);
   if (!ids.length) return;
-  if (!confirm(`Corriger réellement ces ${ids.length} article(s) sur RPOS maintenant ?`)) return;
+  const ok1 = await AppModal.confirm({
+    title: 'Corriger la sélection ?',
+    body: `Appliquer réellement la correction sur RPOS pour <strong>${ids.length} article(s)</strong> sélectionné(s) ?`,
+    type: 'warning', okLabel: 'Corriger', okIcon: 'bi-wrench-adjustable',
+  });
+  if (!ok1) return;
 
   const btn = this;
   btn.disabled = true;
@@ -1249,24 +1259,28 @@ document.getElementById('btnCorrigerSelection')?.addEventListener('click', funct
   fd.set('article_ids', ids.join(','));
   fetch(URL_CORRIGER_PLUSIEURS, {method: 'POST', body: fd})
     .then(r => r.json().then(data => ({ok: r.ok, data})))
-    .then(({ok, data}) => {
+    .then(async ({ok, data}) => {
       btn.disabled = false;
       btn.innerHTML = original;
       if (!ok) {
-        alert('Erreur : ' + (data.error || 'inconnue'));
+        await AppModal.alert({title: 'Erreur', body: data.error || 'Erreur inconnue', type: 'danger'});
         return;
       }
       const resumes = data.results || [];
       const nOk = resumes.filter(r => r.ok).length;
       const nErr = resumes.length - nOk;
-      alert(`Correction terminée : ${nOk} réussie(s), ${nErr} en erreur.`);
+      await AppModal.alert({
+        title: 'Correction terminée',
+        body: `<span class="text-success">${nOk} réussie(s)</span>${nErr ? ` — <span class="text-danger">${nErr} en erreur</span>` : ''}.`,
+        type: nErr ? 'warning' : 'success',
+      });
       _selectionArticles.clear();
       fetchDB();
     })
-    .catch(() => {
+    .catch(async () => {
       btn.disabled = false;
       btn.innerHTML = original;
-      alert('Erreur réseau');
+      await AppModal.alert({title: 'Erreur réseau', body: 'La requête a échoué.', type: 'danger'});
     });
 });
 
@@ -1373,15 +1387,15 @@ document.getElementById('formLancer')?.addEventListener('submit', function(e) {
   startPolling();
   fetch(URL_LANCER, {method:'POST', body:fd})
     .then(r => r.json())
-    .then(data => {
+    .then(async data => {
       if (data.error) {
-        alert(data.error);
+        await AppModal.alert({title: 'Erreur', body: data.error, type: 'danger'});
         document.getElementById('btnLancer').disabled = false;
         stopPolling();
       }
     })
-    .catch(() => {
-      alert('Erreur réseau');
+    .catch(async () => {
+      await AppModal.alert({title: 'Erreur réseau', body: 'La requête a échoué.', type: 'danger'});
       document.getElementById('btnLancer').disabled = false;
       stopPolling();
     });
@@ -1475,20 +1489,26 @@ document.getElementById('searchMagasinsDropdown')?.addEventListener('input', fun
   });
 });
 
-document.getElementById('formCorriger')?.addEventListener('submit', function(e) {
+document.getElementById('formCorriger')?.addEventListener('submit', async function(e) {
   e.preventDefault();
   const fd = new FormData(this);
   const tous = document.getElementById('chkTousMagasins').checked;
   const codes = tous ? [] : Array.from(document.querySelectorAll('.chk-magasin:checked')).map(c => c.value);
   if (!tous && !codes.length) {
-    alert('Sélectionnez au moins un magasin, ou cochez "Tous".');
+    await AppModal.alert({title: 'Sélection requise', body: 'Sélectionnez au moins un magasin, ou cochez « Tous ».', type: 'warning'});
     return;
   }
   fd.set('magasin', codes.join(','));
   const apply = document.getElementById('chkApply').checked;
   const libelle = apply ? 'Application réelle des corrections…' : 'Simulation (dry-run)…';
-  if (apply && !confirm('Confirmer l\'application RÉELLE des corrections sur RPOS (pas une simulation) ?')) {
-    return;
+  if (apply) {
+    const magasinsLabel = tous ? 'tous les magasins ayant des KO' : `${codes.length} magasin(s) sélectionné(s)`;
+    const ok1 = await AppModal.confirm({
+      title: 'Application réelle des corrections',
+      body: `Cette action va modifier réellement les articles sur <strong>RPOS</strong> pour <strong>${magasinsLabel}</strong> (pas une simulation). Confirmer ?`,
+      type: 'danger', okLabel: 'Appliquer', okIcon: 'bi-wrench-adjustable',
+    });
+    if (!ok1) return;
   }
   document.getElementById('btnCorriger').disabled = true;
   clearCorrectionLog();
@@ -1498,16 +1518,16 @@ document.getElementById('formCorriger')?.addEventListener('submit', function(e) 
   startCorrectionPolling();
   fetch(URL_CORRIGER_LANCER, {method:'POST', body:fd})
     .then(r => r.json())
-    .then(data => {
+    .then(async data => {
       if (data.error) {
-        alert(data.error);
+        await AppModal.alert({title: 'Erreur', body: data.error, type: 'danger'});
         document.getElementById('btnCorriger').disabled = false;
         stopCorrectionPolling();
         showModalCorrection(false);
       }
     })
-    .catch(() => {
-      alert('Erreur réseau');
+    .catch(async () => {
+      await AppModal.alert({title: 'Erreur réseau', body: 'La requête a échoué.', type: 'danger'});
       document.getElementById('btnCorriger').disabled = false;
       stopCorrectionPolling();
       showModalCorrection(false);
@@ -1515,8 +1535,13 @@ document.getElementById('formCorriger')?.addEventListener('submit', function(e) 
 });
 
 // ─── Annulation ──────────────────────────────────────────────────────────────
-document.getElementById('btnAnnulerCorrection')?.addEventListener('click', function() {
-  if (!confirm('Arrêter la correction en cours ?')) return;
+document.getElementById('btnAnnulerCorrection')?.addEventListener('click', async function() {
+  const ok1 = await AppModal.confirm({
+    title: 'Arrêter la correction ?',
+    body: 'La correction en cours sera interrompue dès que possible (quelques secondes).',
+    type: 'danger', okLabel: 'Arrêter', okIcon: 'bi-stop-circle',
+  });
+  if (!ok1) return;
   this.disabled = true;
   fetch(URL_CORRIGER_ANNULER, {method: 'POST', headers: {'X-CSRFToken': getCsrfToken()}})
     .then(r => r.json().then(data => ({ok: r.ok, data})))
