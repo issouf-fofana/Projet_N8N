@@ -49,7 +49,7 @@ load_dotenv(ENTREE_JOURNAL_DIR / ".env")
 USER_POS     = os.getenv("USER_POS", "")
 PASSWORD_POS = os.getenv("PASSWORD_POS", "")
 VERIFY_TLS   = os.getenv("VERIFY_TLS", "false").lower() in ("1", "true", "yes")
-TIMEOUT      = float(os.getenv("REQUEST_TIMEOUT", "30"))
+TIMEOUT      = float(os.getenv("CORRECTION_REQUEST_TIMEOUT", "8"))
 
 # Motifs → action
 MOTIFS_A_RENDRE_COMMANDABLE = {"Non commandable Asten"}

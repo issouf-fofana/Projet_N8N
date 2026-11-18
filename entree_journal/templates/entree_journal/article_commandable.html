@@ -1526,7 +1526,7 @@ document.getElementById('btnAnnulerCorrection')?.addEventListener('click', funct
         this.disabled = false;
         return;
       }
-      addCorrectionLog('⏹ Demande d\'arrêt envoyée — arrêt au prochain article…');
+      addCorrectionLog('⏹ Demande d\'arrêt envoyée — arrêt sous 10s max (le temps que la requête réseau en cours se termine)…');
     })
     .catch(() => {
       addCorrectionLog('⛔ Erreur réseau lors de la demande d\'arrêt');
