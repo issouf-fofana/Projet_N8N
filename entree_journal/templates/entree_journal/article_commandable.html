@@ -1513,18 +1513,21 @@ document.getElementById('formCorriger')?.addEventListener('submit', async functi
   document.getElementById('btnCorriger').disabled = true;
   clearCorrectionLog();
   addCorrectionLog(libelle);
+  addCorrectionLog(`Magasin(s) demandé(s) : ${tous ? 'TOUS' : codes.join(', ')}`);
   getCorrectionModal().show();
   showModalCorrection(true, {etape: libelle, running: true});
-  startCorrectionPolling();
   fetch(URL_CORRIGER_LANCER, {method:'POST', body:fd})
     .then(r => r.json())
     .then(async data => {
       if (data.error) {
+        addCorrectionLog(`⛔ ${data.error}`);
         await AppModal.alert({title: 'Erreur', body: data.error, type: 'danger'});
         document.getElementById('btnCorriger').disabled = false;
-        stopCorrectionPolling();
         showModalCorrection(false);
+        return;
       }
+      addCorrectionLog(`Confirmé par le serveur — magasins pris en compte : ${data.magasins ? data.magasins.join(', ') : 'TOUS'}`);
+      startCorrectionPolling();
     })
     .catch(async () => {
       await AppModal.alert({title: 'Erreur réseau', body: 'La requête a échoué.', type: 'danger'});
