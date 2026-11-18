@@ -45,9 +45,10 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 PROGRESS_FILE = OUTPUT_DIR / "correction_progress.json"
 
 load_dotenv(ENTREE_JOURNAL_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)  # RAMIAN : seul compte autorisé à écrire (PATCH) sur api/product/
 
-USER_POS     = os.getenv("USER_POS", "")
-PASSWORD_POS = os.getenv("PASSWORD_POS", "")
+USER_POS     = os.getenv("DEFAULT_USERNAME", "") or os.getenv("USER_POS", "")
+PASSWORD_POS = os.getenv("DEFAULT_PASSWORD", "") or os.getenv("PASSWORD_POS", "")
 VERIFY_TLS   = os.getenv("VERIFY_TLS", "false").lower() in ("1", "true", "yes")
 TIMEOUT      = float(os.getenv("CORRECTION_REQUEST_TIMEOUT", "8"))
 
