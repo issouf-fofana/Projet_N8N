@@ -547,6 +547,37 @@ def annuler_correction(request):
 
 
 @login_required
+@require_POST
+def corriger_articles_multiples(request):
+    """Corrige plusieurs articles KO sélectionnés dans le tableau (synchrone)."""
+    ids_raw = request.POST.get("article_ids", "").strip()
+    if not ids_raw:
+        return JsonResponse({"error": "article_ids manquant"}, status=400)
+    ids = [i.strip() for i in ids_raw.split(",") if i.strip()]
+    if not ids:
+        return JsonResponse({"error": "Aucun article fourni"}, status=400)
+    if len(ids) > 200:
+        return JsonResponse({"error": "Trop d'articles sélectionnés (max 200 à la fois)"}, status=400)
+
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
+    import importlib
+    import corriger_conformite as cc
+    importlib.reload(cc)
+
+    results = []
+    for article_id in ids:
+        try:
+            r = cc.corriger_un_article(article_id, apply=True)
+        except Exception as e:
+            r = {"ok": False, "error": str(e)}
+        r["article_id"] = article_id
+        results.append(r)
+
+    return JsonResponse({"results": results})
+
+
+@login_required
 def statut_correction(request):
     """Polling JSON — état en cours de la correction (progression par magasin/article)."""
     state = {"running": _correction_running()}

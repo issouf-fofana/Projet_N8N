@@ -7,6 +7,14 @@
 body { background-color: #e5e7eb !important; }
 .main-content { background: #e5e7eb !important; padding: 20px !important; }
 
+#barreSelectionMulti {
+    position: sticky; bottom: 16px; z-index: 5;
+    margin: 12px 16px 0; padding: 10px 16px;
+    background: #1f2937; color: #fff; border-radius: 8px;
+    display: flex; align-items: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+
 .page-header {
     background: rgba(255,255,255,0.9);
     backdrop-filter: blur(10px);
@@ -461,6 +469,7 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
         <table class="table table-hover mb-0" id="tableDetail">
           <thead>
             <tr>
+              <th style="width:36px"><input type="checkbox" id="chkToutSelectionner" title="Sélectionner tout"></th>
               <th class="sortable" data-sort="magasin">Magasin</th>
               <th class="sortable" data-sort="num_assortiment">N° Assort.</th>
               <th class="sortable" data-sort="reference">Référence</th>
@@ -475,11 +484,22 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
             </tr>
           </thead>
           <tbody id="tbodyDetail">
-            <tr><td colspan="12" class="text-center text-muted py-4">
+            <tr><td colspan="13" class="text-center text-muted py-4">
               {% if dernier %}Chargement…{% else %}Aucun rapport disponible. Lancez un contrôle.{% endif %}
             </td></tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Barre d'action flottante — sélection multiple -->
+      <div id="barreSelectionMulti" class="d-none">
+        <span><strong id="nbArticlesSelectionnes">0</strong> article(s) sélectionné(s)</span>
+        <button type="button" class="btn btn-sm btn-warning ms-3" id="btnCorrigerSelection">
+          <i class="bi bi-wrench-adjustable me-1"></i>Corriger la sélection
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="btnViderSelection">
+          Annuler la sélection
+        </button>
       </div>
 
       <div class="d-flex justify-content-between align-items-center p-3 border-top">
@@ -784,7 +804,7 @@ function buildDBParams() {
 
 function fetchDB() {
   document.getElementById('tbodyDetail').innerHTML =
-    '<tr><td colspan="12" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+    '<tr><td colspan="13" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
   const params = buildDBParams();
   params.set('_ts', Date.now()); // anti-cache navigateur
@@ -793,7 +813,7 @@ function fetchDB() {
     .then(({ok, status, data}) => {
       if (!ok) {
         document.getElementById('tbodyDetail').innerHTML =
-          `<tr><td colspan="12" class="text-center text-warning py-4">
+          `<tr><td colspan="13" class="text-center text-warning py-4">
            <i class="bi bi-exclamation-triangle me-2"></i>
            ${data.error || 'Aucune donnée disponible. Lancez un contrôle pour peupler la base.'}</td></tr>`;
         return;
@@ -849,7 +869,7 @@ function fetchDB() {
     })
     .catch(() => {
       document.getElementById('tbodyDetail').innerHTML =
-        '<tr><td colspan="12" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
+        '<tr><td colspan="13" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
     });
 }
 
@@ -1091,6 +1111,11 @@ const MOTIFS_CORRIGIBLES = new Set([
   'Non commandable Asten', 'Statut NA', 'Statut ES', 'Déréférencé', 'NC/LD', 'Absent assortiment',
 ]);
 const URL_CORRIGER_ARTICLE = "{% url 'entree_journal:corriger_article_unique' %}";
+const URL_CORRIGER_PLUSIEURS = "{% url 'entree_journal:corriger_articles_multiples' %}";
+
+function estCorrigible(r) {
+  return r.resultat === 'KO' && !r.corrige && MOTIFS_CORRIGIBLES.has(r.motif);
+}
 
 function actionCell(r) {
   if (r.resultat !== 'KO') return '';
@@ -1132,6 +1157,86 @@ document.getElementById('tbodyDetail')?.addEventListener('click', function(e) {
     });
 });
 
+// ─── Sélection multiple d'articles ──────────────────────────────────────────
+let _selectionArticles = new Set();
+
+function majBarreSelection() {
+  const barre = document.getElementById('barreSelectionMulti');
+  const n = _selectionArticles.size;
+  document.getElementById('nbArticlesSelectionnes').textContent = n;
+  barre.classList.toggle('d-none', n === 0);
+
+  const chkTout = document.getElementById('chkToutSelectionner');
+  const visibles = Array.from(document.querySelectorAll('.chk-article-ligne'));
+  if (visibles.length) {
+    const toutesCochees = visibles.every(c => _selectionArticles.has(c.value));
+    chkTout.checked = toutesCochees;
+    chkTout.indeterminate = !toutesCochees && visibles.some(c => _selectionArticles.has(c.value));
+  } else {
+    chkTout.checked = false;
+    chkTout.indeterminate = false;
+  }
+}
+
+document.getElementById('tbodyDetail')?.addEventListener('change', function(e) {
+  const chk = e.target.closest('.chk-article-ligne');
+  if (!chk) return;
+  if (chk.checked) _selectionArticles.add(chk.value);
+  else _selectionArticles.delete(chk.value);
+  majBarreSelection();
+});
+
+document.getElementById('chkToutSelectionner')?.addEventListener('change', function() {
+  const visibles = Array.from(document.querySelectorAll('.chk-article-ligne'));
+  visibles.forEach(c => {
+    c.checked = this.checked;
+    if (this.checked) _selectionArticles.add(c.value);
+    else _selectionArticles.delete(c.value);
+  });
+  majBarreSelection();
+});
+
+document.getElementById('btnViderSelection')?.addEventListener('click', function() {
+  _selectionArticles.clear();
+  document.querySelectorAll('.chk-article-ligne').forEach(c => c.checked = false);
+  majBarreSelection();
+});
+
+document.getElementById('btnCorrigerSelection')?.addEventListener('click', function() {
+  const ids = Array.from(_selectionArticles);
+  if (!ids.length) return;
+  if (!confirm(`Corriger réellement ces ${ids.length} article(s) sur RPOS maintenant ?`)) return;
+
+  const btn = this;
+  btn.disabled = true;
+  const original = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Correction en cours…';
+
+  const fd = new FormData();
+  fd.set('article_ids', ids.join(','));
+  fetch(URL_CORRIGER_PLUSIEURS, {method: 'POST', body: fd})
+    .then(r => r.json().then(data => ({ok: r.ok, data})))
+    .then(({ok, data}) => {
+      btn.disabled = false;
+      btn.innerHTML = original;
+      if (!ok) {
+        alert('Erreur : ' + (data.error || 'inconnue'));
+        return;
+      }
+      const resumes = data.results || [];
+      const nOk = resumes.filter(r => r.ok).length;
+      const nErr = resumes.length - nOk;
+      alert(`Correction terminée : ${nOk} réussie(s), ${nErr} en erreur.`);
+      _selectionArticles.clear();
+      fetchDB();
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = original;
+      alert('Erreur réseau');
+    });
+});
+
 function renderPage() {
   const tbody = document.getElementById('tbodyDetail');
   if (!tbody) return;
@@ -1139,7 +1244,7 @@ function renderPage() {
   const slice = _filtered;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
     document.getElementById('paginationInfo').textContent = '';
     document.getElementById('paginationLinks').innerHTML  = '';
     document.getElementById('lblNbFiltres').textContent   = '0 articles';
@@ -1148,6 +1253,9 @@ function renderPage() {
 
   tbody.innerHTML = slice.map(r => `
     <tr class="${r.resultat==='KO'?'table-danger-soft':(r.resultat==='INFO'?'table-info-soft':'')}">
+      <td class="text-center">${estCorrigible(r)
+            ? `<input type="checkbox" class="chk-article-ligne" value="${esc(r.id)}">`
+            : ''}</td>
       <td class="text-center" style="white-space:nowrap"><span class="badge bg-secondary" style="font-size:.78rem">${esc(r.magasin||'—')}</span>${_magasinNoms[r.magasin]?` <small class="text-muted" style="font-size:.72rem">${esc(_magasinNoms[r.magasin])}</small>`:''}</td>
       <td class="text-center">${r.num_assortiment
             ?`<span class="badge bg-light text-dark border" style="font-size:.78rem">${esc(r.num_assortiment)}</span>`
@@ -1178,6 +1286,12 @@ function renderPage() {
   document.getElementById('paginationInfo').textContent =
     `${start+1}–${Math.min(start+_psize, _totalRows)} sur ${_totalRows} articles`;
   document.getElementById('lblNbFiltres').textContent = _totalRows + ' articles';
+
+  // Ré-appliquer l'état coché pour les lignes déjà sélectionnées (visibles sur cette page)
+  document.querySelectorAll('.chk-article-ligne').forEach(c => {
+    c.checked = _selectionArticles.has(c.value);
+  });
+  majBarreSelection();
 
   buildPagination(_totalRows);
 }
