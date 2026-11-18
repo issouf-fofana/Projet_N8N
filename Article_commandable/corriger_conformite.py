@@ -130,8 +130,10 @@ STOP_FLAG_FILE = OUTPUT_DIR / "correction_stop.flag"
 
 
 def demander_arret():
-    """Pose un flag lu par run() entre deux articles pour arrêter proprement."""
+    """Pose un flag lu par run() entre deux articles pour arrêter proprement.
+    Retourne True si le flag a bien été écrit (vérifié par relecture)."""
     STOP_FLAG_FILE.write_text("1", encoding="utf-8")
+    return STOP_FLAG_FILE.exists()
 
 
 def _stop_requested():

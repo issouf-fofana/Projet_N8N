@@ -1519,9 +1519,19 @@ document.getElementById('btnAnnulerCorrection')?.addEventListener('click', funct
   if (!confirm('Arrêter la correction en cours ?')) return;
   this.disabled = true;
   fetch(URL_CORRIGER_ANNULER, {method: 'POST', headers: {'X-CSRFToken': getCsrfToken()}})
-    .then(r => r.json())
-    .then(() => addCorrectionLog('⏹ Demande d\'arrêt envoyée…'))
-    .catch(() => addCorrectionLog('⛔ Erreur réseau lors de la demande d\'arrêt'));
+    .then(r => r.json().then(data => ({ok: r.ok, data})))
+    .then(({ok, data}) => {
+      if (!ok) {
+        addCorrectionLog(`⛔ Échec de la demande d'arrêt : ${data.error || 'erreur inconnue'}`);
+        this.disabled = false;
+        return;
+      }
+      addCorrectionLog('⏹ Demande d\'arrêt envoyée — arrêt au prochain article…');
+    })
+    .catch(() => {
+      addCorrectionLog('⛔ Erreur réseau lors de la demande d\'arrêt');
+      this.disabled = false;
+    });
 });
 
 function getCsrfToken() {

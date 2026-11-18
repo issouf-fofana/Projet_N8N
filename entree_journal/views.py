@@ -478,9 +478,7 @@ def _correction_running():
 def _run_correction(magasins, apply_):
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
-    import importlib
     import corriger_conformite as cc
-    importlib.reload(cc)
     cc.run(magasins=magasins, apply=apply_, log=lambda *a: None)
 
 
@@ -517,9 +515,7 @@ def corriger_article_unique(request):
 
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
-    import importlib
     import corriger_conformite as cc
-    importlib.reload(cc)
 
     try:
         result = cc.corriger_un_article(article_id, apply=apply_)
@@ -539,10 +535,13 @@ def annuler_correction(request):
         return JsonResponse({"error": "Aucune correction en cours."}, status=409)
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
-    import importlib
     import corriger_conformite as cc
-    importlib.reload(cc)
-    cc.demander_arret()
+    try:
+        ok = cc.demander_arret()
+    except OSError as e:
+        return JsonResponse({"error": f"Impossible d'écrire le flag d'arrêt : {e}"}, status=500)
+    if not ok:
+        return JsonResponse({"error": "Le flag d'arrêt n'a pas pu être confirmé sur disque."}, status=500)
     return JsonResponse({"status": "stop_requested"})
 
 
@@ -561,9 +560,7 @@ def corriger_articles_multiples(request):
 
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent / "Article_commandable"))
-    import importlib
     import corriger_conformite as cc
-    importlib.reload(cc)
 
     results = []
     for article_id in ids:
