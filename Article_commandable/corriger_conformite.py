@@ -121,13 +121,32 @@ def trouver_produit(session, base_url, ean, shop_id):
     return items[0], None
 
 
-def construire_payload_rattachement_centrale(produit):
+def trouver_fournisseur_centrale(session, base_url, shop_id):
+    """
+    Trouve le fournisseur centrale (code 000000, is_central=true) du magasin
+    via api/supplier/ — il en existe UN PAR MAGASIN (id différent sur
+    chaque shop, vérifié en conditions réelles), pas un UUID global unique.
+    Retourne (objet_fournisseur, erreur).
+    """
+    url = f"{base_url}/api/supplier/"
+    try:
+        r = session.get(url, params={"code": FOURNISSEUR_CENTRALE_CODE, "shop": shop_id}, timeout=TIMEOUT)
+    except requests.RequestException as e:
+        return None, str(e)
+    if r.status_code != 200:
+        return None, f"HTTP {r.status_code}"
+    results = (r.json() or {}).get("results", [])
+    fournisseur = next((s for s in results if s.get("is_central")), results[0] if results else None)
+    if not fournisseur:
+        return None, f"Aucun fournisseur centrale (code {FOURNISSEUR_CENTRALE_CODE}) trouvé pour ce magasin"
+    return fournisseur, None
+
+
+def construire_payload_rattachement_centrale(produit, fournisseur_centrale):
     """
     Construit le payload 'suppliers' pour rattacher le fournisseur centrale
-    (code 000000) à un produit, sans retirer les fournisseurs déjà présents.
-    Le format exact attendu en écriture par RPOS n'est pas documenté — on
-    reprend la structure observée en lecture ({"name": ..., "code": ...}) et
-    on conserve toute clé déjà présente sur chaque entrée existante.
+    (objet complet récupéré via api/supplier/, avec son vrai id) à un
+    produit, sans retirer les fournisseurs déjà présents.
     """
     existants = produit.get("suppliers") or []
     if not isinstance(existants, list):
@@ -138,8 +157,15 @@ def construire_payload_rattachement_centrale(produit):
     )
     if deja_present:
         return None  # rien à faire
-    nouveaux = existants + [{"name": FOURNISSEUR_CENTRALE_NOM, "code": FOURNISSEUR_CENTRALE_CODE}]
-    return {"suppliers": nouveaux}
+    entree = {
+        "id":   fournisseur_centrale.get("id"),
+        "name": fournisseur_centrale.get("name", FOURNISSEUR_CENTRALE_NOM),
+        "code": fournisseur_centrale.get("code", FOURNISSEUR_CENTRALE_CODE),
+        "url":  fournisseur_centrale.get("url", ""),
+        "email": fournisseur_centrale.get("email", ""),
+        "delivery_time_days": fournisseur_centrale.get("delivery_time_days", 0),
+    }
+    return {"suppliers": existants + [entree]}
 
 
 def patcher_produit(session, base_url, product_id, payload):
@@ -321,8 +347,18 @@ def _run_impl(magasins=None, apply=False, log=print):
                 libelle_action = "orderable=False"
                 etat_actuel = f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}"
             else:  # rattacher_centrale
-                payload = construire_payload_rattachement_centrale(produit)
-                libelle_action = f"suppliers += {FOURNISSEUR_CENTRALE_CODE} ({FOURNISSEUR_CENTRALE_NOM})"
+                fournisseur_centrale, err_fc = trouver_fournisseur_centrale(session, pos_info["url"], pos_info["shop_id"])
+                if fournisseur_centrale is None:
+                    entry["statut"] = "erreur"
+                    entry["detail"] = err_fc
+                    mag_erreurs += 1
+                    resume["total_erreurs"] += 1
+                    log(f"  ⛔ {art.reference}  → {err_fc}")
+                    journal_articles.append(entry)
+                    derniers.append(entry)
+                    continue
+                payload = construire_payload_rattachement_centrale(produit, fournisseur_centrale)
+                libelle_action = f"suppliers += {FOURNISSEUR_CENTRALE_CODE} ({fournisseur_centrale.get('name', FOURNISSEUR_CENTRALE_NOM)})"
                 etat_actuel = f"suppliers={produit.get('suppliers')}"
                 if payload is None:
                     entry["statut"] = "ignore"
@@ -475,8 +511,11 @@ def corriger_un_article(article_id, apply=True):
         libelle_action = "orderable=False"
         etat_avant = f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}"
     else:  # rattacher_centrale
-        payload = construire_payload_rattachement_centrale(produit)
-        libelle_action = f"suppliers += {FOURNISSEUR_CENTRALE_CODE} ({FOURNISSEUR_CENTRALE_NOM})"
+        fournisseur_centrale, err_fc = trouver_fournisseur_centrale(session, pos_info["url"], pos_info["shop_id"])
+        if fournisseur_centrale is None:
+            return {"ok": False, "error": err_fc}
+        payload = construire_payload_rattachement_centrale(produit, fournisseur_centrale)
+        libelle_action = f"suppliers += {FOURNISSEUR_CENTRALE_CODE} ({fournisseur_centrale.get('name', FOURNISSEUR_CENTRALE_NOM)})"
         etat_avant = f"suppliers={produit.get('suppliers')}"
         if payload is None:
             return {"ok": False, "error": "Fournisseur centrale déjà rattaché (incohérence avec le motif KO)"}
