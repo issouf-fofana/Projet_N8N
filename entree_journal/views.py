@@ -755,12 +755,30 @@ def rapport_controle_db(request):
 
     # Stats globales
     from django.db.models import Count, Sum
-    stats = controles.aggregate(
-        total=Sum('total'), ok=Sum('ok'), ko=Sum('ko')
-    )
-    total_global = stats['total'] or 0
-    ok_global    = stats['ok'] or 0
-    ko_global    = stats['ko'] or 0
+    if magasin:
+        # Un seul magasin : les stats du contrôle reflètent déjà sa situation réelle.
+        stats = controles.aggregate(total=Sum('total'), ok=Sum('ok'), ko=Sum('ko'))
+        total_global = stats['total'] or 0
+        ok_global    = stats['ok'] or 0
+        ko_global    = stats['ko'] or 0
+    else:
+        # Tous les magasins : plusieurs magasins physiques partagent parfois le même
+        # assortiment CEGID (même fichier source), donc une même référence apparaît
+        # plusieurs fois dans la somme brute des "total" par magasin. On déduplique
+        # par référence pour que le KPI global reflète le catalogue réel, pas le
+        # nombre de vérifications magasin×article (le détail par ligne, lui, reste
+        # inchangé : chaque magasin garde sa propre situation OK/KO dans le tableau).
+        from django.db.models import Q as _Qko
+        refs = (
+            ArticleConformite.objects
+                .filter(controle__in=controles)
+                .exclude(resultat='INFO')
+                .values('reference')
+                .annotate(ko_count=Count('id', filter=_Qko(resultat='KO')))
+        )
+        total_global = len(refs)
+        ko_global    = sum(1 for r in refs if r['ko_count'] > 0)
+        ok_global    = total_global - ko_global
     taux_global  = round(ok_global / total_global * 100, 1) if total_global else 0
 
     # Compteurs par motif (pour les onglets)
