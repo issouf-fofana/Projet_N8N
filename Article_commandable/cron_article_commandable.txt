@@ -1,0 +1,38 @@
+# ─── Articles Commandables — Automatisation ──────────────────────────────────
+#
+# Variables communes
+ENV=SMB_BACKUP_PATH=/mnt/asten/Cegid/AstenProd/ReferentielPrecom/Backup
+DIR=EXPORT_DIR=/opt/Projet_N8N/Article_commandable/output
+LOG=EXPORT_DIR_LOG=/opt/Projet_N8N/Article_commandable/logs
+PY=/opt/Projet_N8N/env/bin/python3
+BASE=/opt/Projet_N8N/Article_commandable
+
+# 1) Export depuis les POS (tous les jours à 02h00)
+#    Télécharge les articles commandables depuis chaque POS → CSV dans output/
+0 2 * * * SMB_BACKUP_PATH=/mnt/asten/Cegid/AstenProd/ReferentielPrecom/Backup EXPORT_DIR=/opt/Projet_N8N/Article_commandable/output EXPORT_DIR_LOG=/opt/Projet_N8N/Article_commandable/logs /opt/Projet_N8N/env/bin/python3 /opt/Projet_N8N/Article_commandable/export_commandable.py >> /opt/Projet_N8N/Article_commandable/logs/cron_export.log 2>&1
+
+# 2) Contrôle de conformité (tous les jours à 04h00, après l'export)
+#    Lance le contrôle pour tous les magasins définis dans assortiments_magasins.json
+0 4 * * * SMB_BACKUP_PATH=/mnt/asten/Cegid/AstenProd/ReferentielPrecom/Backup EXPORT_DIR=/opt/Projet_N8N/Article_commandable/output EXPORT_DIR_LOG=/opt/Projet_N8N/Article_commandable/logs /opt/Projet_N8N/env/bin/python3 /opt/Projet_N8N/Article_commandable/cron_controle_tous.py >> /opt/Projet_N8N/Article_commandable/logs/cron_controle.log 2>&1
+
+# 3) Purge des anciens fichiers (tous les jours à 05h00, après le contrôle)
+#    Supprime les rapports et archives de plus de 30 jours
+0 5 * * * EXPORT_DIR=/opt/Projet_N8N/Article_commandable/output /opt/Projet_N8N/env/bin/python3 /opt/Projet_N8N/Article_commandable/purge_anciens_rapports.py >> /opt/Projet_N8N/Article_commandable/logs/cron_purge.log 2>&1
+
+# 4) Second contrôle de conformité (tous les jours à 08h30)
+#    Les exports de certains POS (ex: pos8, pos12, pos14) peuvent ne se
+#    terminer que vers 5h-6h, après le contrôle de 04h00 — un article
+#    modifié tard sur Asten pouvait donc apparaître à tort comme
+#    "anomalie" (KO) avec une donnée encore périmée. Ce second passage
+#    recontrôle tous les magasins une fois tous les POS certainement à
+#    jour (--wait-export patiente si un export traîne encore).
+30 8 * * * SMB_BACKUP_PATH=/mnt/asten/Cegid/AstenProd/ReferentielPrecom/Backup EXPORT_DIR=/opt/Projet_N8N/Article_commandable/output EXPORT_DIR_LOG=/opt/Projet_N8N/Article_commandable/logs /opt/Projet_N8N/env/bin/python3 /opt/Projet_N8N/Article_commandable/cron_controle_tous.py --wait-export --wait-timeout 2 >> /opt/Projet_N8N/Article_commandable/logs/cron_controle.log 2>&1
+
+# Pour installer ces crons sur le serveur :
+#   crontab -e
+# Puis coller les 4 lignes (02h00, 04h00, 05h00, 08h30).
+#
+# Vérifier les logs :
+#   tail -f /opt/Projet_N8N/Article_commandable/logs/cron_export.log
+#   tail -f /opt/Projet_N8N/Article_commandable/logs/cron_controle.log
+#   tail -f /opt/Projet_N8N/Article_commandable/logs/cron_purge.log
