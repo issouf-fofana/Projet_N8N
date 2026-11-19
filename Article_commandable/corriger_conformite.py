@@ -453,8 +453,20 @@ def corriger_un_article(article_id, apply=True):
     art.date_correction = timezone.now()
     art.action_correction = libelle_action
     art.correction_erreur = ""
-    art.save(update_fields=["corrige", "date_correction", "action_correction", "correction_erreur"])
-    return {"ok": True, "action": libelle_action}
+    # Reflète immédiatement l'effet de l'action dans l'affichage, sans attendre
+    # le prochain contrôle de conformité : l'action qu'on vient d'appliquer
+    # résout par construction l'anomalie détectée par ce motif.
+    art.present_asten = (action == "activer")
+    art.resultat = "OK"
+    art.motif = f"Corrigé — {libelle_action}"
+    art.save(update_fields=[
+        "corrige", "date_correction", "action_correction", "correction_erreur",
+        "present_asten", "resultat", "motif",
+    ])
+    return {
+        "ok": True, "action": libelle_action,
+        "present_asten": art.present_asten, "resultat": art.resultat, "motif": art.motif,
+    }
 
 
 def main():

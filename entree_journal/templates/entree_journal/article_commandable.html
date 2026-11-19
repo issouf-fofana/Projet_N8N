@@ -125,6 +125,8 @@ body { background-color: #e5e7eb !important; }
 .table-danger-soft:hover { background: rgba(239,68,68,.08) !important; }
 .table-info-soft { background: rgba(124,58,237,.04) !important; }
 .table-info-soft:hover { background: rgba(124,58,237,.08) !important; }
+.table-success-soft { background: rgba(16,185,129,.06) !important; }
+.table-success-soft:hover { background: rgba(16,185,129,.1) !important; }
 
 /* En-têtes triables */
 th.sortable {
@@ -1186,7 +1188,7 @@ document.getElementById('tbodyDetail')?.addEventListener('click', async function
         btn.innerHTML = '<i class="bi bi-wrench-adjustable"></i> Corriger';
         return;
       }
-      btn.closest('td').innerHTML = '<span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check2"></i> Corrigé</span>';
+      majLigneApresCorrection(btn.closest('tr'), data);
     })
     .catch(async () => {
       await AppModal.alert({title: 'Erreur réseau', body: 'La requête a échoué.', type: 'danger'});
@@ -1194,6 +1196,32 @@ document.getElementById('tbodyDetail')?.addEventListener('click', async function
       btn.innerHTML = '<i class="bi bi-wrench-adjustable"></i> Corriger';
     });
 });
+
+// Met à jour en direct Cmdable Asten / Résultat / Motif / Actions d'une
+// ligne venant d'être corrigée, sans attendre le prochain contrôle.
+function majLigneApresCorrection(tr, data) {
+  if (!tr) return;
+  const cells = tr.querySelectorAll('td');
+  // Index : 0 checkbox, 1 magasin, 2 assort, 3 ref, 4 libelle, 5 statut,
+  // 6 code_mak, 7 present_asten, 8 assortiment, 9 resultat, 10 motif, 11 actions
+  if (cells[0]) cells[0].innerHTML = '';
+  if (cells[7] && data.present_asten !== undefined) {
+    cells[7].innerHTML = data.present_asten
+      ? '<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Oui</span>'
+      : '<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Non</span>';
+  }
+  if (cells[9] && data.resultat) {
+    cells[9].innerHTML = '<span class="badge bg-success px-3">✓ OK</span>';
+  }
+  if (cells[10] && data.motif) {
+    cells[10].innerHTML = `<span class="text-success" style="font-size:.78rem"><i class="bi bi-check2-circle me-1"></i>${esc(data.motif)}</span>`;
+  }
+  if (cells[11]) {
+    cells[11].innerHTML = '<span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check2"></i> Corrigé</span>';
+  }
+  tr.classList.remove('table-danger-soft');
+  tr.classList.add('table-success-soft');
+}
 
 // ─── Sélection multiple d'articles ──────────────────────────────────────────
 let _selectionArticles = new Set();
