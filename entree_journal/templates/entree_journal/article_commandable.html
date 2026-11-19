@@ -488,11 +488,12 @@ th.sortable.desc::after { content: ' ↓'; opacity: .8; color: #6b4c35; }
               <th class="sortable" data-sort="present_assortiment">Assortiment</th>
               <th class="sortable" data-sort="resultat">Résultat</th>
               <th class="sortable" data-sort="motif">Motif</th>
+              <th class="sortable" data-sort="fournisseur_nom">Fournisseur</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="tbodyDetail">
-            <tr><td colspan="13" class="text-center text-muted py-4">
+            <tr><td colspan="14" class="text-center text-muted py-4">
               {% if dernier %}Chargement…{% else %}Aucun rapport disponible. Lancez un contrôle.{% endif %}
             </td></tr>
           </tbody>
@@ -852,7 +853,7 @@ function buildDBParams() {
 
 function fetchDB() {
   document.getElementById('tbodyDetail').innerHTML =
-    '<tr><td colspan="13" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
+    '<tr><td colspan="14" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</td></tr>';
 
   const params = buildDBParams();
   params.set('_ts', Date.now()); // anti-cache navigateur
@@ -861,7 +862,7 @@ function fetchDB() {
     .then(({ok, status, data}) => {
       if (!ok) {
         document.getElementById('tbodyDetail').innerHTML =
-          `<tr><td colspan="13" class="text-center text-warning py-4">
+          `<tr><td colspan="14" class="text-center text-warning py-4">
            <i class="bi bi-exclamation-triangle me-2"></i>
            ${data.error || 'Aucune donnée disponible. Lancez un contrôle pour peupler la base.'}</td></tr>`;
         return;
@@ -917,7 +918,7 @@ function fetchDB() {
     })
     .catch(() => {
       document.getElementById('tbodyDetail').innerHTML =
-        '<tr><td colspan="13" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
+        '<tr><td colspan="14" class="text-center text-danger py-4">Erreur réseau lors du chargement.</td></tr>';
     });
 }
 
@@ -1222,7 +1223,8 @@ function majLigneApresCorrection(tr, data) {
   if (!tr) return;
   const cells = tr.querySelectorAll('td');
   // Index : 0 checkbox, 1 magasin, 2 assort, 3 ref, 4 libelle, 5 statut,
-  // 6 code_mak, 7 present_asten, 8 assortiment, 9 resultat, 10 motif, 11 actions
+  // 6 code_mak, 7 present_asten, 8 assortiment, 9 resultat, 10 motif,
+  // 11 fournisseur, 12 actions
   if (cells[0]) cells[0].innerHTML = '';
   if (cells[7] && data.present_asten !== undefined) {
     cells[7].innerHTML = data.present_asten
@@ -1235,8 +1237,8 @@ function majLigneApresCorrection(tr, data) {
   if (cells[10] && data.motif) {
     cells[10].innerHTML = `<span class="text-success" style="font-size:.78rem"><i class="bi bi-check2-circle me-1"></i>${esc(data.motif)}</span>`;
   }
-  if (cells[11]) {
-    cells[11].innerHTML = '<span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check2"></i> Corrigé</span>';
+  if (cells[12]) {
+    cells[12].innerHTML = '<span class="badge bg-success" style="font-size:.7rem"><i class="bi bi-check2"></i> Corrigé</span>';
   }
   tr.classList.remove('table-danger-soft');
   tr.classList.add('table-success-soft');
@@ -1338,7 +1340,7 @@ function renderPage() {
   const slice = _filtered;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="13" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-5">Aucun article ne correspond aux filtres.</td></tr>';
     document.getElementById('paginationInfo').textContent = '';
     document.getElementById('paginationLinks').innerHTML  = '';
     document.getElementById('lblNbFiltres').textContent   = '0 articles';
@@ -1373,6 +1375,9 @@ function renderPage() {
               ?'<span class="badge px-3" style="background:#7c3aed">ℹ INFO</span>'
               :'<span class="badge bg-danger px-3">✗ KO</span>')}</td>
       <td>${motifBadge(r.motif, r.resultat)}</td>
+      <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.fournisseur_nom)}${r.fournisseur_code?' ('+esc(r.fournisseur_code)+')':''}">
+        ${r.fournisseur_nom ? esc(r.fournisseur_nom) : '<span class="text-muted">—</span>'}
+      </td>
       <td class="text-center">${actionCell(r)}</td>
     </tr>`).join('');
 
@@ -1878,7 +1883,7 @@ document.getElementById('btnExportCSV')?.addEventListener('click', async () => {
   const data = await r.json();
   const rows = data.all_rows || [];
   if (!rows.length) return;
-  const cols = ['reference','libelle','status_product','code_mak','present_asten','present_assortiment','resultat','motif','num_assortiment'];
+  const cols = ['reference','libelle','status_product','code_mak','present_asten','present_assortiment','resultat','motif','fournisseur_nom','fournisseur_code','num_assortiment'];
   const lines = [cols.join(';')];
   rows.forEach(row => lines.push(cols.map(c=>`"${String(row[c]??'').replace(/"/g,'""')}"`).join(';')));
   const blob = new Blob(['﻿'+lines.join('\n')], {type:'text/csv;charset=utf-8'});

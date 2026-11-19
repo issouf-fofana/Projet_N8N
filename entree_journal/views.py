@@ -825,6 +825,7 @@ def rapport_controle_db(request):
         'id', 'reference', 'libelle', 'status_product', 'code_mak',
         'num_assortiment', 'deref', 'present_asten',
         'present_assortiment', 'resultat', 'motif', 'absent_cegid',
+        'fournisseur_nom', 'fournisseur_code',
         'corrige', 'controle__magasin'
     )[offset:offset + page_size]
 
@@ -846,6 +847,8 @@ def rapport_controle_db(request):
             'resultat':            a['resultat'],
             'motif':               a['motif'],
             'absent_cegid':        'Oui' if a['absent_cegid'] else 'Non',
+            'fournisseur_nom':     a['fournisseur_nom'],
+            'fournisseur_code':    a['fournisseur_code'],
             'corrige':             a['corrige'],
         }
 

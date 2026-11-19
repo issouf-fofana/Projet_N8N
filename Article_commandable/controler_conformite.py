@@ -179,7 +179,11 @@ def lire_products_fusionne(backup_prefix):
 
 def lire_asten(magasin_code):
     """
-    Retourne set des codes articles présents pour ce magasin dans les CSV commandables.
+    Retourne (present, fournisseurs) pour ce magasin dans les CSV commandables :
+      present      = set des codes articles (ean) présents
+      fournisseurs = {ean: {"nom": "...", "code": "..."}} (colonnes "nom
+                     fournisseur" / "code fournisseur" du CSV ; peuvent
+                     contenir plusieurs valeurs séparées par ", ")
     Cherche dans tous les fichiers commandable_pos*.csv (tous les POS).
     """
     import re as _re
@@ -197,6 +201,7 @@ def lire_asten(magasin_code):
 
     fichiers = sorted(bases.values(), key=lambda p: p.name)
     present = set()
+    fournisseurs = {}
     for fichier in fichiers:
         with open(fichier, encoding="utf-8-sig", errors="replace") as f:
             for row in csv.DictReader(f, delimiter=";"):
@@ -205,11 +210,15 @@ def lire_asten(magasin_code):
                 ref = row.get("ean", "").strip()
                 if ref:
                     present.add(ref)
+                    fournisseurs[ref] = {
+                        "nom":  row.get("nom fournisseur", "").strip(),
+                        "code": row.get("code fournisseur", "").strip(),
+                    }
     if present:
         print(f"  Asten   : {len(fichiers)} fichiers POS — {len(present)} articles pour magasin {magasin_code}")
     else:
         print(f"  Asten   : magasin {magasin_code} introuvable dans {len(fichiers)} fichiers POS")
-    return present
+    return present, fournisseurs
 
 
 def lire_assortiment(backup_prefix, backup_dir):
@@ -305,7 +314,7 @@ def controler_magasin(magasin_code, mode_merge=None):
         return
     print(f"\n[{magasin_code}] Dossier backup : {backup_dir.name}")
 
-    asten_refs   = lire_asten(magasin_code)
+    asten_refs, asten_fournisseurs = lire_asten(magasin_code)
     assort_refs  = set(products.keys())  # l'assortiment = tous les articles connus (VG_ fusionné + prdP2A)
 
     rows = []
@@ -331,6 +340,8 @@ def controler_magasin(magasin_code, mode_merge=None):
                 deref=deref,
             )
 
+        fournisseur = asten_fournisseurs.get(ref, {})
+
         stats[resultat] = stats.get(resultat, 0) + 1
         rows.append({
             "reference":           ref,
@@ -345,6 +356,8 @@ def controler_magasin(magasin_code, mode_merge=None):
             "resultat":            resultat,
             "motif":               motif,
             "absent_cegid":        "Non",
+            "fournisseur_nom":     fournisseur.get("nom", ""),
+            "fournisseur_code":    fournisseur.get("code", ""),
         })
 
     # Articles présents dans Asten mais absents du fichier CEGID products
@@ -360,6 +373,7 @@ def controler_magasin(magasin_code, mode_merge=None):
     if n_asten_only:
         print(f"  → {n_asten_only} articles Asten absents du fichier CEGID (absent_cegid)")
     for ref in sorted(asten_only):
+        fournisseur = asten_fournisseurs.get(ref, {})
         stats["INFO"] = stats.get("INFO", 0) + 1
         rows.append({
             "reference":           ref,
@@ -374,6 +388,8 @@ def controler_magasin(magasin_code, mode_merge=None):
             "resultat":            "INFO",
             "motif":               "Absent CEGID",
             "absent_cegid":        "Oui",
+            "fournisseur_nom":     fournisseur.get("nom", ""),
+            "fournisseur_code":    fournisseur.get("code", ""),
         })
 
     info  = stats.get("INFO", 0)   # Absent CEGID — hors conformité
@@ -477,6 +493,8 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
                     resultat=r.get("resultat", ""),
                     motif=r.get("motif", ""),
                     absent_cegid=r.get("absent_cegid") == "Oui",
+                    fournisseur_nom=r.get("fournisseur_nom", "")[:255],
+                    fournisseur_code=r.get("fournisseur_code", "")[:100],
                 )
                 if ref in existantes:
                     art = existantes[ref]
@@ -492,7 +510,8 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
                     a_mettre_a_jour,
                     ["libelle", "status_product", "code_mak", "num_assortiment",
                      "deref", "present_asten", "present_assortiment",
-                     "resultat", "motif", "absent_cegid"],
+                     "resultat", "motif", "absent_cegid",
+                     "fournisseur_nom", "fournisseur_code"],
                     batch_size=500,
                 )
             # Recalculer les stats globales du contrôle
@@ -540,6 +559,8 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
                     resultat=r.get("resultat", ""),
                     motif=r.get("motif", ""),
                     absent_cegid=r.get("absent_cegid") == "Oui",
+                    fournisseur_nom=r.get("fournisseur_nom", "")[:255],
+                    fournisseur_code=r.get("fournisseur_code", "")[:100],
                 ))
             ArticleConformite.objects.bulk_create(articles, batch_size=500)
             print(f"  DB   : {len(articles)} articles insérés en base (magasin {magasin_code})")

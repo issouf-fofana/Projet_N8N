@@ -276,6 +276,8 @@ class ArticleConformite(models.Model):
     resultat         = models.CharField(max_length=20, db_index=True)  # OK / KO / INCOMPLET
     motif            = models.CharField(max_length=100, blank=True, db_index=True)
     absent_cegid     = models.BooleanField(default=False)
+    fournisseur_nom  = models.CharField(max_length=255, blank=True)
+    fournisseur_code = models.CharField(max_length=100, blank=True)
 
     corrige          = models.BooleanField(default=False, db_index=True)
     date_correction  = models.DateTimeField(null=True, blank=True)
