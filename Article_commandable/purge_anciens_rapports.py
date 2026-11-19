@@ -23,6 +23,35 @@ def purger(dossier, pattern, label):
             supprimes += 1
     print(f"  {label} : {supprimes} fichiers supprimés (>{RETENTION}j)")
 
+def purger_db():
+    """Supprime en base les anciens ControleConformite (garde le dernier par magasin + rétention).
+
+    Chaque contrôle crée un nouveau ControleConformite avec ses ArticleConformite (CASCADE).
+    Sans purge, ils s'accumulent indéfiniment et gonflent la base/l'UI.
+    """
+    sys.path.insert(0, str(BASE.parent))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
+    import django
+    django.setup()
+
+    from django.db.models import Max
+    from entree_journal.models import ControleConformite
+
+    # Le dernier contrôle de chaque magasin est toujours conservé, quelle que soit sa date.
+    derniers_ids = set(
+        ControleConformite.objects
+            .values('magasin')
+            .annotate(last_id=Max('id'))
+            .values_list('last_id', flat=True)
+    )
+
+    limite = datetime.now() - timedelta(days=RETENTION)
+    a_supprimer = ControleConformite.objects.filter(date_controle__lt=limite).exclude(id__in=derniers_ids)
+    nb = a_supprimer.count()
+    a_supprimer.delete()
+    print(f"  Base de données : {nb} contrôles (+ articles liés) supprimés (>{RETENTION}j, hors dernier par magasin)")
+
+
 def main():
     print(f"[{datetime.now():%Y-%m-%d %H:%M}] Purge — rétention {RETENTION} jours")
 
@@ -32,6 +61,12 @@ def main():
 
     # Archives des exports POS
     purger(ARCHIVE, "commandable_*.csv", "archives export")
+
+    # Anciens contrôles en base (ControleConformite + ArticleConformite liés)
+    try:
+        purger_db()
+    except Exception as e:
+        print(f"  Erreur purge DB : {e}")
 
     print(f"[{datetime.now():%Y-%m-%d %H:%M}] Purge terminée")
 

@@ -250,6 +250,7 @@ class ControleConformite(models.Model):
     ko               = models.IntegerField(default=0)
     taux_conformite  = models.FloatField(default=0)
     source_fichier   = models.CharField(max_length=255, blank=True)
+    signature_source = models.CharField(max_length=500, blank=True, db_index=True)  # identifie les fichiers CEGID réellement lus (nom+mtime) — évite de retraiter un fichier déjà analysé
 
     class Meta:
         ordering = ['-date_controle']

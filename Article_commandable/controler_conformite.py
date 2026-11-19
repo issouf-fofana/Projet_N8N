@@ -172,18 +172,27 @@ def lire_products_fusionne(backup_prefix):
     prd_dirs = sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True)
     prd_dir = next((d for d in prd_dirs if list(d.glob(f"{backup_prefix}_products_*.csv"))), None)
 
+    def _signature_fichier(dossier):
+        """Nom du fichier CSV réel lu + son mtime — identifie une version précise du fichier."""
+        fichiers = list(dossier.glob(f"{backup_prefix}_products_*.csv"))
+        if not fichiers:
+            return ""
+        f = fichiers[0]
+        return f"{dossier.name}/{f.name}@{int(f.stat().st_mtime)}"
+
     if vg_dir and prd_dir:
         base = lire_products(backup_prefix, vg_dir)
         maj = lire_products(backup_prefix, prd_dir)
         base.update(maj)  # prdP2A écrase les refs communes (donnée plus fraîche)
         print(f"  Fusion   : VG={vg_dir.name} ({len(base)-len(maj)+len(set(base)&set(maj))} base) "
               f"+ prdP2A={prd_dir.name} ({len(maj)} maj) → {len(base)} articles au total")
-        return base, (prd_dir or vg_dir)
+        signature = _signature_fichier(vg_dir) + "|" + _signature_fichier(prd_dir)
+        return base, (prd_dir or vg_dir), signature
 
     if prd_dir:
-        return lire_products(backup_prefix, prd_dir), prd_dir
+        return lire_products(backup_prefix, prd_dir), prd_dir, _signature_fichier(prd_dir)
     if vg_dir:
-        return lire_products(backup_prefix, vg_dir), vg_dir
+        return lire_products(backup_prefix, vg_dir), vg_dir, _signature_fichier(vg_dir)
 
     raise FileNotFoundError(
         f"Fichier {backup_prefix}_products_*.csv introuvable dans prdP2A_* ni VG_VERIF_PPROMO*"
@@ -314,18 +323,27 @@ def _trouver_backup_dir(backup_prefix):
     return None
 
 
-def controler_magasin(magasin_code, mode_merge=None):
+def controler_magasin(magasin_code, mode_merge=None, force=False):
     backup_prefix = MAGASIN_TO_BACKUP.get(magasin_code)
     if not backup_prefix:
         print(f"⛔ Pas de mapping backup pour magasin {magasin_code}")
         return
 
     try:
-        products, backup_dir = lire_products_fusionne(backup_prefix)
+        products, backup_dir, signature = lire_products_fusionne(backup_prefix)
     except FileNotFoundError as e:
         print(f"⛔ {e}")
         return
     print(f"\n[{magasin_code}] Dossier backup : {backup_dir.name}")
+
+    # Si le(s) fichier(s) CEGID n'ont pas changé depuis le dernier contrôle de ce magasin,
+    # inutile de retraiter (gain de temps + évite d'accumuler des ControleConformite inutiles).
+    if not force and not mode_merge:
+        from entree_journal.models import ControleConformite
+        dernier = ControleConformite.objects.filter(magasin=magasin_code).order_by('-date_controle').first()
+        if dernier and dernier.signature_source and dernier.signature_source == signature:
+            print(f"  ⏭  Fichier(s) déjà traité(s) pour {magasin_code} (identique au contrôle du {dernier.date_controle:%Y-%m-%d %H:%M}) — skip")
+            return
 
     asten_refs, asten_fournisseurs = lire_asten(magasin_code)
     assort_refs  = set(products.keys())  # l'assortiment = tous les articles connus (VG_ fusionné + prdP2A)
@@ -440,12 +458,12 @@ def controler_magasin(magasin_code, mode_merge=None):
 
     # Sauvegarde en base Django
     merge = _MODE_MERGE if mode_merge is None else mode_merge
-    _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, json_path.name, rows, mode_merge=merge)
+    _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, json_path.name, rows, mode_merge=merge, signature_source=signature)
 
     return rapport
 
 
-def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, source_fichier, rows, mode_merge=False):
+def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, source_fichier, rows, mode_merge=False, signature_source=""):
     """Insère ou remplace le dernier rapport de conformité en base Django.
 
     Si mode_merge=True : met à jour les articles existants (upsert par référence)
@@ -475,12 +493,14 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
                     total=total, ok=ok, ko=ko,
                     taux_conformite=taux,
                     source_fichier=source_fichier,
+                    signature_source=signature_source,
                 )
             else:
                 # Mettre à jour les stats avec les nouvelles données fusionnées
                 controle.date_controle = date_controle
                 controle.source_fichier = source_fichier
-                controle.save(update_fields=["date_controle", "source_fichier"])
+                controle.signature_source = signature_source
+                controle.save(update_fields=["date_controle", "source_fichier", "signature_source"])
 
             # Upsert articles : mettre à jour si la référence existe, sinon créer
             refs_nouvelles = {r.get("reference", "") for r in rows if r.get("reference")}
@@ -527,9 +547,9 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
                      "fournisseur_nom", "fournisseur_code"],
                     batch_size=500,
                 )
-            # Recalculer les stats globales du contrôle
+            # Recalculer les stats globales du contrôle (hors résultat INFO = "Absent CEGID")
             from django.db.models import Count, Q as _Q
-            stats = ArticleConformite.objects.filter(controle=controle).aggregate(
+            stats = ArticleConformite.objects.filter(controle=controle).exclude(resultat='INFO').aggregate(
                 total=Count('id'),
                 ok=Count('id', filter=_Q(resultat='OK')),
                 ko=Count('id', filter=_Q(resultat='KO')),
@@ -554,6 +574,7 @@ def _sauvegarder_en_base(magasin_code, backup_prefix, ts, total, ok, ko, taux, s
                 total=total, ok=ok, ko=ko,
                 taux_conformite=taux,
                 source_fichier=source_fichier,
+                signature_source=signature_source,
             )
 
             articles = []
@@ -589,6 +610,7 @@ if __name__ == "__main__":
     parser.add_argument("--vg-cache", default="", help="Fichier cache VG refs précalculé")
     parser.add_argument("--backup-dir", default="", help="Forcer un dossier backup spécifique (ex: prdP2A_2026-11-11_23h00m01s)")
     parser.add_argument("--merge", action="store_true", help="Fusionner avec les données existantes (upsert) au lieu de remplacer")
+    parser.add_argument("--force", action="store_true", help="Retraiter même si le(s) fichier(s) CEGID n'ont pas changé depuis le dernier contrôle")
     args = parser.parse_args()
 
     if args.merge:
@@ -613,4 +635,4 @@ if __name__ == "__main__":
     django.setup()
 
     for mag in args.magasins:
-        controler_magasin(mag)
+        controler_magasin(mag, force=args.force)

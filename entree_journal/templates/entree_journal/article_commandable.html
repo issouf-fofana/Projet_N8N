@@ -10,6 +10,26 @@ body { background-color: #e5e7eb !important; }
 /* Le dropdown magasins doit pouvoir déborder de la carte (sinon coupé par overflow:hidden) */
 #cardFormulaireCorrection { overflow: visible; }
 
+/* Tableau des articles : forcer un scroll horizontal visible quand les colonnes débordent */
+#tableDetail {
+    min-width: 1400px;
+}
+.table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+.table-responsive::-webkit-scrollbar {
+    height: 10px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+    border-radius: 5px;
+}
+.table-responsive::-webkit-scrollbar-track {
+    background: #f3f4f6;
+}
+
 /* 5 colonnes égales à partir de xl (Bootstrap n'a pas de col-xl-2.4 natif) */
 @media (min-width: 1200px) {
     .col-xl-2dot4 { flex: 0 0 auto; width: 20%; }
