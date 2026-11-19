@@ -140,6 +140,43 @@ def lire_products(backup_prefix, backup_dir):
     return result
 
 
+def lire_products_fusionne(backup_prefix):
+    """
+    Fusionne les deux sources CEGID pour ce backup_prefix :
+      - VG_VERIF_* : référentiel GLOBAL (tous les articles de l'assortiment,
+        généré manuellement, pas toujours présent)
+      - prdP2A_*   : export PARTIEL quotidien automatique (seulement les
+        articles modifiés/à jour du jour)
+
+    VG_ sert de base complète ; prdP2A_ vient ensuite écraser/compléter par
+    référence les articles qu'il contient (données plus fraîches pour ceux-là).
+    Si un seul des deux existe, on retourne simplement celui-là.
+    """
+    vg_dirs = sorted(SMB_BACKUP.glob("VG_VERIF_PPROMO*"),
+                     key=lambda p: p.stat().st_mtime, reverse=True)
+    vg_dir = next((d for d in vg_dirs if list(d.glob(f"{backup_prefix}_products_*.csv"))), None)
+
+    prd_dirs = sorted(SMB_BACKUP.glob("prdP2A_*"), reverse=True)
+    prd_dir = next((d for d in prd_dirs if list(d.glob(f"{backup_prefix}_products_*.csv"))), None)
+
+    if vg_dir and prd_dir:
+        base = lire_products(backup_prefix, vg_dir)
+        maj = lire_products(backup_prefix, prd_dir)
+        base.update(maj)  # prdP2A écrase les refs communes (donnée plus fraîche)
+        print(f"  Fusion   : VG={vg_dir.name} ({len(base)-len(maj)+len(set(base)&set(maj))} base) "
+              f"+ prdP2A={prd_dir.name} ({len(maj)} maj) → {len(base)} articles au total")
+        return base, (prd_dir or vg_dir)
+
+    if prd_dir:
+        return lire_products(backup_prefix, prd_dir), prd_dir
+    if vg_dir:
+        return lire_products(backup_prefix, vg_dir), vg_dir
+
+    raise FileNotFoundError(
+        f"Fichier {backup_prefix}_products_*.csv introuvable dans prdP2A_* ni VG_VERIF_PPROMO*"
+    )
+
+
 def lire_asten(magasin_code):
     """
     Retourne set des codes articles présents pour ce magasin dans les CSV commandables.
@@ -261,15 +298,15 @@ def controler_magasin(magasin_code, mode_merge=None):
         print(f"⛔ Pas de mapping backup pour magasin {magasin_code}")
         return
 
-    backup_dir = _trouver_backup_dir(backup_prefix)
-    if not backup_dir:
-        print(f"⛔ Fichier {backup_prefix}_products_*.csv introuvable dans prdP2A_* ni VG_VERIF_PPROMO2")
+    try:
+        products, backup_dir = lire_products_fusionne(backup_prefix)
+    except FileNotFoundError as e:
+        print(f"⛔ {e}")
         return
     print(f"\n[{magasin_code}] Dossier backup : {backup_dir.name}")
 
-    products     = lire_products(backup_prefix, backup_dir)
     asten_refs   = lire_asten(magasin_code)
-    assort_refs  = lire_assortiment(backup_prefix, backup_dir)
+    assort_refs  = set(products.keys())  # l'assortiment = tous les articles connus (VG_ fusionné + prdP2A)
 
     rows = []
     stats = {"OK": 0, "KO": 0}
