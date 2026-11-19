@@ -40,7 +40,27 @@ def tous_les_magasins():
     for magasins in data.values():
         for m in magasins:
             codes.append(m["code_magasin"])
-    return sorted(set(codes))
+    codes = sorted(set(codes))
+
+    # Exclure les magasins décochés "Contrôle conformité" (paramètre Gestion des magasins)
+    try:
+        import django
+        import django.apps
+        root = Path(__file__).resolve().parent.parent
+        if str(root) not in sys.path:
+            sys.path.insert(0, str(root))
+        import os as _os
+        _os.environ.setdefault("DJANGO_SETTINGS_MODULE", "verification_commande.settings")
+        if not django.apps.apps.ready:
+            django.setup()
+        from core.models import Magasin
+        exclus = set(Magasin.objects.filter(controle_conformite=False).values_list("code", flat=True))
+        if exclus:
+            codes = [c for c in codes if c not in exclus]
+    except Exception as e:
+        log(f"  ⚠️  Impossible de filtrer les magasins exclus (Django) : {e}")
+
+    return codes
 
 def controler_un(code, counter, total, vg_cache="", backup_dir="", merge=False):
     cmd = [sys.executable, str(CONTROLE_SCRIPT), code, "--vg-cache", vg_cache]

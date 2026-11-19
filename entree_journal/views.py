@@ -318,7 +318,14 @@ def _get_magasins():
     for backup_code, liste in data.items():
         for m in liste:
             magasins.append({"code": m["code_magasin"], "nom": m["nom_magasin"]})
-    return sorted(magasins, key=lambda x: x["code"])
+    magasins = sorted(magasins, key=lambda x: x["code"])
+
+    # Exclure les magasins décochés "Contrôle conformité" (paramètre Gestion des magasins)
+    from core.models import Magasin
+    exclus = set(Magasin.objects.filter(controle_conformite=False).values_list("code", flat=True))
+    if exclus:
+        magasins = [m for m in magasins if m["code"] not in exclus]
+    return magasins
 
 
 def _get_magasin_to_backup():
@@ -719,6 +726,13 @@ def rapport_controle_db(request):
         'motif': 'motif',
     }
 
+    # Magasins exclus du suivi conformité (paramètre Gestion des magasins)
+    from core.models import Magasin
+    magasins_exclus = set(Magasin.objects.filter(controle_conformite=False).values_list("code", flat=True))
+
+    if magasin and magasin in magasins_exclus:
+        return JsonResponse({"error": f"Le magasin {magasin} est exclu du suivi conformité."}, status=404)
+
     # Récupérer le(s) contrôle(s) le(s) plus récent(s)
     from django.db.models import Max
     if magasin:
@@ -727,9 +741,10 @@ def rapport_controle_db(request):
             return JsonResponse({"error": f"Aucun rapport en base pour magasin {magasin}"}, status=404)
         controles = ControleConformite.objects.filter(id=dernier.id)
     else:
-        # Un seul contrôle par magasin (le plus récent)
+        # Un seul contrôle par magasin (le plus récent), hors magasins exclus
         derniers_ids = list(
             ControleConformite.objects
+                .exclude(magasin__in=magasins_exclus)
                 .values('magasin')
                 .annotate(last_id=Max('id'))
                 .values_list('last_id', flat=True)

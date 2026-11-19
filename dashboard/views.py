@@ -3544,6 +3544,7 @@ def gestion_magasins(request):
                     magasin.full_asten = request.POST.get('full_asten') == '1'
                     magasin.magasin_asten = request.POST.get('magasin_asten') == '1'
                     magasin.magasin_br = request.POST.get('magasin_br') == '1'
+                    magasin.controle_conformite = request.POST.get('controle_conformite') == '1'
                     nouvel_exclu = request.POST.get('exclure_factures') == '1'
                     ancien_exclu = magasin.exclure_factures
                     magasin.exclure_factures = nouvel_exclu
@@ -3584,6 +3585,12 @@ def gestion_magasins(request):
             label = "cochés" if val else "décochés"
             messages.success(request, f"Tous les magasins ont été {label} (Magasin BR).")
             return redirect('dashboard:gestion_magasins')
+        elif action == 'toggle_controle_conformite':
+            val = request.POST.get('controle_conformite_val') == '1'
+            Magasin.objects.all().update(controle_conformite=val)
+            label = "cochés" if val else "décochés"
+            messages.success(request, f"Tous les magasins ont été {label} (Contrôle conformité).")
+            return redirect('dashboard:gestion_magasins')
         elif action == 'toggle_one':
             # Basculer Full Asten ou exclure_factures d'un seul magasin (appel AJAX)
             field = request.POST.get('field', 'full_asten')
@@ -3622,6 +3629,11 @@ def gestion_magasins(request):
                         magasin.save()
                         from django.http import JsonResponse
                         return JsonResponse({'ok': True, 'magasin_br': magasin.magasin_br})
+                    elif field == 'controle_conformite':
+                        magasin.controle_conformite = not magasin.controle_conformite
+                        magasin.save()
+                        from django.http import JsonResponse
+                        return JsonResponse({'ok': True, 'controle_conformite': magasin.controle_conformite})
                     else:
                         magasin.full_asten = not magasin.full_asten
                         magasin.save()
@@ -3642,7 +3654,8 @@ def gestion_magasins(request):
                     exclure_factures = request.POST.get('exclure_factures') == '1'
                     magasin_asten = request.POST.get('magasin_asten') == '1'
                     magasin_br = request.POST.get('magasin_br') == '1'
-                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten, exclure_factures=exclure_factures, magasin_asten=magasin_asten, magasin_br=magasin_br)
+                    controle_conformite = request.POST.get('controle_conformite') == '1'
+                    Magasin.objects.create(code=code, nom=nom, full_asten=full_asten, exclure_factures=exclure_factures, magasin_asten=magasin_asten, magasin_br=magasin_br, controle_conformite=controle_conformite)
                     messages.success(request, f"Magasin {code} - {nom} ajouté avec succès.")
                     return redirect('dashboard:gestion_magasins')
                 except IntegrityError:
@@ -3658,6 +3671,7 @@ def gestion_magasins(request):
             'nb_full_asten': magasins.filter(full_asten=True).count(),
             'nb_magasin_asten': magasins.filter(magasin_asten=True).count(),
             'nb_magasin_br': magasins.filter(magasin_br=True).count(),
+            'nb_controle_conformite': magasins.filter(controle_conformite=True).count(),
         },
     )
 
