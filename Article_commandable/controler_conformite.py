@@ -48,7 +48,10 @@ MAGASIN_TO_BACKUP = build_magasin_to_backup()
 
 # ─── Moteur de conformité ────────────────────────────────────────────────────
 
-def controler_article(status_product, code_mak, present_asten, actif_asten, present_assortiment, deref=False):
+FOURNISSEUR_CENTRALE_CODE = "000000"
+
+
+def controler_article(status_product, code_mak, present_asten, actif_asten, present_assortiment, deref=False, fournisseur_code=""):
     """
     Règles de commandabilité à la centrale (source: tableau référentiel Prosuma) :
       AC/CC  → commandable si actif dans l'assortiment (Asten = canal de commande, pas critère d'éligibilité)
@@ -59,7 +62,15 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
       NC/CC  → commandable si actif dans l'assortiment
       NC/CD  → commandable si actif dans l'assortiment
       NC/LD  → NON commandable
+
+    En plus : pour AC/CC et AC/CD, le fournisseur centrale (code 000000)
+    doit obligatoirement être rattaché à l'article sur RPOS — CC = commandable
+    UNIQUEMENT à la centrale, CD = commandable à la centrale ET ailleurs,
+    mais dans les deux cas la centrale doit être rattachée.
     """
+    def _centrale_rattachee():
+        codes = [c.strip() for c in (fournisseur_code or "").split(",")]
+        return FOURNISSEUR_CENTRALE_CODE in codes
     # Déréférencé dans CEGID : KO seulement si encore commandable dans Asten (anomalie)
     if deref:
         if present_asten:
@@ -75,6 +86,8 @@ def controler_article(status_product, code_mak, present_asten, actif_asten, pres
             return "OK", "Absent assortiment (non cmdable Asten)"
         if not present_asten:
             return "KO", "Non commandable Asten"
+        if code_mak in ("CC", "CD") and not _centrale_rattachee():
+            return "KO", "Fournisseur centrale non rattaché"
         return "OK", f"Commandable ({code_mak})"
 
     elif status_product == "ES":
@@ -328,6 +341,7 @@ def controler_magasin(magasin_code, mode_merge=None):
         present_asten      = ref in asten_refs
         actif_asten        = present_asten
         present_assortiment = (ref in assort_refs) if assort_refs is not None else None
+        fournisseur        = asten_fournisseurs.get(ref, {})
 
         if not deref and present_assortiment is None:
             resultat = "INCOMPLET"
@@ -338,9 +352,8 @@ def controler_magasin(magasin_code, mode_merge=None):
                 present_asten, actif_asten,
                 present_assortiment,
                 deref=deref,
+                fournisseur_code=fournisseur.get("code", ""),
             )
-
-        fournisseur = asten_fournisseurs.get(ref, {})
 
         stats[resultat] = stats.get(resultat, 0) + 1
         rows.append({

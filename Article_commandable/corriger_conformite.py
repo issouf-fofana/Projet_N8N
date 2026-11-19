@@ -57,6 +57,9 @@ MOTIFS_A_RENDRE_COMMANDABLE = {"Non commandable Asten"}
 MOTIFS_A_RENDRE_NON_COMMANDABLE = {
     "Statut NA", "Statut ES", "Déréférencé", "NC/LD", "Absent assortiment",
 }
+MOTIFS_A_RATTACHER_CENTRALE = {"Fournisseur centrale non rattaché"}
+FOURNISSEUR_CENTRALE_CODE = "000000"
+FOURNISSEUR_CENTRALE_NOM  = "CENTRALE"
 
 
 def write_progress(state: dict):
@@ -93,11 +96,13 @@ def make_session():
 
 
 def determiner_action(motif):
-    """Retourne 'activer', 'desactiver' ou None si motif non géré automatiquement."""
+    """Retourne 'activer', 'desactiver', 'rattacher_centrale' ou None si motif non géré automatiquement."""
     if motif in MOTIFS_A_RENDRE_COMMANDABLE:
         return "activer"
     if motif in MOTIFS_A_RENDRE_NON_COMMANDABLE:
         return "desactiver"
+    if motif in MOTIFS_A_RATTACHER_CENTRALE:
+        return "rattacher_centrale"
     return None
 
 
@@ -114,6 +119,27 @@ def trouver_produit(session, base_url, ean, shop_id):
     if not items:
         return None, "Introuvable sur RPOS"
     return items[0], None
+
+
+def construire_payload_rattachement_centrale(produit):
+    """
+    Construit le payload 'suppliers' pour rattacher le fournisseur centrale
+    (code 000000) à un produit, sans retirer les fournisseurs déjà présents.
+    Le format exact attendu en écriture par RPOS n'est pas documenté — on
+    reprend la structure observée en lecture ({"name": ..., "code": ...}) et
+    on conserve toute clé déjà présente sur chaque entrée existante.
+    """
+    existants = produit.get("suppliers") or []
+    if not isinstance(existants, list):
+        existants = []
+    deja_present = any(
+        str(s.get("code", "")).strip() == FOURNISSEUR_CENTRALE_CODE
+        for s in existants if isinstance(s, dict)
+    )
+    if deja_present:
+        return None  # rien à faire
+    nouveaux = existants + [{"name": FOURNISSEUR_CENTRALE_NOM, "code": FOURNISSEUR_CENTRALE_CODE}]
+    return {"suppliers": nouveaux}
 
 
 def patcher_produit(session, base_url, product_id, payload):
@@ -272,14 +298,6 @@ def _run_impl(magasins=None, apply=False, log=print):
                 journal_articles.append(entry)
                 continue
 
-            if action == "activer":
-                payload = {"orderable": True, "blocked": False}
-                libelle_action = "orderable=True, blocked=False"
-            else:
-                payload = {"orderable": False}
-                libelle_action = "orderable=False"
-            entry["action"] = libelle_action
-
             produit, err = trouver_produit(session, pos_info["url"], art.reference, pos_info["shop_id"])
             if produit is None:
                 entry["statut"] = "erreur"
@@ -294,7 +312,26 @@ def _run_impl(magasins=None, apply=False, log=print):
                 derniers.append(entry)
                 continue
 
-            etat_actuel = f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}"
+            if action == "activer":
+                payload = {"orderable": True, "blocked": False}
+                libelle_action = "orderable=True, blocked=False"
+                etat_actuel = f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}"
+            elif action == "desactiver":
+                payload = {"orderable": False}
+                libelle_action = "orderable=False"
+                etat_actuel = f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}"
+            else:  # rattacher_centrale
+                payload = construire_payload_rattachement_centrale(produit)
+                libelle_action = f"suppliers += {FOURNISSEUR_CENTRALE_CODE} ({FOURNISSEUR_CENTRALE_NOM})"
+                etat_actuel = f"suppliers={produit.get('suppliers')}"
+                if payload is None:
+                    entry["statut"] = "ignore"
+                    entry["detail"] = "Fournisseur centrale déjà rattaché (incohérence avec le motif KO)"
+                    mag_ignores += 1
+                    resume["total_ignores"] += 1
+                    journal_articles.append(entry)
+                    continue
+            entry["action"] = libelle_action
             entry["etat_avant"] = etat_actuel
 
             if apply:
@@ -421,13 +458,6 @@ def corriger_un_article(article_id, apply=True):
     if not pos_info:
         return {"ok": False, "error": f"Pas de mapping POS pour le magasin {magasin}"}
 
-    if action == "activer":
-        payload = {"orderable": True, "blocked": False}
-        libelle_action = "orderable=True, blocked=False"
-    else:
-        payload = {"orderable": False}
-        libelle_action = "orderable=False"
-
     session = make_session()
     produit, err = trouver_produit(session, pos_info["url"], art.reference, pos_info["shop_id"])
     if produit is None:
@@ -436,12 +466,23 @@ def corriger_un_article(article_id, apply=True):
             art.save(update_fields=["correction_erreur"])
         return {"ok": False, "error": err}
 
+    if action == "activer":
+        payload = {"orderable": True, "blocked": False}
+        libelle_action = "orderable=True, blocked=False"
+        etat_avant = f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}"
+    elif action == "desactiver":
+        payload = {"orderable": False}
+        libelle_action = "orderable=False"
+        etat_avant = f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}"
+    else:  # rattacher_centrale
+        payload = construire_payload_rattachement_centrale(produit)
+        libelle_action = f"suppliers += {FOURNISSEUR_CENTRALE_CODE} ({FOURNISSEUR_CENTRALE_NOM})"
+        etat_avant = f"suppliers={produit.get('suppliers')}"
+        if payload is None:
+            return {"ok": False, "error": "Fournisseur centrale déjà rattaché (incohérence avec le motif KO)"}
+
     if not apply:
-        return {
-            "ok": True, "dry_run": True,
-            "action": libelle_action,
-            "etat_avant": f"orderable={produit.get('orderable')}, blocked={produit.get('blocked')}",
-        }
+        return {"ok": True, "dry_run": True, "action": libelle_action, "etat_avant": etat_avant}
 
     ok, err = patcher_produit(session, pos_info["url"], produit["id"], payload)
     if not ok:
@@ -456,7 +497,8 @@ def corriger_un_article(article_id, apply=True):
     # Reflète immédiatement l'effet de l'action dans l'affichage, sans attendre
     # le prochain contrôle de conformité : l'action qu'on vient d'appliquer
     # résout par construction l'anomalie détectée par ce motif.
-    art.present_asten = (action == "activer")
+    if action in ("activer", "desactiver"):
+        art.present_asten = (action == "activer")
     art.resultat = "OK"
     art.motif = f"Corrigé — {libelle_action}"
     art.save(update_fields=[
