@@ -323,6 +323,21 @@ def _trouver_backup_dir(backup_prefix):
     return None
 
 
+def _signature_asten(magasin_code):
+    """Signature (fichiers + mtime) des commandable_pos*.csv utilisés par lire_asten()
+    pour ce magasin — permet de détecter qu'Asten a changé même si CEGID n'a pas bougé
+    (ex: une correction RPOS qui doit être prise en compte au prochain contrôle)."""
+    import re as _re
+    tous = list(OUTPUT_DIR.glob("commandable_pos*.csv"))
+    bases = {}
+    for p in tous:
+        base = _re.sub(r'_\d{8}_\d{6}$', '', p.stem)
+        if base not in bases or p.stat().st_mtime > bases[base].stat().st_mtime:
+            bases[base] = p
+    parts = sorted(f"{p.name}@{int(p.stat().st_mtime)}" for p in bases.values())
+    return "|".join(parts)
+
+
 def controler_magasin(magasin_code, mode_merge=None, force=False):
     backup_prefix = MAGASIN_TO_BACKUP.get(magasin_code)
     if not backup_prefix:
@@ -330,14 +345,18 @@ def controler_magasin(magasin_code, mode_merge=None, force=False):
         return
 
     try:
-        products, backup_dir, signature = lire_products_fusionne(backup_prefix)
+        products, backup_dir, signature_cegid = lire_products_fusionne(backup_prefix)
     except FileNotFoundError as e:
         print(f"⛔ {e}")
         return
     print(f"\n[{magasin_code}] Dossier backup : {backup_dir.name}")
 
-    # Si le(s) fichier(s) CEGID n'ont pas changé depuis le dernier contrôle de ce magasin,
-    # inutile de retraiter (gain de temps + évite d'accumuler des ControleConformite inutiles).
+    signature = signature_cegid + "||ASTEN:" + _signature_asten(magasin_code)
+
+    # Si ni les fichiers CEGID ni les fichiers Asten (POS) n'ont changé depuis le dernier
+    # contrôle de ce magasin, inutile de retraiter (gain de temps + évite d'accumuler des
+    # ControleConformite inutiles). Une correction RPOS modifie le fichier Asten, donc elle
+    # change la signature et force bien un recalcul au prochain contrôle.
     if not force and not mode_merge:
         from entree_journal.models import ControleConformite
         dernier = ControleConformite.objects.filter(magasin=magasin_code).order_by('-date_controle').first()
