@@ -469,6 +469,9 @@ _correction_lock   = threading.Lock()
 _correction_thread = None
 
 
+CORRECTION_STALE_SECONDS = 300  # si le fichier de progression n'a pas bougé depuis 5 min, on le considère mort
+
+
 def _correction_running():
     with _correction_lock:
         if _correction_thread is not None and _correction_thread.is_alive():
@@ -476,7 +479,21 @@ def _correction_running():
     if CORRECTION_PROGRESS_F.exists():
         try:
             d = json.loads(CORRECTION_PROGRESS_F.read_text(encoding="utf-8"))
-            return bool(d.get("running"))
+            if not d.get("running"):
+                return False
+            # Le thread qui écrivait ce fichier est mort sans nettoyer son état
+            # (ex: redémarrage du service) — un fichier "running" trop ancien est
+            # un résidu, pas une correction active.
+            age = time.time() - CORRECTION_PROGRESS_F.stat().st_mtime
+            if age > CORRECTION_STALE_SECONDS:
+                d["running"] = False
+                d["finished"] = True
+                try:
+                    CORRECTION_PROGRESS_F.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+                except Exception:
+                    pass
+                return False
+            return True
         except Exception:
             pass
     return False
