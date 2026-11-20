@@ -783,13 +783,32 @@ def rapport_controle_db(request):
 
     # Compteurs par motif (pour les onglets)
     articles_qs = ArticleConformite.objects.filter(controle__in=controles)
-    motifs_counts = dict(
-        articles_qs.filter(resultat='KO')
-                   .values('motif')
-                   .annotate(n=Count('id'))
-                   .values_list('motif', 'n')
-    )
-    info_count = articles_qs.filter(resultat='INFO').count()
+    if magasin:
+        motifs_counts = dict(
+            articles_qs.filter(resultat='KO')
+                       .values('motif')
+                       .annotate(n=Count('id'))
+                       .values_list('motif', 'n')
+        )
+        info_count = articles_qs.filter(resultat='INFO').count()
+    else:
+        # Même déduplication par référence que pour ko_global ci-dessus, sinon les
+        # compteurs par motif (onglets) ne correspondent plus au total KO affiché.
+        # Une référence peut avoir le même motif dans plusieurs magasins partageant
+        # l'assortiment : on ne la compte qu'une fois, avec le premier motif rencontré.
+        vu = set()
+        motifs_counts = {}
+        for ref, mot in (
+            articles_qs.filter(resultat='KO')
+                       .order_by('reference', 'id')
+                       .values_list('reference', 'motif')
+        ):
+            if ref in vu:
+                continue
+            vu.add(ref)
+            motifs_counts[mot] = motifs_counts.get(mot, 0) + 1
+        info_refs = set(articles_qs.filter(resultat='INFO').values_list('reference', flat=True))
+        info_count = len(info_refs - vu)
 
     # Filtres
     if resultat:
