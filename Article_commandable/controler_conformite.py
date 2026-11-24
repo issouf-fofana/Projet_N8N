@@ -324,10 +324,13 @@ def _trouver_backup_dir(backup_prefix):
 
 
 def _signature_asten(magasin_code):
-    """Signature (fichiers + mtime) des commandable_pos*.csv utilisés par lire_asten()
-    pour ce magasin — permet de détecter qu'Asten a changé même si CEGID n'a pas bougé
-    (ex: une correction RPOS qui doit être prise en compte au prochain contrôle)."""
+    """Signature (hash des fichiers + mtime) des commandable_pos*.csv utilisés par
+    lire_asten() — permet de détecter qu'Asten a changé même si CEGID n'a pas bougé
+    (ex: une correction RPOS qui doit être prise en compte au prochain contrôle).
+    Hashée (pas de concaténation brute) car avec 18 POS la liste complète dépasse
+    largement la taille d'une colonne DB raisonnable."""
     import re as _re
+    import hashlib as _hashlib
     tous = list(OUTPUT_DIR.glob("commandable_pos*.csv"))
     bases = {}
     for p in tous:
@@ -335,7 +338,8 @@ def _signature_asten(magasin_code):
         if base not in bases or p.stat().st_mtime > bases[base].stat().st_mtime:
             bases[base] = p
     parts = sorted(f"{p.name}@{int(p.stat().st_mtime)}" for p in bases.values())
-    return "|".join(parts)
+    raw = "|".join(parts)
+    return _hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def controler_magasin(magasin_code, mode_merge=None, force=False):
