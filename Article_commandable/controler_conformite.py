@@ -134,22 +134,28 @@ def lire_products(backup_prefix, backup_dir):
     pattern = list(backup_dir.glob(f"{backup_prefix}_products_*.csv"))
     if not pattern:
         raise FileNotFoundError(f"Fichier {backup_prefix}_products_*.csv introuvable dans {backup_dir}")
-    fichier = sorted(pattern)[-1]
-    print(f"  Product : {fichier.name}")
+    # Un même dossier peut contenir plusieurs exports du même jour (plusieurs
+    # fichiers 030_products_*.csv horodatés différemment) : on les fusionne tous,
+    # du plus ancien au plus récent (par mtime), le plus récent écrasant les
+    # références communes des précédents — au lieu de ne garder qu'un seul fichier
+    # et de perdre silencieusement les mises à jour des autres.
+    fichiers = sorted(pattern, key=lambda p: p.stat().st_mtime)
     result = {}
-    with open(fichier, encoding="utf-8", errors="replace") as f:
-        for row in csv.reader(f, delimiter=";"):
-            if len(row) < 16:
-                continue
-            deref    = row[0].strip() == "D"  # col0 : D = déréférencé
-            code_art = row[4].strip()          # code article POS, 9 chiffres
-            label    = row[6].strip()
-            status   = row[10].strip()
-            code_mak = row[15].strip()
-            if code_art and status:            # ignorer les lignes sans code ou statut
-                result[code_art] = {"label": label, "status": status, "code_mak": code_mak, "deref": deref}
+    for fichier in fichiers:
+        print(f"  Product : {fichier.name}")
+        with open(fichier, encoding="utf-8", errors="replace") as f:
+            for row in csv.reader(f, delimiter=";"):
+                if len(row) < 16:
+                    continue
+                deref    = row[0].strip() == "D"  # col0 : D = déréférencé
+                code_art = row[4].strip()          # code article POS, 9 chiffres
+                label    = row[6].strip()
+                status   = row[10].strip()
+                code_mak = row[15].strip()
+                if code_art and status:            # ignorer les lignes sans code ou statut
+                    result[code_art] = {"label": label, "status": status, "code_mak": code_mak, "deref": deref}
     n_deref = sum(1 for v in result.values() if v["deref"])
-    print(f"  → {len(result)} articles Product (clé=code_article col4) dont {n_deref} déréférencés")
+    print(f"  → {len(result)} articles Product (clé=code_article col4, {len(fichiers)} fichier(s) fusionné(s)) dont {n_deref} déréférencés")
     return result
 
 
@@ -173,12 +179,13 @@ def lire_products_fusionne(backup_prefix):
     prd_dir = next((d for d in prd_dirs if list(d.glob(f"{backup_prefix}_products_*.csv"))), None)
 
     def _signature_fichier(dossier):
-        """Nom du fichier CSV réel lu + son mtime — identifie une version précise du fichier."""
-        fichiers = list(dossier.glob(f"{backup_prefix}_products_*.csv"))
+        """Nom+mtime de TOUS les fichiers CSV réellement lus dans ce dossier (il peut
+        y en avoir plusieurs, voir lire_products) — identifie précisément leur version."""
+        fichiers = sorted(dossier.glob(f"{backup_prefix}_products_*.csv"), key=lambda p: p.name)
         if not fichiers:
             return ""
-        f = fichiers[0]
-        return f"{dossier.name}/{f.name}@{int(f.stat().st_mtime)}"
+        parts = [f"{dossier.name}/{f.name}@{int(f.stat().st_mtime)}" for f in fichiers]
+        return "|".join(parts)
 
     if vg_dir and prd_dir:
         base = lire_products(backup_prefix, vg_dir)
